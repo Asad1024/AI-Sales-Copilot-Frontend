@@ -1,0 +1,34 @@
+{
+  "name": "sparkai-sales-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "dev:next": "next dev",
+    "build": "next build",
+    "start": "node server.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@types/react-window": "^1.8.8",
+    "axios": "^1.7.4",
+    "next": "14.2.25",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-window": "^2.2.3",
+    "socket.io-client": "^4.8.1",
+    "swr": "^2.2.5",
+    "zustand": "^5.0.9"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.9.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "typescript": "^5.6.3"
+  }
+}

@@ -64,7 +64,7 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
     
     setAssigning(true);
     try {
-      await updateLead(lead.id, { owner_id: ownerId ?? null });
+      await updateLead(lead.id, { owner_id: ownerId === null ? undefined : ownerId });
       if (activeBaseId) {
         await fetchLeads(activeBaseId, pagination.currentPage, pagination.leadsPerPage);
       }

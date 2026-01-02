@@ -248,7 +248,10 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
           role: response.lead.role || '',
           industry: response.lead.industry || '',
           region: response.lead.region || '',
-          linkedin_url: getLinkedInUrl(enrichmentData) || ''
+          linkedin_url: getLinkedInUrl(enrichmentData) || '',
+          score: response.lead.score ?? '',
+          tier: response.lead.tier || '',
+          notes: response.lead.notes || ''
         });
         
         // Call onEnrich callback to refresh parent data
@@ -732,7 +735,10 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       role: currentLead.role || '',
                       industry: currentLead.industry || '',
                       region: currentLead.region || '',
-                      linkedin_url: getLinkedInUrl(enrichmentData) || ''
+                      linkedin_url: getLinkedInUrl(enrichmentData) || '',
+                      score: currentLead.score ?? '',
+                      tier: currentLead.tier || '',
+                      notes: currentLead.notes || ''
                     });
                   }}
                   style={{

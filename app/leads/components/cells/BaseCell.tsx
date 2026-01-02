@@ -64,7 +64,11 @@ export function BaseCell({ column, lead, value, onUpdate, editable = true }: Bas
           value={value}
           onUpdate={handleUpdate}
           editable={editable}
-          options={Array.isArray(column.config?.options) ? column.config.options : []}
+          options={Array.isArray(column.config?.options) 
+            ? column.config.options.filter((opt: any): opt is { value: string; label: string; color: string } => 
+                typeof opt === 'object' && opt !== null && 'value' in opt && 'label' in opt && 'color' in opt
+              )
+            : []}
         />
       );
     

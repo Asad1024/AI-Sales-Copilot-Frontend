@@ -568,7 +568,6 @@ export function AICommandCenter() {
                 setShowQuickActions(false);
               }} style={{ cursor: 'pointer' }}>
                 <div className="node-head">
-                  <span className="node-icon">{action.icon}</span>
                   <span>{action.title}</span>
                 </div>
                 <div className="node-desc">{action.description}</div>

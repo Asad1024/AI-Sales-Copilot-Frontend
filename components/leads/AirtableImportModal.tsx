@@ -424,9 +424,6 @@ export function AirtableImportModal({
                     }}
                   >
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>{table.name}</div>
-                    {table.description && (
-                      <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{table.description}</div>
-                    )}
                   </button>
                 ))}
               </div>

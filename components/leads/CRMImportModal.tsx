@@ -90,23 +90,6 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
   if (!open) return null;
   
   const selectedProvider = CRM_PROVIDERS.find(p => p.name === provider);
-  const isAirtable = provider === 'Airtable';
-  
-  const handleConnect = async () => {
-    if (isAirtable && connectionMethod === 'api') {
-      if (!apiKey || !baseId || !tableId) {
-        alert('Please provide API Key, Base ID, and Table ID for Airtable');
-        return;
-      }
-    }
-    
-    setConnecting(true);
-    // Simulate connection process
-    setTimeout(() => {
-      setConnecting(false);
-      alert(`${provider} integration is coming soon! This feature will allow you to import leads directly from your ${provider} account.`);
-    }, 2000);
-  };
   
   return (
     <div 

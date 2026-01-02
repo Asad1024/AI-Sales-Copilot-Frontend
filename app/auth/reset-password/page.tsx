@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authAPI } from "@/lib/apiClient";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
   const params = useSearchParams();
   const token = useMemo(() => params.get("token") || "", [params]);
@@ -392,5 +392,57 @@ export default function ResetPasswordPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f8fafc",
+        padding: "20px"
+      }}>
+        <div style={{
+          width: "100%",
+          maxWidth: "420px",
+          background: "#fff",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04)",
+          border: "1px solid #e2e8f0",
+          textAlign: "center"
+        }}>
+          <div style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+            animation: "pulse 2s ease-in-out infinite"
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite" }}>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+          </div>
+          <h2 style={{
+            fontSize: "20px",
+            fontWeight: "600",
+            color: "#1e293b",
+            margin: "0 0 8px 0"
+          }}>
+            Loading...
+          </h2>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

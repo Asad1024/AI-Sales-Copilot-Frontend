@@ -117,7 +117,7 @@ export function CreateCampaignModal() {
                 >
                   {(() => {
                     const ChannelIcon = ch === 'email' ? Icons.Mail :
-                                      ch === 'linkedin' ? Icons.LinkedIn :
+                                      ch === 'linkedin' ? Icons.Linkedin :
                                       ch === 'whatsapp' ? Icons.MessageCircle :
                                       Icons.Phone;
                     return <ChannelIcon size={16} />;

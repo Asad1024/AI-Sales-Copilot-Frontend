@@ -28,7 +28,7 @@ export function PermissionGuard({
   fallback = null,
   showFallback = false,
 }: PermissionGuardProps) {
-  const permissions = useBasePermissions(baseId);
+  const permissions = useBasePermissions(baseId ?? null);
 
   // Map action to permission check
   const hasPermission = (() => {
@@ -87,7 +87,7 @@ export function PermissionGuard({
  * Hook version of PermissionGuard for conditional logic
  */
 export function usePermissionCheck(action: PermissionAction, baseId?: number): boolean {
-  const permissions = useBasePermissions(baseId);
+  const permissions = useBasePermissions(baseId ?? null);
 
   switch (action) {
     case "leads:create":

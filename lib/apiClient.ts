@@ -5,7 +5,9 @@ export interface User {
   email: string;
   name: string;
   company?: string;
+  dob?: string;
   role?: "admin" | "user";
+  email_verified?: boolean;
 }
 
 export interface AuthResponse {
@@ -99,7 +101,7 @@ const refreshToken = async (): Promise<string | null> => {
         return null;
       }
       
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const response = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -170,7 +172,10 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  // Ensure endpoint starts with /api
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  
+  const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
     ...options,
     headers,
   });
@@ -181,7 +186,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     if (refreshedToken) {
       // Retry the request with the new token
       headers['Authorization'] = `Bearer ${refreshedToken}`;
-      const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
+      const retryResponse = await fetch(`${API_BASE}${normalizedEndpoint}`, {
         ...options,
         headers,
       });
@@ -254,7 +259,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
 export const authAPI = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -271,11 +276,11 @@ export const authAPI = {
     return data;
   },
 
-  signup: async (email: string, password: string, name: string): Promise<AuthResponse> => {
-    const response = await fetch(`${API_BASE}/auth/signup`, {
+  signup: async (email: string, password: string, name: string, company?: string, dob?: string): Promise<AuthResponse> => {
+    const response = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, company, dob }),
     });
 
     if (!response.ok) {
@@ -295,7 +300,7 @@ export const authAPI = {
       throw new Error('No token to refresh');
     }
 
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
+    const response = await fetch(`${API_BASE}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -318,7 +323,7 @@ export const authAPI = {
   },
 
   requestPasswordReset: async (email: string): Promise<PasswordResetRequestResponse> => {
-    const response = await fetch(`${API_BASE}/auth/password-reset/request`, {
+    const response = await fetch(`${API_BASE}/api/auth/password-reset/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -333,7 +338,7 @@ export const authAPI = {
   },
 
   confirmPasswordReset: async (token: string, password: string): Promise<{ ok: boolean }> => {
-    const response = await fetch(`${API_BASE}/auth/password-reset/confirm`, {
+    const response = await fetch(`${API_BASE}/api/auth/password-reset/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, password }),

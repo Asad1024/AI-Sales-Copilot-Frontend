@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authAPI } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/api";
 
@@ -10,15 +10,23 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [company, setCompany] = useState("");
+  const [dob, setDob] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const onSignup = async () => {
     setError(null);
     setLoading(true);
     try {
-      await authAPI.signup(email, password, name);
+      await authAPI.signup(email, password, name, company || undefined, dob || undefined);
       localStorage.setItem("sparkai:profile_complete", "false");
       router.push("/onboarding");
     } catch (e: any) {
@@ -34,7 +42,9 @@ export default function SignupPage() {
     <div style={{
       minHeight: "100vh",
       display: "flex",
-      background: "#f8fafc"
+      background: "#f8fafc",
+      opacity: mounted ? 1 : 0,
+      transition: "opacity 0.6s ease-in-out"
     }}>
       {/* Left Panel - Branding */}
       <div style={{
@@ -47,7 +57,7 @@ export default function SignupPage() {
         position: "relative",
         overflow: "hidden"
       }}>
-        {/* Decorative circles */}
+        {/* Animated decorative circles */}
         <div style={{
           position: "absolute",
           top: "-100px",
@@ -55,7 +65,8 @@ export default function SignupPage() {
           width: "400px",
           height: "400px",
           background: "rgba(255,255,255,0.1)",
-          borderRadius: "50%"
+          borderRadius: "50%",
+          animation: mounted ? "float 8s ease-in-out infinite" : "none"
         }} />
         <div style={{
           position: "absolute",
@@ -64,8 +75,27 @@ export default function SignupPage() {
           width: "500px",
           height: "500px",
           background: "rgba(255,255,255,0.05)",
-          borderRadius: "50%"
+          borderRadius: "50%",
+          animation: mounted ? "float 10s ease-in-out infinite reverse" : "none"
         }} />
+        
+        {/* Floating particles */}
+        {mounted && [1, 2, 3, 4, 5, 6].map((i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              width: `${Math.random() * 6 + 4}px`,
+              height: `${Math.random() * 6 + 4}px`,
+              background: "rgba(255,255,255,0.3)",
+              borderRadius: "50%",
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `particle${i} ${15 + Math.random() * 10}s linear infinite`,
+              opacity: 0.6
+            }}
+          />
+        ))}
 
         <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
           {/* Logo */}
@@ -192,21 +222,55 @@ export default function SignupPage() {
         flexDirection: "column",
         justifyContent: "center",
         padding: "60px",
-        background: "#fff"
+        background: "#fff",
+        transform: mounted ? "translateX(0)" : "translateX(50px)",
+        transition: "transform 0.8s ease-out"
       }}>
         <div style={{ maxWidth: "360px", width: "100%", margin: "0 auto" }}>
           <div style={{ marginBottom: "32px" }}>
+            {/* Progress indicator */}
+            <div style={{ 
+              display: "flex", 
+              gap: "8px", 
+              marginBottom: "24px",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(-20px)",
+              transition: "all 0.6s ease-out 0.2s"
+            }}>
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  style={{
+                    flex: 1,
+                    height: "4px",
+                    borderRadius: "2px",
+                    background: step === 1 ? "linear-gradient(90deg, #4C67FF, #7C3AED)" : "#e2e8f0",
+                    transition: "all 0.4s ease"
+                  }}
+                />
+              ))}
+            </div>
+
             <h2 style={{
               fontSize: "28px",
               fontWeight: "700",
               color: "#1e293b",
               margin: "0 0 8px 0",
-              letterSpacing: "-0.02em"
+              letterSpacing: "-0.02em",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(-10px)",
+              transition: "all 0.6s ease-out 0.3s"
             }}>
               Create your account
             </h2>
-            <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
-              Free to start • No credit card required
+            <p style={{ 
+              fontSize: "14px", 
+              color: "#64748b", 
+              margin: 0,
+              opacity: mounted ? 1 : 0,
+              transition: "opacity 0.6s ease-out 0.4s"
+            }}>
+              Join thousands of sales teams • No credit card required
             </p>
           </div>
 
@@ -228,11 +292,23 @@ export default function SignupPage() {
               alignItems: "center",
               justifyContent: "center",
               gap: "12px",
-              transition: "all 0.2s ease",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(20px)"
             }}
-            onMouseOver={(e) => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+            onMouseOver={(e) => { 
+              e.currentTarget.style.background = "#f8fafc"; 
+              e.currentTarget.style.borderColor = "#cbd5e1";
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+            }}
+            onMouseOut={(e) => { 
+              e.currentTarget.style.background = "#fff"; 
+              e.currentTarget.style.borderColor = "#e2e8f0";
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -280,7 +356,7 @@ export default function SignupPage() {
 
           {/* Form */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
+            <div style={{ position: "relative" }}>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
                 Full name
               </label>
@@ -290,6 +366,96 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
+                style={{
+                  width: "100%",
+                  padding: "12px 40px 12px 14px",
+                  borderRadius: "10px",
+                  border: name.trim() ? "1px solid #10b981" : "1px solid #e2e8f0",
+                  background: "#fff",
+                  color: "#1e293b",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "all 0.2s ease"
+                }}
+                onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                onBlur={(e) => { e.target.style.borderColor = name.trim() ? "#10b981" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              />
+              {name.trim() && (
+                <div style={{
+                  position: "absolute",
+                  right: "14px",
+                  top: "36px",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  background: "#10b981",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  animation: "scaleIn 0.3s ease"
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            <div style={{ position: "relative" }}>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                style={{
+                  width: "100%",
+                  padding: "12px 40px 12px 14px",
+                  borderRadius: "10px",
+                  border: email.includes('@') && email.includes('.') ? "1px solid #10b981" : "1px solid #e2e8f0",
+                  background: "#fff",
+                  color: "#1e293b",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "all 0.2s ease"
+                }}
+                onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                onBlur={(e) => { e.target.style.borderColor = email.includes('@') && email.includes('.') ? "#10b981" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              />
+              {email.includes('@') && email.includes('.') && (
+                <div style={{
+                  position: "absolute",
+                  right: "14px",
+                  top: "36px",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  background: "#10b981",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  animation: "scaleIn 0.3s ease"
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
+                Company name <span style={{ color: "#94a3b8", fontWeight: "400" }}>(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Acme Inc."
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                autoComplete="organization"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -308,14 +474,14 @@ export default function SignupPage() {
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
-                Work email
+                Date of birth <span style={{ color: "#94a3b8", fontWeight: "400" }}>(optional)</span>
               </label>
               <input
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                autoComplete="bday"
+                max={new Date().toISOString().split('T')[0]}
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -408,8 +574,22 @@ export default function SignupPage() {
                 fontSize: "14px",
                 fontWeight: "600",
                 cursor: loading || !canSubmit ? "not-allowed" : "pointer",
-                transition: "all 0.2s ease",
-                boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(76, 103, 255, 0.4)"
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(76, 103, 255, 0.4)",
+                position: "relative",
+                overflow: "hidden"
+              }}
+              onMouseOver={(e) => {
+                if (!loading && canSubmit) {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(76, 103, 255, 0.5)";
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!loading && canSubmit) {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(76, 103, 255, 0.4)";
+                }
               }}
             >
               {loading ? (
@@ -419,7 +599,15 @@ export default function SignupPage() {
                   </svg>
                   Creating account...
                 </span>
-              ) : "Create account"}
+              ) : (
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  Create account
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </span>
+              )}
             </button>
 
             <p style={{
@@ -459,6 +647,62 @@ export default function SignupPage() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-30px) scale(1.05); }
+        }
+
+        @keyframes scaleIn {
+          0% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes particle1 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+          50% { transform: translate(100px, -150px) scale(1.2); opacity: 0.3; }
+          100% { transform: translate(200px, -50px) scale(0.8); opacity: 0; }
+        }
+
+        @keyframes particle2 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+          50% { transform: translate(-120px, -100px) scale(0.8); opacity: 0.4; }
+          100% { transform: translate(-200px, 100px) scale(1.3); opacity: 0; }
+        }
+
+        @keyframes particle3 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+          50% { transform: translate(80px, 120px) scale(1.4); opacity: 0.2; }
+          100% { transform: translate(150px, 250px) scale(0.9); opacity: 0; }
+        }
+
+        @keyframes particle4 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+          50% { transform: translate(-90px, 140px) scale(0.9); opacity: 0.35; }
+          100% { transform: translate(-180px, 300px) scale(1.1); opacity: 0; }
+        }
+
+        @keyframes particle5 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+          50% { transform: translate(110px, -80px) scale(1.3); opacity: 0.3; }
+          100% { transform: translate(220px, -180px) scale(0.7); opacity: 0; }
+        }
+
+        @keyframes particle6 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+          50% { transform: translate(-130px, -120px) scale(1.1); opacity: 0.25; }
+          100% { transform: translate(-260px, -200px) scale(0.8); opacity: 0; }
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          filter: opacity(0.5);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+          filter: opacity(1);
         }
       `}</style>
     </div>

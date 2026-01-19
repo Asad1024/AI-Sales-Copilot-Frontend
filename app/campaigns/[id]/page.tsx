@@ -11,6 +11,7 @@ import { LeadsTab } from "./components/LeadsTab";
 import { SequenceTab } from "./components/SequenceTab";
 import { AnalyticsTab } from "./components/AnalyticsTab";
 import { InboxTab } from "./components/InboxTab";
+import { CallTranscriptsTab } from "./components/CallTranscriptsTab";
 import { EditCampaignModal } from "./components/EditCampaignModal";
 import { LeadActivityModal } from "./components/LeadActivityModal";
 
@@ -27,10 +28,10 @@ interface Campaign {
   clicked?: number;
   replied?: number;
   converted?: number;
-  openRate?: number;
-  replyRate?: number;
-  clickRate?: number;
-  conversionRate?: number;
+  openRate?: any;
+  replyRate?: any;
+  clickRate?: any;
+  conversionRate?: any;
   created_at?: string;
   updated_at?: string;
   ai_insight?: string;
@@ -90,7 +91,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeBaseId, bases } = useBase();
-  const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'inbox'|'leads'>('overview');
+  const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'inbox'|'leads'|'transcripts'>('overview');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -324,7 +325,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
       {/* Tabs */}
       <div className="card-enhanced" style={{ borderRadius: 16, padding: 24 }}>
-        <CampaignTabs tab={tab} setTab={setTab} />
+        <CampaignTabs tab={tab} setTab={setTab as any} />
 
         {/* Tab Content */}
         {tab === 'overview' && (
@@ -355,6 +356,10 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
         {tab === 'inbox' && (
           <InboxTab />
+        )}
+
+        {tab === 'transcripts' && (
+          <CallTranscriptsTab />
         )}
       </div>
 

@@ -62,6 +62,7 @@ interface CampaignStore {
   createCampaign: (campaign: Partial<Campaign>) => Promise<Campaign | null>;
   updateCampaign: (id: number, updates: Partial<Campaign>) => Promise<void>;
   deleteCampaign: (id: number) => Promise<void>;
+  refreshCampaign: (id: number) => Promise<void>;
   getFilteredCampaigns: () => Campaign[];
 }
 
@@ -141,6 +142,26 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to delete campaign:', error);
       throw error;
+    }
+  },
+  
+  refreshCampaign: async (id) => {
+    try {
+      // Fetch updated campaign data from API
+      const data = await apiRequest(`/campaigns/${id}`);
+      const updatedCampaign = data?.campaign || data;
+      if (updatedCampaign) {
+        // Update the campaign in the store
+        set((state) => ({
+          campaigns: state.campaigns.map(c => 
+            c.id === id ? { ...c, ...updatedCampaign } : c
+          )
+        }));
+        console.log(`[CampaignStore] Refreshed campaign ${id} metrics`);
+      }
+    } catch (error) {
+      console.error(`Failed to refresh campaign ${id}:`, error);
+      // Don't throw - just log the error so UI doesn't break
     }
   },
   

@@ -233,29 +233,82 @@ export function CampaignGrid({ campaigns, loading, onDelete }: CampaignGridProps
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>Leads</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--color-text)' }}>
-                        {actualLeadCount}
+                  {/* Metrics Section */}
+                  <div style={{
+                    background: 'var(--elev-bg)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px',
+                    border: '1px solid var(--elev-border)'
+                  }}>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: campaign.channel === 'whatsapp' ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', 
+                      gap: '16px'
+                    }}>
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '12px',
+                        background: 'rgba(76, 103, 255, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(76, 103, 255, 0.1)'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Leads
+                        </div>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)' }}>
+                          {actualLeadCount || '—'}
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>Sent</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--color-text)' }}>
-                        {campaign.sent || 0}
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '12px',
+                        background: 'rgba(59, 130, 246, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(59, 130, 246, 0.1)'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Sent
+                        </div>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#3b82f6' }}>
+                          {campaign.channel === 'whatsapp' 
+                            ? (campaign.sent || '—')
+                            : (campaign.sent || 0)
+                          }
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>Open</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600', color: '#4C67FF' }}>
-                        {calculatedOpenRate ? `${calculatedOpenRate}%` : (campaign.openRate ? `${campaign.openRate}%` : '—')}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>Reply</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600', color: '#A94CFF' }}>
-                        {calculatedReplyRate ? `${calculatedReplyRate}%` : (campaign.replyRate ? `${campaign.replyRate}%` : '—')}
+                      {campaign.channel !== 'whatsapp' && (
+                        <div style={{
+                          textAlign: 'center',
+                          padding: '12px',
+                          background: 'rgba(169, 76, 255, 0.05)',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(169, 76, 255, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Open
+                          </div>
+                          <div style={{ fontSize: '20px', fontWeight: '700', color: '#A94CFF' }}>
+                            {calculatedOpenRate ? `${calculatedOpenRate}%` : (campaign.openRate ? `${campaign.openRate}%` : '—')}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '12px',
+                        background: 'rgba(255, 107, 107, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 107, 107, 0.1)'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Reply
+                        </div>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#ff6b6b' }}>
+                          {campaign.channel === 'whatsapp'
+                            ? (campaign.replied ? `${calculatedReplyRate}%` : '—')
+                            : (calculatedReplyRate ? `${calculatedReplyRate}%` : (campaign.replyRate ? `${campaign.replyRate}%` : '—'))
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,311 @@
-export const API_BASE = 
-  typeof window !== 'undefined' 
-    ? (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000/api")
-    : (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000/api");
+/**
+ * API Client with permission-aware error handling
+ */
+
+// Export API_BASE for legacy compatibility
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+    public details?: any
+  ) {
+    super(message);
+    this.name = "APIError";
+  }
+}
+
+export class PermissionError extends APIError {
+  constructor(message: string, details?: any) {
+    super(message, 403, "PERMISSION_DENIED", details);
+    this.name = "PermissionError";
+  }
+}
+
+export class EmailVerificationError extends APIError {
+  constructor(message: string, details?: any) {
+    super(message, 403, "EMAIL_NOT_VERIFIED", details);
+    this.name = "EmailVerificationError";
+  }
+}
+
+interface RequestOptions extends RequestInit {
+  skipAuth?: boolean;
+}
+
+/**
+ * Make an authenticated API request
+ */
+export async function apiRequest<T = any>(
+  endpoint: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  const { skipAuth = false, ...fetchOptions } = options;
+  
+  const url = `${API_BASE}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(fetchOptions.headers as Record<string, string>),
+  };
+
+  // Add auth token if not skipped
+  if (!skipAuth) {
+    const token = localStorage.getItem("token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch(url, {
+    ...fetchOptions,
+    headers,
+  });
+
+  // Parse response
+  let data: any;
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
+
+  // Handle errors
+  if (!response.ok) {
+    const message = data?.error || data?.message || `Request failed with status ${response.status}`;
+    const code = data?.code;
+    const details = data?.details;
+
+    // Special handling for permission errors
+    if (response.status === 403) {
+      if (code === "EMAIL_NOT_VERIFIED") {
+        throw new EmailVerificationError(message, details);
+      }
+      throw new PermissionError(message, details);
+    }
+
+    throw new APIError(message, response.status, code, details);
+  }
+
+  return data;
+}
+
+/**
+ * API methods
+ */
+export const api = {
+  // Auth
+  async login(email: string, password: string) {
+    return apiRequest("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      skipAuth: true,
+    });
+  },
+
+  async signup(name: string, email: string, password: string) {
+    return apiRequest("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+      skipAuth: true,
+    });
+  },
+
+  async logout() {
+    return apiRequest("/api/auth/logout", { method: "POST" });
+  },
+
+  async getMe() {
+    return apiRequest("/api/auth/me");
+  },
+
+  // Email Verification
+  async sendVerificationEmail() {
+    return apiRequest("/api/auth/verify-email/send", { method: "POST" });
+  },
+
+  async verifyEmail(token: string) {
+    return apiRequest("/api/auth/verify-email/confirm", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+      skipAuth: true,
+    });
+  },
+
+  async getVerificationStatus() {
+    return apiRequest("/api/auth/verify-email/status");
+  },
+
+  // Bases
+  async getBases() {
+    return apiRequest("/api/bases");
+  },
+
+  async getBase(id: number) {
+    return apiRequest(`/api/bases/${id}`);
+  },
+
+  async createBase(name: string) {
+    return apiRequest("/api/bases", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  async updateBase(id: number, updates: any) {
+    return apiRequest(`/api/bases/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async deleteBase(id: number) {
+    return apiRequest(`/api/bases/${id}`, { method: "DELETE" });
+  },
+
+  // Base Members
+  async getBaseMembers(baseId: number) {
+    return apiRequest(`/api/bases/${baseId}/members`);
+  },
+
+  async addBaseMember(baseId: number, userId: number, role: string) {
+    return apiRequest(`/api/bases/${baseId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, role }),
+    });
+  },
+
+  async updateBaseMemberRole(baseId: number, memberId: number, role: string) {
+    return apiRequest(`/api/bases/${baseId}/members/${memberId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  async removeBaseMember(baseId: number, memberId: number) {
+    return apiRequest(`/api/bases/${baseId}/members/${memberId}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Leads
+  async getLeads(baseId: number, params?: any) {
+    const query = new URLSearchParams({ base_id: String(baseId), ...params });
+    return apiRequest(`/api/leads?${query}`);
+  },
+
+  async createLead(baseId: number, lead: any) {
+    return apiRequest("/api/leads", {
+      method: "POST",
+      body: JSON.stringify({ ...lead, base_id: baseId }),
+    });
+  },
+
+  async updateLead(id: number, updates: any) {
+    return apiRequest(`/api/leads/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async deleteLead(id: number, baseId: number) {
+    return apiRequest(`/api/leads/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({ base_id: baseId }),
+    });
+  },
+
+  async bulkDeleteLeads(baseId: number, leadIds: number[]) {
+    return apiRequest("/api/leads/bulk", {
+      method: "DELETE",
+      body: JSON.stringify({ base_id: baseId, lead_ids: leadIds }),
+    });
+  },
+
+  async exportLeads(baseId: number) {
+    return apiRequest(`/api/leads/export?base_id=${baseId}`);
+  },
+
+  // Bulk Operations
+  async createBulkOperation(
+    baseId: number,
+    operationType: string,
+    itemIds: number[],
+    metadata?: any
+  ) {
+    return apiRequest("/api/bulk/operations", {
+      method: "POST",
+      body: JSON.stringify({
+        base_id: baseId,
+        operation_type: operationType,
+        item_ids: itemIds,
+        metadata,
+      }),
+    });
+  },
+
+  async getBulkOperationStatus(jobId: number) {
+    return apiRequest(`/api/bulk/operations/${jobId}`);
+  },
+
+  async getBulkOperations(limit?: number) {
+    const query = limit ? `?limit=${limit}` : "";
+    return apiRequest(`/api/bulk/operations${query}`);
+  },
+
+  async cancelBulkOperation(jobId: number) {
+    return apiRequest(`/api/bulk/operations/${jobId}`, { method: "DELETE" });
+  },
+
+  // Campaigns
+  async getCampaigns(baseId: number) {
+    return apiRequest(`/api/campaigns?base_id=${baseId}`);
+  },
+
+  async createCampaign(baseId: number, campaign: any) {
+    return apiRequest("/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify({ ...campaign, base_id: baseId }),
+    });
+  },
+
+  async updateCampaign(id: number, updates: any) {
+    return apiRequest(`/api/campaigns/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async deleteCampaign(id: number) {
+    return apiRequest(`/api/campaigns/${id}`, { method: "DELETE" });
+  },
+
+  async startCampaign(id: number) {
+    return apiRequest(`/api/campaigns/${id}/start`, { method: "POST" });
+  },
+
+  async pauseCampaign(id: number) {
+    return apiRequest(`/api/campaigns/${id}/pause`, { method: "POST" });
+  },
+
+  async stopCampaign(id: number) {
+    return apiRequest(`/api/campaigns/${id}/stop`, { method: "POST" });
+  },
+
+  // Notifications
+  async getNotifications(limit?: number) {
+    const query = limit ? `?limit=${limit}` : "";
+    return apiRequest(`/api/notifications${query}`);
+  },
+
+  async markNotificationRead(id: number) {
+    return apiRequest(`/api/notifications/${id}/read`, { method: "POST" });
+  },
+
+  async markAllNotificationsRead() {
+    return apiRequest("/api/notifications/read-all", { method: "POST" });
+  },
+};

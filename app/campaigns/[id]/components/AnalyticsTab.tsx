@@ -10,6 +10,19 @@ interface Campaign {
   clicked?: number;
   replied?: number;
   converted?: number;
+  bounced?: number;
+  dropped?: number;
+  spam_reports?: number;
+  unsubscribed?: number;
+  deliveryRate?: string;
+  openRate?: string;
+  clickRate?: string;
+  replyRate?: string;
+  bounceRate?: string;
+  dropRate?: string;
+  spamRate?: string;
+  unsubscribeRate?: string;
+  healthScore?: number;
   ai_insight?: string;
   channels?: string[];
   whatsapp_sent?: number;
@@ -31,6 +44,7 @@ interface Campaign {
   call_busy?: number;
   call_answer_rate?: string;
   call_completion_rate?: string;
+  config?: any;
 }
 
 interface AnalyticsTabProps {
@@ -87,13 +101,64 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   Email Metrics
                 </h3>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Sent" value={campaign.sent || 0} gradient="linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(76, 103, 255, 0.05) 100%)" color="#4C67FF" />
-                <MetricCard title="Delivered" value={campaign.delivered || 0} subtitle={`${campaign.sent && campaign.delivered ? ((campaign.delivered / campaign.sent) * 100).toFixed(1) : '0'}% delivery rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="Opened" value={campaign.opened || 0} subtitle={`${calculatedOpenRate}% open rate`} gradient="linear-gradient(135deg, rgba(169, 76, 255, 0.1) 0%, rgba(169, 76, 255, 0.05) 100%)" color="#A94CFF" />
-                <MetricCard title="Clicked" value={campaign.clicked || 0} subtitle={`${campaign.sent && campaign.clicked ? ((campaign.clicked / campaign.sent) * 100).toFixed(1) : '0'}% click rate`} gradient="linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)" color="#3b82f6" />
-                <MetricCard title="Replied" value={campaign.replied || 0} subtitle={`${calculatedReplyRate}% reply rate`} gradient="linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)" color="#ff6b6b" />
+              <div style={{ marginBottom: 16 }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  📤 Sending & Delivery
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                  <MetricCard title="Sent" value={campaign.sent || 0} gradient="linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(76, 103, 255, 0.05) 100%)" color="#4C67FF" />
+                  <MetricCard title="Delivered" value={campaign.delivered || 0} subtitle={campaign.deliveryRate ? `${campaign.deliveryRate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                  {(campaign.bounced || 0) > 0 && (
+                    <MetricCard title="Bounced" value={campaign.bounced || 0} subtitle={campaign.bounceRate ? `${campaign.bounceRate}% bounce rate` : undefined} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
+                  )}
+                  {(campaign.dropped || 0) > 0 && (
+                    <MetricCard title="Dropped" value={campaign.dropped || 0} subtitle={campaign.dropRate ? `${campaign.dropRate}% drop rate` : undefined} gradient="linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)" color="#f59e0b" />
+                  )}
+                </div>
               </div>
+              
+              <div style={{ marginBottom: 16 }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  💡 Engagement
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                  <MetricCard title="Opened" value={campaign.opened || 0} subtitle={campaign.openRate ? `${campaign.openRate}% open rate` : undefined} gradient="linear-gradient(135deg, rgba(169, 76, 255, 0.1) 0%, rgba(169, 76, 255, 0.05) 100%)" color="#A94CFF" />
+                  <MetricCard title="Clicked" value={campaign.clicked || 0} subtitle={campaign.clickRate ? `${campaign.clickRate}% click rate` : undefined} gradient="linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)" color="#3b82f6" />
+                  <MetricCard title="Replied" value={campaign.replied || 0} subtitle={campaign.replyRate ? `${campaign.replyRate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
+                </div>
+              </div>
+              
+              {((campaign.spam_reports || 0) > 0 || (campaign.unsubscribed || 0) > 0) && (
+                <div style={{ marginBottom: 16 }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ⚠️ Issues
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                    {(campaign.spam_reports || 0) > 0 && (
+                      <MetricCard title="Spam Reports" value={campaign.spam_reports || 0} subtitle={campaign.spamRate ? `${campaign.spamRate}% spam rate` : undefined} gradient="linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)" color="#dc2626" />
+                    )}
+                    {(campaign.unsubscribed || 0) > 0 && (
+                      <MetricCard title="Unsubscribed" value={campaign.unsubscribed || 0} subtitle={campaign.unsubscribeRate ? `${campaign.unsubscribeRate}% unsubscribe rate` : undefined} gradient="linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%)" color="#fb923c" />
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {campaign.healthScore !== undefined && (
+                <div style={{ marginTop: 20, padding: 20, background: campaign.healthScore >= 85 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)' : campaign.healthScore >= 70 ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)' : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)', borderRadius: 12, border: `1px solid ${campaign.healthScore >= 85 ? '#10b98140' : campaign.healthScore >= 70 ? '#f59e0b40' : '#ef444440'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#888', marginBottom: 4 }}>Deliverability Health Score</div>
+                      <div style={{ fontSize: 12, color: '#888' }}>
+                        {campaign.healthScore >= 95 ? '✅ Excellent' : campaign.healthScore >= 85 ? '✅ Good' : campaign.healthScore >= 70 ? '⚠️ Fair - needs improvement' : '🚨 Poor - critical issues'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 48, fontWeight: 700, color: campaign.healthScore >= 85 ? '#10b981' : campaign.healthScore >= 70 ? '#f59e0b' : '#ef4444' }}>
+                      {campaign.healthScore}/100
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -102,15 +167,52 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
             <div>
               <div style={{ marginBottom: 16 }}>
                 <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 20 }}>📱</span>
+                  <Icons.MessageCircle size={18} style={{ color: '#25D366' }} />
                   WhatsApp Metrics
                 </h3>
+                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                  Track messages sent, delivered, and replies for WhatsApp campaigns
+                </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Sent" value={campaign.whatsapp_sent || 0} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
-                <MetricCard title="Delivered" value={campaign.whatsapp_delivered || 0} subtitle={`${campaign.whatsapp_delivery_rate || '0'}% delivery rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="Read (Seen)" value={campaign.whatsapp_seen || 0} subtitle={`${campaign.whatsapp_read_rate || '0'}% read rate`} gradient="linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)" color="#3b82f6" />
-                <MetricCard title="Replied" value={campaign.whatsapp_replied || 0} subtitle={`${campaign.whatsapp_reply_rate || '0'}% reply rate`} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
+                <MetricCard title="Sent" value={campaign.whatsapp_sent && campaign.whatsapp_sent > 0 ? campaign.whatsapp_sent : '—'} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
+                <MetricCard title="Delivered" value={campaign.whatsapp_delivered && campaign.whatsapp_delivered > 0 ? campaign.whatsapp_delivered : '—'} subtitle={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                <MetricCard title="Replied" value={campaign.whatsapp_replied && campaign.whatsapp_replied > 0 ? campaign.whatsapp_replied : '—'} subtitle={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
+              </div>
+            </div>
+          )}
+
+          {/* Call Channel Metrics */}
+          {activeChannels.includes('call') && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Icons.Phone size={18} style={{ color: '#6366f1' }} />
+                  Call Metrics
+                </h3>
+                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                  Track calls initiated, answered, and completed with transcripts
+                </p>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  📞 Call Status
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                  <MetricCard title="Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)" color="#6366f1" />
+                  <MetricCard title="Answered" value={campaign.call_answered || 0} subtitle={campaign.call_answer_rate ? `${campaign.call_answer_rate}% answer rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                  <MetricCard title="Completed" value={campaign.call_completed || 0} subtitle={campaign.call_completion_rate ? `${campaign.call_completion_rate}% completion rate` : undefined} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
+                </div>
+              </div>
+              <div>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  📊 Call Outcomes
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                  <MetricCard title="Failed" value={campaign.call_failed || 0} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
+                  <MetricCard title="No Answer" value={campaign.call_not_answered || 0} gradient="linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)" color="#f59e0b" />
+                  <MetricCard title="Busy" value={campaign.call_busy || 0} gradient="linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%)" color="#fb923c" />
+                </div>
               </div>
             </div>
           )}

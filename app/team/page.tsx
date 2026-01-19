@@ -265,49 +265,46 @@ export default function TeamPage() {
 
     setInviteLoading(true);
     try {
-      let userId = resolveUserIdFromInput(inviteForm.emailOrId);
       const lowerEmail = inviteForm.emailOrId.trim().toLowerCase();
+      
+      // Check if input is a valid email
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lowerEmail);
 
-      if (!userId) {
-        const existingUser =
-          availableUsers.find((user) => user.email?.toLowerCase() === lowerEmail) || null;
+      if (isEmail) {
+        // ALWAYS use invitation system for email addresses
+        // Works for both existing and new users
+        await apiRequest("/invitations", {
+          method: "POST",
+          body: JSON.stringify({
+            base_id: activeBaseId,
+            email: lowerEmail,
+            role: inviteForm.role
+          })
+        });
 
-        if (existingUser) {
-          userId = existingUser.id;
-        } else if (viewerIsAdmin) {
-          const name =
-            inviteForm.name.trim() ||
-            lowerEmail.substring(0, lowerEmail.indexOf("@")) ||
-            "New User";
-
-          const createdUser = await apiRequest("/admin/users", {
-            method: "POST",
-            body: JSON.stringify({
-              name,
-              email: lowerEmail,
-              role: "user",
-              password: generateTemporaryPassword()
-            })
-          });
-
-          userId = createdUser?.id;
-          alert(
-            `Created a new account for ${lowerEmail}. Share the temporary password with them so they can log in.`
-          );
-          if (canViewDirectory) {
-            await fetchDirectory();
-          }
-        } else {
-          throw new Error(
-            "No user found with that email. Ask an admin to create their account before inviting them."
-          );
-        }
+        alert(
+          `✅ Invitation sent to ${lowerEmail}!\n\n` +
+          `They will receive an email with instructions to:\n` +
+          `• Login (if existing user) or Sign up (if new user)\n` +
+          `• Accept the invitation to join your workspace\n\n` +
+          `Role: ${inviteForm.role}\n\n` +
+          `Note: They will appear in your team after accepting the invitation.`
+        );
+        setShowInviteModal(false);
+        setInviteForm({ emailOrId: "", name: "", role: "member" });
+        return;
       }
 
+      // Handle numeric user ID input (for direct add)
+      const userId = resolveUserIdFromInput(inviteForm.emailOrId);
+      
       if (!userId) {
-        throw new Error("Unable to determine user ID for the invitation.");
+        throw new Error(
+          "Please enter a valid email address to send an invitation."
+        );
       }
 
+      // Direct add only for numeric user IDs
       await apiRequest(`/bases/${activeBaseId}/members`, {
         method: "POST",
         body: JSON.stringify({

@@ -23,7 +23,31 @@ interface Lead {
   tier?: string;
   company?: string;
   role?: string;
+  industry?: string;
   enrichment?: any;
+}
+
+/**
+ * Sanitizes lead data for API requests by removing null/undefined/empty values
+ * This improves performance by reducing payload size and ensures data consistency
+ * @param lead - The lead object to sanitize
+ * @returns A sanitized object with only valid, non-empty values
+ */
+function sanitizeLeadForAPI(lead: Lead): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  
+  // Only include fields that have truthy values (not null, undefined, or empty string)
+  // This reduces payload size and prevents validation errors
+  if (lead.first_name) sanitized.first_name = lead.first_name;
+  if (lead.last_name) sanitized.last_name = lead.last_name;
+  if (lead.company) sanitized.company = lead.company;
+  if (lead.role) sanitized.role = lead.role;
+  if (lead.industry) sanitized.industry = lead.industry;
+  // Include score even if 0 (falsy but valid)
+  if (lead.score !== null && lead.score !== undefined) sanitized.score = lead.score;
+  if (lead.tier) sanitized.tier = lead.tier;
+  
+  return sanitized;
 }
 
 export default function CampaignNew() {
@@ -108,6 +132,7 @@ export default function CampaignNew() {
   const [schedule, setSchedule] = useState<{
     start: string;
     end: string;
+    launch_now?: boolean;
     email?: { throttle: number };
     linkedin?: { throttle: number };
     whatsapp?: { throttle: number };
@@ -117,6 +142,7 @@ export default function CampaignNew() {
   }>({ 
     start: "", 
     end: "",
+    launch_now: true,
     email: { throttle: 200 },
     linkedin: { throttle: 100 },
     whatsapp: { throttle: 50 },
@@ -213,10 +239,13 @@ export default function CampaignNew() {
     return !!getLinkedInUrl(lead);
   };
 
+
   // Draft campaign state
   const [draftCampaignId, setDraftCampaignId] = useState<number | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [previousStep, setPreviousStep] = useState<Step | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false); // Flag to prevent auto-save during launch
 
   // Calculate step flow dynamically based on selected channels
   const stepFlow = useMemo(() => {
@@ -359,6 +388,8 @@ export default function CampaignNew() {
             end: oldSchedule.end || '',
             email: oldSchedule.email || (channels.includes('email') ? { throttle: oldSchedule.throttle || 200 } : undefined),
             linkedin: oldSchedule.linkedin || (channels.includes('linkedin') ? { throttle: oldSchedule.throttle || 100 } : undefined),
+            whatsapp: oldSchedule.whatsapp || (channels.includes('whatsapp') ? { throttle: oldSchedule.throttle || 50 } : undefined),
+            call: oldSchedule.call || (channels.includes('call') ? { throttle: oldSchedule.throttle || 20 } : undefined),
             followups: oldSchedule.followups || 2,
             followupDelay: oldSchedule.followupDelay || 3
           });
@@ -366,6 +397,14 @@ export default function CampaignNew() {
             setFollowupsPreferenceSet(true);
             setShowFollowupsNumberInput(oldSchedule.followups > 0);
           }
+        }
+        
+        // Restore follow-up preferences
+        if (config.followupsPreferenceSet !== undefined) {
+          setFollowupsPreferenceSet(config.followupsPreferenceSet);
+        }
+        if (config.showFollowupsNumberInput !== undefined) {
+          setShowFollowupsNumberInput(config.showFollowupsNumberInput);
         }
         
         // Restore email campaign details
@@ -391,6 +430,28 @@ export default function CampaignNew() {
           setLinkedInStepConfig(config.linkedin_step);
         }
         
+        // Restore email messages and selections
+        if (config.emailMessages && Array.isArray(config.emailMessages)) {
+          setMessages(config.emailMessages);
+        }
+        if (config.selectedEmailMessageIndices && Array.isArray(config.selectedEmailMessageIndices)) {
+          setSelectedMessageIndices(config.selectedEmailMessageIndices);
+        }
+        if (config.messagesGenerated !== undefined) {
+          setMessagesGenerated(config.messagesGenerated);
+        }
+        
+        // Restore WhatsApp messages and selections
+        if (config.whatsAppMessages && Array.isArray(config.whatsAppMessages)) {
+          setWhatsAppMessages(config.whatsAppMessages);
+        }
+        if (config.selectedWhatsAppMessageIndices && Array.isArray(config.selectedWhatsAppMessageIndices)) {
+          setSelectedWhatsAppMessageIndices(config.selectedWhatsAppMessageIndices);
+        }
+        if (config.whatsAppMessagesGenerated !== undefined) {
+          setWhatsAppMessagesGenerated(config.whatsAppMessagesGenerated);
+        }
+        
         // Load knowledge base files if call channel is selected
         if (campaignData.channels?.includes('call') || campaignData.channel === 'call') {
           try {
@@ -407,64 +468,69 @@ export default function CampaignNew() {
             // Don't fail the whole load if KB files fail
           }
           
-          // Restore call agent configuration
-          if (campaignData.selectedVoiceId) setSelectedVoiceId(campaignData.selectedVoiceId);
-          if (campaignData.firstPrompt) setInitialPrompt(campaignData.firstPrompt);
-          if (campaignData.systemPersona) setSystemPersona(campaignData.systemPersona);
+          // Restore call agent configuration (check both top-level and config)
+          if (campaignData.selectedVoiceId || config.selectedVoiceId) {
+            setSelectedVoiceId(campaignData.selectedVoiceId || config.selectedVoiceId);
+          }
+          if (campaignData.firstPrompt || config.firstPrompt) {
+            setInitialPrompt(campaignData.firstPrompt || config.firstPrompt);
+          }
+          if (campaignData.systemPersona || config.systemPersona) {
+            setSystemPersona(campaignData.systemPersona || config.systemPersona);
+          }
         }
         
-        // Determine which step to show based on what's configured
-        // Step 1: Name and channels
-        // Step 2: Core Details Part 1
-        // Step 3: Core Details Part 2 (Segments)
-        // Step 4: Email Templates (email) or LinkedIn Message Type (linkedin)
-        // Step 5: Schedule (email) or LinkedIn Templates (linkedin with message) or Schedule (linkedin invitation only)
-        // Step 6: Review
+        // Restore call agent config even if not in call channel (for when switching channels)
+        if (config.selectedVoiceId) setSelectedVoiceId(config.selectedVoiceId);
+        if (config.firstPrompt) setInitialPrompt(config.firstPrompt);
+        if (config.systemPersona) setSystemPersona(config.systemPersona);
         
-        const hasEmail = campaignData.channels?.includes('email') || campaignData.channel === 'email';
-        const hasLinkedIn = campaignData.channels?.includes('linkedin') || campaignData.channel === 'linkedin';
+        // Calculate step flow for current channels to get total steps
+        const restoredChannels = campaignData.channels && Array.isArray(campaignData.channels) 
+          ? campaignData.channels 
+          : (campaignData.channel ? [campaignData.channel] : ['email']);
+        const restoredStepFlow = calculateStepFlow(restoredChannels as ChannelType[], {
+          linkedin_step: config.linkedin_step,
+        });
+        const restoredTotalSteps = restoredStepFlow.length;
+        
+        // Restore the step from saved config, or calculate fallback step
         let targetStep: Step = 1;
         
-        if (campaignData.name && (campaignData.channels?.length > 0 || campaignData.channel)) {
-          const campaignDetails = config.email || config.linkedin;
-          if (campaignDetails?.productService && campaignDetails?.valueProposition && campaignDetails?.callToAction) {
-            targetStep = 3; // Segments step
-            if (config.segments && config.segments.length > 0) {
-              if (hasEmail) {
-                targetStep = 4; // Email templates step
-                if (config.schedule) {
-                  targetStep = 5; // Schedule step
-                  if (config.schedule.start) {
-                    targetStep = 6; // Review step
+        // Use saved step if available
+        if (config.currentStep && typeof config.currentStep === 'number') {
+          targetStep = Math.max(1, Math.min(config.currentStep, restoredTotalSteps)) as Step;
+        } else {
+          // Fallback: Determine step based on what's configured (for backward compatibility)
+          const hasEmail = campaignData.channels?.includes('email') || campaignData.channel === 'email';
+          const hasLinkedIn = campaignData.channels?.includes('linkedin') || campaignData.channel === 'linkedin';
+          
+          if (campaignData.name && (campaignData.channels?.length > 0 || campaignData.channel)) {
+            const campaignDetails = config.email || config.linkedin;
+            if (campaignDetails?.productService && campaignDetails?.valueProposition && campaignDetails?.callToAction) {
+              targetStep = 3; // Segments step
+              if (config.segments && config.segments.length > 0) {
+                if (hasEmail) {
+                  targetStep = 4; // Email templates step
+                  if (config.schedule?.start) {
+                    targetStep = 5; // Schedule step
                   }
-                }
-              } else if (hasLinkedIn) {
-                if (config.linkedin_step) {
-                  if (config.linkedin_step.action === 'invitation_with_message') {
-                    targetStep = 5; // LinkedIn templates step
-                    if (config.linkedin_step.message) {
-                      targetStep = 6; // Schedule step
-                      if (config.schedule?.start) {
-                        targetStep = 7; // Review step (but max is 6, so keep at 6)
-                      }
-                    }
+                } else if (hasLinkedIn) {
+                  if (config.linkedin_step) {
+                    targetStep = 5; // LinkedIn templates or schedule step
                   } else {
-                    targetStep = 5; // Schedule step (invitation only)
-                    if (config.schedule?.start) {
-                      targetStep = 6; // Review step
-                    }
+                    targetStep = 4; // Message type selection step
                   }
-                } else {
-                  targetStep = 4; // Message type selection step
                 }
               }
+            } else {
+              targetStep = 2; // Core Details Part 1 step
             }
-          } else {
-            targetStep = 2; // Core Details Part 1 step
           }
         }
         
         setStep(targetStep);
+        setPreviousStep(targetStep); // Set previous step to avoid triggering save on load
         setDraftLoaded(true);
       } catch (error) {
         console.error('Failed to load draft campaign:', error);
@@ -480,7 +546,8 @@ export default function CampaignNew() {
   useEffect(() => {
     const saveDraft = async () => {
       // Only save draft if we have minimum required data (name and base)
-      if (!name.trim() || !activeBaseId || savingDraft) return;
+      // Don't save during launch to prevent race conditions
+      if (!name.trim() || !activeBaseId || savingDraft || isLaunching) return;
       
       // Don't save on step 1 (too early)
       if (step === 1) return;
@@ -544,17 +611,36 @@ export default function CampaignNew() {
           return total + getSegmentLeads(seg);
         }, 0);
         
-        // Build config object
+        // Build config object with all form state
         const config: any = {
+          // Save current step for resume
+          currentStep: step,
+          
           schedule: {
             start: schedule.start || null,
             end: schedule.end || null,
             ...(channels.includes('email') && schedule.email ? { email: schedule.email } : {}),
             ...(channels.includes('linkedin') && schedule.linkedin ? { linkedin: schedule.linkedin } : {}),
+            ...(channels.includes('whatsapp') && schedule.whatsapp ? { whatsapp: schedule.whatsapp } : {}),
+            ...(channels.includes('call') && schedule.call ? { call: schedule.call } : {}),
             followups: schedule.followups || 0,
             followupDelay: schedule.followupDelay || 3
           },
-          segments: segments
+          segments: segments,
+          
+          // Save email messages and selections
+          emailMessages: messages,
+          selectedEmailMessageIndices: selectedMessageIndices,
+          messagesGenerated: messagesGenerated,
+          
+          // Save WhatsApp messages and selections
+          whatsAppMessages: whatsAppMessages,
+          selectedWhatsAppMessageIndices: selectedWhatsAppMessageIndices,
+          whatsAppMessagesGenerated: whatsAppMessagesGenerated,
+          
+          // Save follow-up preferences
+          followupsPreferenceSet: followupsPreferenceSet,
+          showFollowupsNumberInput: showFollowupsNumberInput
         };
         
         // Add email campaign details if email channel
@@ -641,11 +727,300 @@ export default function CampaignNew() {
       }
     };
 
-    // Debounce draft saving - only save when step changes or after user stops typing
+    // Debounced save for field changes (excluding step)
     const timeoutId = setTimeout(saveDraft, 1500);
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, channels, segments, schedule, productService, valueProposition, callToAction, senderName, senderCompany, step, activeBaseId, draftCampaignId, leads]);
+  }, [
+    name, channels, segments, schedule, activeBaseId, draftCampaignId, leads,
+    productService, valueProposition, callToAction, senderName, senderCompany,
+    messages, selectedMessageIndices, messagesGenerated,
+    whatsAppMessages, selectedWhatsAppMessageIndices, whatsAppMessagesGenerated,
+    followupsPreferenceSet, showFollowupsNumberInput,
+    linkedInStepConfig, selectedVoiceId, initialPrompt, systemPersona, knowledgeBaseFiles,
+    isLaunching, savingDraft
+  ]);
+
+  // Immediate save when step changes
+  useEffect(() => {
+    if (previousStep !== null && previousStep !== step && draftCampaignId && name.trim() && activeBaseId && step > 1 && !isLaunching) {
+      // Step changed - save immediately
+      const saveDraftImmediate = async () => {
+        if (savingDraft || isLaunching) return;
+        setSavingDraft(true);
+        try {
+          // Reuse the same save logic but execute immediately
+          let tierFilter: string | undefined = undefined;
+          if (segments.includes('Hot leads')) {
+            tierFilter = 'Hot';
+          } else if (segments.includes('Warm leads')) {
+            tierFilter = 'Warm';
+          } else if (segments.some(s => s.includes('Cold'))) {
+            tierFilter = 'Cold';
+          }
+          
+          const getSegmentLeads = (segmentName: string): number => {
+            let segmentLeads: Lead[] = [];
+            switch (segmentName) {
+              case 'Hot leads':
+                segmentLeads = leads.filter(l => l.tier === 'Hot');
+                break;
+              case 'Warm leads':
+                segmentLeads = leads.filter(l => l.tier === 'Warm');
+                break;
+              case 'Engaged not converted':
+                segmentLeads = leads.filter(l => (l.tier === 'Hot' || l.tier === 'Warm') && (l.score || 0) >= 75);
+                break;
+              case 'Never opened':
+                segmentLeads = leads.filter(l => (l.score || 0) < 65);
+                break;
+              case 'High-score low-engagement':
+                segmentLeads = leads.filter(l => (l.score || 0) >= 90 && l.tier !== 'Hot');
+                break;
+              default:
+                segmentLeads = [];
+            }
+            if (channels.includes('email')) {
+              segmentLeads = segmentLeads.filter(l => {
+                if (!l.email) return false;
+                const emailInfo = getEmailInfo(l.email, (l as any).enrichment);
+                return emailInfo.isValid && !emailInfo.isMasked;
+              });
+            }
+            if (channels.includes('linkedin')) {
+              segmentLeads = segmentLeads.filter(hasLinkedInUrl);
+            }
+            return segmentLeads.length;
+          };
+          
+          const totalLeads = segments.reduce((total, seg) => total + getSegmentLeads(seg), 0);
+          
+          const config: any = {
+            currentStep: step,
+            schedule: {
+              start: schedule.start || null,
+              end: schedule.end || null,
+              ...(channels.includes('email') && schedule.email ? { email: schedule.email } : {}),
+              ...(channels.includes('linkedin') && schedule.linkedin ? { linkedin: schedule.linkedin } : {}),
+              ...(channels.includes('whatsapp') && schedule.whatsapp ? { whatsapp: schedule.whatsapp } : {}),
+              ...(channels.includes('call') && schedule.call ? { call: schedule.call } : {}),
+              followups: schedule.followups || 0,
+              followupDelay: schedule.followupDelay || 3
+            },
+            segments: segments,
+            emailMessages: messages,
+            selectedEmailMessageIndices: selectedMessageIndices,
+            messagesGenerated: messagesGenerated,
+            whatsAppMessages: whatsAppMessages,
+            selectedWhatsAppMessageIndices: selectedWhatsAppMessageIndices,
+            whatsAppMessagesGenerated: whatsAppMessagesGenerated,
+            followupsPreferenceSet: followupsPreferenceSet,
+            showFollowupsNumberInput: showFollowupsNumberInput
+          };
+          
+          if (channels.includes('email')) {
+            config.email = {
+              productService: productService || '',
+              valueProposition: valueProposition || '',
+              callToAction: callToAction || '',
+              senderName: senderName || '',
+              senderCompany: senderCompany || ''
+            };
+          }
+          
+          if (channels.includes('linkedin')) {
+            config.linkedin = {
+              productService: productService || '',
+              valueProposition: valueProposition || '',
+              callToAction: callToAction || '',
+              senderName: senderName || '',
+              senderCompany: senderCompany || ''
+            };
+            if (linkedInStepConfig) {
+              config.linkedin_step = linkedInStepConfig;
+            }
+          }
+          
+          if (channels.includes('call')) {
+            config.call = {
+              knowledgeBaseFiles: knowledgeBaseFiles.map(f => ({ id: f.id, name: f.name }))
+            };
+          }
+          
+          const campaignPayload: any = {
+            name: name || 'Untitled Campaign',
+            channel: channels[0] || 'email',
+            status: 'draft',
+            tier_filter: tierFilter,
+            leads: totalLeads,
+            channels: channels,
+            config: config
+          };
+          
+          if (channels.includes('call')) {
+            if (selectedVoiceId) campaignPayload.selectedVoiceId = selectedVoiceId;
+            if (initialPrompt) campaignPayload.firstPrompt = initialPrompt;
+            if (systemPersona) campaignPayload.systemPersona = systemPersona;
+          }
+          
+          await apiRequest(`/campaigns/${draftCampaignId}`, {
+            method: 'PUT',
+            body: JSON.stringify(campaignPayload)
+          });
+        } catch (error) {
+          console.error('Failed to save draft on step change:', error);
+        } finally {
+          setSavingDraft(false);
+        }
+      };
+      
+      saveDraftImmediate();
+    }
+    setPreviousStep(step);
+  }, [step, previousStep, draftCampaignId, name, activeBaseId, channels, segments, schedule, messages, selectedMessageIndices, whatsAppMessages, selectedWhatsAppMessageIndices, productService, valueProposition, callToAction, senderName, senderCompany, linkedInStepConfig, selectedVoiceId, initialPrompt, systemPersona, knowledgeBaseFiles, followupsPreferenceSet, showFollowupsNumberInput, messagesGenerated, whatsAppMessagesGenerated, leads, savingDraft, isLaunching]);
+
+  // Save draft when tab becomes hidden (user switches tabs or closes browser)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.hidden && draftCampaignId && name.trim() && activeBaseId && step > 1 && !savingDraft && !isLaunching) {
+        // Trigger immediate save when tab becomes hidden
+        try {
+          setSavingDraft(true);
+          // Reuse the save logic from the auto-save effect
+          // This will be handled by the auto-save effect, but we trigger it immediately
+          const saveDraftNow = async () => {
+            // Determine tier_filter from segments
+            let tierFilter: string | undefined = undefined;
+            if (segments.includes('Hot leads')) {
+              tierFilter = 'Hot';
+            } else if (segments.includes('Warm leads')) {
+              tierFilter = 'Warm';
+            } else if (segments.some(s => s.includes('Cold'))) {
+              tierFilter = 'Cold';
+            }
+            
+            const getSegmentLeads = (segmentName: string): number => {
+              let segmentLeads: Lead[] = [];
+              switch (segmentName) {
+                case 'Hot leads':
+                  segmentLeads = leads.filter(l => l.tier === 'Hot');
+                  break;
+                case 'Warm leads':
+                  segmentLeads = leads.filter(l => l.tier === 'Warm');
+                  break;
+                case 'Engaged not converted':
+                  segmentLeads = leads.filter(l => (l.tier === 'Hot' || l.tier === 'Warm') && (l.score || 0) >= 75);
+                  break;
+                case 'Never opened':
+                  segmentLeads = leads.filter(l => (l.score || 0) < 65);
+                  break;
+                case 'High-score low-engagement':
+                  segmentLeads = leads.filter(l => (l.score || 0) >= 90 && l.tier !== 'Hot');
+                  break;
+                default:
+                  segmentLeads = [];
+              }
+              if (channels.includes('email')) {
+                segmentLeads = segmentLeads.filter(l => {
+                  if (!l.email) return false;
+                  const emailInfo = getEmailInfo(l.email, (l as any).enrichment);
+                  return emailInfo.isValid && !emailInfo.isMasked;
+                });
+              }
+              if (channels.includes('linkedin')) {
+                segmentLeads = segmentLeads.filter(hasLinkedInUrl);
+              }
+              return segmentLeads.length;
+            };
+            
+            const totalLeads = segments.reduce((total, seg) => total + getSegmentLeads(seg), 0);
+            
+            const config: any = {
+              currentStep: step,
+              schedule: {
+                start: schedule.start || null,
+                end: schedule.end || null,
+                ...(channels.includes('email') && schedule.email ? { email: schedule.email } : {}),
+                ...(channels.includes('linkedin') && schedule.linkedin ? { linkedin: schedule.linkedin } : {}),
+                ...(channels.includes('whatsapp') && schedule.whatsapp ? { whatsapp: schedule.whatsapp } : {}),
+                ...(channels.includes('call') && schedule.call ? { call: schedule.call } : {}),
+                followups: schedule.followups || 0,
+                followupDelay: schedule.followupDelay || 3
+              },
+              segments: segments,
+              emailMessages: messages,
+              selectedEmailMessageIndices: selectedMessageIndices,
+              messagesGenerated: messagesGenerated,
+              whatsAppMessages: whatsAppMessages,
+              selectedWhatsAppMessageIndices: selectedWhatsAppMessageIndices,
+              whatsAppMessagesGenerated: whatsAppMessagesGenerated,
+              followupsPreferenceSet: followupsPreferenceSet,
+              showFollowupsNumberInput: showFollowupsNumberInput
+            };
+            
+            if (channels.includes('email')) {
+              config.email = {
+                productService: productService || '',
+                valueProposition: valueProposition || '',
+                callToAction: callToAction || '',
+                senderName: senderName || '',
+                senderCompany: senderCompany || ''
+              };
+            }
+            
+            if (channels.includes('linkedin')) {
+              config.linkedin = {
+                productService: productService || '',
+                valueProposition: valueProposition || '',
+                callToAction: callToAction || '',
+                senderName: senderName || '',
+                senderCompany: senderCompany || ''
+              };
+              if (linkedInStepConfig) {
+                config.linkedin_step = linkedInStepConfig;
+              }
+            }
+            
+            if (channels.includes('call')) {
+              config.call = {
+                knowledgeBaseFiles: knowledgeBaseFiles.map(f => ({ id: f.id, name: f.name }))
+              };
+            }
+            
+            const campaignPayload: any = {
+              name: name || 'Untitled Campaign',
+              channel: channels[0] || 'email',
+              status: 'draft',
+              tier_filter: tierFilter,
+              leads: totalLeads,
+              channels: channels,
+              config: config
+            };
+            
+            if (channels.includes('call')) {
+              if (selectedVoiceId) campaignPayload.selectedVoiceId = selectedVoiceId;
+              if (initialPrompt) campaignPayload.firstPrompt = initialPrompt;
+              if (systemPersona) campaignPayload.systemPersona = systemPersona;
+            }
+            
+            await apiRequest(`/campaigns/${draftCampaignId}`, {
+              method: 'PUT',
+              body: JSON.stringify(campaignPayload)
+            });
+          };
+          
+          await saveDraftNow();
+        } catch (error) {
+          console.error('Failed to save draft on visibility change:', error);
+        } finally {
+          setSavingDraft(false);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [draftCampaignId, name, step, activeBaseId, channels, segments, schedule, messages, selectedMessageIndices, whatsAppMessages, selectedWhatsAppMessageIndices, productService, valueProposition, callToAction, senderName, senderCompany, linkedInStepConfig, selectedVoiceId, initialPrompt, systemPersona, knowledgeBaseFiles, followupsPreferenceSet, showFollowupsNumberInput, messagesGenerated, whatsAppMessagesGenerated, leads, savingDraft, isLaunching]);
 
   // Calculate segment leads
   const segmentData = useMemo(() => {
@@ -993,14 +1368,7 @@ export default function CampaignNew() {
                 campaignName: name,
                 baseId: activeBaseId,
                 segments: segments,
-                sampleLeads: sampleLeads.map(lead => ({
-                  first_name: lead.first_name,
-                  last_name: lead.last_name,
-                  company: lead.company,
-                  role: lead.role,
-                  score: lead.score,
-                  tier: lead.tier
-                })),
+                sampleLeads: sampleLeads.map(sanitizeLeadForAPI),
                 productService: productService,
                 valueProposition: valueProposition,
                 callToAction: callToAction,
@@ -2138,15 +2506,14 @@ export default function CampaignNew() {
                           campaignPurpose: productService || '',
                           baseId: activeBaseId,
                           segments: segments,
-                          sampleLeads: sampleLeads.map(lead => ({
-                            first_name: lead.first_name,
-                            last_name: lead.last_name,
-                            company: lead.company,
-                            role: lead.role,
-                            industry: lead.role, // Use role as industry fallback
-                            score: lead.score,
-                            tier: lead.tier
-                          })),
+                          sampleLeads: sampleLeads.map(lead => {
+                            const sanitized = sanitizeLeadForAPI(lead);
+                            // Add industry fallback if not present
+                            if (!sanitized.industry && lead.role) {
+                              sanitized.industry = lead.role;
+                            }
+                            return sanitized;
+                          }),
                           productService: productService || '',
                           valueProposition: valueProposition || '',
                           callToAction: callToAction || '',
@@ -2531,6 +2898,32 @@ Guidelines:
       {currentStepInfo?.stepType === 'schedule' && 
         (channels.includes('email') || channels.includes('linkedin') || channels.includes('whatsapp') || channels.includes('call')) && (
         <div style={{ display:'grid', gap:16 }}>
+          {/* Launch mode */}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+              <Icons.Clock size={18} />
+              When to start
+            </label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  checked={!!schedule.launch_now}
+                  onChange={() => setSchedule({ ...schedule, launch_now: true, start: "", end: "" })}
+                />
+                Launch immediately
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  checked={!schedule.launch_now}
+                  onChange={() => setSchedule({ ...schedule, launch_now: false })}
+                />
+                Schedule for later
+              </label>
+            </div>
+          </div>
+
           {/* Start Date */}
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontWeight: 600 }}>
@@ -2541,15 +2934,16 @@ Guidelines:
               className="input" 
               type="datetime-local" 
               value={schedule.start} 
+              disabled={!!schedule.launch_now}
               onChange={(e)=>{
                 const newStart = e.target.value;
                 setSchedule({...schedule, start: newStart});
               }} 
-              required
+              required={!schedule.launch_now}
             />
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icons.Clock size={14} />
-              Campaign will begin sending at this date/time
+              {schedule.launch_now ? "Campaign will start immediately" : "Campaign will begin sending at this date/time"}
             </div>
           </div>
           
@@ -2563,12 +2957,13 @@ Guidelines:
               className="input" 
               type="datetime-local" 
               value={schedule.end} 
+              disabled={!!schedule.launch_now}
               onChange={(e)=>{
                 const newEnd = e.target.value;
                 setSchedule({...schedule, end: newEnd});
               }} 
               min={schedule.start || undefined}
-              required
+              required={!schedule.launch_now}
             />
             {schedule.start && schedule.end && (
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -3869,34 +4264,73 @@ Guidelines:
                   }
                   
                   setLaunching(true);
+                  setIsLaunching(true); // Prevent auto-save during launch
                   try {
+                    // If segments are empty in state, try to load them from the saved campaign first
+                    let finalSegments: string[] = segments.length > 0 ? [...segments] : [];
+                    if (finalSegments.length === 0 && draftCampaignId) {
+                      try {
+                        const savedCampaign = await apiRequest(`/campaigns/${draftCampaignId}`);
+                        const savedConfig = savedCampaign?.campaign?.config || savedCampaign?.config || {};
+                        if (savedConfig.segments && Array.isArray(savedConfig.segments) && savedConfig.segments.length > 0) {
+                          console.log('[Campaign Launch] Loading segments from saved campaign:', savedConfig.segments);
+                          finalSegments = [...savedConfig.segments];
+                          setSegments(finalSegments); // Update state as well
+                        }
+                      } catch (error) {
+                        console.error('[Campaign Launch] Failed to load segments from saved campaign:', error);
+                      }
+                    }
+                    
+                    // Validate segments before launching
+                    if (finalSegments.length === 0) {
+                      alert('Please select at least one segment before launching the campaign.');
+                      setLaunching(false);
+                      setIsLaunching(false);
+                      return;
+                    }
+                    
                     // Determine tier_filter from segments
                     let tierFilter: string | undefined = undefined;
-                    if (segments.includes('Hot leads')) {
+                    if (finalSegments.includes('Hot leads')) {
                       tierFilter = 'Hot';
-                    } else if (segments.includes('Warm leads')) {
+                    } else if (finalSegments.includes('Warm leads')) {
                       tierFilter = 'Warm';
-                    } else if (segments.some(s => s.includes('Cold'))) {
+                    } else if (finalSegments.some((s: string) => s.includes('Cold'))) {
                       tierFilter = 'Cold';
                     }
                     
-                    // Calculate total leads count
-                    const totalLeads = segments.reduce((total, seg) => {
+                    // Calculate total leads count using finalSegments
+                    const totalLeads = finalSegments.reduce((total: number, seg: string) => {
                       const segData = segmentData.find(s => s.name === seg);
                       return total + (segData?.count || 0);
                     }, 0);
                     
-                    // Build config object
+                    // Build config object with all necessary fields
+                    // Include all throttle settings for all selected channels
                     const config: any = {
                       schedule: {
-                        start: schedule.start || null,
-                        end: schedule.end || null,
+                        start: schedule.launch_now ? null : (schedule.start || null),
+                        end: schedule.launch_now ? null : (schedule.end || null),
+                        launch_now: !!schedule.launch_now,
                         ...(channels.includes('email') && schedule.email ? { email: schedule.email } : {}),
                         ...(channels.includes('linkedin') && schedule.linkedin ? { linkedin: schedule.linkedin } : {}),
+                        ...(channels.includes('whatsapp') && schedule.whatsapp ? { whatsapp: schedule.whatsapp } : {}),
+                        ...(channels.includes('call') && schedule.call ? { call: schedule.call } : {}),
                         followups: schedule.followups || 0,
                         followupDelay: schedule.followupDelay || 3
                       },
-                      segments: segments
+                      segments: finalSegments, // Always include segments (validated above)
+                      currentStep: step, // Save current step
+                      // Preserve draft state
+                      emailMessages: messages,
+                      selectedEmailMessageIndices: selectedMessageIndices,
+                      messagesGenerated: messagesGenerated,
+                      whatsAppMessages: whatsAppMessages,
+                      selectedWhatsAppMessageIndices: selectedWhatsAppMessageIndices,
+                      whatsAppMessagesGenerated: whatsAppMessagesGenerated,
+                      followupsPreferenceSet: followupsPreferenceSet,
+                      showFollowupsNumberInput: showFollowupsNumberInput
                     };
                     
                     // Add email campaign details if email channel
@@ -3952,7 +4386,10 @@ Guidelines:
                       }
                     } else {
                       // Update existing draft with final data
-                      await apiRequest(`/campaigns/${campaignId}`, {
+                      // Log segments before update for debugging
+                      console.log('[Campaign Launch] Updating campaign with segments:', finalSegments, 'total:', finalSegments.length);
+                      
+                      const updateResponse = await apiRequest(`/campaigns/${campaignId}`, {
                         method: 'PUT',
                         body: JSON.stringify({
                           name: name || 'Untitled Campaign',
@@ -3961,9 +4398,45 @@ Guidelines:
                           tier_filter: tierFilter,
                           leads: totalLeads,
                           channels: channels,
-                          config: config
+                          config: config // Includes segments array
                         })
                       });
+                      
+                      // First, try to verify segments from the PUT response
+                      let verifyConfig = updateResponse?.campaign?.config || updateResponse?.config || {};
+                      let verifiedSegments = Array.isArray(verifyConfig.segments) ? verifyConfig.segments : [];
+                      console.log('[Campaign Launch] Segments from PUT response:', verifiedSegments);
+                      
+                      // If segments are missing from PUT response, read back the campaign
+                      if (verifiedSegments.length === 0 && finalSegments.length > 0) {
+                        console.log('[Campaign Launch] Segments missing from PUT response, reading back campaign...');
+                        // Add a small delay to ensure database write is complete
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        const verifyResponse = await apiRequest(`/campaigns/${campaignId}`);
+                        verifyConfig = verifyResponse?.campaign?.config || verifyResponse?.config || {};
+                        verifiedSegments = Array.isArray(verifyConfig.segments) ? verifyConfig.segments : [];
+                        console.log('[Campaign Launch] Verified segments after read-back:', verifiedSegments);
+                      }
+                      
+                      // Final verification
+                      if (verifiedSegments.length === 0 && finalSegments.length > 0) {
+                        console.error('[Campaign Launch] ERROR: Segments were not saved properly!');
+                        console.error('[Campaign Launch] Expected segments:', finalSegments);
+                        console.error('[Campaign Launch] Received segments:', verifiedSegments);
+                        console.error('[Campaign Launch] Full config:', JSON.stringify(verifyConfig, null, 2));
+                        alert('Error: Segments were not saved properly. Please try selecting segments again and launching.');
+                        setLaunching(false);
+                        setIsLaunching(false);
+                        return;
+                      }
+                      
+                      // Update segments in state if they differ (in case they were loaded from saved campaign)
+                      if (JSON.stringify(verifiedSegments) !== JSON.stringify(finalSegments)) {
+                        console.log('[Campaign Launch] Updating segments state to match saved:', verifiedSegments);
+                        setSegments(verifiedSegments);
+                        finalSegments = verifiedSegments;
+                      }
                     }
                     
                     // Save selected message templates if email channel
@@ -4050,7 +4523,15 @@ Guidelines:
                     // Actually launch the campaign using the start endpoint
                     try {
                       await apiRequest(`/campaigns/${campaignId}/start`, {
-                        method: 'POST'
+                        method: 'POST',
+                        body: JSON.stringify({
+                          launch_now: schedule.launch_now || false,
+                          schedule: {
+                            start: schedule.start || null,
+                            end: schedule.end || null,
+                            launch_now: schedule.launch_now || false
+                          }
+                        })
                       });
                     } catch (error: any) {
                       // If launch fails, show detailed error message
@@ -4078,6 +4559,7 @@ Guidelines:
                     alert(error?.message || 'Failed to launch campaign. Please try again.');
                   } finally {
                     setLaunching(false);
+                    setIsLaunching(false); // Re-enable auto-save
                   }
                 }}
                 disabled={(channels.includes('email') && !emailIntegration) || (channels.includes('linkedin') && !linkedInStepConfig) || launching}
@@ -4546,17 +5028,12 @@ function LinkedInStepConfigModal({
                         body: JSON.stringify({
                           toProfileUrl: linkedInUrl,
                           baseId: baseId,
-                          lead: {
-                            first_name: sampleLead.first_name,
-                            last_name: sampleLead.last_name,
-                            company: sampleLead.company,
-                            role: sampleLead.role,
-                          },
-                          productService: productService,
-                          valueProposition: valueProposition,
-                          callToAction: callToAction,
-                          senderName: senderName,
-                          senderCompany: senderCompany,
+                          lead: sanitizeLeadForAPI(sampleLead),
+                          productService: productService || undefined,
+                          valueProposition: valueProposition || undefined,
+                          callToAction: callToAction || undefined,
+                          senderName: senderName || undefined,
+                          senderCompany: senderCompany || undefined,
                         }),
                       });
                       

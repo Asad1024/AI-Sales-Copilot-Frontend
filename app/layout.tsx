@@ -14,6 +14,7 @@ import { useBaseStore } from "@/stores/useBaseStore";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { WebSocketProvider } from "@/components/notifications/WebSocketProvider";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import { clearAuth, getUser } from "@/lib/apiClient";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -61,6 +62,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     Bolt: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+      </svg>
+    ),
+    Mail: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 7l9 6 9-6" />
       </svg>
     )
   } as const;
@@ -208,6 +215,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                   { href: "/flow/new-goal", label: "AI Flow", icon: Icon.Robot },
                                   { href: "/campaigns", label: "Campaigns", icon: Icon.Rocket },
                                   { href: activeBaseId ? `/bases/${activeBaseId}/leads` : "/bases", label: "Leads", icon: Icon.Users },
+                                  { href: "/flow/inbox", label: "Inbox", icon: Icon.Mail },
                                 ];
                               })().map((item) => (
                                 <Link
@@ -454,6 +462,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </div>
                   </header>
+
+                  <EmailVerificationBanner />
 
                   <div className="main-layout">
                     {isAdminPage ? (

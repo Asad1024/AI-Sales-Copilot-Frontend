@@ -2,7 +2,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { setToken, setUser, apiRequest } from "@/lib/apiClient";
+import { setToken, setUser, apiRequest, authAPI } from "@/lib/apiClient";
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -23,7 +23,7 @@ function OAuthCallbackContent() {
       setToken(token);
 
       try {
-        const refreshed = await apiRequest("/auth/refresh");
+        const refreshed = await authAPI.refresh();
         if (refreshed?.user) {
           setUser(refreshed.user);
         }

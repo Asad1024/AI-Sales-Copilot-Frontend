@@ -63,9 +63,14 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
   const activeChannels = campaign.channels || (campaign.channel ? [campaign.channel] : []);
 
   return (
-    <div>
+    <div style={{ padding: '8px 0' }}>
       {/* Total Leads - Universal Metric */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom: 32 }}>
+      <div style={{ 
+        display:'grid', 
+        gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', 
+        gap:20, 
+        marginBottom: 40 
+      }}>
         <Kpi title="Total Leads" value={campaign.leads || totalLeads || 0} icon={Icons.Users} />
       </div>
       
@@ -83,24 +88,30 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
             : '0';
           
           channelSections.push(
-            <div key="email" style={{ marginBottom: 32 }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icons.Mail size={18} />
+            <div key="email" style={{ 
+              marginBottom: 40,
+              padding: '24px',
+              background: 'var(--elev-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--elev-border)'
+            }}>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text)' }}>
+                  <Icons.Mail size={20} style={{ color: '#3b82f6' }} />
                   Email Metrics
                 </h3>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
                   Track email delivery, opens, clicks, and replies
                 </p>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom: 16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
                 <Kpi title="Sent" value={campaign.sent || 0} icon={Icons.Send} />
                 <Kpi title="Delivered" value={campaign.delivered || 0} icon={Icons.CheckCircle} />
                 <Kpi title="Opened" value={campaign.opened || 0} icon={Icons.Eye} />
                 <Kpi title="Clicked" value={campaign.clicked || 0} icon={Icons.ExternalLink} />
                 <Kpi title="Replied" value={campaign.replied || 0} icon={Icons.MessageCircle} />
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
                 <Kpi title="Delivery Rate" value={`${emailDeliveryRate}%`} icon={Icons.Chart} />
                 <Kpi title="Open Rate" value={`${calculatedOpenRate}%`} icon={Icons.Chart} />
                 <Kpi title="Click Rate" value={`${emailClickRate}%`} icon={Icons.Chart} />
@@ -113,29 +124,33 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
         // WhatsApp Channel Metrics
         if (activeChannels.includes('whatsapp')) {
           channelSections.push(
-            <div key="whatsapp" style={{ marginBottom: 32 }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 20 }}>📱</span>
+            <div key="whatsapp" style={{ 
+              marginBottom: 40,
+              padding: '24px',
+              background: 'var(--elev-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--elev-border)'
+            }}>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text)' }}>
+                  <Icons.MessageCircle size={20} style={{ color: '#25D366' }} />
                   WhatsApp Metrics
                 </h3>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
-                  Track delivery, read status, and replies for WhatsApp messages
+                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
+                  Track messages sent, delivered, and replies for WhatsApp campaigns
                 </p>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom: 16 }}>
-                <Kpi title="Sent" value={campaign.whatsapp_sent || 0} icon={Icons.Send} />
-                <Kpi title="Delivered" value={campaign.whatsapp_delivered || 0} icon={Icons.CheckCircle} />
-                <Kpi title="Read (Seen)" value={campaign.whatsapp_seen || 0} icon={Icons.Eye} />
-                <Kpi title="Replied" value={campaign.whatsapp_replied || 0} icon={Icons.MessageCircle} />
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
+                <Kpi title="Sent" value={campaign.whatsapp_sent && campaign.whatsapp_sent > 0 ? campaign.whatsapp_sent : '—'} icon={Icons.Send} />
+                <Kpi title="Delivered" value={campaign.whatsapp_delivered && campaign.whatsapp_delivered > 0 ? campaign.whatsapp_delivered : '—'} icon={Icons.CheckCircle} />
+                <Kpi title="Replied" value={campaign.whatsapp_replied && campaign.whatsapp_replied > 0 ? campaign.whatsapp_replied : '—'} icon={Icons.MessageCircle} />
                 {campaign.whatsapp_no_whatsapp && campaign.whatsapp_no_whatsapp > 0 && (
-                  <Kpi title="Skipped (No WhatsApp)" value={campaign.whatsapp_no_whatsapp || 0} icon={Icons.AlertCircle} />
+                  <Kpi title="Skipped (No WhatsApp)" value={campaign.whatsapp_no_whatsapp} icon={Icons.AlertCircle} />
                 )}
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
-                <Kpi title="Delivery Rate" value={`${campaign.whatsapp_delivery_rate || '0'}%`} icon={Icons.Chart} />
-                <Kpi title="Read Rate" value={`${campaign.whatsapp_read_rate || '0'}%`} icon={Icons.Chart} />
-                <Kpi title="Reply Rate" value={`${campaign.whatsapp_reply_rate || '0'}%`} icon={Icons.Target} />
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
+                <Kpi title="Delivery Rate" value={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}%` : '—'} icon={Icons.Chart} />
+                <Kpi title="Reply Rate" value={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}%` : '—'} icon={Icons.Target} />
               </div>
             </div>
           );
@@ -150,17 +165,23 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
           const linkedinAcceptanceRate = linkedinSent > 0 ? ((linkedinAccepted / linkedinSent) * 100).toFixed(1) : '0';
           
           channelSections.push(
-            <div key="linkedin" style={{ marginBottom: 32 }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icons.Linkedin size={18} />
+            <div key="linkedin" style={{ 
+              marginBottom: 40,
+              padding: '24px',
+              background: 'var(--elev-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--elev-border)'
+            }}>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text)' }}>
+                  <Icons.Linkedin size={20} style={{ color: '#0077b5' }} />
                   LinkedIn Metrics
                 </h3>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
                   Track connection invitations sent, accepted, and engagement
                 </p>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom: 16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
                 <Kpi title="Invitations Sent" value={linkedinSent} icon={Icons.Send} />
                 <Kpi title="Accepted" value={linkedinAccepted} icon={Icons.CheckCircle} />
                 {linkedinFailed > 0 && (
@@ -170,7 +191,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
                   <Kpi title="Skipped" value={linkedinSkipped} icon={Icons.AlertCircle} />
                 )}
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
                 <Kpi title="Acceptance Rate" value={`${linkedinAcceptanceRate}%`} icon={Icons.Chart} />
               </div>
             </div>
@@ -180,17 +201,23 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
         // Call Channel Metrics
         if (activeChannels.includes('call')) {
           channelSections.push(
-            <div key="call" style={{ marginBottom: 32 }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icons.Phone size={18} />
+            <div key="call" style={{ 
+              marginBottom: 40,
+              padding: '24px',
+              background: 'var(--elev-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--elev-border)'
+            }}>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text)' }}>
+                  <Icons.Phone size={20} style={{ color: '#4ecdc4' }} />
                   Call Metrics
                 </h3>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
                   Track call initiation, answers, completions, and outcomes
                 </p>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom: 16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
                 <Kpi title="Initiated" value={campaign.call_initiated || 0} icon={Icons.Phone} />
                 <Kpi title="Answered" value={campaign.call_answered || 0} icon={Icons.CheckCircle} />
                 <Kpi title="Completed" value={campaign.call_completed || 0} icon={Icons.Check} />
@@ -202,7 +229,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
                   <Kpi title="Busy" value={campaign.call_busy || 0} icon={Icons.Clock} />
                 )}
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
                 <Kpi title="Answer Rate" value={`${campaign.call_answer_rate || '0'}%`} icon={Icons.Chart} />
                 <Kpi title="Completion Rate" value={`${campaign.call_completion_rate || '0'}%`} icon={Icons.Target} />
               </div>
@@ -219,14 +246,20 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
       
       {/* Conversions - Universal Metric */}
       {(campaign.converted && campaign.converted > 0) && (
-        <div style={{ marginTop: 32 }}>
-          <div style={{ marginBottom: 16 }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icons.Target size={18} />
+        <div style={{ 
+          marginTop: 40,
+          padding: '24px',
+          background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(76, 103, 255, 0.1) 100%)',
+          borderRadius: '16px',
+          border: '1px solid rgba(78, 205, 196, 0.2)'
+        }}>
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text)' }}>
+              <Icons.Target size={20} style={{ color: '#4ecdc4' }} />
               Overall Performance
             </h3>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
             <Kpi title="Conversions" value={campaign.converted || 0} icon={Icons.CheckCircle} />
             <Kpi title="Conversion Rate" value={`${calculatedConversionRate}%`} icon={Icons.Target} />
           </div>

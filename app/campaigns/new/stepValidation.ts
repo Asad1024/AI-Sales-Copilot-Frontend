@@ -14,6 +14,7 @@ export interface ValidationContext {
   schedule?: {
     start?: string;
     end?: string;
+    launch_now?: boolean;
   };
   // Channel-specific fields
   followupsPreferenceSet?: boolean;
@@ -77,6 +78,7 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
       return !!context.systemPersona && context.systemPersona.trim().length > 0;
     
     case 'schedule':
+      if (context.schedule?.launch_now) return true;
       if (!context.schedule?.start || !context.schedule?.end) {
         return false;
       }
@@ -171,6 +173,7 @@ export function getValidationError(context: ValidationContext): string | null {
       return null;
     
     case 'schedule':
+      if (context.schedule?.launch_now) return null;
       if (!context.schedule?.start) return 'Start date is required';
       if (!context.schedule?.end) return 'End date is required';
       if (context.schedule.start && context.schedule.end) {

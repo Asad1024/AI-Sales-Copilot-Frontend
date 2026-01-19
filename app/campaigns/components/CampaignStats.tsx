@@ -1,14 +1,26 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useCampaignStore } from "@/stores/useCampaignStore";
+import { useLeadStore } from "@/stores/useLeadStore";
+import { useBaseStore } from "@/stores/useBaseStore";
 
 export function CampaignStats() {
   const { campaigns, loading } = useCampaignStore();
+  const { pagination, fetchLeads } = useLeadStore();
+  const { activeBaseId } = useBaseStore();
+
+  // Fetch leads to populate the total count
+  useEffect(() => {
+    if (activeBaseId && pagination.totalLeads === 0) {
+      // Fetch just the first page to get the total count
+      fetchLeads(activeBaseId, 1, 50);
+    }
+  }, [activeBaseId, fetchLeads, pagination.totalLeads]);
 
   const stats = useMemo(() => {
     const total = campaigns.length;
     const running = campaigns.filter(c => c.status === 'running').length;
-    const totalLeads = campaigns.reduce((sum, c) => sum + (c.leads || 0), 0);
+    const totalLeads = pagination.totalLeads; // Total leads in workspace, not sum of campaign leads
     const totalSent = campaigns.reduce((sum, c) => sum + (c.sent || 0), 0);
     const totalOpened = campaigns.reduce((sum, c) => sum + (c.opened || 0), 0);
     const totalReplied = campaigns.reduce((sum, c) => sum + (c.replied || 0), 0);
@@ -24,7 +36,7 @@ export function CampaignStats() {
       avgOpenRate,
       avgReplyRate
     };
-  }, [campaigns]);
+  }, [campaigns, pagination.totalLeads]);
 
   if (loading || campaigns.length === 0) return null;
 

@@ -36,22 +36,35 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggle }
     setIsMobile(window.innerWidth <= 768);
   }, []);
 
-  // Fetch global stats for Quick Stats
+  const { activeBaseId } = useBaseStore();
+
+  // Fetch stats for Quick Stats (base-specific if activeBaseId exists, otherwise global)
   useEffect(() => {
-    const fetchGlobalStats = async () => {
+    const fetchStats = async () => {
       try {
-        const data = await apiRequest("/analytics/global");
-        setGlobalStats(data);
+        if (activeBaseId) {
+          // Fetch base-specific analytics
+          const data = await apiRequest(`/analytics?base_id=${activeBaseId}&period=30d`);
+          setGlobalStats({
+            totalLeads: data.totalLeads || 0,
+            activeCampaigns: data.activeCampaigns || 0,
+            leadChange: data.leadChange || 0,
+            replyRate: data.replyRate || 0
+          });
+        } else {
+          // Fall back to global analytics
+          const data = await apiRequest("/analytics/global");
+          setGlobalStats(data);
+        }
       } catch (error) {
         // Silently fail - stats will show placeholder
+        console.error('Failed to fetch stats:', error);
       }
     };
-    fetchGlobalStats();
-    const interval = setInterval(fetchGlobalStats, 60000); // Refresh every 60 seconds
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000); // Refresh every 60 seconds
     return () => clearInterval(interval);
-  }, []);
-
-  const { activeBaseId } = useBaseStore();
+  }, [activeBaseId]);
   
   const baseNavigationItems: NavigationItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: <Icons.Dashboard /> },
@@ -260,7 +273,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggle }
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Campaigns</div>
                   </div>
                 </div>
-                {globalStats && globalStats.leadChange !== 0 && (
+                {globalStats && globalStats.leadChange !== undefined && globalStats.leadChange !== null && (
                   <div style={{ 
                     marginTop: 10, 
                     paddingTop: 10, 
@@ -272,11 +285,14 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggle }
                   }}>
                     {globalStats.leadChange > 0 ? (
                       <Icons.TrendingUp size={14} style={{ color: '#10b981' }} />
-                    ) : (
+                    ) : globalStats.leadChange < 0 ? (
                       <Icons.TrendingDown size={14} style={{ color: '#ef4444' }} />
-                    )}
-                    <span style={{ color: globalStats.leadChange > 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                      {globalStats.leadChange > 0 ? '+' : ''}{globalStats.leadChange.toFixed(1)}%
+                    ) : null}
+                    <span style={{ 
+                      color: globalStats.leadChange > 0 ? '#10b981' : globalStats.leadChange < 0 ? '#ef4444' : 'var(--color-text-muted)', 
+                      fontWeight: 600 
+                    }}>
+                      {globalStats.leadChange > 0 ? '+' : ''}{typeof globalStats.leadChange === 'number' ? globalStats.leadChange.toFixed(1) : '0.0'}%
                     </span>
                     <span style={{ color: 'var(--color-text-muted)' }}>vs last period</span>
                   </div>

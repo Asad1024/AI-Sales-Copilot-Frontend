@@ -1,8 +1,8 @@
 import { Icons } from "@/components/ui/Icons";
 
 interface CampaignTabsProps {
-  tab: 'overview'|'sequence'|'analytics'|'inbox'|'leads';
-  setTab: (tab: 'overview'|'sequence'|'analytics'|'inbox'|'leads') => void;
+  tab: 'overview'|'sequence'|'analytics'|'inbox'|'leads'|'transcripts';
+  setTab: (tab: 'overview'|'sequence'|'analytics'|'inbox'|'leads'|'transcripts') => void;
 }
 
 export function CampaignTabs({ tab, setTab }: CampaignTabsProps) {
@@ -11,7 +11,8 @@ export function CampaignTabs({ tab, setTab }: CampaignTabsProps) {
     { id: 'leads', label: 'Leads', icon: Icons.Users },
     { id: 'sequence', label: 'Sequence', icon: Icons.Send },
     { id: 'analytics', label: 'Analytics', icon: Icons.Chart },
-    { id: 'inbox', label: 'Inbox', icon: Icons.Mail }
+    { id: 'inbox', label: 'Inbox', icon: Icons.Mail },
+    { id: 'transcripts', label: 'Call Transcripts', icon: Icons.Phone }
   ];
 
   return (

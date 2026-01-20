@@ -29,7 +29,7 @@ async function getWebSocketUrl(): Promise<string> {
   }
   
   // Fallback: construct from API URL
-  const apiUrl = process.env.NEXT_PUBLIC_API_BASE?.replace('/api', '') || 'http://localhost:4000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const wsUrl = apiUrl.replace(/^http/, 'ws');
   cachedWebSocketUrl = wsUrl;
   return wsUrl;

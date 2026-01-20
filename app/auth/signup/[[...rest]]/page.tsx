@@ -36,9 +36,18 @@ export default function SignupPage() {
       if (invitationToken) {
         try {
           // Accept the invitation
-          await apiRequest(`/invitations/${invitationToken}/accept`, {
+          const inviteResponse = await apiRequest(`/invitations/${invitationToken}/accept`, {
             method: 'POST'
           });
+          
+          // Store invitation details for display
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('invitationAccepted', JSON.stringify({
+              baseName: inviteResponse.base?.name,
+              role: inviteResponse.role,
+              message: inviteResponse.message,
+            }));
+          }
           
           // Redirect to dashboard with success message (skip onboarding if joining via invitation)
           router.push("/dashboard?invited=true");

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { StatCard } from "@/components/ui/DataVisualization";
 import HeroBanner from "@/components/ui/HeroBanner";
 import { useBase } from "@/context/BaseContext";
@@ -11,7 +11,13 @@ import { Icons } from "@/components/ui/Icons";
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [copilotBannerDismissed, setCopilotBannerDismissed] = useState(false);
+  const [invitationSuccess, setInvitationSuccess] = useState<{
+    baseName: string;
+    role: string;
+    message: string;
+  } | null>(null);
 
   // Analytics state
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -19,6 +25,28 @@ export default function Dashboard() {
   
   const { activeBaseId, bases } = useBase();
   const activeBase = bases.find(b => b.id === activeBaseId);
+
+  // Check for invitation acceptance success
+  useEffect(() => {
+    const invited = searchParams.get('invited');
+    if (invited === 'true') {
+      const stored = sessionStorage.getItem('invitationAccepted');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          setInvitationSuccess(data);
+          // Clear the URL parameter
+          router.replace('/dashboard', { scroll: false });
+          // Clear sessionStorage after 5 seconds
+          setTimeout(() => {
+            sessionStorage.removeItem('invitationAccepted');
+          }, 5000);
+        } catch (e) {
+          console.error('Failed to parse invitation data:', e);
+        }
+      }
+    }
+  }, [searchParams, router]);
   
   // Fetch analytics data when base changes
   useEffect(() => {
@@ -105,6 +133,74 @@ export default function Dashboard() {
       <ProductTour steps={tourSteps} />
       <OnboardingWizard />
       <HeroBanner />
+      
+      {/* Invitation Success Banner */}
+      {invitationSuccess && (
+        <div style={{
+          borderRadius: 12,
+          padding: '20px 24px',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
+          border: '2px solid rgba(16, 185, 129, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          position: 'relative',
+          animation: 'fadeIn 0.5s ease-out'
+        }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#065f46', marginBottom: 4 }}>
+              🎉 Welcome to {invitationSuccess.baseName}!
+            </div>
+            <div style={{ fontSize: 14, color: '#047857', lineHeight: 1.5 }}>
+              You've been added as <strong style={{ textTransform: 'capitalize' }}>{invitationSuccess.role}</strong>. 
+              You now have access to this workspace and can start collaborating with your team.
+            </div>
+          </div>
+          <button
+            onClick={() => setInvitationSuccess(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#065f46',
+              opacity: 0.7,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.7';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      )}
       
       {/* AI Copilot Banner - Only show when there's actionable data */}
       {activeBase && !copilotBannerDismissed && analyticsData && analyticsData.hotLeads > 0 && (

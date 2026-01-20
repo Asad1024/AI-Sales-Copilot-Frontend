@@ -34,12 +34,17 @@ export default function LoginPage() {
       if (invitationToken) {
         try {
           // Accept the invitation
-          await apiRequest(`/invitations/${invitationToken}/accept`, {
+          const inviteResponse = await apiRequest(`/invitations/${invitationToken}/accept`, {
             method: 'POST'
           });
           
-          // Clear the pending invitation
+          // Store invitation details for display
           if (typeof window !== 'undefined') {
+            sessionStorage.setItem('invitationAccepted', JSON.stringify({
+              baseName: inviteResponse.base?.name,
+              role: inviteResponse.role,
+              message: inviteResponse.message,
+            }));
             sessionStorage.removeItem('pendingInvitation');
           }
           

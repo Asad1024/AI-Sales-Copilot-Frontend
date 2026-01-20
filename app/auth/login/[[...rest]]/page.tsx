@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { authAPI } from "@/lib/apiClient";
+import { authAPI, apiRequest } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +26,32 @@ export default function LoginPage() {
       await authAPI.login(email, password);
       // Existing users logging in are always considered "profile complete" - skip onboarding
       localStorage.setItem("sparkai:profile_complete", "true");
+      
+      // Check for pending invitation
+      const invitationToken = searchParams.get('invitation') || 
+        (typeof window !== 'undefined' ? sessionStorage.getItem('pendingInvitation') : null);
+      
+      if (invitationToken) {
+        try {
+          // Accept the invitation
+          await apiRequest(`/invitations/${invitationToken}/accept`, {
+            method: 'POST'
+          });
+          
+          // Clear the pending invitation
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('pendingInvitation');
+          }
+          
+          // Redirect to dashboard with success message
+          router.push("/dashboard?invited=true");
+          return;
+        } catch (inviteError: any) {
+          console.error('Failed to accept invitation:', inviteError);
+          // Continue to dashboard even if invitation acceptance fails
+        }
+      }
+      
       router.push("/dashboard");
     } catch (e: any) {
       setError(e?.message || "Login failed");

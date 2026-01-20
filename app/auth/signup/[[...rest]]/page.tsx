@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { authAPI } from "@/lib/apiClient";
+import { authAPI, apiRequest } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/api";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +29,26 @@ export default function SignupPage() {
     try {
       await authAPI.signup(email, password, name, company || undefined, dob || undefined);
       localStorage.setItem("sparkai:profile_complete", "false");
+      
+      // Check for pending invitation
+      const invitationToken = searchParams.get('invitation');
+      
+      if (invitationToken) {
+        try {
+          // Accept the invitation
+          await apiRequest(`/invitations/${invitationToken}/accept`, {
+            method: 'POST'
+          });
+          
+          // Redirect to dashboard with success message (skip onboarding if joining via invitation)
+          router.push("/dashboard?invited=true");
+          return;
+        } catch (inviteError: any) {
+          console.error('Failed to accept invitation:', inviteError);
+          // Continue to onboarding even if invitation acceptance fails
+        }
+      }
+      
       router.push("/onboarding");
     } catch (e: any) {
       setError(e?.message || "Signup failed");

@@ -307,11 +307,19 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   bulkDeleteLeads: async (ids) => {
     try {
       const state = get();
-      const baseIds = new Set(state.leads.filter(l => ids.includes(l.id)).map(l => l.base_id).filter(Boolean));
+      const leadsToDelete = state.leads.filter(l => ids.includes(l.id));
+      const baseIds = new Set(leadsToDelete.map(l => l.base_id).filter(Boolean));
+      
+      // Get base_id from the first lead (all leads should be from the same base)
+      const baseId = leadsToDelete.length > 0 ? leadsToDelete[0].base_id : null;
+      
+      if (!baseId) {
+        throw new Error('Unable to determine base_id for selected leads');
+      }
       
       await apiRequest('/leads/bulk', {
         method: 'DELETE',
-        body: JSON.stringify({ lead_ids: ids }),
+        body: JSON.stringify({ lead_ids: ids, base_id: baseId }),
       });
       
       // Invalidate cache for affected bases

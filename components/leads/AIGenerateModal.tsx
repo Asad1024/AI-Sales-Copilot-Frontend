@@ -676,6 +676,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                         method: "POST",
                         body: JSON.stringify({ 
                           lead_ids: leadIds,
+                          base_id: activeBaseId,
                           only_fullenrich: true // Set to true to skip Apollo and Anymail Finder, only run FullEnrich
                         })
                       });

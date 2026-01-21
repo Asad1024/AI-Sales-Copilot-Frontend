@@ -50,6 +50,7 @@ export function EnrichModal({ open, onClose, onEnriched }: EnrichModalProps) {
         method: "POST",
         body: JSON.stringify({
           lead_ids: leadsToEnrich,
+          base_id: activeBaseId,
           enrichment_type: enrichmentType,
           // Contact mode is FullEnrich-only and async (webhook); deep_research runs sync pipeline
           only_fullenrich: enrichmentType === 'contact'

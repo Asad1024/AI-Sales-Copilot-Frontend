@@ -335,12 +335,12 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                   fontSize: 14,
                   fontWeight: 600,
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   gap: 12,
                   animation: 'slideUp 0.3s ease-out'
                 }}>
-                  <Icons.AlertCircle size={20} style={{ color: '#ff5757', flexShrink: 0 }} />
-                  <span>{error}</span>
+                  <Icons.AlertCircle size={20} style={{ color: '#ff5757', flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ whiteSpace: 'pre-line', lineHeight: 1.6, flex: 1 }}>{error}</span>
                 </div>
               )}
 

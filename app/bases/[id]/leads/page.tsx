@@ -148,10 +148,11 @@ export default function BaseLeadsPage() {
           fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
         }, 500);
 
-        // Show success message
+        // Show success message (enriched_count from contacts webhook, updated_count from main FullEnrich webhook)
+        const count = notification.metadata?.enriched_count ?? notification.metadata?.updated_count ?? 0;
         showSuccess(
           'Contact Enrichment Complete',
-          `Successfully enriched ${notification.metadata?.enriched_count || 0} leads with contact information.`
+          `Successfully enriched ${count} leads with contact information.`
         );
       }
     };

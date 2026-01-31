@@ -78,9 +78,19 @@ export async function apiRequest<T = any>(
     // For user-facing errors (4xx), prefer message over error (error is usually the error class name)
     // For server errors (5xx), use error or message
     const isUserError = response.status >= 400 && response.status < 500;
-    const message = isUserError 
-      ? (data?.message || data?.error || `Request failed with status ${response.status}`)
-      : (data?.error || data?.message || `Request failed with status ${response.status}`);
+    
+    // Extract message, but never use error class names as messages
+    let message: string;
+    if (isUserError) {
+      // Prefer message field, but if it's missing, check error field (but skip if it's a class name)
+      message = data?.message || 
+                (data?.error && !data.error.match(/^(APIError|BadRequestError|ValidationError|NotFoundError|InternalServerError)$/i) 
+                  ? data.error 
+                  : `Request failed with status ${response.status}`);
+    } else {
+      message = data?.error || data?.message || `Request failed with status ${response.status}`;
+    }
+    
     const code = data?.code;
     const details = data?.details;
 

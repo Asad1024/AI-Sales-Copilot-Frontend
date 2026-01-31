@@ -66,7 +66,35 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
       }
     } catch (error: any) {
       console.error("AI generation error:", error);
-      setError(error.message || "Failed to generate leads. Please try again.");
+      console.error("Error details:", {
+        message: error?.message,
+        name: error?.name,
+        status: error?.status,
+        response: error?.response?.data
+      });
+      
+      // Extract error message - handle different error formats
+      let errorMessage = "Failed to generate leads. Please try again.";
+      
+      // Priority 1: Use error.message if it's not just the class name
+      if (error?.message && 
+          error.message !== "APIError" && 
+          error.message !== "BadRequestError" &&
+          error.message !== "Error") {
+        errorMessage = error.message;
+      } 
+      // Priority 2: Check response data message
+      else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } 
+      // Priority 3: Check response data error (if it's not just the class name)
+      else if (error?.response?.data?.error && 
+               error.response.data.error !== "BadRequestError" &&
+               error.response.data.error !== "APIError") {
+        errorMessage = error.response.data.error;
+      }
+      
+      setError(errorMessage);
       setProgress("");
     } finally {
       setGenerating(false);

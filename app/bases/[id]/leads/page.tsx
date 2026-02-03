@@ -207,7 +207,7 @@ export default function BaseLeadsPage() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/leads/export?base_id=${currentBaseId}`, {
+      const response = await fetch(`${API_BASE}/api/leads/export?base_id=${currentBaseId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

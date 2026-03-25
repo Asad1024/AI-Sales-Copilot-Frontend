@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
+import { useNotification } from "@/context/NotificationContext";
 
 export function CreateCampaignModal() {
   const router = useRouter();
+  const { showError, showWarning } = useNotification();
   const { activeBaseId, bases } = useBaseStore();
   const { createCampaign } = useCampaignStore();
   const [showModal, setShowModal] = useState(false);
@@ -19,11 +21,11 @@ export function CreateCampaignModal() {
 
   const handleCreate = async () => {
     if (!newCampaign.name.trim()) {
-      alert('Please enter a campaign name');
+      showWarning('Campaign name', 'Please enter a campaign name.');
       return;
     }
     if (!newCampaign.base_id) {
-      alert('Please select a base');
+      showWarning('Workspace', 'Please select a workspace.');
       return;
     }
     
@@ -43,7 +45,7 @@ export function CreateCampaignModal() {
       }
     } catch (error: any) {
       console.error('Failed to create campaign:', error);
-      alert(error?.message || 'Failed to create campaign. Please try again.');
+      showError('Create failed', error?.message || 'Failed to create campaign. Please try again.');
     } finally {
       setCreating(false);
     }

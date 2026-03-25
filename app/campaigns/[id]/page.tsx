@@ -14,6 +14,7 @@ import { InboxTab } from "./components/InboxTab";
 import { CallTranscriptsTab } from "./components/CallTranscriptsTab";
 import { EditCampaignModal } from "./components/EditCampaignModal";
 import { LeadActivityModal } from "./components/LeadActivityModal";
+import { useNotification } from "@/context/NotificationContext";
 
 interface Campaign {
   id: number;
@@ -90,6 +91,7 @@ interface SequenceStep {
 export default function CampaignDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showError, showSuccess } = useNotification();
   const { activeBaseId, bases } = useBase();
   const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'inbox'|'leads'|'transcripts'>('overview');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -120,7 +122,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
         });
       } catch (error) {
         console.error('Failed to fetch campaign:', error);
-        alert('Failed to load campaign. Redirecting...');
+        showError('Campaign unavailable', 'Failed to load campaign. Redirecting…');
         router.push('/campaigns');
       } finally {
         setLoading(false);
@@ -215,10 +217,10 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
       
       setCampaign(response?.campaign || { ...campaign, ...editData });
       setShowEditModal(false);
-      alert('Campaign updated successfully');
+      showSuccess('Campaign updated', 'Your changes were saved.');
     } catch (error: any) {
       console.error('Failed to update campaign:', error);
-      alert(error?.message || 'Failed to update campaign');
+      showError('Update failed', error?.message || 'Failed to update campaign');
     } finally {
       setUpdating(false);
     }
@@ -252,7 +254,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
       }
     } catch (error: any) {
       console.error('Failed to update campaign status:', error);
-      alert(error?.message || 'Failed to update campaign status');
+      showError('Status update failed', error?.message || 'Failed to update campaign status');
     } finally {
       setUpdating(false);
     }
@@ -270,15 +272,42 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="card-enhanced" style={{ borderRadius: 16, padding: 60, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <Icons.Loader size={32} style={{ animation: 'spin 1s linear infinite', color: '#4C67FF' }} />
-        <div style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>Loading campaign...</div>
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }} aria-busy="true" aria-label="Loading campaign">
+        <div
+          className="card-enhanced"
+          style={{
+            borderRadius: 12,
+            padding: 24,
+            border: "0.5px solid rgba(255,255,255,0.1)",
+            background: "#111113",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <div className="ui-skeleton" style={{ width: 48, height: 48, borderRadius: 12 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="ui-skeleton" style={{ height: 22, width: "40%", borderRadius: 6 }} />
+              <div className="ui-skeleton" style={{ height: 14, width: "28%", borderRadius: 6 }} />
+            </div>
+            <div className="ui-skeleton" style={{ height: 36, width: 120, borderRadius: 8 }} />
+          </div>
+          <div className="ui-skeleton" style={{ height: 14, width: "100%", borderRadius: 6 }} />
+        </div>
+        <div
+          className="card-enhanced"
+          style={{
+            borderRadius: 12,
+            padding: 24,
+            border: "0.5px solid rgba(255,255,255,0.1)",
+            background: "#111113",
+            minHeight: 280,
+          }}
+        >
+          <div className="ui-skeleton" style={{ height: 40, width: "100%", borderRadius: 8, marginBottom: 16 }} />
+          <div className="ui-skeleton" style={{ height: 180, width: "100%", borderRadius: 10 }} />
+        </div>
       </div>
     );
   }

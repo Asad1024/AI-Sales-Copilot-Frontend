@@ -2,6 +2,9 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import AdminGuard from "@/components/auth/AdminGuard";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
+import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface User {
   id: number;
@@ -13,6 +16,8 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const { showError, showSuccess } = useNotification();
+  const confirm = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -53,7 +58,7 @@ export default function AdminUsersPage() {
       setFormData({ name: "", email: "", password: "", role: "user", company: "" });
       fetchUsers();
     } catch (error: any) {
-      alert(error.message || "Failed to create user");
+      showError("Create failed", error.message || "Failed to create user");
     }
   };
 
@@ -64,25 +69,33 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ role: user.role === "admin" ? "user" : "admin" })
       });
       fetchUsers();
+      showSuccess("User updated", "Role was changed.");
     } catch (error: any) {
-      alert(error.message || "Failed to update user");
+      showError("Update failed", error.message || "Failed to update user");
     }
   };
 
   const handleDeleteUser = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
+    const ok = await confirm({
+      title: "Delete user?",
+      message: "This permanently removes the user from the platform.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await apiRequest(`/admin/users/${id}`, { method: "DELETE" });
       fetchUsers();
+      showSuccess("User deleted", "The user was removed.");
     } catch (error: any) {
-      alert(error.message || "Failed to delete user");
+      showError("Delete failed", error.message || "Failed to delete user");
     }
   };
 
   return (
     <AdminGuard>
-      <div style={{ padding: "32px", maxWidth: "1400px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+      <div style={{ padding: "12px 20px 24px", maxWidth: "1400px", margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div>
             <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>User Management</h1>
             <p style={{ color: "var(--color-text-muted)", fontSize: "16px" }}>
@@ -95,7 +108,14 @@ export default function AdminUsersPage() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "48px" }}>Loading...</div>
+          <div style={{
+            background: "var(--color-surface)",
+            borderRadius: "16px",
+            border: "1px solid var(--color-border)",
+            overflow: "hidden"
+          }}>
+            <TableSkeleton columns={6} rows={10} withCard={false} trailingActions ariaLabel="Loading users" />
+          </div>
         ) : (
           <div style={{
             background: "var(--color-surface)",

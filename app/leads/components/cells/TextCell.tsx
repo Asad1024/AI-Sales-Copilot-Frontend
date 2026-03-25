@@ -6,9 +6,11 @@ interface TextCellProps {
   onUpdate: (value: any) => void;
   editable?: boolean;
   type?: "text" | "email" | "phone" | "url";
+  /** Muted secondary text (e.g. Title column to align with Company). */
+  muted?: boolean;
 }
 
-export function TextCell({ value, onUpdate, editable = true, type = "text" }: TextCellProps) {
+export function TextCell({ value, onUpdate, editable = true, type = "text", muted = false }: TextCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value || ""));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,9 +42,11 @@ export function TextCell({ value, onUpdate, editable = true, type = "text" }: Te
     }
   };
 
+  const displayClass = muted ? "text-[11px] text-slate-500 dark:text-slate-400" : "text-[11px] text-slate-900 dark:text-slate-100";
+
   if (!editable) {
     return (
-      <div style={{ fontSize: "13px", color: "var(--color-text)" }}>
+      <div className={muted && !value ? "text-[11px] text-slate-400 dark:text-slate-500" : displayClass}>
         {value || "—"}
       </div>
     );
@@ -64,7 +68,7 @@ export function TextCell({ value, onUpdate, editable = true, type = "text" }: Te
           border: "1px solid #4C67FF",
           background: "var(--color-surface)",
           color: "var(--color-text)",
-          fontSize: "13px",
+          fontSize: "11px",
           outline: "none",
         }}
       />
@@ -74,9 +78,10 @@ export function TextCell({ value, onUpdate, editable = true, type = "text" }: Te
   return (
     <div
       onClick={() => setIsEditing(true)}
+      className={muted ? "text-slate-500 dark:text-slate-400" : ""}
       style={{
-        fontSize: "13px",
-        color: "var(--color-text)",
+        fontSize: "11px",
+        color: muted ? undefined : "var(--color-text)",
         cursor: "pointer",
         padding: "4px 8px",
         borderRadius: "4px",

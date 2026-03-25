@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { ColumnType } from "@/stores/useColumnStore";
 import { Icons } from "@/components/ui/Icons";
 import { apiRequest } from "@/lib/apiClient";
+import { useNotification } from "@/context/NotificationContext";
 
 interface ColumnConfigPanelProps {
   type: ColumnType;
@@ -12,6 +13,7 @@ interface ColumnConfigPanelProps {
 }
 
 export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnConfigPanelProps) {
+  const { showError } = useNotification();
   const [newOption, setNewOption] = useState("");
   const [newOptionColor, setNewOptionColor] = useState("#4C67FF");
   const [saving, setSaving] = useState(false);
@@ -71,7 +73,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
       setNewOptionColor(defaultColors[(currentColorIndex + 1) % defaultColors.length]);
     } catch (err: any) {
       console.error("Failed to add option", err);
-      alert(err?.message || "Failed to add option");
+      showError("Add option failed", err?.message || "Failed to add option");
     } finally {
       setSaving(false);
     }
@@ -94,7 +96,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
       persistOptions(updatedOptions);
     } catch (err: any) {
       console.error("Failed to remove option", err);
-      alert(err?.message || "Failed to remove option");
+      showError("Remove failed", err?.message || "Failed to remove option");
     } finally {
       setSaving(false);
     }
@@ -124,7 +126,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
       persistOptions(updatedOptionsLocal);
     } catch (err: any) {
       console.error("Failed to update option", err);
-      alert(err?.message || "Failed to update option");
+      showError("Update failed", err?.message || "Failed to update option");
     } finally {
       setSaving(false);
     }
@@ -158,7 +160,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
       persistOptions(withOrders);
     } catch (err: any) {
       console.error("Failed to reorder options", err);
-      alert(err?.message || "Failed to reorder options");
+      showError("Reorder failed", err?.message || "Failed to reorder options");
     } finally {
       setSaving(false);
     }

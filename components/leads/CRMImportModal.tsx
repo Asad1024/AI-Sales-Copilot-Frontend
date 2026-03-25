@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { CRMLogos } from "@/components/ui/CRMLogos";
+import { useNotification } from "@/context/NotificationContext";
 
 type Props = { 
   open: boolean; 
@@ -23,6 +24,7 @@ const CRM_PROVIDERS = [
 
 export default function CRMImportModal({ open, onClose, onImported, onOpenAirtableImport, targetBaseId }: Props) {
   const router = useRouter();
+  const { showInfo } = useNotification();
   const [provider, setProvider] = useState('Airtable');
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -82,7 +84,7 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
         onClose();
         router.push('/settings?tab=connectors');
       } else {
-        alert(`${providerName} integration is coming soon!`);
+        showInfo("Coming soon", `${providerName} integration is coming soon.`);
       }
     }
   };

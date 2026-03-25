@@ -1,6 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
 import BaseSelector from "@/components/ui/BaseSelector";
+import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
+import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 
@@ -20,57 +22,34 @@ export function CampaignHeader() {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
-      borderRadius: '20px',
-      padding: '32px',
-      border: '1px solid rgba(76, 103, 255, 0.2)'
+      background: 'var(--color-surface)',
+      borderRadius: '14px',
+      padding: '20px',
+      border: '0.5px solid rgba(255,255,255,0.1)'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ 
-            fontSize: '28px', 
-            fontWeight: '700', 
-            margin: '0 0 8px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            Campaign Management
-          </h1>
-          <p style={{ fontSize: '16px', color: '#888', margin: 0 }}>
-            Create, optimize, and scale your sales campaigns with AI assistance
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
           <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)' }}>Select Base</label>
           <BaseSelector />
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems:'center' }}>
-        <input
-          placeholder="Search campaigns…"
+        <ToolbarSearchField
           value={filters.search}
-          onChange={e => setFilters({ search: e.target.value })}
-          style={{ 
-            flex: 1,
-            minWidth: 200,
-            padding:'12px 16px', 
-            borderRadius:12, 
-            border:'1px solid var(--elev-border)', 
-            background:'var(--elev-bg)',
-            fontSize: 14,
-            outline: 'none'
-          }}
+          onChange={(v) => setFilters({ search: v })}
+          placeholder="Search campaigns…"
+          style={{ flex: 1, minWidth: 200 }}
+          aria-label="Search campaigns"
         />
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {(['all','running','paused','draft','completed'] as const).map(s => (
             <button 
               key={s} 
+              type="button"
               className={filters.status===s? 'btn-primary':'btn-ghost'} 
               onClick={()=> setFilters({ status: s })}
-              style={{ padding: '8px 16px', fontSize: 13, textTransform: 'capitalize' }}
+              style={{ padding: '8px 14px', fontSize: 13, textTransform: 'capitalize', borderRadius: 8 }}
             >
               {s}
             </button>
@@ -81,12 +60,13 @@ export function CampaignHeader() {
             const IconComponent = ch === 'all' ? Icons.Rocket : getChannelIcon(ch);
             return (
               <button 
-                key={ch} 
+                key={ch}
+                type="button"
                 className={filters.channel===ch? 'btn-primary':'btn-ghost'} 
                 onClick={()=> setFilters({ channel: ch })}
-                style={{ padding: '8px 16px', fontSize: 13, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{ padding: '8px 14px', fontSize: 13, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
               >
-                <IconComponent size={16} />
+                <IconComponent {...PORTAL_ACTION_ICON} />
                 {ch}
               </button>
             );

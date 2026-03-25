@@ -6,6 +6,11 @@ import { useBase } from "@/context/BaseContext";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { BaseMemberRole } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
+import BaseCard from "@/components/ui/BaseCard";
+import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
+import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 
 type MembershipRole = BaseMemberRole;
 
@@ -43,6 +48,8 @@ const defaultStats = {
 const generateTemporaryPassword = () => `Join${Math.random().toString(36).slice(-6)}!`;
 
 export default function TeamPage() {
+  const { showError, showSuccess, showWarning } = useNotification();
+  const confirm = useConfirm();
   const { bases, activeBaseId, setActiveBaseId, refreshBases } = useBase();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -183,7 +190,7 @@ export default function TeamPage() {
 
   const updateMemberRole = async (membership: MemberRow, nextRole: MembershipRole) => {
     if (!activeBaseId) {
-      alert("Select a base first.");
+      showWarning("Select a workspace", "Choose a workspace before changing roles.");
       return;
     }
     if (membership.role === nextRole) {
@@ -192,7 +199,7 @@ export default function TeamPage() {
 
     const ownersAfter = ownersRemainingAfterChange(membership, nextRole);
     if (ownersAfter <= 0) {
-      alert("Every base must keep at least one owner. Promote another member first.");
+      showWarning("Owner required", "Every workspace must keep at least one owner. Promote another member first.");
       return;
     }
 
@@ -203,10 +210,10 @@ export default function TeamPage() {
         body: JSON.stringify({ role: nextRole })
       });
       await refreshMembers();
-      alert(`Updated ${membership.user.name}'s role to ${nextRole}.`);
+      showSuccess("Role updated", `${membership.user.name} is now ${nextRole}.`);
     } catch (error: any) {
       const message = error?.response?.data?.error || error?.message || "Failed to update role";
-      alert(message);
+      showError("Update failed", message);
     } finally {
       setPendingMemberId(null);
     }
@@ -214,19 +221,24 @@ export default function TeamPage() {
 
   const removeMember = async (membership: MemberRow) => {
     if (!activeBaseId) {
-      alert("Select a base first.");
+      showWarning("Select a workspace", "Choose a workspace first.");
       return;
     }
     if (membership.role === "owner" && ownerCount <= 1) {
-      alert("You must transfer ownership to another member before removing the final owner.");
+      showWarning("Cannot remove owner", "Transfer ownership to another member before removing the final owner.");
       return;
     }
     if (membership.userId === currentUser?.id) {
-      alert("You cannot remove yourself from the base.");
+      showWarning("Not allowed", "You cannot remove yourself from the workspace.");
       return;
     }
 
-    const confirmed = window.confirm(`Remove ${membership.user.name} from this base?`);
+    const confirmed = await confirm({
+      title: "Remove member?",
+      message: `Remove ${membership.user.name} from this workspace?`,
+      confirmLabel: "Remove",
+      variant: "danger",
+    });
     if (!confirmed) return;
 
     setPendingMemberId(membership.membershipId);
@@ -235,10 +247,10 @@ export default function TeamPage() {
         method: "DELETE"
       });
       await refreshMembers();
-      alert(`Removed ${membership.user.name} from the base.`);
+      showSuccess("Member removed", `${membership.user.name} was removed from this workspace.`);
     } catch (error: any) {
       const message = error?.response?.data?.error || error?.message || "Failed to remove member";
-      alert(message);
+      showError("Remove failed", message);
     } finally {
       setPendingMemberId(null);
     }
@@ -255,11 +267,11 @@ export default function TeamPage() {
 
   const handleInvite = async () => {
     if (!activeBaseId) {
-      alert("Select a base before inviting members.");
+      showWarning("Select a workspace", "Choose a workspace before inviting members.");
       return;
     }
     if (!inviteForm.emailOrId.trim()) {
-      alert("Enter an email address or user ID.");
+      showWarning("Missing email or ID", "Enter an email address or user ID.");
       return;
     }
 
@@ -282,13 +294,9 @@ export default function TeamPage() {
           })
         });
 
-        alert(
-          `✅ Invitation sent to ${lowerEmail}!\n\n` +
-          `They will receive an email with instructions to:\n` +
-          `• Login (if existing user) or Sign up (if new user)\n` +
-          `• Accept the invitation to join your workspace\n\n` +
-          `Role: ${inviteForm.role}\n\n` +
-          `Note: They will appear in your team after accepting the invitation.`
+        showSuccess(
+          "Invitation sent",
+          `Email sent to ${lowerEmail}. They can sign in or register and accept to join with role: ${inviteForm.role}. They will appear here after accepting.`
         );
         setShowInviteModal(false);
         setInviteForm({ emailOrId: "", name: "", role: "member" });
@@ -313,13 +321,13 @@ export default function TeamPage() {
         })
       });
 
-      alert("Successfully added member to the base.");
+      showSuccess("Member added", "The user was added to this workspace.");
       setShowInviteModal(false);
       setInviteForm({ emailOrId: "", name: "", role: "member" });
       await refreshMembers();
     } catch (error: any) {
       const message = error?.response?.data?.error || error?.message || "Failed to invite member";
-      alert(message);
+      showError("Invite failed", message);
     } finally {
       setInviteLoading(false);
     }
@@ -341,13 +349,10 @@ export default function TeamPage() {
   }, [viewerIsAdmin, viewerMembershipRole]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-      <div
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <BaseCard
         style={{
-          background: "linear-gradient(135deg, rgba(76,103,255,0.12) 0%, rgba(169,76,255,0.12) 100%)",
-          borderRadius: "20px",
-          padding: "32px",
-          border: "1px solid rgba(76, 103, 255, 0.2)"
+          padding: "20px 24px",
         }}
       >
         <div
@@ -366,30 +371,7 @@ export default function TeamPage() {
               gap: "16px"
             }}
           >
-            <div>
-              <h1
-                style={{
-                  fontSize: "28px",
-                  fontWeight: 700,
-                  margin: "0 0 8px 0",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px"
-                }}
-              >
-                <Icons.Users size={32} style={{ color: "#4C67FF" }} />
-                Team Management
-              </h1>
-              <p
-                style={{
-                  fontSize: "16px",
-                  color: "var(--color-text-muted)",
-                  margin: 0
-                }}
-              >
-                Invite collaborators, assign roles, and control access to your workspace.
-              </p>
-            </div>
+            <div />
             <div
               style={{
                 display: "flex",
@@ -490,7 +472,7 @@ export default function TeamPage() {
             )}
           </div>
         </div>
-      </div>
+      </BaseCard>
 
       {membersError && (
         <div
@@ -507,18 +489,36 @@ export default function TeamPage() {
       )}
 
       {membersLoading ? (
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <div style={{ display: "inline-block", marginBottom: 16, animation: "spin 1s linear infinite" }}>
-            <Icons.Loader size={32} style={{ color: "#4C67FF" }} />
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "20px",
+            }}
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <BaseCard key={i} style={{ padding: "20px 22px" }} aria-hidden>
+                <div className="ui-skeleton" style={{ height: 14, width: "42%", borderRadius: 6, marginBottom: 14 }} />
+                <div className="ui-skeleton" style={{ height: 28, width: "48%", borderRadius: 8, marginBottom: 10 }} />
+                <div className="ui-skeleton" style={{ height: 12, width: "88%", borderRadius: 6 }} />
+              </BaseCard>
+            ))}
           </div>
-          <div style={{ fontSize: "16px", color: "var(--color-text-muted)" }}>Loading team members…</div>
-          <style>{`
-            @keyframes spin {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
-        </div>
+          <BaseCard style={{ padding: "24px", overflow: "hidden" }} aria-busy="true" aria-label="Loading team members">
+            <div className="ui-skeleton" style={{ height: 22, width: 220, borderRadius: 8, marginBottom: 20 }} />
+            <div style={{ overflowX: "auto" }}>
+              <TableSkeleton
+                columns={4}
+                rows={8}
+                withCard={false}
+                leadingAvatar
+                trailingActions
+                ariaLabel="Loading team members"
+              />
+            </div>
+          </BaseCard>
+        </>
       ) : (
         <>
           <div
@@ -558,12 +558,9 @@ export default function TeamPage() {
             />
           </div>
 
-          <div
+          <BaseCard
             style={{
-              background: "rgba(255,255,255,0.05)",
-              borderRadius: "16px",
               padding: "24px",
-              border: "1px solid rgba(255,255,255,0.1)",
               overflow: "hidden"
             }}
           >
@@ -579,25 +576,28 @@ export default function TeamPage() {
             </h3>
 
             {members.length === 0 ? (
-              <div
-                style={{
-                  padding: "60px 40px",
-                  textAlign: "center",
-                  color: "var(--color-text-muted)"
-                }}
-              >
-                <div style={{ marginBottom: "16px", display: "flex", justifyContent: "center" }}>
-                  <Icons.Users size={48} style={{ color: "var(--color-text-muted)", opacity: 0.5 }} />
-                </div>
-                <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "8px", color: "var(--color-text)" }}>
-                  {activeBaseId ? "No members yet" : "Select a base"}
-                </h3>
-                <p style={{ fontSize: "14px", margin: 0 }}>
-                  {activeBaseId
+              <EmptyStateBanner
+                icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+                title={activeBaseId ? "No members yet" : "Select a workspace"}
+                description={
+                  activeBaseId
                     ? "Invite teammates to start collaborating on this workspace."
-                    : "Choose a base to view and manage its team."}
-                </p>
-              </div>
+                    : "Choose a workspace to view and manage its team."
+                }
+                actions={
+                  activeBaseId ? (
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
+                      onClick={() => setShowInviteModal(true)}
+                    >
+                      <Icons.UserPlus size={16} strokeWidth={1.5} />
+                      Invite member
+                    </button>
+                  ) : undefined
+                }
+              />
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -756,7 +756,7 @@ export default function TeamPage() {
                 </table>
               </div>
             )}
-          </div>
+          </BaseCard>
         </>
       )}
 
@@ -795,12 +795,9 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div
+    <BaseCard
       style={{
-        background: "rgba(255,255,255,0.05)",
-        borderRadius: "16px",
         padding: "20px",
-        border: "1px solid rgba(255,255,255,0.1)",
         transition: "all 0.2s ease",
         cursor: "pointer"
       }}
@@ -825,7 +822,7 @@ function StatCard({
       </div>
       <div style={{ fontSize: "32px", fontWeight: 700, color: accent, marginBottom: "4px" }}>{value}</div>
       <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{description}</div>
-    </div>
+    </BaseCard>
   );
 }
 

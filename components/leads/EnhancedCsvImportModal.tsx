@@ -5,6 +5,7 @@ import { useBaseStore } from "@/stores/useBaseStore";
 import { useColumnStore, BaseColumn, ColumnType } from "@/stores/useColumnStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import { apiRequest } from "@/lib/apiClient";
 import { UploadStep } from "./import/UploadStep";
 import { MappingStep } from "./import/MappingStep";
@@ -34,6 +35,7 @@ export function EnhancedCsvImportModal({ open, onClose, onImported }: { open: bo
   const { columns, fetchColumns } = useColumnStore();
   const { fetchLeads, pagination, clearCache } = useLeadStore();
   const { showSuccess, showError } = useNotification();
+  const confirm = useConfirm();
 
   const [step, setStep] = useState<ImportStep>("upload");
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -80,8 +82,17 @@ export function EnhancedCsvImportModal({ open, onClose, onImported }: { open: bo
   const handleValidationComplete = async (errors: ValidationError[], newColumns: BaseColumn[]) => {
     setValidationErrors(errors);
     setCreatedColumns(newColumns);
-    
-    if (errors.length === 0 || confirm(`${errors.length} validation errors found. Continue anyway?`)) {
+
+    let proceed = errors.length === 0;
+    if (!proceed) {
+      proceed = await confirm({
+        title: "Validation warnings",
+        message: `${errors.length} validation errors found. Continue import anyway?`,
+        confirmLabel: "Continue import",
+        variant: "danger",
+      });
+    }
+    if (proceed) {
       setStep("importing");
       await performImport();
     }

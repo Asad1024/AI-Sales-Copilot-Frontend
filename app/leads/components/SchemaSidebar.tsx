@@ -5,6 +5,7 @@ import { useColumnStore, BaseColumn } from "@/stores/useColumnStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import { ColumnEditorModal } from "@/app/bases/[id]/schema/components/ColumnEditorModal";
 import { StatusFieldHelper } from "@/app/bases/[id]/schema/components/StatusFieldHelper";
 
@@ -54,6 +55,7 @@ export function SchemaSidebar({ isOpen, onClose }: SchemaSidebarProps) {
   const { columns, loading, fetchColumns, deleteColumn } = useColumnStore();
   const { permissions } = useBasePermissions(activeBaseId);
   const { showSuccess, showError } = useNotification();
+  const confirmDialog = useConfirm();
   const [editingColumn, setEditingColumn] = useState<BaseColumn | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStatusHelper, setShowStatusHelper] = useState(false);
@@ -66,7 +68,13 @@ export function SchemaSidebar({ isOpen, onClose }: SchemaSidebarProps) {
   }, [isOpen, activeBaseId, fetchColumns]);
 
   const handleDelete = async (columnId: number) => {
-    if (!confirm('Delete this column? This cannot be undone.')) return;
+    const ok = await confirmDialog({
+      title: "Delete column?",
+      message: "This removes the column from all leads. This cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
     setDeletingId(columnId);
     try {
       await deleteColumn(columnId);

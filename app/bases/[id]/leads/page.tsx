@@ -1,13 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useParams } from "next/navigation";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
-import { useNotificationStore } from "@/stores/useNotificationStore";
 import { useNotification } from "@/context/NotificationContext";
 import { onNotification, offNotification } from "@/lib/websocketClient";
-import { apiRequest } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/api";
 import { getToken } from "@/lib/apiClient";
 import { LeadsToolbar } from "@/app/leads/components/LeadsToolbar";
@@ -16,9 +15,9 @@ import { DynamicLeadsTable } from "@/app/leads/components/DynamicLeadsTable";
 import { useViewStore } from "@/stores/useViewStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
+import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
+import { LeadsTableSkeleton } from "@/components/ui/TableSkeleton";
 
-// Lazy load heavy modals/components
-const CsvImportModal = dynamic(() => import("@/components/leads/CsvImportModal"), { ssr: false });
 const EnhancedCsvImportModal = dynamic(() => import("@/components/leads/EnhancedCsvImportModal").then(m => ({ default: m.EnhancedCsvImportModal })), { ssr: false });
 const AIGenerateModal = dynamic(() => import("@/components/leads/AIGenerateModal"), { ssr: false });
 const CRMImportModal = dynamic(() => import("@/components/leads/CRMImportModal"), { ssr: false });
@@ -37,7 +36,6 @@ export default function BaseLeadsPage() {
   const { 
     leads, 
     loading, 
-    filters,
     selectedLeads,
     pagination,
     drawerLead,
@@ -49,52 +47,49 @@ export default function BaseLeadsPage() {
     setSelectedLeads,
     bulkDeleteLeads,
     updateLead,
-    clearCache
+    clearCache,
   } = useLeadStore();
   const { showSuccess, showError, showWarning, showInfo } = useNotification();
-  const { fetchViews, activeViewId } = useViewStore();
-  const { permissions } = useBasePermissions(baseId || activeBaseId);
+  const { fetchViews } = useViewStore();
+  const { permissions, loading: permissionsLoading } = useBasePermissions(baseId || activeBaseId);
   
   const [importOpen, setImportOpen] = useState(false);
   const [genOpen, setGenOpen] = useState(false);
   const [crmOpen, setCrmOpen] = useState(false);
   const [airtableImportOpen, setAirtableImportOpen] = useState(false);
-  const [showAllBases, setShowAllBases] = useState(false);
-  const [enriching, setEnriching] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [showEnrichModal, setShowEnrichModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [showSchemaSidebar, setShowSchemaSidebar] = useState(false);
+  const [pendingEnrichmentLeadIds, setPendingEnrichmentLeadIds] = useState<number[]>([]);
+  const [pendingEnrichmentStartedAt, setPendingEnrichmentStartedAt] = useState<number | null>(null);
+  const [pendingElapsedSeconds, setPendingElapsedSeconds] = useState(0);
 
-  // Sync base ID from URL to store
+  const filteredLeads = getFilteredLeads();
+  const currentBaseId = baseId || activeBaseId;
+
   useEffect(() => {
     const syncBaseFromUrl = async () => {
       if (!baseId) {
-        // No base ID in URL - redirect to bases list or first base
         if (activeBaseId) {
           router.replace(`/bases/${activeBaseId}/leads`);
         } else if (bases.length > 0) {
           router.replace(`/bases/${bases[0].id}/leads`);
         } else {
-          router.replace('/bases');
+          router.replace("/bases");
         }
         return;
       }
 
-      // Verify base exists
       if (bases.length === 0) {
         await refreshBases();
       }
 
       const baseExists = bases.find(b => b.id === baseId);
       if (!baseExists && bases.length > 0) {
-        // Base doesn't exist - redirect to bases list
-        router.replace('/bases');
+        router.replace("/bases");
         return;
       }
 
-      // Update store if base ID changed
       if (baseId !== activeBaseId) {
         setActiveBaseId(baseId);
       }
@@ -103,92 +98,89 @@ export default function BaseLeadsPage() {
     syncBaseFromUrl();
   }, [baseId, activeBaseId, bases, setActiveBaseId, router, refreshBases]);
 
-  // Fetch leads and views when base changes
   useEffect(() => {
-    const currentBaseId = baseId || activeBaseId;
     if (currentBaseId) {
       fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
       fetchViews(currentBaseId);
     }
-  }, [baseId, activeBaseId, pagination.currentPage, pagination.leadsPerPage, fetchLeads, fetchViews]);
+  }, [currentBaseId, pagination.currentPage, pagination.leadsPerPage, fetchLeads, fetchViews]);
 
-  // Listen for enrichment completion notifications via WebSocket
   useEffect(() => {
-    const currentBaseId = baseId || activeBaseId;
-    if (!currentBaseId) {
-      console.log('[Leads Page] No base ID, skipping enrichment notification listener');
-      return;
-    }
-
-    console.log('[Leads Page] Setting up enrichment notification listener for base:', currentBaseId);
+    if (!currentBaseId) return;
 
     const handleEnrichmentCompleted = (notification: any) => {
-      console.log('[Leads Page] Received notification:', notification.type, notification.metadata);
-      
-      // Check if notification is for the current base
       const notificationBaseId = notification.metadata?.base_id;
       const notificationBaseIds = notification.metadata?.base_ids || [];
-      const isForCurrentBase = notificationBaseId === currentBaseId || 
-                               notificationBaseIds.includes(currentBaseId);
+      const isForCurrentBase =
+        notificationBaseId === currentBaseId || notificationBaseIds.includes(currentBaseId);
 
-      console.log('[Leads Page] Notification check:', {
-        type: notification.type,
-        notificationBaseId,
-        notificationBaseIds,
-        currentBaseId,
-        isForCurrentBase
-      });
+      if (notification.type === "enrichment_completed" && isForCurrentBase) {
+        setPendingEnrichmentLeadIds([]);
+        setPendingEnrichmentStartedAt(null);
+        setPendingElapsedSeconds(0);
 
-      if (notification.type === 'enrichment_completed' && isForCurrentBase) {
-        console.log('[Leads Page] ✅ Enrichment completed for base:', currentBaseId, 'Refreshing leads...');
-
-        // Clear cache and refresh leads data with a small delay to ensure backend has updated
         clearCache(currentBaseId);
         setTimeout(() => {
           fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
         }, 500);
 
-        // Show success message (enriched_count from contacts webhook, updated_count from main FullEnrich webhook)
-        const count = notification.metadata?.enriched_count ?? notification.metadata?.updated_count ?? 0;
+        const count =
+          notification.metadata?.enriched_count ?? notification.metadata?.updated_count ?? 0;
         showSuccess(
-          'Contact Enrichment Complete',
-          `Successfully enriched ${count} leads with contact information.`
+          "Contact details updated",
+          count > 0
+            ? `${count} lead(s) now have updated contact information.`
+            : "Your leads have been refreshed with the latest contact details."
         );
       }
     };
 
-    // Set up WebSocket listener
     onNotification(handleEnrichmentCompleted);
+    return () => offNotification(handleEnrichmentCompleted);
+  }, [
+    currentBaseId,
+    fetchLeads,
+    pagination.currentPage,
+    pagination.leadsPerPage,
+    clearCache,
+    showSuccess,
+  ]);
 
-    // Cleanup
-    return () => {
-      console.log('[Leads Page] Cleaning up enrichment notification listener for base:', currentBaseId);
-      offNotification(handleEnrichmentCompleted);
-    };
-  }, [baseId, activeBaseId, fetchLeads, pagination.currentPage, pagination.leadsPerPage, clearCache, showSuccess]);
+  useEffect(() => {
+    setPendingEnrichmentLeadIds([]);
+    setPendingEnrichmentStartedAt(null);
+    setPendingElapsedSeconds(0);
+  }, [currentBaseId]);
 
-  const filteredLeads = getFilteredLeads();
-  const currentBaseId = baseId || activeBaseId;
+  useEffect(() => {
+    if (pendingEnrichmentLeadIds.length === 0 || !pendingEnrichmentStartedAt) return;
+    const interval = window.setInterval(() => {
+      setPendingElapsedSeconds(
+        Math.max(0, Math.floor((Date.now() - pendingEnrichmentStartedAt) / 1000))
+      );
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [pendingEnrichmentLeadIds.length, pendingEnrichmentStartedAt]);
 
-  const handleEnrich = async () => {
+  const handleEnrich = () => {
     if (!currentBaseId) {
-      showWarning('Action Required', 'Please select a base first');
+      showWarning("Select a workspace", "Choose a base first.");
       return;
     }
     if (leads.length === 0) {
-      showInfo('No Leads', 'No leads to enrich. Please add leads first.');
+      showInfo("No leads", "Add or generate leads before enriching.");
       return;
     }
     setShowEnrichModal(true);
   };
 
-  const handleScore = async () => {
+  const handleScore = () => {
     if (!currentBaseId) {
-      showWarning('Action Required', 'Please select a base first');
+      showWarning("Select a workspace", "Choose a base first.");
       return;
     }
     if (leads.length === 0) {
-      showInfo('No Leads', 'No leads to score. Please add leads first.');
+      showInfo("No leads", "Add leads before scoring.");
       return;
     }
     setShowScoreModal(true);
@@ -196,70 +188,71 @@ export default function BaseLeadsPage() {
 
   const handleExportCSV = async () => {
     if (!currentBaseId) {
-      showWarning('Action Required', 'Please select a base first');
+      showWarning("Select a workspace", "Choose a base first.");
       return;
     }
 
     try {
       const token = getToken();
       if (!token) {
-        showError('Export Failed', 'Please log in to export leads');
+        showError("Export failed", "Please sign in to export.");
         return;
       }
 
       const response = await fetch(`${API_BASE}/api/leads/export?base_id=${currentBaseId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Export failed' }));
-        throw new Error(errorData.error || errorData.message || 'Export failed');
+        const errorData = await response.json().catch(() => ({ error: "Export failed" }));
+        throw new Error(errorData.error || errorData.message || "Export failed");
       }
 
-      // Get CSV content
       const csvContent = await response.text();
-      
-      // Create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `leads_export_${currentBaseId}_${Date.now()}.csv`);
-      link.style.visibility = 'hidden';
+      link.setAttribute("href", url);
+      link.setAttribute("download", `leads_export_${currentBaseId}_${Date.now()}.csv`);
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      showSuccess('Export Successful', 'Leads exported to CSV successfully');
+      showSuccess("Export ready", "CSV downloaded.");
     } catch (error: any) {
-      console.error('Export error:', error);
-      showError('Export Failed', error?.message || 'Failed to export leads. Please try again.');
+      console.error("Export error:", error);
+      showError("Export failed", error?.message || "Could not export leads.");
     }
   };
 
+  useEffect(() => {
+    const handleImportCsv = () => setImportOpen(true);
+    const handleAddLead = () => setGenOpen(true);
+    window.addEventListener("app:leads-import-csv", handleImportCsv as EventListener);
+    window.addEventListener("app:leads-add", handleAddLead as EventListener);
+    return () => {
+      window.removeEventListener("app:leads-import-csv", handleImportCsv as EventListener);
+      window.removeEventListener("app:leads-add", handleAddLead as EventListener);
+    };
+  });
+
   const handleBulkDelete = async (ids: number[]) => {
-    if (ids.length === 0) return;
-    // No confirm dialog - BulkActionsMenu handles the UI confirmation
-    setDeleting(true);
+    if (ids.length === 0 || !currentBaseId) return;
     try {
       await bulkDeleteLeads(ids);
-      setSelectedLeads([]); // Clear selection after delete
-      await fetchLeads(currentBaseId!, pagination.currentPage, pagination.leadsPerPage);
-      showSuccess('Deleted', `${ids.length} lead(s) deleted successfully.`);
+      setSelectedLeads([]);
+      await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
+      showSuccess("Deleted", `${ids.length} lead(s) removed.`);
     } catch (error: any) {
-      showError('Delete Failed', `Failed to delete leads: ${error?.message || 'Unknown error'}`);
-    } finally {
-      setDeleting(false);
+      showError("Delete failed", error?.message || "Could not delete leads.");
     }
   };
 
   const handleBulkUpdate = async (ids: number[], updates: any) => {
-    if (ids.length === 0) return;
+    if (ids.length === 0 || !currentBaseId) return;
     
-    setBulkUpdating(true);
     try {
       let successCount = 0;
       let errorCount = 0;
@@ -274,115 +267,287 @@ export default function BaseLeadsPage() {
         }
       }
       
-      setSelectedLeads([]); // Clear selection after update
-      await fetchLeads(currentBaseId!, pagination.currentPage, pagination.leadsPerPage);
+      setSelectedLeads([]);
+      await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
       
       if (errorCount > 0) {
-        showWarning('Bulk Update Completed', `Updated ${successCount} lead(s), but ${errorCount} failed.`);
+        showWarning("Partial update", `${successCount} updated, ${errorCount} failed.`);
       } else {
-        showSuccess('Bulk Update Successful', `Successfully updated ${successCount} lead(s).`);
+        showSuccess("Updated", `${successCount} lead(s) updated.`);
       }
     } catch (error: any) {
-      showError('Bulk Update Failed', `Failed to update leads: ${error?.message || 'Unknown error'}`);
-    } finally {
-      setBulkUpdating(false);
+      showError("Bulk update failed", error?.message || "Could not update leads.");
     }
   };
 
-  // Show loading/redirect state while syncing base
   if (!baseId || (bases.length > 0 && !bases.find(b => b.id === baseId))) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div className="text-hint">Loading...</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+          background: "var(--color-canvas)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--color-text-muted)" }}>
+          <Icons.Loader size={20} strokeWidth={1.5} style={{ animation: "spin 0.9s linear infinite" }} />
+          <span style={{ fontSize: 14 }}>Loading workspace…</span>
+        </div>
       </div>
     );
   }
 
+  const cardStyle: CSSProperties = {
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    borderRadius: 16,
+    boxShadow: "0 4px 24px var(--color-shadow)",
+    /** Let toolbar menus/panels paint outside; table area clips below. */
+    overflow: "visible",
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+    minHeight: 0,
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', overflow: 'hidden', background: 'var(--color-background)', width: '100%' }}>
-      {/* Toolbar */}
+    <div
+      style={{
+        minHeight: "calc(100vh - 56px)",
+        width: "100%",
+        background: "var(--color-canvas)",
+        display: "flex",
+        flexDirection: "column",
+        padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+        gap: 12,
+        boxSizing: "border-box",
+      }}
+    >
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Stats */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {[
+          {
+            label: "In workspace",
+            value: pagination.totalLeads,
+            hint: "Total records",
+            icon: <Icons.Users size={18} strokeWidth={1.5} />,
+          },
+          {
+            label: "On this page",
+            value: filteredLeads.length,
+            hint: "After filters",
+            icon: <Icons.List size={18} strokeWidth={1.5} />,
+          },
+          {
+            label: "Selected",
+            value: selectedLeads.length,
+            hint: "Bulk actions",
+            icon: <Icons.CheckCircle size={18} strokeWidth={1.5} />,
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            style={{
+              padding: "16px 18px",
+              borderRadius: 14,
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface)",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 14,
+              boxShadow: "0 1px 2px var(--color-shadow)",
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: "rgba(76, 103, 255, 0.12)",
+                color: "var(--color-primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              {stat.icon}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {stat.label}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: "var(--color-text)", marginTop: 4, lineHeight: 1 }}>
+                {stat.value.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>{stat.hint}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Enrichment in progress */}
+      {pendingEnrichmentLeadIds.length > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            borderRadius: 14,
+            padding: "14px 18px",
+            border: "1px solid rgba(76, 103, 255, 0.35)",
+            background: "linear-gradient(135deg, rgba(76, 103, 255, 0.14) 0%, rgba(169, 76, 255, 0.08) 100%)",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 14,
+            boxShadow: "0 8px 30px rgba(76, 103, 255, 0.12)",
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.08)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icons.Sparkles size={20} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
+              Finding contact details
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 6, lineHeight: 1.5 }}>
+              {pendingEnrichmentLeadIds.length} lead(s) are being updated. Your table will refresh automatically when each
+              one is ready—no need to reload the page.
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexShrink: 0,
+              padding: "6px 12px",
+              borderRadius: 10,
+              background: "var(--color-surface-secondary)",
+              border: "1px solid var(--color-border-light)",
+            }}
+          >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                border: "2px solid rgba(76, 103, 255, 0.3)",
+                borderTopColor: "var(--color-primary)",
+                borderRadius: "50%",
+                display: "inline-block",
+                animation: "spin 0.75s linear infinite",
+              }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>
+              {pendingElapsedSeconds}s
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Main workspace card */}
+      <div style={{ ...cardStyle, flex: 1 }}>
       <LeadsToolbar
+        variant="embedded"
         onEnrich={handleEnrich}
         onScore={handleScore}
-        onImportCSV={() => setImportOpen(true)}
         onImportAirtable={() => setAirtableImportOpen(true)}
         onGenerateAI={() => setGenOpen(true)}
         onSchemaClick={() => setShowSchemaSidebar(true)}
         onExportCSV={handleExportCSV}
+        onImportCSV={() => setImportOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative', padding: '16px 0' }}>
-        {/* Grid View */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%' }}>
-          {loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-              <div className="text-hint">Loading leads...</div>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            padding: "0 0 10px",
+            overflow: "hidden",
+            borderBottomLeftRadius: 16,
+            borderBottomRightRadius: 16,
+          }}
+        >
+          {loading || permissionsLoading ? (
+            <div style={{ flex: 1, minHeight: 0, padding: "0 4px" }}>
+              <LeadsTableSkeleton />
             </div>
           ) : leads.length === 0 ? (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              flex: 1, 
-              textAlign: 'center', 
-              padding: '60px 20px' 
-            }}>
-              <div style={{
-                background: 'var(--color-surface)',
-                borderRadius: 20,
-                padding: '48px 40px',
-                border: '1px dashed var(--color-border)',
-                maxWidth: 500
-              }}>
-                <div style={{ 
-                  width: 64, 
-                  height: 64, 
-                  borderRadius: 16,
-                  background: 'rgba(76, 103, 255, 0.1)',
-                  border: '1px solid rgba(76, 103, 255, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 20px'
-                }}>
-                  <Icons.Users size={28} style={{ color: '#4C67FF', opacity: 0.7 }} />
-                </div>
-                <h3 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>No leads yet</h3>
-                <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
-                  Get started by generating leads with AI, importing a CSV file, or connecting your CRM.
-                </p>
-                {permissions.canCreateLeads && (
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button className="btn-primary ms-hover-scale ms-press" onClick={() => setGenOpen(true)}>
-                      Generate with AI
-                    </button>
-                    <button className="btn-ghost ms-hover-scale ms-press" onClick={() => setImportOpen(true)}>
-                      Import CSV
-                    </button>
-                  </div>
-                )}
-              </div>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
+              <EmptyStateBanner
+                style={{ width: "100%", maxWidth: 560, margin: "0 auto" }}
+                icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+                title="No leads yet"
+                description="Generate with AI, import CSV, or connect your CRM to fill this workspace."
+                actions={
+                  permissions.canCreateLeads ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ borderRadius: 10, padding: "10px 18px", fontWeight: 600 }}
+                        onClick={() => setGenOpen(true)}
+                      >
+                        Generate with AI
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{ borderRadius: 10, padding: "10px 18px", border: "1px solid var(--color-border)" }}
+                        onClick={() => setImportOpen(true)}
+                      >
+                        Import CSV
+                      </button>
+                    </>
+                  ) : undefined
+                }
+              />
             </div>
           ) : (
+            <div style={{ flex: 1, minHeight: 0, padding: "0 4px" }}>
             <DynamicLeadsTable 
+                embedded
               leads={filteredLeads}
-              onLeadClick={(lead) => {
+                pendingLeadIds={pendingEnrichmentLeadIds}
+                onLeadClick={lead => {
                 setDrawerLead(lead);
                 setDrawerOpen(true);
               }}
             />
+            </div>
           )}
         </div>
-
-        {/* Schema Sidebar */}
-        <SchemaSidebar
-          isOpen={showSchemaSidebar}
-          onClose={() => setShowSchemaSidebar(false)}
-        />
       </div>
 
-      {/* Bulk Actions Menu */}
+      <SchemaSidebar isOpen={showSchemaSidebar} onClose={() => setShowSchemaSidebar(false)} />
+
       {selectedLeads.length > 0 && (
         <BulkActionsMenu
           selectedCount={selectedLeads.length}
@@ -392,14 +557,12 @@ export default function BaseLeadsPage() {
         />
       )}
 
-      {/* Modals */}
       <EnhancedCsvImportModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImported={() => {
           setImportOpen(false);
           if (currentBaseId) {
-            // Cache is already cleared in the modal, but ensure refresh happens
             fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
           }
         }}
@@ -410,7 +573,8 @@ export default function BaseLeadsPage() {
         onGenerated={() => {
           setGenOpen(false);
           if (currentBaseId) {
-            fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
+            clearCache(currentBaseId);
+            fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
           }
         }}
       />
@@ -432,9 +596,7 @@ export default function BaseLeadsPage() {
           onClose={() => setAirtableImportOpen(false)}
           onImported={() => {
             setAirtableImportOpen(false);
-            if (currentBaseId) {
               fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
-            }
           }}
           targetBaseId={currentBaseId}
         />
@@ -442,6 +604,7 @@ export default function BaseLeadsPage() {
       {drawerOpen && drawerLead && (
         <LeadDrawer 
           lead={drawerLead}
+          contactEnrichmentPending={pendingEnrichmentLeadIds.includes(drawerLead.id)}
           onClose={() => {
             setDrawerOpen(false);
             setDrawerLead(null);
@@ -454,10 +617,19 @@ export default function BaseLeadsPage() {
         />
       )}
 
-      {/* Enrich and Score Modals */}
       <EnrichModal
         open={showEnrichModal}
         onClose={() => setShowEnrichModal(false)}
+        pendingLeadIds={pendingEnrichmentLeadIds}
+        onAsyncEnrichmentStarted={({ leadIds }) => {
+          setPendingEnrichmentLeadIds(current => {
+            const next = new Set(current);
+            leadIds.forEach(id => next.add(id));
+            return Array.from(next);
+          });
+          setPendingEnrichmentStartedAt(Date.now());
+          setPendingElapsedSeconds(0);
+        }}
         onEnriched={async () => {
           if (currentBaseId) {
             await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
@@ -476,4 +648,3 @@ export default function BaseLeadsPage() {
     </div>
   );
 }
-

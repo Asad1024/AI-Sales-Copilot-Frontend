@@ -48,10 +48,12 @@ export default function ThemeToggle() {
 
   return (
     <button 
+      className="header-utility-btn"
       onClick={toggleTheme}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       style={{
-        padding: '6px',
+        width: 30,
+        height: 30,
         background: 'transparent',
         border: 'none',
         borderRadius: '6px',
@@ -61,6 +63,7 @@ export default function ThemeToggle() {
         justifyContent: 'center',
         color: 'var(--color-text-muted)',
         transition: 'all 0.15s',
+        position: 'relative',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = 'var(--color-surface-secondary)';
@@ -71,7 +74,28 @@ export default function ThemeToggle() {
         e.currentTarget.style.color = 'var(--color-text-muted)';
       }}
     >
-      {theme === 'dark' ? <Icons.Moon size={18} /> : <Icons.Sun size={18} />}
+      <span
+        style={{
+          position: 'absolute',
+          display: 'inline-flex',
+          transition: 'opacity 220ms ease, transform 220ms ease',
+          opacity: theme === 'light' ? 1 : 0,
+          transform: `rotate(${theme === 'light' ? '0deg' : '90deg'})`,
+        }}
+      >
+        <Icons.Sun size={18} strokeWidth={1.5} />
+      </span>
+      <span
+        style={{
+          position: 'absolute',
+          display: 'inline-flex',
+          transition: 'opacity 220ms ease, transform 220ms ease',
+          opacity: theme === 'dark' ? 1 : 0,
+          transform: `rotate(${theme === 'dark' ? '0deg' : '-90deg'})`,
+        }}
+      >
+        <Icons.Moon size={18} strokeWidth={1.5} />
+      </span>
     </button>
   );
 }

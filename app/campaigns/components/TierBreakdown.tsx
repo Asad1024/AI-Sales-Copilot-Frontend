@@ -6,18 +6,28 @@ import { apiRequest } from "@/lib/apiClient";
 import { getEmailInfo, getEmailDisplayText } from "@/utils/emailNormalization";
 import { TierCampaignModal } from "./TierCampaignModal";
 
+const HOT = "#e11d48";
+const WARM = "#ea580c";
+const COLD = "var(--color-text-muted)";
+
+type TierKey = "Hot" | "Warm" | "Cold";
+
+const disclosureChevronTransition = "transform 0.42s cubic-bezier(0.33, 1, 0.68, 1)";
+
 export function TierBreakdown() {
   const { activeBaseId } = useBaseStore();
   const [leads, setLeads] = useState<any[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [insightsExpanded, setInsightsExpanded] = useState(false);
   const [showTierBreakdown, setShowTierBreakdown] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<'Hot' | 'Warm' | 'Cold' | null>(null);
+  const [selectedTier, setSelectedTier] = useState<TierKey | null>(null);
   const [showTierModal, setShowTierModal] = useState(false);
 
   useEffect(() => {
     const fetchLeads = async () => {
       if (!activeBaseId) {
         setLeads([]);
+        setLoadingLeads(false);
         return;
       }
       setLoadingLeads(true);
@@ -26,7 +36,7 @@ export function TierBreakdown() {
         const leadsList = Array.isArray(data?.leads) ? data.leads : (Array.isArray(data) ? data : []);
         setLeads(leadsList);
       } catch (error) {
-        console.error('Failed to fetch leads:', error);
+        console.error("Failed to fetch leads:", error);
         setLeads([]);
       } finally {
         setLoadingLeads(false);
@@ -36,11 +46,11 @@ export function TierBreakdown() {
   }, [activeBaseId]);
 
   const tierBreakdown = useMemo(() => {
-    const hot = leads.filter(l => l.tier === 'Hot');
-    const warm = leads.filter(l => l.tier === 'Warm');
-    const cold = leads.filter(l => l.tier === 'Cold' || !l.tier);
+    const hot = leads.filter((l) => l.tier === "Hot");
+    const warm = leads.filter((l) => l.tier === "Warm");
+    const cold = leads.filter((l) => l.tier === "Cold" || !l.tier);
     const total = leads.length;
-    
+
     return {
       hot,
       warm,
@@ -49,254 +59,379 @@ export function TierBreakdown() {
       hotCount: hot.length,
       warmCount: warm.length,
       coldCount: cold.length,
-      hotPercent: total > 0 ? ((hot.length / total) * 100).toFixed(1) : '0',
-      warmPercent: total > 0 ? ((warm.length / total) * 100).toFixed(1) : '0',
-      coldPercent: total > 0 ? ((cold.length / total) * 100).toFixed(1) : '0'
+      hotPercent: total > 0 ? (hot.length / total) * 100 : 0,
+      warmPercent: total > 0 ? (warm.length / total) * 100 : 0,
+      coldPercent: total > 0 ? (cold.length / total) * 100 : 0,
     };
   }, [leads]);
 
-  if (loadingLeads || !activeBaseId || leads.length === 0) return null;
+  const openTier = (tier: TierKey) => {
+    const newTier = selectedTier === tier ? null : tier;
+    setSelectedTier(newTier);
+    if (newTier) setShowTierModal(true);
+  };
 
-  return (
-    <div className="card-enhanced" style={{ 
-      borderRadius: 16, 
-      padding: '24px',
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.05) 0%, rgba(169, 76, 255, 0.05) 100%)',
-      border: '1px solid rgba(76, 103, 255, 0.2)'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icons.Flame size={24} style={{ color: '#ff6b6b' }} />
-            Lead Quality Breakdown
-          </h3>
-          <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
-            {tierBreakdown.total} leads categorized by engagement tier
-          </p>
-        </div>
-        <button
-          onClick={() => setShowTierBreakdown(!showTierBreakdown)}
+  if (!activeBaseId) return null;
+
+  const cardShell = {
+    borderRadius: 12,
+    background: "var(--elev-bg, var(--color-surface))",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    boxShadow: "var(--elev-shadow)",
+    overflow: "hidden" as const,
+  };
+
+  if (loadingLeads) {
+    return (
+      <div style={cardShell} aria-busy="true" aria-label="Loading engagement insights">
+        <div
           style={{
-            background: showTierBreakdown ? 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)' : 'var(--color-surface-secondary)',
-            border: showTierBreakdown ? 'none' : '1px solid var(--color-border)',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            color: showTierBreakdown ? '#000' : 'var(--color-text)',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer'
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 14px",
+            background: "var(--color-surface-secondary, rgba(148,163,184,0.06))",
           }}
         >
-          {showTierBreakdown ? 'Hide Details' : 'View & Create Campaigns'}
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: showTierBreakdown ? 20 : 0 }}>
-        {/* Hot Leads Card */}
-        <div style={{
-          background: selectedTier === 'Hot' ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 107, 107, 0.1)',
-          border: selectedTier === 'Hot' ? '2px solid #ff6b6b' : '1px solid rgba(255, 107, 107, 0.3)',
-          borderRadius: 12,
-          padding: '20px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          position: 'relative'
-        }}
-        onClick={() => {
-          const newTier = selectedTier === 'Hot' ? null : 'Hot';
-          setSelectedTier(newTier);
-          if (newTier) {
-            setShowTierModal(true);
-          }
-        }}
-        >
-          {selectedTier === 'Hot' && (
-            <div style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: '#ff6b6b',
-              color: '#fff',
-              borderRadius: '50%',
-              width: 24,
-              height: 24,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14,
-              fontWeight: 'bold'
-            }}>✓</div>
-          )}
-          <Icons.Flame size={32} style={{ color: '#ff6b6b', marginBottom: 8 }} />
-          <div style={{ fontSize: '28px', fontWeight: '700', color: '#ff6b6b', marginBottom: 4 }}>
-            {tierBreakdown.hotCount}
-          </div>
-          <div style={{ fontSize: '12px', color: '#888', marginBottom: 4 }}>Hot Leads</div>
-          <div style={{ fontSize: '14px', fontWeight: '600', color: '#ff6b6b' }}>
-            {tierBreakdown.hotPercent}%
-          </div>
-        </div>
-
-        {/* Warm Leads Card */}
-        <div style={{
-          background: selectedTier === 'Warm' ? 'rgba(255, 167, 38, 0.2)' : 'rgba(255, 167, 38, 0.1)',
-          border: selectedTier === 'Warm' ? '2px solid #ffa726' : '1px solid rgba(255, 167, 38, 0.3)',
-          borderRadius: 12,
-          padding: '20px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          position: 'relative'
-        }}
-        onClick={() => {
-          const newTier = selectedTier === 'Warm' ? null : 'Warm';
-          setSelectedTier(newTier);
-          if (newTier) {
-            setShowTierModal(true);
-          }
-        }}
-        >
-          {selectedTier === 'Warm' && (
-            <div style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: '#ffa726',
-              color: '#fff',
-              borderRadius: '50%',
-              width: 24,
-              height: 24,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14,
-              fontWeight: 'bold'
-            }}>✓</div>
-          )}
-          <Icons.Thermometer size={32} style={{ color: '#ffa726', marginBottom: 8 }} />
-          <div style={{ fontSize: '28px', fontWeight: '700', color: '#ffa726', marginBottom: 4 }}>
-            {tierBreakdown.warmCount}
-          </div>
-          <div style={{ fontSize: '12px', color: '#888', marginBottom: 4 }}>Warm Leads</div>
-          <div style={{ fontSize: '14px', fontWeight: '600', color: '#ffa726' }}>
-            {tierBreakdown.warmPercent}%
-          </div>
-        </div>
-
-        {/* Cold Leads Card */}
-        <div style={{
-          background: selectedTier === 'Cold' ? 'rgba(128, 128, 128, 0.2)' : 'rgba(128, 128, 128, 0.1)',
-          border: selectedTier === 'Cold' ? '2px solid #888' : '1px solid rgba(128, 128, 128, 0.3)',
-          borderRadius: 12,
-          padding: '20px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          position: 'relative'
-        }}
-        onClick={() => {
-          const newTier = selectedTier === 'Cold' ? null : 'Cold';
-          setSelectedTier(newTier);
-          if (newTier) {
-            setShowTierModal(true);
-          }
-        }}
-        >
-          {selectedTier === 'Cold' && (
-            <div style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: '#888',
-              color: '#fff',
-              borderRadius: '50%',
-              width: 24,
-              height: 24,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14,
-              fontWeight: 'bold'
-            }}>✓</div>
-          )}
-          <Icons.Snowflake size={32} style={{ color: '#888', marginBottom: 8 }} />
-          <div style={{ fontSize: '28px', fontWeight: '700', color: '#888', marginBottom: 4 }}>
-            {tierBreakdown.coldCount}
-          </div>
-          <div style={{ fontSize: '12px', color: '#888', marginBottom: 4 }}>Cold Leads</div>
-          <div style={{ fontSize: '14px', fontWeight: '600', color: '#888' }}>
-            {tierBreakdown.coldPercent}%
+          <Icons.ChevronDown size={18} strokeWidth={2} style={{ color: "var(--color-text-muted)", opacity: 0.45, flexShrink: 0 }} />
+          <span className="campaigns-engagement-disclosure__trigger-label" style={{ fontSize: 13.5, lineHeight: 1.35 }}>
+            View Engagement Insights
+          </span>
+          <div style={{ marginLeft: "auto", flexShrink: 0 }}>
+            <div className="ui-skeleton" style={{ width: 112, height: 14, borderRadius: 4 }} />
           </div>
         </div>
       </div>
+    );
+  }
 
-      {showTierBreakdown && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ display: 'grid', gap: 16 }}>
-            {tierBreakdown.hot.length > 0 && (
-              <div>
-                <h4 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 12px 0', color: '#ff6b6b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icons.Flame size={18} />
-                  Hot Leads ({tierBreakdown.hot.length})
-                </h4>
-                <div style={{ 
-                  maxHeight: 200, 
-                  overflowY: 'auto', 
-                  border: '1px solid rgba(255, 107, 107, 0.2)', 
-                  borderRadius: 8,
-                  background: 'var(--elev-bg)'
-                }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead style={{ position: 'sticky', top: 0, background: 'var(--elev-bg)', zIndex: 10 }}>
-                      <tr>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(255, 107, 107, 0.2)', fontSize: 12, fontWeight: 600 }}>Name</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(255, 107, 107, 0.2)', fontSize: 12, fontWeight: 600 }}>Email</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(255, 107, 107, 0.2)', fontSize: 12, fontWeight: 600 }}>Company</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid rgba(255, 107, 107, 0.2)', fontSize: 12, fontWeight: 600 }}>Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tierBreakdown.hot.slice(0, 50).map((lead, idx) => {
-                        const emailInfo = getEmailInfo(lead.email, lead.enrichment);
-                        const emailDisplay = getEmailDisplayText(emailInfo);
-                        return (
-                          <tr key={lead.id} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(255, 107, 107, 0.05)' }}>
-                            <td style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255, 107, 107, 0.1)' }}>
-                              {lead.first_name || lead.last_name ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() : '—'}
-                            </td>
-                            <td style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255, 107, 107, 0.1)', fontStyle: !emailInfo.isValid ? 'italic' : 'normal' }}>
-                              {emailDisplay}
-                            </td>
-                            <td style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255, 107, 107, 0.1)' }}>
-                              {lead.company || '—'}
-                            </td>
-                            <td style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255, 107, 107, 0.1)' }}>
-                              <span style={{ 
-                                background: 'rgba(255, 107, 107, 0.2)', 
-                                color: '#ff6b6b', 
-                                padding: '4px 8px', 
-                                borderRadius: 4, 
-                                fontSize: 11, 
-                                fontWeight: 600 
-                              }}>
-                                {lead.score || 0}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+  const tierPills: Array<{
+    key: TierKey;
+    label: string;
+    count: number;
+    pct: string;
+    color: string;
+    bg: string;
+    border: string;
+    icon: typeof Icons.Flame;
+  }> = [
+    {
+      key: "Hot",
+      label: "Hot",
+      count: tierBreakdown.hotCount,
+      pct: tierBreakdown.total ? ((tierBreakdown.hotCount / tierBreakdown.total) * 100).toFixed(0) : "0",
+      color: HOT,
+      bg: "rgba(225, 29, 72, 0.08)",
+      border: "rgba(225, 29, 72, 0.22)",
+      icon: Icons.Flame,
+    },
+    {
+      key: "Warm",
+      label: "Warm",
+      count: tierBreakdown.warmCount,
+      pct: tierBreakdown.total ? ((tierBreakdown.warmCount / tierBreakdown.total) * 100).toFixed(0) : "0",
+      color: WARM,
+      bg: "rgba(234, 88, 12, 0.08)",
+      border: "rgba(234, 88, 12, 0.22)",
+      icon: Icons.Thermometer,
+    },
+    {
+      key: "Cold",
+      label: "Cold",
+      count: tierBreakdown.coldCount,
+      pct: tierBreakdown.total ? ((tierBreakdown.coldCount / tierBreakdown.total) * 100).toFixed(0) : "0",
+      color: COLD,
+      bg: "var(--color-surface-secondary)",
+      border: "var(--elev-border, var(--color-border))",
+      icon: Icons.Snowflake,
+    },
+  ];
+
+  return (
+    <div style={cardShell}>
+      <button
+        type="button"
+        id="engagement-insights-trigger"
+        aria-expanded={insightsExpanded}
+        aria-controls="engagement-insights-panel"
+        onClick={() => setInsightsExpanded((v) => !v)}
+        className="focus-ring campaigns-engagement-disclosure__trigger"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          padding: "10px 14px",
+          margin: 0,
+          border: "none",
+          borderBottom: insightsExpanded ? "1px solid var(--elev-border, var(--color-border-light))" : "none",
+          borderRadius: 0,
+          cursor: "pointer",
+          textAlign: "left",
+          transition: "background 0.2s ease, border-color 0.2s ease",
+        }}
+      >
+        <Icons.ChevronDown
+          size={18}
+          strokeWidth={2}
+          aria-hidden
+          className="campaigns-engagement-disclosure__chevron"
+          style={{
+            color: "var(--color-text-muted)",
+            flexShrink: 0,
+            transform: insightsExpanded ? "rotate(180deg)" : "rotate(0deg)",
+            transition: disclosureChevronTransition,
+          }}
+        />
+        <span className="campaigns-engagement-disclosure__trigger-label" style={{ fontSize: 13.5, lineHeight: 1.35 }}>
+          View Engagement Insights
+        </span>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--color-text-muted)",
+            flexShrink: 0,
+            paddingLeft: 8,
+          }}
+        >
+          Total Leads: {tierBreakdown.total.toLocaleString()}
+        </span>
+      </button>
+
+      <div
+        id="engagement-insights-panel"
+        role="region"
+        aria-labelledby="engagement-insights-trigger"
+        className={`campaigns-engagement-disclosure__panel${insightsExpanded ? " campaigns-engagement-disclosure__panel--open" : ""}`}
+      >
+        <div className="campaigns-engagement-disclosure__panel-inner" aria-hidden={!insightsExpanded}>
+          <div style={{ padding: "12px 14px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ minWidth: 0, flex: "1 1 180px" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--color-text-muted)",
+                    marginBottom: 4,
+                  }}
+                >
+                  Engagement tiers
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
+                  {tierBreakdown.total.toLocaleString()} leads in workspace
+                </div>
+                <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2, lineHeight: 1.4 }}>
+                  Based on replies and LinkedIn acceptance. Click a tier to target a campaign.
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTierBreakdown(!showTierBreakdown);
+                }}
+                className="btn-ghost"
+                style={{
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  border: "1px solid var(--elev-border, var(--color-border))",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                {showTierBreakdown ? (
+                  <>
+                    <Icons.ChevronUp size={14} strokeWidth={1.5} />
+                    Hide list
+                  </>
+                ) : (
+                  <>
+                    <Icons.ChevronDown size={14} strokeWidth={1.5} />
+                    Preview hot leads
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Thin pill tabs — dot + label + count */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                alignItems: "center",
+                paddingTop: 12,
+                marginTop: 2,
+                borderTop: "1px solid var(--elev-border, var(--color-border-light))",
+              }}
+            >
+        {tierPills.map((t) => {
+          const Icon = t.icon;
+          const isSel = selectedTier === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => openTier(t.key)}
+              title={`${t.label}: ${t.count} leads (${t.pct}%)`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 12px",
+                borderRadius: 9999,
+                border: isSel ? `1px solid ${t.color}` : "1px solid var(--elev-border, #e2e8f0)",
+                background: isSel ? t.bg : "transparent",
+                cursor: "pointer",
+                fontFamily: "Inter, sans-serif",
+                transition: "border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease",
+                boxShadow: isSel ? `0 0 0 1px ${t.color}22` : "none",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon size={12} strokeWidth={2} style={{ color: t.color }} />
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", letterSpacing: "-0.01em" }}>
+                {t.label}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginLeft: 2 }}>
+                {t.count}
+                <span style={{ opacity: 0.75, fontWeight: 500 }}> · {t.pct}%</span>
+              </span>
+            </button>
+          );
+        })}
+            </div>
+
+            {showTierBreakdown && tierBreakdown.hot.length > 0 && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--elev-border, var(--color-border-light))" }}>
+          <h4
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              margin: "0 0 8px 0",
+              color: "var(--color-text-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Icons.Flame size={14} strokeWidth={1.5} style={{ color: HOT }} />
+            Hot preview (top {Math.min(50, tierBreakdown.hot.length)})
+          </h4>
+          <div
+            style={{
+              maxHeight: 180,
+              overflowY: "auto",
+              border: "1px solid var(--elev-border, var(--color-border))",
+              borderRadius: 8,
+              background: "var(--color-surface-secondary)",
+            }}
+          >
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead style={{ position: "sticky", top: 0, background: "var(--color-surface-secondary)", zIndex: 1 }}>
+                <tr>
+                  {(["Name", "Email", "Company", "Score"] as const).map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: "left",
+                        padding: "8px 10px",
+                        borderBottom: "1px solid var(--elev-border, var(--color-border))",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: "var(--color-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tierBreakdown.hot.slice(0, 50).map((lead, idx) => {
+                  const emailInfo = getEmailInfo(lead.email, lead.enrichment);
+                  const emailDisplay = getEmailDisplayText(emailInfo);
+                  return (
+                    <tr
+                      key={lead.id}
+                      style={{
+                        background: idx % 2 === 0 ? "transparent" : "rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--elev-border, var(--color-border-light))", color: "var(--color-text)" }}>
+                        {lead.first_name || lead.last_name ? `${lead.first_name || ""} ${lead.last_name || ""}`.trim() : "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: "1px solid var(--elev-border, var(--color-border-light))",
+                          fontStyle: !emailInfo.isValid ? "italic" : "normal",
+                          color: "var(--color-text)",
+                        }}
+                      >
+                        {emailDisplay}
+                      </td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--elev-border, var(--color-border-light))", color: "var(--color-text-muted)" }}>
+                        {lead.company || "—"}
+                      </td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid var(--elev-border, var(--color-border-light))" }}>
+                        <span
+                          style={{
+                            background: "rgba(225, 29, 72, 0.12)",
+                            color: HOT,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {lead.score ?? 0}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
             )}
           </div>
         </div>
-      )}
+      </div>
 
       {showTierModal && selectedTier && (
-        <TierCampaignModal 
+        <TierCampaignModal
           tier={selectedTier}
           onClose={() => {
             setShowTierModal(false);
@@ -307,4 +442,3 @@ export function TierBreakdown() {
     </div>
   );
 }
-

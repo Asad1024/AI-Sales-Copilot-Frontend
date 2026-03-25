@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/apiClient';
 import { Icons } from '@/components/ui/Icons';
+import { useNotification } from '@/context/NotificationContext';
 
 interface CallLog {
   id: number;
@@ -39,6 +40,7 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; i
 };
 
 export function CallTranscriptsTab() {
+  const { showSuccess, showError } = useNotification();
   const params = useParams();
   const campaignId = params.id as string;
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -78,12 +80,15 @@ export function CallTranscriptsTab() {
       // Refresh call logs after sync
       await fetchCallLogs();
       
-      // Show success message
-      alert(`✅ Successfully synced ${result.synced} calls!${result.errors > 0 ? `\n⚠️ ${result.errors} errors occurred` : ''}`);
+      const details =
+        result.errors > 0
+          ? [`Synced ${result.synced} calls.`, `${result.errors} errors occurred.`]
+          : [`Synced ${result.synced} calls.`];
+      showSuccess("Call sync complete", "", { details });
     } catch (err: any) {
       console.error('Failed to sync call status:', err);
       setError(err.message || 'Failed to sync call status');
-      alert(`❌ Sync failed: ${err.message}`);
+      showError('Sync failed', err?.message || 'Failed to sync call status');
     } finally {
       setSyncing(false);
     }

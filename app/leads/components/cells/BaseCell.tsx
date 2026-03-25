@@ -15,14 +15,19 @@ interface BaseCellProps {
   column: BaseColumn;
   lead: Lead;
   value: any;
-  onUpdate: (leadId: number, columnName: string, value: any) => void;
+  onUpdate: (leadId: number, columnName: string, value: any) => void | Promise<void>;
   editable?: boolean;
 }
 
+const isTitleLikeColumn = (name: string) => {
+  const n = name.trim().toLowerCase();
+  return n === "title" || n === "job title";
+};
+
 export function BaseCell({ column, lead, value, onUpdate, editable = true }: BaseCellProps) {
-  const handleUpdate = (newValue: any) => {
+  const handleUpdate = async (newValue: any) => {
     if (editable) {
-      onUpdate(lead.id, column.name, newValue);
+      await onUpdate(lead.id, column.name, newValue);
     }
   };
 
@@ -31,7 +36,15 @@ export function BaseCell({ column, lead, value, onUpdate, editable = true }: Bas
     case "email":
     case "phone":
     case "url":
-      return <TextCell value={value} onUpdate={handleUpdate} editable={editable} type={column.type} />;
+      return (
+        <TextCell
+          value={value}
+          onUpdate={handleUpdate}
+          editable={editable}
+          type={column.type}
+          muted={column.type === "text" && isTitleLikeColumn(column.name)}
+        />
+      );
     
     case "number":
       return (

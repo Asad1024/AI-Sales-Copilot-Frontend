@@ -1,6 +1,9 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { MoreVertical } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
+import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
+import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useBaseStore } from "@/stores/useBaseStore";
@@ -9,351 +12,281 @@ import { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
 import { FilterPanel } from "./FilterPanel";
 
 interface LeadsToolbarProps {
+  variant?: "default" | "embedded";
   onEnrich: () => void;
   onScore: () => void;
-  onImportCSV: () => void;
   onImportAirtable?: () => void;
   onGenerateAI: () => void;
   onSchemaClick: () => void;
   onExportCSV?: () => void;
+  /** Outline Import CSV (dashboard-style) */
+  onImportCSV?: () => void;
 }
 
 export function LeadsToolbar({
+  variant = "default",
   onEnrich,
   onScore,
-  onImportCSV,
   onImportAirtable,
   onGenerateAI,
   onSchemaClick,
   onExportCSV,
+  onImportCSV,
 }: LeadsToolbarProps) {
+  const embedded = variant === "embedded";
   const { filters, setFilters, leads } = useLeadStore();
-  const { activeBaseId, bases } = useBaseStore();
-  const activeBase = bases.find(b => b.id === activeBaseId);
+  const { activeBaseId } = useBaseStore();
   const { permissions } = useBasePermissions(activeBaseId);
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const addMenuRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
-  const addMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setShowMoreMenu(false);
+      }
+      if (addMenuRef.current && !addMenuRef.current.contains(event.target as Node)) {
+        setShowAddMenu(false);
+      }
       if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {
         setShowGroupMenu(false);
       }
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
         setShowSortMenu(false);
       }
-      if (addMenuRef.current && !addMenuRef.current.contains(event.target as Node)) {
-        setShowAddMenu(false);
-      }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const ToolbarButton = ({ 
-    onClick, 
-    icon, 
-    label, 
-    active, 
-    disabled, 
-    primary,
-    danger
-  }: { 
-    onClick: () => void; 
-    icon: React.ReactNode; 
-    label: string; 
-    active?: boolean; 
-    disabled?: boolean;
-    primary?: boolean;
-    danger?: boolean;
-  }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        padding: "6px 10px",
-        fontSize: "13px",
-        fontWeight: 500,
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        borderRadius: "6px",
-        border: primary ? "none" : "1px solid transparent",
-        background: primary 
-          ? "#2563eb" 
-          : active 
-            ? "rgba(37, 99, 235, 0.1)" 
-            : "transparent",
-        color: primary 
-          ? "#fff" 
-          : danger 
-            ? "#dc2626" 
-            : active 
-              ? "#2563eb" 
-              : "var(--color-text)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        transition: "all 0.15s ease",
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled && !primary && !active) {
-          e.currentTarget.style.background = "var(--color-surface-secondary)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled && !primary && !active) {
-          e.currentTarget.style.background = "transparent";
-        }
-      }}
-    >
-      {icon}
-      {label}
-    </button>
-  );
+  const morePanelStyle: CSSProperties = {
+    position: "absolute",
+    top: "calc(100% + 8px)",
+    right: 0,
+    background: "var(--elev-bg, var(--color-surface))",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 12,
+    boxShadow: "var(--elev-shadow-lg, 0 10px 40px rgba(15, 23, 42, 0.12))",
+    minWidth: 220,
+    padding: 6,
+    zIndex: 5000,
+    overflow: "visible",
+  };
 
-  const Divider = () => (
-    <div style={{ 
-      width: "1px", 
-      height: "24px", 
-      background: "var(--color-border)", 
-      margin: "0 4px" 
-    }} />
-  );
+  /** Inline flex so the toolbar stays one row even if Tailwind utilities are missing or overridden. */
+  const row: CSSProperties = {
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "center",
+    boxSizing: "border-box",
+  };
 
   return (
-    <div style={{ 
-      background: "var(--color-surface)", 
-      borderBottom: "1px solid var(--color-border)",
-      padding: "12px 20px",
-      position: "relative",
-      zIndex: 200,
-      width: "100%",
-      flexShrink: 0,
-      display: "block",
-      visibility: "visible",
-      minHeight: "48px",
-      boxSizing: "border-box",
-    }}>
-      {/* Single Row Layout */}
-      <div style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        gap: "8px",
-        flexWrap: "wrap",
-        visibility: "visible",
-        opacity: 1,
-      }}>
-        {/* Left: View & Search */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <ViewSwitcher />
-          
-          <div style={{ position: "relative", minWidth: "180px" }}>
-            <Icons.Search size={14} style={{ 
-              position: "absolute", 
-              left: "10px", 
-              top: "50%", 
-              transform: "translateY(-50%)",
-              color: "var(--color-text-muted)",
-              pointerEvents: "none"
-            }} />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={filters.search}
-              onChange={(e) => setFilters({ search: e.target.value })}
+    <div
+      style={{
+        background: embedded ? "transparent" : "var(--color-surface)",
+        borderBottom: embedded ? "1px solid var(--color-border-light)" : "1px solid var(--color-border)",
+        padding: embedded ? "10px 12px" : "12px 18px",
+        position: "relative",
+        zIndex: 200,
+        width: "100%",
+        flexShrink: 0,
+        boxSizing: "border-box",
+        overflow: "visible",
+      }}
+    >
+      {/*
+        Do not use overflow-x: auto here: per CSS, paired with overflow-y: visible it forces y to clip,
+        which hides Filter/Fields dropdowns and can clip bordered controls. Narrow screens: row may shrink.
+      */}
+      <div
+        style={{
+          ...row,
+          width: "100%",
+          minHeight: 40,
+          minWidth: 0,
+          justifyContent: "space-between",
+          gap: 12,
+          overflow: "visible",
+        }}
+      >
+        <div
+          style={{
+            ...row,
+            flex: "1 1 auto",
+            minWidth: 0,
+            minHeight: 40,
+            gap: 12,
+            overflow: "visible",
+          }}
+        >
+          <div style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
+            <ViewSwitcher />
+          </div>
+          <ToolbarSearchField
+            variant="minimal"
+            value={filters.search}
+            onChange={(v) => setFilters({ search: v })}
+            placeholder="Search leads"
+            className="h-10 min-h-10 [&_input]:h-10 [&_input]:min-h-10"
+            style={{
+              flex: "1 1 200px",
+              minWidth: 0,
+              maxWidth: 420,
+              width: "auto",
+              position: "relative",
+              zIndex: 1,
+            }}
+            aria-label="Search leads"
+          />
+          <div style={{ ...row, position: "relative", minHeight: 40, flexShrink: 0, zIndex: 2 }}>
+            <ToolbarFilterButton
+              variant="minimal"
+              open={showFilterPanel}
+              onClick={() => {
+                setShowFilterPanel((v) => !v);
+                setShowColumnMenu(false);
+                setShowMoreMenu(false);
+                setShowAddMenu(false);
+              }}
+              aria-label="Filter leads"
+            />
+            {showFilterPanel && <FilterPanel onClose={() => setShowFilterPanel(false)} />}
+          </div>
+          <div style={{ ...row, position: "relative", minHeight: 40, flexShrink: 0, zIndex: 2 }}>
+            <button
+              type="button"
+              className="btn-secondary-outline toolbar-filter-minimal focus-ring h-10 min-h-10"
+              onClick={() => {
+                setShowColumnMenu((v) => !v);
+                setShowFilterPanel(false);
+                setShowMoreMenu(false);
+                setShowAddMenu(false);
+              }}
+              aria-expanded={showColumnMenu}
               style={{
-                width: "100%",
-                padding: "6px 10px 6px 32px",
-                borderRadius: "6px",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
+                borderRadius: 8,
+                padding: "0 14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 14,
+                fontWeight: 500,
                 color: "var(--color-text)",
-                fontSize: "13px",
-                outline: "none",
               }}
-            />
+            >
+              <Icons.Eye size={15} strokeWidth={1.5} />
+              Fields
+            </button>
+            {showColumnMenu && <ColumnVisibilityMenu onClose={() => setShowColumnMenu(false)} />}
           </div>
         </div>
 
-        <Divider />
-
-        {/* Center: Grid Controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <div style={{ position: "relative" }}>
-            <ToolbarButton
-              onClick={() => setShowColumnMenu(!showColumnMenu)}
-              icon={<Icons.Eye size={14} />}
-              label="Fields"
-            />
-            {showColumnMenu && (
-              <ColumnVisibilityMenu onClose={() => setShowColumnMenu(false)} />
-            )}
-          </div>
-
-          <div style={{ position: "relative" }}>
-            <ToolbarButton
-              onClick={() => setShowFilterPanel(!showFilterPanel)}
-              icon={<Icons.Filter size={14} />}
-              label="Filter"
-              active={!!filters.segment || filters.aiFilters?.highIntent || filters.aiFilters?.recentlyActive || filters.aiFilters?.needsFollowUp}
-            />
-            {showFilterPanel && (
-              <FilterPanel onClose={() => setShowFilterPanel(false)} />
-            )}
-          </div>
-
-          <div style={{ position: "relative" }} ref={groupMenuRef}>
-            <ToolbarButton
-              onClick={() => {
-                setShowGroupMenu(!showGroupMenu);
-                setShowSortMenu(false);
-                setShowColumnMenu(false);
-                setShowFilterPanel(false);
-                setShowAddMenu(false);
-              }}
-              icon={<Icons.Users size={14} />}
-              label={filters.groupBy ? `Group: ${filters.groupBy}` : "Group"}
-              active={!!filters.groupBy}
-            />
-            {showGroupMenu && (
-              <DropdownMenu
-                title="Group by"
-                options={[
-                  { value: "owner", label: "Owner" },
-                  { value: "tier", label: "Tier" },
-                  { value: "score", label: "Score Range" },
-                  { value: "company", label: "Company" },
-                ]}
-                selected={filters.groupBy}
-                onSelect={(value) => {
-                  setFilters({ groupBy: value as any });
-                  if (!value) setShowGroupMenu(false);
-                }}
-                allowDeselect={true}
-              />
-            )}
-          </div>
-
-          <div style={{ position: "relative" }} ref={sortMenuRef}>
-            <ToolbarButton
-              onClick={() => {
-                setShowSortMenu(!showSortMenu);
-                setShowGroupMenu(false);
-                setShowColumnMenu(false);
-                setShowFilterPanel(false);
-                setShowAddMenu(false);
-              }}
-              icon={<Icons.ArrowUpDown size={14} />}
-              label={filters.sortBy ? `Sort: ${filters.sortBy}` : "Sort"}
-              active={!!filters.sortBy}
-            />
-            {showSortMenu && (
-              <DropdownMenu
-                title="Sort by"
-                options={[
-                  { value: "name", label: "Name" },
-                  { value: "email", label: "Email" },
-                  { value: "company", label: "Company" },
-                  { value: "score", label: "AI Score" },
-                  { value: "tier", label: "Tier" },
-                ]}
-                selected={filters.sortBy}
-                onSelect={(value) => {
-                  if (value === undefined) {
-                    setFilters({ sortBy: undefined, sortOrder: 'asc' });
-                  } else {
-                    setFilters({ sortBy: value as any, sortOrder: 'asc' });
-                  }
-                }}
-                showSortOrder={!!filters.sortBy}
-                sortOrder={filters.sortOrder || 'asc'}
-                onSortOrderChange={() => setFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
-                allowDeselect={true}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* Right: Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          {/* AI Actions */}
-          <ToolbarButton
-            onClick={onEnrich}
-            icon={<Icons.Sparkles size={14} />}
-            label="Enrich"
-            disabled={!permissions.canUpdateLeads || leads.length === 0}
-            primary
-          />
-          <ToolbarButton
-            onClick={onScore}
-            icon={<Icons.Target size={14} />}
-            label="Score"
-            disabled={!permissions.canUpdateLeads || leads.length === 0}
-          />
-
-          <Divider />
-
-          {/* Add Leads */}
-          {permissions.canCreateLeads && (
-            <div style={{ position: "relative" }} ref={addMenuRef}>
+        <div
+          style={{
+            ...row,
+            minHeight: 40,
+            flexShrink: 0,
+            gap: 8,
+            marginLeft: 12,
+            position: "relative",
+            zIndex: 2,
+            overflow: "visible",
+          }}
+        >
+          {permissions.canUpdateLeads && (
+            <>
               <button
-                onClick={() => setShowAddMenu(!showAddMenu)}
+                type="button"
+                className="btn-primary focus-ring h-10 min-h-10 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
+                disabled={leads.length === 0}
+                onClick={() => onEnrich()}
                 style={{
-                  padding: "6px 10px",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: "6px",
-                  borderRadius: "6px",
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-surface)",
-                  color: "var(--color-text)",
-                  cursor: "pointer",
+                  justifyContent: "center",
+                  gap: 8,
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
                 }}
               >
-                <Icons.Plus size={14} />
+                <Icons.Sparkles size={16} strokeWidth={1.5} />
+                Enrich Leads
+              </button>
+              <button
+                type="button"
+                className="btn-primary focus-ring h-10 min-h-10 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
+                disabled={leads.length === 0}
+                onClick={() => onScore()}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <Icons.Chart size={16} strokeWidth={1.5} />
+                Score Leads
+              </button>
+            </>
+          )}
+
+          {permissions.canCreateLeads && (
+            <div ref={addMenuRef} style={{ ...row, position: "relative", minHeight: 40, flexShrink: 0 }}>
+              <button
+                type="button"
+                className="btn-dashboard-outline focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-1.5 rounded-[10px] px-3 text-[13px] font-medium"
+                aria-expanded={showAddMenu}
+                aria-label="Add leads"
+                onClick={() => {
+                  setShowAddMenu((v) => !v);
+                  setShowFilterPanel(false);
+                  setShowColumnMenu(false);
+                  setShowMoreMenu(false);
+                }}
+              >
+                <Icons.Plus size={16} strokeWidth={1.5} />
                 Add
-                <Icons.ChevronDown size={12} style={{ opacity: 0.5 }} />
               </button>
               {showAddMenu && (
-                <div style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  right: 0,
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "10px",
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-                  minWidth: "180px",
-                  overflow: "hidden",
-                  zIndex: 1000,
-                  animation: "dropdownFadeIn 0.15s ease-out",
-                }}>
+                <div style={morePanelStyle}>
+                  {onImportCSV && (
+                    <MenuButton
+                      icon={<Icons.Upload size={14} strokeWidth={1.5} />}
+                      label="Import CSV"
+                      onClick={() => {
+                        onImportCSV();
+                        setShowAddMenu(false);
+                      }}
+                    />
+                  )}
                   <MenuButton
-                    icon={<Icons.Sparkles size={14} />}
-                    label="Generate with AI"
-                    onClick={() => { onGenerateAI(); setShowAddMenu(false); }}
-                  />
-                  <MenuButton
-                    icon={<Icons.FileText size={14} />}
-                    label="Import CSV"
-                    onClick={() => { onImportCSV(); setShowAddMenu(false); }}
+                    icon={<Icons.Sparkles size={14} strokeWidth={1.5} />}
+                    label="Generate Leads with AI"
+                    onClick={() => {
+                      onGenerateAI();
+                      setShowAddMenu(false);
+                    }}
                   />
                   {onImportAirtable && (
                     <MenuButton
-                      icon={<Icons.List size={14} />}
+                      icon={<Icons.List size={14} strokeWidth={1.5} />}
                       label="Import Airtable"
-                      onClick={() => { onImportAirtable(); setShowAddMenu(false); }}
+                      onClick={() => {
+                        onImportAirtable();
+                        setShowAddMenu(false);
+                      }}
                     />
                   )}
                 </div>
@@ -361,21 +294,166 @@ export function LeadsToolbar({
             </div>
           )}
 
-          {/* More Actions */}
-          <ToolbarButton
-            onClick={onSchemaClick}
-            icon={<Icons.Columns size={14} />}
-            label="Schema"
-            disabled={!permissions.canEditSchema}
-          />
-          
-          {onExportCSV && (
-            <ToolbarButton
-              onClick={onExportCSV}
-              icon={<Icons.Download size={14} />}
-              label="Export"
-            />
-          )}
+          <div ref={moreMenuRef} style={{ ...row, position: "relative", minHeight: 40, flexShrink: 0 }}>
+            <button
+              type="button"
+              className="btn-secondary-outline toolbar-filter-minimal focus-ring h-10 min-h-10 shrink-0 p-0"
+              aria-expanded={showMoreMenu}
+              aria-label="More actions"
+              onClick={() => {
+                setShowMoreMenu((v) => !v);
+                setShowFilterPanel(false);
+                setShowColumnMenu(false);
+                setShowAddMenu(false);
+              }}
+              style={{
+                borderRadius: 8,
+                width: 44,
+                minWidth: 44,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-text-muted)",
+              }}
+            >
+              <MoreVertical size={18} strokeWidth={2} />
+            </button>
+            {showMoreMenu && (
+              <div style={morePanelStyle}>
+                <div style={{ position: "relative" }} ref={groupMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGroupMenu((v) => !v);
+                      setShowSortMenu(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Icons.Users size={14} />
+                      Group
+                      {filters.groupBy ? (
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>({filters.groupBy})</span>
+                      ) : null}
+                    </span>
+                    <Icons.ChevronDown size={14} style={{ opacity: 0.5 }} />
+                  </button>
+                  {showGroupMenu && (
+                    <DropdownMenu
+                      title="Group by"
+                      options={[
+                        { value: "owner", label: "Owner" },
+                        { value: "tier", label: "Tier" },
+                        { value: "score", label: "Score Range" },
+                        { value: "company", label: "Company" },
+                        { value: "lead_status", label: "Lead status" },
+                      ]}
+                      selected={filters.groupBy}
+                      onSelect={(value) => {
+                        setFilters({ groupBy: value as any });
+                        if (!value) setShowGroupMenu(false);
+                      }}
+                      allowDeselect={true}
+                    />
+                  )}
+                </div>
+                <div style={{ position: "relative" }} ref={sortMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSortMenu((v) => !v);
+                      setShowGroupMenu(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Icons.ArrowUpDown size={14} />
+                      Sort
+                      {filters.sortBy ? (
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>({filters.sortBy})</span>
+                      ) : null}
+                    </span>
+                    <Icons.ChevronDown size={14} style={{ opacity: 0.5 }} />
+                  </button>
+                  {showSortMenu && (
+                    <DropdownMenu
+                      title="Sort by"
+                      options={[
+                        { value: "name", label: "Name" },
+                        { value: "email", label: "Email" },
+                        { value: "company", label: "Company" },
+                        { value: "score", label: "AI Score" },
+                        { value: "tier", label: "Tier" },
+                        { value: "lead_status", label: "Lead status" },
+                      ]}
+                      selected={filters.sortBy}
+                      onSelect={(value) => {
+                        if (value === undefined) {
+                          setFilters({ sortBy: undefined, sortOrder: "asc" });
+                        } else {
+                          setFilters({ sortBy: value as any, sortOrder: "asc" });
+                        }
+                      }}
+                      showSortOrder={!!filters.sortBy}
+                      sortOrder={filters.sortOrder || "asc"}
+                      onSortOrderChange={() =>
+                        setFilters({ sortOrder: filters.sortOrder === "asc" ? "desc" : "asc" })
+                      }
+                      allowDeselect={true}
+                    />
+                  )}
+                </div>
+                <div style={{ height: 1, background: "var(--color-border-light)", margin: "6px 0" }} />
+                <MenuButton
+                  icon={<Icons.Columns size={14} strokeWidth={1.5} />}
+                  label="Schema"
+                  onClick={() => {
+                    onSchemaClick();
+                    setShowMoreMenu(false);
+                  }}
+                  disabled={!permissions.canEditSchema}
+                />
+                {onExportCSV && (
+                  <MenuButton
+                    icon={<Icons.Download size={14} strokeWidth={1.5} />}
+                    label="Export CSV"
+                    onClick={() => {
+                      onExportCSV();
+                      setShowMoreMenu(false);
+                    }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -383,20 +461,24 @@ export function LeadsToolbar({
 }
 
 // Helper Components
-function MenuButton({ 
-  icon, 
-  label, 
-  onClick, 
-  danger 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  onClick: () => void; 
+function MenuButton({
+  icon,
+  label,
+  onClick,
+  danger,
+  disabled,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{
         width: "100%",
         padding: "12px 16px",
@@ -408,9 +490,10 @@ function MenuButton({
         color: danger ? "#dc2626" : "var(--color-text)",
         fontSize: "13px",
         fontWeight: 500,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         textAlign: "left",
         transition: "all 0.12s ease",
+        opacity: disabled ? 0.45 : 1,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = danger 
@@ -468,7 +551,7 @@ function DropdownMenu({
       boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
       minWidth: "200px",
       overflow: "hidden",
-      zIndex: 1000,
+      zIndex: 5000,
       animation: "dropdownFadeIn 0.15s ease-out",
     }}>
       <style>{`
@@ -501,10 +584,10 @@ function DropdownMenu({
               alignItems: "center",
               justifyContent: "space-between",
               gap: "8px",
-              background: selected === option.value ? "rgba(37, 99, 235, 0.1)" : "transparent",
+              background: selected === option.value ? "rgba(76, 103, 255, 0.12)" : "transparent",
               border: "none",
               borderRadius: "6px",
-              color: selected === option.value ? "#2563eb" : "var(--color-text)",
+              color: selected === option.value ? "var(--color-primary)" : "var(--color-text)",
               fontSize: "13px",
               fontWeight: selected === option.value ? 600 : 400,
               cursor: "pointer",
@@ -528,7 +611,7 @@ function DropdownMenu({
                 height: 18,
                 borderRadius: "50%",
                 border: selected === option.value ? "none" : "2px solid var(--color-border)",
-                background: selected === option.value ? "#2563eb" : "transparent",
+                background: selected === option.value ? "var(--color-primary)" : "transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -10,6 +10,7 @@ type Props = { open: boolean; onClose: () => void; onGenerated: (rows: any[]) =>
 export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   const { activeBaseId } = useBase();
   const [prompt, setPrompt] = useState("");
+  const [promptIdea, setPromptIdea] = useState("");
   const [count, setCount] = useState(10);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState("");
@@ -20,6 +21,17 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   const [enrichPhase, setEnrichPhase] = useState<'validation' | 'enrichment' | 'complete'>('validation');
   const [enrichProgress, setEnrichProgress] = useState(0);
   const [enrichMessage, setEnrichMessage] = useState("Preparing enrichment...");
+  const [suggestionLoadingTopic, setSuggestionLoadingTopic] = useState<string | null>(null);
+  const suggestionPrompts = [
+    "SaaS Founders",
+    "Marketing Directors",
+    "VP Sales in FinTech",
+    "HR Leaders in IT Services",
+    "Ecommerce Growth Managers",
+    "Real Estate Brokerage Owners",
+    "Healthcare Operations Heads",
+    "Logistics Decision Makers",
+  ];
 
   if (!open) return null;
 
@@ -101,6 +113,50 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
     }
   };
 
+  const handleBuildPrompt = () => {
+    const idea = promptIdea.trim();
+    if (!idea) {
+      setError("Write a short idea first, then click AI Assist.");
+      return;
+    }
+    const built = `Find B2B leads matching this intent: ${idea}.
+Include: decision-maker role, company size, location, industry, and buying signals.
+Return contacts with name, role, company, email, LinkedIn URL, and region.`;
+    setPrompt(built);
+    setError("");
+  };
+
+  const handleSuggestionTopic = async (topic: string) => {
+    setError("");
+    setSuggestionLoadingTopic(topic);
+    setProgress(`AI is preparing a lead brief for "${topic}"...`);
+    try {
+      const response = await apiRequest("/ai/plan", {
+        method: "POST",
+        body: JSON.stringify({
+          goal: `Generate high quality B2B leads for topic: ${topic}`,
+          user_id: 1,
+        }),
+      });
+      const plan = response?.plan || {};
+      const audience = plan?.audience ? JSON.stringify(plan.audience) : `Target audience: ${topic}`;
+      const leadSources = Array.isArray(plan?.lead_sources) ? plan.lead_sources.join(", ") : "";
+      const generatedPrompt = `Topic: ${topic}
+Audience details: ${audience}
+Lead source preference: ${leadSources || "Verified business contacts"}
+Need decision-maker leads with name, role, company, email, LinkedIn URL, industry, and region.`;
+      setPrompt(generatedPrompt);
+      setProgress("");
+    } catch {
+      setPrompt(`Find B2B leads for: ${topic}.
+Include decision-makers with company size, location, and buying intent signals.
+Return name, role, company, email, LinkedIn URL, and region.`);
+      setProgress("");
+    } finally {
+      setSuggestionLoadingTopic(null);
+    }
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: `
@@ -145,11 +201,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
           style={{ 
             width:'min(800px, 96vw)', 
             maxHeight: '90vh',
-            background:'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', 
-            border:'1px solid rgba(76, 103, 255, 0.3)', 
-            borderRadius:24, 
+            background:'var(--elev-bg)', 
+            border:'1px solid var(--elev-border)', 
+            borderRadius:16, 
             padding:0,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(76, 103, 255, 0.1)',
+            boxShadow: 'var(--elev-shadow-lg)',
             animation: 'slideUp 0.3s ease-out',
             overflow: 'hidden',
             display: 'flex',
@@ -157,79 +213,52 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header with gradient */}
+          {/* Header */}
           <div style={{
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 50%, #FF6B6B 100%)',
-            padding: '24px 28px',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            position: 'relative',
-            overflow: 'hidden'
+            background: 'transparent',
+            padding: '18px 20px',
+            borderBottom: '1px solid var(--color-border)',
+            position: 'relative'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: -50,
-              right: -50,
-              width: 200,
-              height: 200,
-              background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-              borderRadius: '50%'
-            }} />
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', position: 'relative', zIndex: 1 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: 'rgba(255,255,255,0.2)',
-                    backdropFilter: 'blur(10px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                    color: 'white'
-                  }}>
-                    <Icons.Sparkles size={24} />
-                  </div>
-                  <h3 style={{ margin:0, fontSize:24, fontWeight:800, color:'white', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "rgba(76, 103, 255, 0.14)",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Icons.Sparkles size={18} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+                </div>
+                <div>
+                  <h3 style={{ margin:0, fontSize:18, fontWeight:700, color:'var(--color-text)' }}>
                     Generate Leads with AI
                   </h3>
+                  <p style={{ margin:'2px 0 0', fontSize:12, color:'var(--color-text-muted)' }}>
+                    Create precise search prompts and generate qualified leads.
+                  </p>
                 </div>
-                <p style={{ margin:'0 0 0 60px', fontSize:14, color:'rgba(255,255,255,0.9)', fontWeight:500 }}>
-                  Search and discover qualified leads with AI-powered insights
-                </p>
               </div>
               <button 
                 onClick={onClose}
                 disabled={generating}
                 style={{ 
-                  padding: '10px 14px',
-                  background: 'rgba(255,255,255,0.15)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: 12,
-                  color: 'white',
+                  padding: '8px',
+                  background: 'transparent',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 10,
+                  color: 'var(--color-text)',
                   cursor: generating ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)',
-                  fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
-                onMouseEnter={(e) => {
-                  if (!generating) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!generating) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }
-                }}
               >
-                <Icons.X size={18} />
+                <Icons.X size={16} />
               </button>
             </div>
           </div>
@@ -257,6 +286,30 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                   <Icons.Target size={18} style={{ color: 'var(--color-text)' }} />
                   Describe your target leads
                 </label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 8, marginBottom: 12 }}>
+                  {suggestionPrompts.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => handleSuggestionTopic(item)}
+                      disabled={generating || suggestionLoadingTopic === item}
+                      style={{
+                        border: "1px solid var(--color-border)",
+                        background: "var(--color-surface-secondary)",
+                        color: "var(--color-text)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        padding: "8px 10px",
+                        height: "auto",
+                        cursor: generating ? "not-allowed" : "pointer",
+                        textAlign: "left",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {suggestionLoadingTopic === item ? "Generating..." : item}
+                    </button>
+                  ))}
+                </div>
                 <textarea 
                   className="input" 
                   rows={6} 
@@ -272,23 +325,43 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                     fontSize: 15, 
                     lineHeight: 1.7,
                     padding: '16px 20px',
-                    borderRadius: 16,
-                    border: '2px solid rgba(76, 103, 255, 0.2)',
-                    background: 'rgba(76, 103, 255, 0.03)',
+                    borderRadius: 12,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
                     transition: 'all 0.2s ease',
                     resize: 'vertical',
                     minHeight: 120,
                     boxSizing: 'border-box'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.5)';
-                    e.currentTarget.style.background = 'rgba(76, 103, 255, 0.05)';
+                    e.currentTarget.style.borderColor = 'var(--color-primary)';
+                    e.currentTarget.style.background = 'var(--color-surface)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.2)';
-                    e.currentTarget.style.background = 'rgba(76, 103, 255, 0.03)';
+                    e.currentTarget.style.borderColor = 'var(--color-border)';
+                    e.currentTarget.style.background = 'var(--color-surface)';
                   }}
                 />
+                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                  <input
+                    value={promptIdea}
+                    onChange={(e) => setPromptIdea(e.target.value)}
+                    placeholder="Need help writing prompt? Enter your idea and use AI Assist"
+                    style={{
+                      flex: 1,
+                      borderRadius: 10,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface)",
+                      color: "var(--color-text)",
+                      fontSize: 13,
+                      padding: "10px 12px",
+                    }}
+                  />
+                  <button type="button" className="btn-ghost" onClick={handleBuildPrompt} style={{ borderRadius: 10 }}>
+                    <Icons.Lightbulb size={16} />
+                    AI Assist
+                  </button>
+                </div>
                 <div style={{ 
                   fontSize:13, 
                   color:'var(--color-text-muted)', 
@@ -297,11 +370,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                   alignItems: 'center',
                   gap: 8,
                   padding: '10px 14px',
-                  background: 'rgba(255, 193, 7, 0.1)',
+                  background: 'var(--color-surface-secondary)',
                   borderRadius: 10,
-                  border: '1px solid rgba(255, 193, 7, 0.2)'
+                  border: '1px solid var(--color-border)'
                 }}>
-                  <Icons.Lightbulb size={16} style={{ color: '#ffc107', flexShrink: 0 }} />
+                  <Icons.Lightbulb size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                   <span><strong>Tip:</strong> Be specific! Include industry, company size, location, technology, or other criteria for better results</span>
                 </div>
               </div>
@@ -312,9 +385,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                 gap:16, 
                 alignItems:'center',
                 padding: '16px 20px',
-                background: 'rgba(169, 76, 255, 0.05)',
+                background: 'var(--color-surface-secondary)',
                 borderRadius: 16,
-                border: '1px solid rgba(169, 76, 255, 0.15)'
+                border: '1px solid var(--color-border)'
               }}>
                 <label style={{ 
                   fontSize:14, 
@@ -339,8 +412,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                     width: 100,
                     padding: '12px 16px',
                     borderRadius: 12,
-                    border: '2px solid rgba(169, 76, 255, 0.3)',
-                    background: 'rgba(169, 76, 255, 0.05)',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
                     fontSize: 15,
                     fontWeight: 600,
                     textAlign: 'center'
@@ -377,11 +450,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                 <div style={{
                   padding: '18px 24px',
                   background: generating 
-                    ? 'linear-gradient(135deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)' 
-                    : 'linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.1) 100%)',
-                  border: `2px solid ${generating ? 'rgba(76, 103, 255, 0.4)' : 'rgba(76, 175, 80, 0.4)'}`,
+                    ? 'var(--color-surface-secondary)' 
+                    : 'rgba(76, 175, 80, 0.1)',
+                  border: `1px solid ${generating ? 'var(--color-border)' : 'rgba(76, 175, 80, 0.35)'}`,
                   borderRadius: 16,
-                  color: generating ? '#4C67FF' : '#4CAF50',
+                  color: generating ? 'var(--color-primary)' : '#4CAF50',
                   fontSize: 15,
                   fontWeight: 600,
                   display: 'flex',
@@ -394,7 +467,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                       display: 'inline-block', 
                       animation: 'spin 1s linear infinite'
                     }}>
-                      <Icons.Loader size={20} style={{ color: '#4C67FF' }} />
+                      <Icons.Loader size={20} style={{ color: 'var(--color-primary)' }} />
                     </span>
                   )}
                   {!generating && <Icons.CheckCircle size={20} style={{ color: '#4CAF50', flexShrink: 0 }} />}
@@ -405,41 +478,28 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
               {/* Info Box */}
               <div style={{ 
                 padding: '20px 24px', 
-                background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)', 
+                background: 'var(--color-surface-secondary)', 
                 borderRadius: 16,
                 fontSize: 13,
                 color: 'var(--color-text)',
-                border: '2px solid rgba(76, 103, 255, 0.2)',
-                position: 'relative',
-                overflow: 'hidden'
+                border: '1px solid var(--color-border)',
+                borderTop: '3px solid var(--color-primary)',
               }}>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 3,
-                  background: 'linear-gradient(90deg, #4C67FF 0%, #A94CFF 50%, #4C67FF 100%)',
-                  backgroundSize: '200% 100%',
-                  animation: generating ? 'shimmer 2s infinite' : 'none'
-                }} />
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                   <div style={{
                     width: 40,
                     height: 40,
                     borderRadius: 12,
-                    background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                    background: 'rgba(76, 103, 255, 0.14)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(76, 103, 255, 0.3)',
-                    color: 'white'
                   }}>
-                    <Icons.Target size={20} />
+                    <Icons.Target size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
                   </div>
                   <div style={{ flex: 1, paddingTop: 2 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 14, color: '#4C67FF' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 14, color: 'var(--color-text)' }}>
                       AI-Powered Lead Generation
                     </div>
                     <div style={{ lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
@@ -456,7 +516,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                 justifyContent:'flex-end', 
                 marginTop:8,
                 paddingTop: 20,
-                borderTop: '1px solid rgba(255,255,255,0.1)'
+                borderTop: '1px solid var(--color-border)'
               }}>
                 <button 
                   className="btn-ghost" 
@@ -479,35 +539,33 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                   style={{
                     padding: '14px 32px',
                     background: generating || !prompt.trim()
-                      ? 'rgba(128, 128, 128, 0.3)'
-                      : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-                    color: 'white',
+                      ? 'var(--color-surface-secondary)'
+                      : 'var(--color-primary)',
+                    color: '#fff',
                     border: 'none',
                     borderRadius: 12,
                     fontSize: 15,
                     fontWeight: 700,
                     cursor: generating || !prompt.trim() ? 'not-allowed' : 'pointer',
                     opacity: generating || !prompt.trim() ? 0.6 : 1,
-                    transition: 'all 0.3s ease',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                     boxShadow: generating || !prompt.trim() 
                       ? 'none' 
-                      : '0 4px 16px rgba(76, 103, 255, 0.4)',
+                      : '0 8px 22px rgba(76, 103, 255, 0.28)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    position: 'relative',
-                    overflow: 'hidden'
                   }}
                   onMouseEnter={(e) => {
                     if (!generating && prompt.trim()) {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(76, 103, 255, 0.5)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 10px 28px rgba(76, 103, 255, 0.32)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!generating && prompt.trim()) {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(76, 103, 255, 0.4)';
+                      e.currentTarget.style.boxShadow = '0 8px 22px rgba(76, 103, 255, 0.28)';
                     }
                   }}
                 >
@@ -517,26 +575,15 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                         display: 'inline-block', 
                         animation: 'spin 1s linear infinite'
                       }}>
-                        <Icons.Loader size={18} style={{ color: 'white' }} />
+                        <Icons.Loader size={18} style={{ color: '#fff' }} />
                       </span>
                       <span>Generating...</span>
                     </>
                   ) : (
                     <>
-                      <Icons.Sparkles size={18} style={{ color: 'white' }} />
+                      <Icons.Sparkles size={18} style={{ color: '#fff' }} />
                       <span>Generate {count} Lead{count !== 1 ? 's' : ''}</span>
                     </>
-                  )}
-                  {!generating && prompt.trim() && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: '-100%',
-                      width: '100%',
-                      height: '100%',
-                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                      animation: 'shimmer 2s infinite'
-                    }} />
                   )}
                 </button>
               </div>
@@ -551,13 +598,14 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
           style={{ 
             position:'fixed', 
             inset:0, 
-            background:'rgba(0,0,0,.8)', 
+            background:'rgba(0,0,0,.55)', 
             zIndex:2000, 
             display:'flex', 
             alignItems:'center', 
             justifyContent:'center', 
             padding:20,
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             animation: 'fadeIn 0.2s ease-out'
           }}
           onClick={() => {
@@ -568,42 +616,45 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
           <div 
             style={{ 
               width:'min(500px, 90vw)', 
-              background:'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', 
-              border:'2px solid rgba(76, 103, 255, 0.4)', 
-              borderRadius:24, 
+              background:'var(--color-surface)', 
+              border:'1px solid var(--color-border)', 
+              borderRadius:16, 
               padding:0,
-              boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(76, 103, 255, 0.2)',
+              boxShadow: '0 24px 64px var(--color-shadow)',
               animation: 'slideUp 0.3s ease-out',
               overflow: 'hidden'
             }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-generate-success-title"
           >
-            {/* Header */}
             <div style={{
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-              padding: '24px 28px',
-              borderBottom: '1px solid rgba(255,255,255,0.1)',
-              position: 'relative',
-              overflow: 'hidden'
+              padding: '18px 20px',
+              borderBottom: '1px solid var(--color-border)',
+              background: 'var(--color-surface-secondary)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   borderRadius: 12,
-                  background: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(10px)',
+                  background: 'rgba(76, 103, 255, 0.14)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                  color: 'white'
+                  flexShrink: 0,
                 }}>
-                  <Icons.CheckCircle size={24} />
+                  <Icons.CheckCircle size={22} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
                 </div>
-                <h3 style={{ margin:0, fontSize:22, fontWeight:800, color:'white', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                  Leads Generated Successfully!
-                </h3>
+                <div style={{ minWidth: 0 }}>
+                  <h3 id="ai-generate-success-title" style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                    Leads generated
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                    You can enrich them now or continue in your table.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -635,13 +686,13 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
 
                 <div style={{ 
                   padding: '16px 20px',
-                  background: 'rgba(76, 103, 255, 0.08)',
-                  border: '1px solid rgba(76, 103, 255, 0.2)',
+                  background: 'var(--color-surface-secondary)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: 16,
                   marginBottom: 24
                 }}>
                   <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-text)' }}>
-                    <strong style={{ color: '#4C67FF' }}>What you'll get:</strong>
+                    <strong style={{ color: 'var(--color-text)' }}>What you&apos;ll get:</strong>
                     <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
                       <li style={{ marginBottom: 6 }}>Verified email addresses</li>
                       <li style={{ marginBottom: 6 }}>Complete contact information</li>
@@ -746,29 +797,29 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
                   }}
                   style={{
                     padding: '14px 32px',
-                    background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-                    color: 'white',
+                    background: 'var(--color-primary)',
+                    color: '#fff',
                     border: 'none',
                     borderRadius: 12,
                     fontSize: 15,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 16px rgba(76, 103, 255, 0.4)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    boxShadow: '0 8px 22px rgba(76, 103, 255, 0.28)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(76, 103, 255, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 10px 28px rgba(76, 103, 255, 0.32)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(76, 103, 255, 0.4)';
+                    e.currentTarget.style.boxShadow = '0 8px 22px rgba(76, 103, 255, 0.28)';
                   }}
                 >
-                  <Icons.Target size={18} style={{ color: 'white' }} />
+                  <Icons.Target size={18} style={{ color: '#fff' }} />
                   <span>Enrich & Score</span>
                 </button>
               </div>

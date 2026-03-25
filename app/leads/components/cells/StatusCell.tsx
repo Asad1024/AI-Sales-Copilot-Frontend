@@ -4,13 +4,14 @@ import { Icons } from "@/components/ui/Icons";
 
 interface StatusCellProps {
   value: any;
-  onUpdate: (value: any) => void;
+  onUpdate: (value: any) => void | Promise<void>;
   editable?: boolean;
   options: Array<{ value: string; label: string; color: string }>;
 }
 
 export function StatusCell({ value, onUpdate, editable = true, options }: StatusCellProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const selectRef = useRef<HTMLSelectElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,25 +36,52 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
 
   const selectedOption = options.find((opt) => opt.value === value);
 
-  const handleSelect = (optionValue: string) => {
-    if (optionValue !== value) {
-      onUpdate(optionValue);
-    }
+  const handleSelect = async (optionValue: string) => {
     setIsEditing(false);
+    if (optionValue === value) return;
+    setSaving(true);
+    try {
+      await Promise.resolve(onUpdate(optionValue));
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (saving) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "4px 8px",
+          minHeight: 24,
+          borderRadius: 6,
+          background: "var(--color-surface-secondary)",
+          border: "1px solid var(--color-border)",
+        }}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <Icons.Loader size={14} strokeWidth={1.5} className="animate-spin" style={{ color: "var(--color-primary)" }} />
+        <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 500 }}>Updating status…</span>
+      </div>
+    );
+  }
 
   if (!editable) {
     if (!selectedOption) {
-      return <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>—</div>;
+      return <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>—</div>;
     }
     return (
       <span
         style={{
           background: `${selectedOption.color}20`,
           color: selectedOption.color,
-          padding: "4px 12px",
+          padding: "3px 10px",
           borderRadius: "6px",
-          fontSize: "12px",
+          fontSize: "10px",
           fontWeight: "600",
           border: `1px solid ${selectedOption.color}40`,
         }}
@@ -65,7 +93,12 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
 
   if (isEditing) {
     return (
-      <div ref={dropdownRef} style={{ position: "relative" }}>
+      <div
+        ref={dropdownRef}
+        style={{ position: "relative" }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div
           style={{
             position: "absolute",
@@ -84,7 +117,10 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
           {options.map((opt) => (
             <div
               key={opt.value}
-              onClick={() => handleSelect(opt.value)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelect(opt.value);
+              }}
               style={{
                 padding: "8px 12px",
                 borderRadius: "6px",
@@ -111,11 +147,11 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
                   border: `2px solid ${opt.color}80`,
                 }}
               />
-              <span style={{ fontSize: "13px", fontWeight: value === opt.value ? "600" : "500" }}>
+              <span style={{ fontSize: "12px", fontWeight: value === opt.value ? "600" : "500" }}>
                 {opt.label}
               </span>
               {value === opt.value && (
-                <Icons.Check size={14} style={{ marginLeft: "auto", color: opt.color }} />
+                <Icons.Check size={12} style={{ marginLeft: "auto", color: opt.color }} />
               )}
             </div>
           ))}
@@ -130,7 +166,10 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
             bottom: 0,
             zIndex: 999,
           }}
-          onClick={() => setIsEditing(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(false);
+          }}
         />
       </div>
     );
@@ -138,51 +177,76 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
 
   return (
     <div
-      onClick={() => setIsEditing(true)}
       style={{
-        cursor: "pointer",
-        padding: "4px 8px",
-        borderRadius: "4px",
-        minHeight: "24px",
         display: "flex",
         alignItems: "center",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent";
+        gap: 6,
+        minHeight: 24,
       }}
     >
       {selectedOption ? (
-        <span
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsEditing(true);
+          }}
           style={{
             background: `${selectedOption.color}20`,
             color: selectedOption.color,
-            padding: "4px 12px",
+            padding: "2px 8px",
             borderRadius: "6px",
-            fontSize: "12px",
+            fontSize: "10px",
             fontWeight: "600",
             border: `1px solid ${selectedOption.color}40`,
             display: "inline-flex",
             alignItems: "center",
-            gap: "6px",
+            gap: "5px",
+            cursor: "pointer",
+            fontFamily: "inherit",
           }}
+          aria-label={`Status: ${selectedOption.label}. Change status`}
         >
           <div
             style={{
-              width: "8px",
-              height: "8px",
+              width: "6px",
+              height: "6px",
               borderRadius: "50%",
               background: selectedOption.color,
             }}
           />
           {selectedOption.label}
-        </span>
+          <Icons.ChevronDown size={10} strokeWidth={2} style={{ opacity: 0.65 }} aria-hidden />
+        </button>
       ) : (
-        <span style={{ color: "var(--color-text-muted)", fontStyle: "italic", fontSize: "13px" }}>
-          Click to select status
-        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsEditing(true);
+          }}
+          className="focus-ring"
+          aria-label="Set lead status"
+          title="Set status"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 24,
+            height: 24,
+            padding: 0,
+            borderRadius: 5,
+            border: "1px dashed var(--color-border)",
+            background: "var(--color-surface-secondary)",
+            color: "var(--color-text-muted)",
+            cursor: "pointer",
+            gap: 3,
+          }}
+        >
+          <Icons.Tag size={10} strokeWidth={1.75} aria-hidden />
+        </button>
       )}
     </div>
   );

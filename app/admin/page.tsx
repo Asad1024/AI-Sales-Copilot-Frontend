@@ -51,8 +51,8 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      <div style={{ padding: "32px", maxWidth: "1400px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "32px" }}>
+      <div style={{ padding: "12px 20px 24px", maxWidth: "1400px", margin: "0 auto" }}>
+        <div style={{ marginBottom: "20px" }}>
           <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>Admin Dashboard</h1>
           <p style={{ color: "var(--color-text-muted)", fontSize: "16px" }}>
             Welcome back, {user?.name}. Manage your platform from here.

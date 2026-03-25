@@ -1,5 +1,6 @@
 "use client";
 import BaseSelector from "@/components/ui/BaseSelector";
+import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { ViewSwitcher } from "./ViewSwitcher";
@@ -60,21 +61,12 @@ export function LeadsHeader({ onShowAllBases, showAllBases }: LeadsHeaderProps) 
       </div>
 
       <div style={{ marginBottom: '20px' }}>
-        <input
-          type="text"
-          placeholder="Search leads by name or email..."
+        <ToolbarSearchField
           value={filters.search}
-          onChange={(e) => setFilters({ search: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: '1px solid var(--elev-border)',
-            background: '#ffffff',
-            color: 'var(--color-text)',
-            fontSize: '14px',
-            outline: 'none'
-          }}
+          onChange={(v) => setFilters({ search: v })}
+          placeholder="Search leads by name or email..."
+          style={{ width: "100%" }}
+          aria-label="Search leads"
         />
       </div>
 

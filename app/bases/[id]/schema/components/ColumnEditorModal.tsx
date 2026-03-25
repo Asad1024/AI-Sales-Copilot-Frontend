@@ -4,6 +4,7 @@ import { BaseColumn, ColumnType, useColumnStore } from "@/stores/useColumnStore"
 import { Icons } from "@/components/ui/Icons";
 import { ColumnTypeSelector } from "./ColumnTypeSelector";
 import { ColumnConfigPanel } from "./ColumnConfigPanel";
+import { useNotification } from "@/context/NotificationContext";
 
 interface ColumnEditorModalProps {
   baseId: number;
@@ -13,6 +14,7 @@ interface ColumnEditorModalProps {
 }
 
 export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEditorModalProps) {
+  const { showError, showWarning } = useNotification();
   const { createColumn, updateColumn } = useColumnStore();
   const [name, setName] = useState("");
   const [type, setType] = useState<ColumnType>("text");
@@ -41,7 +43,7 @@ export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEdi
 
   const handleSave = async () => {
     if (!name.trim()) {
-      alert("Please enter a column name");
+      showWarning("Column name required", "Please enter a column name.");
       return;
     }
 
@@ -65,7 +67,7 @@ export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEdi
       }
       onSave();
     } catch (error: any) {
-      alert(error?.message || "Failed to save column");
+      showError("Save failed", error?.message || "Failed to save column");
     } finally {
       setSaving(false);
     }

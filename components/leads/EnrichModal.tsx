@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import { useMemo, useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
@@ -10,70 +11,119 @@ interface EnrichModalProps {
   open: boolean;
   onClose: () => void;
   onEnriched?: () => void;
+  /** Lead IDs currently being enriched (contact flow); those are skipped. */
+  pendingLeadIds?: number[];
+  onAsyncEnrichmentStarted?: (payload: {
+    leadIds: number[];
+    enrichmentIds: string[];
+    pendingCount: number;
+  }) => void;
 }
 
-export function EnrichModal({ open, onClose, onEnriched }: EnrichModalProps) {
+export function EnrichModal({
+  open,
+  onClose,
+  onEnriched,
+  pendingLeadIds = [],
+  onAsyncEnrichmentStarted,
+}: EnrichModalProps) {
   const { activeBaseId } = useBaseStore();
   const { selectedLeads, leads } = useLeadStore();
   const { showSuccess, showError } = useNotification();
-  
-  const [enrichmentType, setEnrichmentType] = useState<'contact' | 'deep_research'>('deep_research');
+
+  const [enrichmentType, setEnrichmentType] = useState<"contact" | "deep_research">("deep_research");
   const [purpose, setPurpose] = useState("");
   const [enriching, setEnriching] = useState(false);
   const [progress, setProgress] = useState("");
-  const [enrichScope, setEnrichScope] = useState<'selected' | 'all'>('selected');
+  const [enrichScope, setEnrichScope] = useState<"selected" | "all">("selected");
+
+  const pendingSet = useMemo(() => new Set(pendingLeadIds), [pendingLeadIds]);
+
+  const { leadsToRequest, skippedPending, rawTotal } = useMemo(() => {
+    const raw =
+      enrichScope === "selected" ? [...selectedLeads] : leads.map(l => l.id);
+    const skipped = raw.filter(id => pendingSet.has(id));
+    const allowed = raw.filter(id => !pendingSet.has(id));
+    return {
+      leadsToRequest: allowed,
+      skippedPending: skipped.length,
+      rawTotal: raw.length,
+    };
+  }, [enrichScope, selectedLeads, leads, pendingSet]);
 
   if (!open) return null;
 
+  const canSubmit =
+    leadsToRequest.length > 0 &&
+    !(enrichScope === "selected" && selectedLeads.length === 0);
+
   const handleEnrich = async () => {
     if (!activeBaseId) {
-      showError("Error", "Please select a base first");
+      showError("Something went wrong", "Choose a workspace and try again.");
       return;
     }
 
-    const leadsToEnrich = enrichScope === 'selected' ? selectedLeads : leads.map(l => l.id);
-    
-    if (leadsToEnrich.length === 0) {
-      showError("No Leads", enrichScope === 'selected' 
-        ? "Please select leads to enrich" 
-        : "No leads available to enrich");
+    if (enrichScope === "selected" && selectedLeads.length === 0) {
+      showError("No leads selected", "Select one or more rows, or choose “All leads”.");
+      return;
+    }
+
+    if (leadsToRequest.length === 0) {
+      showError(
+        "Still updating",
+        "Every lead you chose is already being enriched. Wait until they finish before trying again."
+      );
       return;
     }
 
     setEnriching(true);
-    setProgress("Starting enrichment...");
+    setProgress(
+      enrichmentType === "contact"
+        ? `Finding contact details for ${leadsToRequest.length} lead(s)…`
+        : `Enriching ${leadsToRequest.length} lead(s)…`
+    );
 
     try {
-      setProgress(`Enriching ${leadsToEnrich.length} lead(s)...`);
-      
       const response = await apiRequest("/leads/bulk-enrich", {
         method: "POST",
         body: JSON.stringify({
-          lead_ids: leadsToEnrich,
+          lead_ids: leadsToRequest,
           base_id: activeBaseId,
           enrichment_type: enrichmentType,
-          // Contact mode is FullEnrich-only and async (webhook); deep_research runs sync pipeline
-          only_fullenrich: enrichmentType === 'contact'
-        })
+          only_fullenrich: enrichmentType === "contact",
+        }),
       });
 
-      if (enrichmentType === 'contact') {
-        // Contact enrichment is async (webhook). Backend will choose the best FullEnrich strategy per lead:
-        // - reverse-email for leads with valid email
-        // - LinkedIn/name+company for leads without email/phone but with identifiers
-        setProgress("Contact enrichment started! Results will appear shortly.");
-        showSuccess("Enrichment Started", "Contact enrichment has been initiated. Results will be available once processing completes.");
+      if (enrichmentType === "contact") {
+        const enrichmentIds = Array.isArray(response?.enrichment_ids)
+          ? response.enrichment_ids.filter((id: unknown) => typeof id === "string" && id.trim().length > 0)
+          : [];
+        const pendingCount =
+          typeof response?.pending_count === "number"
+            ? response.pending_count
+            : leadsToRequest.length;
+
+        onAsyncEnrichmentStarted?.({
+          leadIds: leadsToRequest,
+          enrichmentIds,
+          pendingCount,
+        });
+
+        setProgress("Request sent. Results will appear in your table when ready.");
+        showSuccess(
+          "Started",
+          "We’re finding contact details for your leads. Your table will update automatically when results are ready."
+        );
 
         setTimeout(() => {
           setEnriching(false);
           setProgress("");
           setPurpose("");
-          onEnriched?.();
           onClose();
-        }, 2000);
+        }, 1800);
       } else if (response?.enriched && response.enriched.length > 0) {
-        setProgress(`Successfully enriched ${response.enriched.length} lead(s)!`);
-        showSuccess("Enrichment Complete", `Successfully enriched ${response.enriched.length} lead(s)`);
+        setProgress(`Done — updated ${response.enriched.length} lead(s).`);
+        showSuccess("Enrichment complete", `Updated ${response.enriched.length} lead(s).`);
 
         setTimeout(() => {
           setEnriching(false);
@@ -81,293 +131,334 @@ export function EnrichModal({ open, onClose, onEnriched }: EnrichModalProps) {
           setPurpose("");
           onEnriched?.();
           onClose();
-        }, 1500);
+        }, 1400);
       } else {
         throw new Error("No leads were enriched");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Enrichment error:", error);
-      showError("Enrichment Failed", error?.message || "Failed to enrich leads. Please try again.");
+      const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      showError("Couldn’t enrich", message);
       setProgress("");
       setEnriching(false);
     }
   };
 
+  const chipActive = (on: boolean) =>
+    ({
+      flex: 1,
+      padding: "11px 14px",
+      borderRadius: 10,
+      border: on ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+      background: on ? "rgba(76, 103, 255, 0.1)" : "var(--color-surface-secondary)",
+      color: "var(--color-text)",
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer",
+      transition: "border-color 0.15s ease, background 0.15s ease",
+    }) as const;
+
   return (
     <>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}} />
-      
-      <div 
-        style={{ 
-          position: 'fixed', 
-          inset: 0, 
-          background: 'rgba(0,0,0,.7)', 
-          zIndex: 1000, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes enrichModalIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes enrichPanelIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes enrichSpin { to { transform: rotate(360deg); } }
+      `,
+        }}
+      />
+
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           padding: 20,
-          backdropFilter: 'blur(8px)',
-          animation: 'fadeIn 0.2s ease-out'
+          background: "rgba(0, 0, 0, 0.55)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          animation: "enrichModalIn 0.2s ease-out",
         }}
         onClick={onClose}
+        role="presentation"
       >
-        <div 
-          style={{ 
-            width: 'min(600px, 96vw)', 
-            maxHeight: '90vh',
-            background: 'var(--color-surface)', 
-            border: '1px solid var(--elev-border)', 
-            borderRadius: 16, 
-            padding: 0,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-            animation: 'slideUp 0.3s ease-out',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
+        <div
+          style={{
+            width: "min(520px, 96vw)",
+            maxHeight: "90vh",
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 16,
+            boxShadow: "0 24px 64px var(--color-shadow)",
+            animation: "enrichPanelIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="enrich-modal-title"
         >
-          {/* Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-            padding: '20px 24px',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Icons.Sparkles size={24} style={{ color: '#000' }} />
-              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#000' }}>
-                Enrich Leads
-              </h3>
+          <div
+            style={{
+              padding: "18px 20px",
+              borderBottom: "1px solid var(--color-border)",
+              background: "var(--color-surface-secondary)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: "rgba(76, 103, 255, 0.14)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icons.Sparkles size={20} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h2
+                  id="enrich-modal-title"
+                  style={{
+                    margin: 0,
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: "var(--color-text)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Enrich leads
+                </h2>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+                  Add or refresh contact and research data
+                </p>
+              </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="icon-btn"
-              style={{ 
-                width: '32px', 
-                height: '32px', 
+              aria-label="Close"
+              style={{
+                width: 36,
+                height: 36,
                 padding: 0,
-                background: 'rgba(0,0,0,0.1)',
-                borderRadius: '8px'
+                borderRadius: 10,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                color: "var(--color-text-muted)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <Icons.X size={18} style={{ color: '#000' }} />
+              <Icons.X size={18} strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Content */}
-          <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+          <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
             {enriching ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  border: '4px solid rgba(76, 103, 255, 0.2)',
-                  borderTopColor: '#4C67FF',
-                  borderRadius: '50%',
-                  margin: '0 auto 20px',
-                  animation: 'spin 1s linear infinite'
-                }} />
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                  {progress || "Enriching leads..."}
+              <div style={{ textAlign: "center", padding: "36px 16px 28px" }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    margin: "0 auto 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icons.Loader
+                    size={40}
+                    strokeWidth={1.5}
+                    style={{ color: "var(--color-primary)", animation: "enrichSpin 0.85s linear infinite" }}
+                  />
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                  This may take a few moments...
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>
+                  {progress || "Working on your leads…"}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5, maxWidth: 320, margin: "0 auto" }}>
+                  {enrichmentType === "contact"
+                    ? "You can keep working elsewhere. Your table will refresh when new details arrive."
+                    : "This may take a little while for larger lists."}
                 </div>
               </div>
             ) : (
               <>
-                {/* Scope Selection */}
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: 14, 
-                    fontWeight: 600, 
-                    marginBottom: 12,
-                    color: 'var(--color-text)'
-                  }}>
-                    Select Leads to Enrich
+                {skippedPending > 0 && (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-secondary)",
+                      fontSize: 12,
+                      color: "var(--color-text-muted)",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <strong style={{ color: "var(--color-text)" }}>{skippedPending} lead(s) still updating</strong>
+                    — they’re not included in this run. Wait until the “Processing” label clears on those rows.
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 18 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      marginBottom: 10,
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    Who to enrich
                   </label>
-                  <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ display: "flex", gap: 10 }}>
                     <button
-                      onClick={() => setEnrichScope('selected')}
+                      type="button"
+                      onClick={() => setEnrichScope("selected")}
                       disabled={selectedLeads.length === 0}
                       style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: enrichScope === 'selected' 
-                          ? '2px solid #4C67FF' 
-                          : '1px solid var(--elev-border)',
-                        background: enrichScope === 'selected'
-                          ? 'rgba(76, 103, 255, 0.1)'
-                          : 'var(--color-surface-secondary)',
-                        color: 'var(--color-text)',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: selectedLeads.length === 0 ? 'not-allowed' : 'pointer',
-                        opacity: selectedLeads.length === 0 ? 0.5 : 1
+                        ...chipActive(enrichScope === "selected"),
+                        opacity: selectedLeads.length === 0 ? 0.5 : 1,
+                        cursor: selectedLeads.length === 0 ? "not-allowed" : "pointer",
                       }}
                     >
                       Selected ({selectedLeads.length})
                     </button>
-                    <button
-                      onClick={() => setEnrichScope('all')}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: enrichScope === 'all' 
-                          ? '2px solid #4C67FF' 
-                          : '1px solid var(--elev-border)',
-                        background: enrichScope === 'all'
-                          ? 'rgba(76, 103, 255, 0.1)'
-                          : 'var(--color-surface-secondary)',
-                        color: 'var(--color-text)',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: 'pointer'
-                      }}
-                    >
+                    <button type="button" onClick={() => setEnrichScope("all")} style={chipActive(enrichScope === "all")}>
                       All ({leads.length})
                     </button>
                   </div>
+                  {rawTotal > 0 && leadsToRequest.length < rawTotal && (
+                    <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
+                      This run will update <strong>{leadsToRequest.length}</strong> of {rawTotal} lead(s).
+                    </p>
+                  )}
                 </div>
 
-                {/* Enrichment Type */}
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    marginBottom: 12,
-                    color: 'var(--color-text)'
-                  }}>
-                    Enrichment Type
+                <div style={{ marginBottom: 18 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      marginBottom: 10,
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    Type
                   </label>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <button
-                      onClick={() => setEnrichmentType('contact')}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: enrichmentType === 'contact'
-                          ? '2px solid #4C67FF'
-                          : '1px solid var(--elev-border)',
-                        background: enrichmentType === 'contact'
-                          ? 'rgba(76, 103, 255, 0.1)'
-                          : 'var(--color-surface-secondary)',
-                        color: 'var(--color-text)',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Contact Only
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button type="button" onClick={() => setEnrichmentType("contact")} style={chipActive(enrichmentType === "contact")}>
+                      Contact only
                     </button>
                     <button
-                      onClick={() => setEnrichmentType('deep_research')}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: enrichmentType === 'deep_research'
-                          ? '2px solid #4C67FF'
-                          : '1px solid var(--elev-border)',
-                        background: enrichmentType === 'deep_research'
-                          ? 'rgba(76, 103, 255, 0.1)'
-                          : 'var(--color-surface-secondary)',
-                        color: 'var(--color-text)',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: 'pointer'
-                      }}
+                      type="button"
+                      onClick={() => setEnrichmentType("deep_research")}
+                      style={chipActive(enrichmentType === "deep_research")}
                     >
-                      Deep Research
+                      Deep research
                     </button>
                   </div>
-                  <div style={{
-                    fontSize: 12,
-                    color: 'var(--color-text-muted)',
-                    marginTop: 8
-                  }}>
-                    {enrichmentType === 'contact'
-                      ? 'Uses FullEnrich to find contact details. If a lead has an email it uses reverse-email; otherwise it uses LinkedIn/name+company (async webhook).'
-                      : 'Comprehensive enrichment including company data, research insights, and contact info'}
-                  </div>
+                  <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                    {enrichmentType === "contact"
+                      ? "Looks up email and phone when possible. New details appear in the table when we receive them."
+                      : "Adds company and person context for smarter outreach."}
+                  </p>
                 </div>
 
-                {/* Purpose (Optional) */}
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: 14, 
-                    fontWeight: 600, 
-                    marginBottom: 8,
-                    color: 'var(--color-text)'
-                  }}>
-                    Purpose / Context (Optional)
+                <div style={{ marginBottom: 20 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      marginBottom: 8,
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    Context (optional)
                   </label>
                   <textarea
                     value={purpose}
-                    onChange={(e) => setPurpose(e.target.value)}
-                    placeholder="e.g., Looking for SaaS founders in fintech space..."
+                    onChange={e => setPurpose(e.target.value)}
+                    placeholder="e.g. Focus on B2B SaaS buyers in healthcare"
                     style={{
-                      width: '100%',
-                      minHeight: '80px',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--elev-border)',
-                      background: 'var(--color-surface-secondary)',
-                      color: 'var(--color-text)',
-                      fontSize: 14,
-                      fontFamily: 'inherit',
-                      resize: 'vertical'
+                      width: "100%",
+                      minHeight: 76,
+                      padding: "11px 12px",
+                      borderRadius: 10,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-secondary)",
+                      color: "var(--color-text)",
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      resize: "vertical",
                     }}
                   />
-                  <div style={{ 
-                    fontSize: 12, 
-                    color: 'var(--color-text-muted)', 
-                    marginTop: 6 
-                  }}>
-                    Helps AI provide more relevant enrichment data
-                  </div>
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: "flex", gap: 10 }}>
                   <button
+                    type="button"
                     onClick={onClose}
                     className="btn-ghost"
-                    style={{ flex: 1, padding: '12px' }}
+                    style={{
+                      flex: 1,
+                      padding: "12px 16px",
+                      borderRadius: 10,
+                      border: "1px solid var(--color-border)",
+                      fontWeight: 500,
+                    }}
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={handleEnrich}
-                    disabled={enriching || (enrichScope === 'selected' && selectedLeads.length === 0)}
+                    disabled={enriching || !canSubmit}
                     className="btn-primary"
-                    style={{ 
-                      flex: 1, 
-                      padding: '12px',
-                      opacity: (enrichScope === 'selected' && selectedLeads.length === 0) ? 0.5 : 1,
-                      cursor: (enrichScope === 'selected' && selectedLeads.length === 0) ? 'not-allowed' : 'pointer'
+                    style={{
+                      flex: 1,
+                      padding: "12px 16px",
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      background: "var(--color-primary)",
+                      border: "none",
+                      opacity: !canSubmit ? 0.45 : 1,
+                      cursor: !canSubmit ? "not-allowed" : "pointer",
+                      boxShadow: !canSubmit ? "none" : "0 8px 22px rgba(76, 103, 255, 0.28)",
                     }}
                   >
-                    {enriching ? "Enriching..." : `Enrich ${enrichScope === 'selected' ? selectedLeads.length : leads.length} Lead(s)`}
+                    {enriching
+                      ? "Please wait…"
+                      : `Enrich ${leadsToRequest.length || 0} lead(s)`}
                   </button>
                 </div>
               </>
@@ -378,4 +469,3 @@ export function EnrichModal({ open, onClose, onEnriched }: EnrichModalProps) {
     </>
   );
 }
-

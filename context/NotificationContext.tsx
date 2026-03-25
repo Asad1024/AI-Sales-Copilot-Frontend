@@ -36,13 +36,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     ) => {
       const id = `notification-${Date.now()}-${Math.random()}`;
+      const defaultDuration =
+        type === "error" ? 7000 : type === "warning" ? 5500 : 4500;
+      const duration =
+        options?.duration === 0
+          ? 0
+          : options?.duration != null && options.duration > 0
+          ? options.duration
+          : defaultDuration;
       setNotification({
         id,
         type,
         title,
         message,
         details: options?.details,
-        duration: options?.duration ?? 0, // Default: no auto-close
+        duration,
         onClose: options?.onClose,
       });
     },

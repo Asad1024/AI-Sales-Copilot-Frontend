@@ -83,9 +83,13 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
   })),
   
   fetchCampaigns: async (baseId) => {
+    if (!baseId) {
+      set({ campaigns: [], loading: false });
+      return;
+    }
     set({ loading: true });
     try {
-      const params = baseId ? `?base_id=${baseId}` : '';
+      const params = `?base_id=${baseId}`;
       const data = await apiRequest(`/campaigns${params}`);
       const campaignsList = Array.isArray(data?.campaigns) 
         ? data.campaigns 

@@ -10,6 +10,7 @@ import { Icons } from "@/components/ui/Icons";
 import { ChannelType, CHANNEL_CONFIGS, getAvailableChannels } from "./channelConfig";
 import { calculateStepFlow, getStepInfo, getTotalSteps } from "./stepFlowCalculator";
 import { canProceedToNextStep, ValidationContext } from "./stepValidation";
+import { useNotification } from "@/context/NotificationContext";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
@@ -53,6 +54,7 @@ function sanitizeLeadForAPI(lead: Lead): Record<string, any> {
 export default function CampaignNew() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showError, showWarning } = useNotification();
 
   // Safely get activeBaseId, with fallback for when BaseProvider isn't ready
   let activeBaseId;
@@ -298,8 +300,28 @@ export default function CampaignNew() {
       try {
         const data = await apiRequest(`/integrations/${activeBaseId}`);
         const integrations = data?.integrations || [];
-        const sendGridIntegration = integrations.find((i: any) => i.provider === 'sendgrid');
-        setEmailIntegration(sendGridIntegration || null);
+        const emailProviderIntegration = integrations.find(
+          (i: any) => i.provider === 'sendgrid' || i.provider === 'smtp'
+        );
+        if (emailProviderIntegration) {
+          setEmailIntegration(emailProviderIntegration);
+          return;
+        }
+
+        // If no DB integration exists, check backend SMTP env fallback.
+        const providerStatus = await apiRequest('/config/email-provider-status');
+        if (providerStatus?.smtp_env_configured) {
+          setEmailIntegration({
+            provider: 'smtp',
+            config: {
+              from_email: providerStatus?.smtp_from_email || undefined
+            },
+            source: 'env'
+          });
+          return;
+        }
+
+        setEmailIntegration(null);
       } catch (error) {
         console.error('Failed to fetch email integration:', error);
         setEmailIntegration(null);
@@ -534,7 +556,7 @@ export default function CampaignNew() {
         setDraftLoaded(true);
       } catch (error) {
         console.error('Failed to load draft campaign:', error);
-        alert('Failed to load draft campaign. Starting fresh...');
+        showWarning('Draft', 'Failed to load draft campaign. Starting fresh…');
         setDraftLoaded(true); // Mark as loaded even on error to prevent retries
       }
     };
@@ -1442,19 +1464,7 @@ export default function CampaignNew() {
         border: '1px solid var(--elev-border)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.06)'
       }}>
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ 
-            marginTop: 0, 
-            marginBottom: 12, 
-            fontSize: 32, 
-            fontWeight: 800,
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '-0.5px'
-          }}>
-            New Campaign
-          </h1>
+        <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
             <div style={{ 
               fontSize: 14, 
@@ -2330,7 +2340,7 @@ export default function CampaignNew() {
                           });
                           setKnowledgeBaseFiles(knowledgeBaseFiles.filter(f => f.id !== file.id));
                         } catch (error: any) {
-                          alert(error?.message || 'Failed to delete file');
+                          showError('Delete failed', error?.message || 'Failed to delete file');
                         }
                       }}
                       style={{ padding: '6px 12px', fontSize: 13 }}
@@ -2494,7 +2504,7 @@ export default function CampaignNew() {
                         .slice(0, 3);
 
                       if (sampleLeads.length === 0) {
-                        alert("Please add leads with phone numbers to generate personalized WhatsApp templates");
+                        showWarning('Phone numbers required', 'Add leads with phone numbers to generate personalized WhatsApp templates.');
                         return;
                       }
 
@@ -2529,11 +2539,11 @@ export default function CampaignNew() {
                         setSelectedWhatsAppMessageIndices([0]);
                       } else {
                         console.error('Invalid response format:', response);
-                        alert('Failed to generate WhatsApp templates. Please try again.');
+                        showError('Generation failed', 'Failed to generate WhatsApp templates. Please try again.');
                       }
                     } catch (error: any) {
                       console.error('Failed to generate WhatsApp messages:', error);
-                      alert(error?.message || 'Failed to generate WhatsApp templates. Please try again.');
+                      showError('Generation failed', error?.message || 'Failed to generate WhatsApp templates. Please try again.');
                     } finally {
                       setGeneratingWhatsAppMessages(false);
                     }
@@ -4080,7 +4090,7 @@ Guidelines:
                           {emailIntegration ? (
                             <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
                               <Icons.CheckCircle size={14} />
-                              SendGrid Connected
+                              {emailIntegration.provider === 'smtp' ? 'SMTP Connected' : 'SendGrid Connected'}
                               {emailIntegration.config?.from_email && (
                                 <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
                                   ({emailIntegration.config.from_email})
@@ -4235,11 +4245,6 @@ Guidelines:
                 className="btn-primary" 
                 onClick={async () => {
                   if (launching) return;
-                  if (channels.includes('email') && !emailIntegration) {
-                    alert('Please connect SendGrid in Settings before launching email campaigns.');
-                    return;
-                  }
-                  
                   if (channels.includes('linkedin')) {
                     // Check LinkedIn integration
                     try {
@@ -4247,18 +4252,18 @@ Guidelines:
                       const integrations = data?.integrations || [];
                       const linkedInIntegration = integrations.find((i: any) => i.provider === 'unipile_linkedin');
                       if (!linkedInIntegration) {
-                        alert('Please connect LinkedIn in Settings before launching LinkedIn campaigns.');
+                        showWarning('LinkedIn required', 'Connect LinkedIn in Settings before launching LinkedIn campaigns.');
                         return;
                       }
                       
                       if (!linkedInStepConfig) {
-                        alert('Please configure your LinkedIn campaign step before launching.');
+                        showWarning('LinkedIn step', 'Configure your LinkedIn campaign step before launching.');
                         setShowLinkedInConfigModal(true);
                         return;
                       }
                     } catch (error) {
                       console.error('Failed to check LinkedIn integration:', error);
-                      alert('Failed to verify LinkedIn integration. Please try again.');
+                      showError('LinkedIn check failed', 'Failed to verify LinkedIn integration. Please try again.');
                       return;
                     }
                   }
@@ -4284,7 +4289,7 @@ Guidelines:
                     
                     // Validate segments before launching
                     if (finalSegments.length === 0) {
-                      alert('Please select at least one segment before launching the campaign.');
+                      showWarning('Segments required', 'Select at least one segment before launching the campaign.');
                       setLaunching(false);
                       setIsLaunching(false);
                       return;
@@ -4425,7 +4430,7 @@ Guidelines:
                         console.error('[Campaign Launch] Expected segments:', finalSegments);
                         console.error('[Campaign Launch] Received segments:', verifiedSegments);
                         console.error('[Campaign Launch] Full config:', JSON.stringify(verifyConfig, null, 2));
-                        alert('Error: Segments were not saved properly. Please try selecting segments again and launching.');
+                        showError('Segments not saved', 'Select segments again, then launch.');
                         setLaunching(false);
                         setIsLaunching(false);
                         return;
@@ -4541,9 +4546,9 @@ Guidelines:
                       
                       if (errorDetails && errorDetails.leadsWithPhone === 0) {
                         // Specific error for no phone numbers
-                        alert(`${errorMessage}\n\nFound ${errorDetails.totalLeadsInSegments} lead(s) in selected segments, but none have valid phone numbers. Please add phone numbers to your leads before launching a call campaign.`);
+                        showError('Call campaign', `${errorMessage}\n\nFound ${errorDetails.totalLeadsInSegments} lead(s) in selected segments, but none have valid phone numbers. Add phone numbers before launching a call campaign.`);
                       } else {
-                        alert(errorMessage + (errorDetails ? `\n\nDetails: ${JSON.stringify(errorDetails)}` : ''));
+                        showError('Launch failed', errorMessage + (errorDetails ? `\n\nDetails: ${JSON.stringify(errorDetails)}` : ''));
                       }
                       
                       // Don't navigate if it's a validation error (user should fix it)
@@ -4556,13 +4561,13 @@ Guidelines:
                     router.push('/campaigns');
                   } catch (error: any) {
                     console.error('Failed to launch campaign:', error);
-                    alert(error?.message || 'Failed to launch campaign. Please try again.');
+                    showError('Launch failed', error?.message || 'Failed to launch campaign. Please try again.');
                   } finally {
                     setLaunching(false);
                     setIsLaunching(false); // Re-enable auto-save
                   }
                 }}
-                disabled={(channels.includes('email') && !emailIntegration) || (channels.includes('linkedin') && !linkedInStepConfig) || launching}
+                disabled={(channels.includes('linkedin') && !linkedInStepConfig) || launching}
                 style={{
                   padding: '12px 28px',
                   fontSize: 14,
@@ -4726,16 +4731,16 @@ Guidelines:
               <div style={{ 
                 marginTop: 12, 
                 padding: 12, 
-                background: 'rgba(239, 68, 68, 0.1)', 
+                background: 'rgba(255, 167, 38, 0.1)', 
                 borderRadius: 8,
                 fontSize: 13,
-                color: '#ef4444',
+                color: '#ffa726',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8
               }}>
                 <Icons.AlertCircle size={16} />
-                Please connect SendGrid in Settings before launching email campaigns.
+                No email integration connected in Settings. Backend may still use SMTP env fallback.
               </div>
             )}
             {channels.includes('linkedin') && !linkedInStepConfig && (
@@ -4821,6 +4826,7 @@ function LinkedInStepConfigModal({
   onClose: () => void;
   onSave: (config: { action: "invitation_only" | "invitation_with_message"; message?: string; templates?: string[] }) => void;
 }) {
+  const { showWarning } = useNotification();
   const [action, setAction] = useState<"invitation_only" | "invitation_with_message">("invitation_only");
   const [message, setMessage] = useState("");
   const [templates, setTemplates] = useState<string[]>([]);
@@ -5008,7 +5014,7 @@ function LinkedInStepConfigModal({
                   className="btn-primary"
                   onClick={async () => {
                     if (!sampleLead) {
-                      alert("Please add leads with LinkedIn URLs to generate personalized templates");
+                      showWarning('LinkedIn URLs', 'Add leads with LinkedIn URLs to generate personalized templates.');
                       return;
                     }
                     const enrichment = (sampleLead as any).enrichment;
@@ -5016,7 +5022,7 @@ function LinkedInStepConfigModal({
                                       enrichment?.person_data?.linkedin_url ||
                                       enrichment?.linkedin_url;
                     if (!linkedInUrl) {
-                      alert("Selected lead doesn't have a LinkedIn URL");
+                      showWarning('LinkedIn URL', "Selected lead doesn't have a LinkedIn URL.");
                       return;
                     }
                     
@@ -5219,11 +5225,11 @@ function LinkedInStepConfigModal({
             onClick={() => {
               if (action === "invitation_with_message") {
                 if (!message.trim()) {
-                  alert("Please enter a message");
+                  showWarning('Message required', 'Please enter a message.');
                   return;
                 }
                 if (message.length > 200) {
-                  alert("Message cannot exceed 200 characters");
+                  showWarning('Message too long', 'Message cannot exceed 200 characters.');
                   return;
                 }
               }

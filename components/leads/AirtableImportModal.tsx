@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import { Icons } from "@/components/ui/Icons";
 
 interface AirtableImportModalProps {
@@ -48,6 +49,7 @@ export function AirtableImportModal({
   targetBaseId,
 }: AirtableImportModalProps) {
   const { showSuccess, showError } = useNotification();
+  const confirmDialog = useConfirm();
   const [step, setStep] = useState<Step>("select_base");
   const [loading, setLoading] = useState(false);
   const [bases, setBases] = useState<AirtableBase[]>([]);
@@ -238,13 +240,19 @@ export function AirtableImportModal({
   };
 
   const handleClose = () => {
-    if (importProgress.isImporting) {
-      if (!confirm("Import is in progress. Are you sure you want to close?")) {
-        return;
+    void (async () => {
+      if (importProgress.isImporting) {
+        const ok = await confirmDialog({
+          title: "Close import?",
+          message: "Import is in progress. Are you sure you want to close?",
+          confirmLabel: "Close",
+          variant: "danger",
+        });
+        if (!ok) return;
       }
-    }
-    resetModal();
-    onClose();
+      resetModal();
+      onClose();
+    })();
   };
 
   if (!open) return null;
@@ -313,11 +321,11 @@ export function AirtableImportModal({
                   padding: "8px 12px",
                   borderRadius: 8,
                   background: isActive
-                    ? "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)"
+                    ? "var(--color-primary)"
                     : isCompleted
-                    ? "rgba(76, 103, 255, 0.2)"
-                    : "rgba(128, 128, 128, 0.1)",
-                  color: isActive ? "#000" : isCompleted ? "#4C67FF" : "var(--color-text-muted)",
+                    ? "rgba(76, 103, 255, 0.12)"
+                    : "var(--color-surface-secondary)",
+                  color: isActive ? "#fff" : isCompleted ? "var(--color-primary)" : "var(--color-text-muted)",
                   fontSize: 12,
                   fontWeight: isActive ? 600 : 500,
                   textAlign: "center",

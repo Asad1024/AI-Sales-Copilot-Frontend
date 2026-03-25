@@ -56,7 +56,7 @@ export function ColumnVisibilityMenu({ onClose }: ColumnVisibilityMenuProps) {
         minWidth: "250px",
         maxHeight: "400px",
         overflowY: "auto",
-        zIndex: 1001,
+        zIndex: 5000,
       }}
     >
       <div style={{ fontSize: "13px", fontWeight: "600", padding: "8px", marginBottom: "4px" }}>

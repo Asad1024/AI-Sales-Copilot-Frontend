@@ -61,7 +61,8 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
 
   const handleAssign = async (ownerId: number | null) => {
     if (!editable) return;
-    
+
+    setIsOpen(false);
     setAssigning(true);
     try {
       await updateLead(lead.id, { owner_id: ownerId === null ? undefined : ownerId });
@@ -69,7 +70,6 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
         await fetchLeads(activeBaseId, pagination.currentPage, pagination.leadsPerPage);
       }
       showSuccess("Owner Updated", ownerId ? "Lead assigned successfully" : "Owner unassigned");
-      setIsOpen(false);
     } catch (error: any) {
       showError("Assignment Failed", error?.message || "Failed to assign owner");
     } finally {
@@ -94,16 +94,42 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
         }}>
           {lead.owner.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
-        <span style={{ fontSize: "13px", fontWeight: "500" }}>{lead.owner.name}</span>
+        <span style={{ fontSize: "11px", fontWeight: "500" }}>{lead.owner.name}</span>
       </div>
     ) : (
-      <span style={{ fontSize: "13px", color: "var(--color-text-muted)", fontStyle: "italic" }}>Unassigned</span>
+      <span className="text-xs italic text-slate-400 dark:text-slate-500">Unassigned</span>
     );
   }
 
   const stopRowClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
   };
+
+  if (assigning) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 8px",
+          minHeight: 32,
+          borderRadius: 6,
+          background: "var(--color-surface-secondary)",
+          border: "1px solid var(--color-border)",
+        }}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        onClick={stopRowClick}
+        onMouseDown={stopRowClick}
+        onPointerDown={stopRowClick}
+      >
+        <Icons.Loader size={16} strokeWidth={1.5} className="animate-spin" style={{ color: "var(--color-primary)" }} />
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 500 }}>Updating owner…</span>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -114,7 +140,7 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
       onPointerDown={stopRowClick}
     >
       <div
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !assigning && setIsOpen(!isOpen)}
         style={{
           cursor: "pointer",
           padding: "4px 8px",
@@ -147,13 +173,13 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
             }}>
               {lead.owner.name?.charAt(0)?.toUpperCase() || "U"}
             </div>
-            <span style={{ fontSize: "13px", fontWeight: "500" }}>{lead.owner.name}</span>
-            <Icons.ChevronDown size={12} style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
+            <span style={{ fontSize: "11px", fontWeight: "500" }}>{lead.owner.name}</span>
+            <Icons.ChevronDown size={12} className="owner-cell-chevron" style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
           </>
         ) : (
           <>
-            <span style={{ fontSize: "13px", color: "var(--color-text-muted)", fontStyle: "italic" }}>Unassigned</span>
-            <Icons.ChevronDown size={12} style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
+            <span className="text-xs italic text-slate-400 dark:text-slate-500">Unassigned</span>
+            <Icons.ChevronDown size={12} className="owner-cell-chevron" style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
           </>
         )}
       </div>

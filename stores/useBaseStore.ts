@@ -65,15 +65,34 @@ export const useBaseStore = create<BaseStore>((set, get) => ({
       const data = await apiRequest('/bases');
       const basesList = Array.isArray(data?.bases) ? data.bases : (Array.isArray(data) ? data : []);
       set({ bases: basesList, loading: false });
-      
-      // Restore active base from localStorage if not set
-      if (typeof window !== 'undefined' && !get().activeBaseId) {
+
+      if (typeof window === "undefined") return;
+
+      const ids = new Set(basesList.map((b: Base) => b.id));
+      let nextActive = get().activeBaseId;
+
+      if (nextActive != null && !ids.has(nextActive)) {
+        nextActive = null;
+      }
+
+      if (nextActive == null && basesList.length > 0) {
         const stored = localStorage.getItem("sparkai:active_base_id");
-        if (stored && basesList.find((b: Base) => b.id === Number(stored))) {
-          set({ activeBaseId: Number(stored) });
-        } else if (basesList.length > 0) {
-          set({ activeBaseId: basesList[0].id });
+        const storedNum = stored ? Number(stored) : NaN;
+        if (stored && !Number.isNaN(storedNum) && ids.has(storedNum)) {
+          nextActive = storedNum;
+        } else {
+          nextActive = basesList[0].id;
         }
+      }
+
+      if (nextActive !== get().activeBaseId) {
+        set({ activeBaseId: nextActive });
+      }
+
+      if (nextActive == null) {
+        localStorage.removeItem("sparkai:active_base_id");
+      } else {
+        localStorage.setItem("sparkai:active_base_id", String(nextActive));
       }
     } catch (error) {
       console.error('Failed to fetch bases:', error);

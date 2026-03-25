@@ -4,6 +4,7 @@ import { useViewStore } from "@/stores/useViewStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import { Icons } from "@/components/ui/Icons";
 
 export function ViewSwitcher() {
@@ -11,6 +12,7 @@ export function ViewSwitcher() {
   const { views, activeViewId, loading, fetchViews, createView, updateView, deleteView, setActiveView, getActiveView } = useViewStore();
   const { filters, setFilters, fetchLeads, pagination } = useLeadStore();
   const { showSuccess, showError } = useNotification();
+  const confirm = useConfirm();
   
   const [showDropdown, setShowDropdown] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -121,7 +123,13 @@ export function ViewSwitcher() {
 
   const handleDeleteView = async (e: React.MouseEvent, viewId: number) => {
     e.stopPropagation();
-    if (!confirm('Delete this view?')) return;
+    const ok = await confirm({
+      title: "Delete view?",
+      message: "This removes the saved view for your workspace.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       await deleteView(viewId);
@@ -139,15 +147,19 @@ export function ViewSwitcher() {
     <>
       <div style={{ position: 'relative' }}>
         <button
+          type="button"
           onClick={() => setShowDropdown(!showDropdown)}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 10px',
+            padding: '0 12px',
+            minHeight: 40,
+            height: 40,
+            boxSizing: 'border-box',
             background: 'transparent',
             border: '1px solid var(--color-border)',
-            borderRadius: '6px',
+            borderRadius: '8px',
             fontSize: '13px',
             fontWeight: 500,
             color: 'var(--color-text)',

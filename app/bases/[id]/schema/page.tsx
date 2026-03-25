@@ -8,6 +8,7 @@ import { Icons } from "@/components/ui/Icons";
 import { ColumnList } from "./components/ColumnList";
 import { ColumnEditorModal } from "./components/ColumnEditorModal";
 import { StatusFieldHelper } from "./components/StatusFieldHelper";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 
 export default function BaseSchemaPage() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function BaseSchemaPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "32px", padding: "24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "4px 0 0" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
         <div>
@@ -58,9 +59,6 @@ export default function BaseSchemaPage() {
             <Icons.ChevronLeft size={16} />
             Back
           </button>
-          <h1 style={{ fontSize: "28px", fontWeight: "700", margin: 0 }}>
-            Base Schema Management
-          </h1>
           <p style={{ fontSize: "14px", color: "var(--color-text-muted)", marginTop: "8px" }}>
             Manage columns, field types, and data structure for this base
           </p>
@@ -88,9 +86,12 @@ export default function BaseSchemaPage() {
 
       {/* Columns List */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <Icons.Loader size={24} className="animate-spin" style={{ marginBottom: 16 }} />
-          <div style={{ fontSize: 16, color: "var(--color-text-muted)" }}>Loading columns...</div>
+        <div className="card-enhanced" style={{ borderRadius: 16, padding: 24, overflow: "hidden" }}>
+          <div style={{ marginBottom: 20 }}>
+            <div className="ui-skeleton" style={{ height: 20, width: 200, borderRadius: 8, marginBottom: 10 }} aria-hidden />
+            <div className="ui-skeleton" style={{ height: 14, width: "min(360px, 90%)", borderRadius: 6 }} aria-hidden />
+          </div>
+          <TableSkeleton columns={6} rows={8} withCard={false} trailingActions ariaLabel="Loading columns" />
         </div>
       ) : (
         <>
@@ -101,6 +102,7 @@ export default function BaseSchemaPage() {
             onDelete={() => {
               fetchColumns(baseId);
             }}
+            onAddColumn={() => setShowAddModal(true)}
           />
           {columns.length > 0 && (
             <StatusFieldHelper

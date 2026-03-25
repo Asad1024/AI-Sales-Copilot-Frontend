@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useNotification } from "@/context/NotificationContext";
 
 interface LeadReply {
   id: number;
@@ -16,6 +17,7 @@ interface LeadReply {
 }
 
 export default function DemoInboxPage() {
+  const { showInfo } = useNotification();
   const [selectedLead, setSelectedLead] = useState<LeadReply | null>(null);
   const [replies, setReplies] = useState([
     {
@@ -152,14 +154,13 @@ export default function DemoInboxPage() {
     }
   };
 
-  const handleAISuggestion = (leadId: number, suggestion: string) => {
-    // In a real app, this would send the reply
-    alert(`Sending reply: "${suggestion}"`);
+  const handleAISuggestion = (_leadId: number, suggestion: string) => {
+    showInfo("Demo inbox", `Sending reply: "${suggestion}"`);
   };
 
-  const handleInsightAction = (insight: any) => {
+  const handleInsightAction = (insight: { action?: string | null }) => {
     if (insight.action) {
-      alert(`Executing: ${insight.action}`);
+      showInfo("Demo inbox", `Executing: ${insight.action}`);
     }
   };
 

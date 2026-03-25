@@ -1,13 +1,48 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { StatCard } from "@/components/ui/DataVisualization";
-import HeroBanner from "@/components/ui/HeroBanner";
 import { useBase } from "@/context/BaseContext";
 import ProductTour from "@/components/ui/ProductTour";
-import OnboardingWizard from "@/components/ui/OnboardingWizard";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, getUser } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
+import { useCampaignStore } from "@/stores/useCampaignStore";
+import CampaignCard from "@/app/campaigns/components/CampaignCard";
+import { DashboardPageSkeleton } from "@/components/ui/PageRouteSkeletons";
+import DashboardFlowCtaBanner from "@/components/ui/DashboardFlowCtaBanner";
+import { Zap, Megaphone, ArrowUpRight } from "lucide-react";
+import { useSparkBarStore } from "@/stores/useSparkBarStore";
+
+type StatMetric = {
+  title: string;
+  value: string;
+  showTrend: boolean;
+  trendPositive: boolean;
+  trendValue: string;
+  trendSuffix: "%" | "pp";
+  subline?: string | null;
+};
+
+const SLATE_400 = "#94A3B8";
+
+const sectionLabelStyle = {
+  fontSize: 11,
+  fontWeight: 500 as const,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
+  color: "#9CA3AF",
+};
+
+function isMutedMetricValue(value: string): boolean {
+  const t = value.trim();
+  if (t === "—" || t === "") return false;
+  if (t === "0" || t === "0%") return true;
+  if (/^0\.0+%$/.test(t)) return true;
+  const normalized = t.replace(/,/g, "");
+  if (normalized === "0%") return true;
+  const n = parseFloat(normalized.replace("%", ""));
+  if (!Number.isNaN(n) && n === 0) return true;
+  return false;
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -19,104 +54,113 @@ export default function Dashboard() {
     message: string;
   } | null>(null);
 
-  // Analytics state
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  
-  const { activeBaseId, bases } = useBase();
-  const activeBase = bases.find(b => b.id === activeBaseId);
 
-  // Check for invitation acceptance success
+  const { activeBaseId, bases } = useBase();
+  const activeBase = bases.find((b) => b.id === activeBaseId);
+  const { campaigns, fetchCampaigns } = useCampaignStore();
+  const hasLeads = Number(analyticsData?.totalLeads || 0) > 0;
+  const sparkBarVisible = useSparkBarStore((s) => s.visible);
+  const toggleSparkBar = useSparkBarStore((s) => s.toggle);
+
   useEffect(() => {
-    const invited = searchParams.get('invited');
-    if (invited === 'true') {
-      const stored = sessionStorage.getItem('invitationAccepted');
+    const invited = searchParams.get("invited");
+    if (invited === "true") {
+      const stored = sessionStorage.getItem("invitationAccepted");
       if (stored) {
         try {
           const data = JSON.parse(stored);
           setInvitationSuccess(data);
-          // Clear the URL parameter
-          router.replace('/dashboard', { scroll: false });
-          // Clear sessionStorage after 5 seconds
+          router.replace("/dashboard", { scroll: false });
           setTimeout(() => {
-            sessionStorage.removeItem('invitationAccepted');
+            sessionStorage.removeItem("invitationAccepted");
           }, 5000);
         } catch (e) {
-          console.error('Failed to parse invitation data:', e);
+          console.error("Failed to parse invitation data:", e);
         }
       }
     }
   }, [searchParams, router]);
-  
-  // Fetch analytics data when base changes
+
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      if (!activeBaseId) {
-        setAnalyticsData(null);
-        setAnalyticsLoading(false);
-        return;
-      }
+    if (!activeBaseId) {
+      setAnalyticsData(null);
+      setAnalyticsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setAnalyticsLoading(true);
+    setAnalyticsData(null);
+    (async () => {
       try {
-        setAnalyticsLoading(true);
         const data = await apiRequest(`/analytics?base_id=${activeBaseId}`);
-        setAnalyticsData(data);
+        if (!cancelled) setAnalyticsData(data);
       } catch (error) {
-        console.error('Failed to fetch analytics:', error);
-        setAnalyticsData(null);
+        console.error("Failed to fetch analytics:", error);
+        if (!cancelled) setAnalyticsData(null);
       } finally {
-        setAnalyticsLoading(false);
+        if (!cancelled) setAnalyticsLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-    fetchAnalytics();
   }, [activeBaseId]);
 
-  // Product Tour Steps
+  useEffect(() => {
+    fetchCampaigns(activeBaseId ?? null);
+  }, [activeBaseId, fetchCampaigns]);
+
   const tourSteps = [
     {
-      id: 'welcome',
-      title: 'Welcome to Sales Co-Pilot!',
-      description: 'Let\'s take a quick tour to help you get started. We\'ll show you the key features in just a few steps. You can skip anytime.',
-      position: 'center' as const,
+      id: "welcome",
+      title: "Welcome to Sales Co-Pilot!",
+      description:
+        "Let's take a quick tour to help you get started. We'll show you the key features in just a few steps. You can skip anytime.",
+      position: "center" as const,
     },
     {
-      id: 'goal-input',
-      title: '1. Set Your Growth Goal',
-      description: 'Start here! Enter what you want to achieve, like "Get 50 demos with SaaS founders in 30 days". The AI will analyze your goal and create a personalized outreach plan.',
+      id: "goal-input",
+      title: "1. Set Your Growth Goal",
+      description:
+        'Start here! Enter what you want to achieve, like "Get 50 demos with SaaS founders in 30 days". The AI will analyze your goal and create a personalized outreach plan.',
       target: '[data-tour="goal-input"]',
-      position: 'bottom' as const,
+      position: "bottom" as const,
       action: () => {
         const element = document.querySelector('[data-tour="goal-input"]');
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       },
     },
     {
-      id: 'bases-selector',
-      title: '2. Organize with Bases',
-      description: 'Bases are workspaces for organizing your leads and campaigns. Create different bases for different audiences, regions, or projects.',
+      id: "bases-selector",
+      title: "2. Organize with Bases",
+      description:
+        "Bases are workspaces for organizing your leads and campaigns. Create different bases for different audiences, regions, or projects.",
       target: '[data-tour="bases-selector"]',
-      position: 'bottom' as const,
+      position: "bottom" as const,
     },
     {
-      id: 'campaigns-link',
-      title: '3. View Campaigns',
-      description: 'Once you create a campaign, track its performance here. See opens, replies, and conversions in real-time.',
+      id: "campaigns-link",
+      title: "3. View Campaigns",
+      description: "Once you create a campaign, track its performance here. See opens, replies, and conversions in real-time.",
       target: '[data-tour="campaigns-link"]',
-      position: 'left' as const,
+      position: "left" as const,
     },
     {
-      id: 'leads-link',
-      title: '4. Manage Leads',
-      description: 'Import leads from CSV, CRM, or generate them using AI. All your leads are organized here with scoring and enrichment.',
+      id: "leads-link",
+      title: "4. Manage Leads",
+      description: "Import leads from CSV, CRM, or generate them using AI. All your leads are organized here with scoring and enrichment.",
       target: '[data-tour="leads-link"]',
-      position: 'left' as const,
+      position: "left" as const,
     },
     {
-      id: 'complete',
-      title: 'You\'re All Set!',
-      description: 'Ready to grow? Enter a goal in the input field above and watch the AI create your complete outreach strategy.',
-      position: 'center' as const,
+      id: "complete",
+      title: "You're All Set!",
+      description: "Ready to grow? Enter a goal in the input field above and watch the AI create your complete outreach strategy.",
+      position: "center" as const,
     },
   ];
 
@@ -124,477 +168,527 @@ export default function Dashboard() {
     if (activeBaseId) {
       router.push(`/bases/${activeBaseId}/leads`);
     } else {
-      router.push('/bases');
+      router.push("/bases");
     }
   };
+  const goToCreateCampaign = () => {
+    if (!activeBaseId) {
+      router.push("/bases");
+      return;
+    }
+    router.push("/campaigns/new");
+  };
+  const leadChange = Number(analyticsData?.leadChange ?? NaN);
+  const campaignChange = Number(analyticsData?.campaignChange ?? NaN);
+  const replyChange = Number(analyticsData?.replyChange ?? NaN);
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <ProductTour steps={tourSteps} />
-      <OnboardingWizard />
-      <HeroBanner />
-      
-      {/* Invitation Success Banner */}
-      {invitationSuccess && (
-        <div style={{
-          borderRadius: 12,
-          padding: '20px 24px',
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
-          border: '2px solid rgba(16, 185, 129, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          position: 'relative',
-          animation: 'fadeIn 0.5s ease-out'
-        }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+  const overviewMetrics: StatMetric[] = [
+    {
+      title: "Active workspace",
+      value: activeBase?.name ?? "—",
+      showTrend: false,
+      trendPositive: true,
+      trendValue: "0",
+      trendSuffix: "%",
+      subline: activeBaseId ? "Current workspace" : "Create or select one",
+    },
+    {
+      title: "Total leads",
+      value: analyticsData?.totalLeads?.toLocaleString?.() ?? "0",
+      showTrend: !Number.isNaN(leadChange),
+      trendPositive: leadChange >= 0,
+      trendValue: Number.isNaN(leadChange) ? "0" : Math.abs(leadChange).toFixed(1),
+      trendSuffix: "%",
+    },
+    {
+      title: "Active campaigns",
+      value: analyticsData?.activeCampaigns?.toString?.() ?? "0",
+      showTrend: !Number.isNaN(campaignChange),
+      trendPositive: campaignChange >= 0,
+      trendValue: Number.isNaN(campaignChange) ? "0" : Math.abs(campaignChange).toFixed(1),
+      trendSuffix: "%",
+      subline: analyticsData?.hotLeads ? `${analyticsData.hotLeads} hot leads ready` : hasLeads ? "No hot leads yet" : null,
+    },
+    {
+      title: "Reply rate",
+      value: typeof analyticsData?.replyRate === "number" ? `${analyticsData.replyRate.toFixed(1)}%` : "0%",
+      showTrend: !Number.isNaN(replyChange),
+      trendPositive: replyChange >= 0,
+      trendValue: Number.isNaN(replyChange) ? "0" : Math.abs(replyChange).toFixed(1),
+      trendSuffix: "pp",
+    },
+  ];
+
+  const quickActions = [
+    {
+      key: "leads",
+      title: "Manage leads",
+      desc: "Import, enrich, and score your pipeline",
+      icon: <Icons.Users size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      onClick: goToLeads,
+    },
+    {
+      key: "campaigns",
+      title: "Campaigns",
+      desc: "Launch and track outreach",
+      icon: <Icons.Rocket size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      onClick: () => router.push("/campaigns"),
+    },
+    {
+      key: "workspaces",
+      title: "Workspaces",
+      desc: "Switch organization context",
+      icon: <Icons.Folder size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      onClick: () => router.push("/bases"),
+    },
+    {
+      key: "templates",
+      title: "Templates",
+      desc: "Reusable message blocks",
+      icon: <Icons.FileText size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      onClick: () => router.push("/templates"),
+    },
+  ];
+
+  const dashboardPrimaryAction = (() => {
+    if (!activeBaseId) {
+      return {
+        label: "Create Campaign",
+        icon: <Icons.Rocket size={16} strokeWidth={1.5} />,
+        onClick: () => router.push("/campaigns/new"),
+      };
+    }
+    if (!hasLeads) {
+      return {
+        label: "Add leads",
+        icon: <Icons.UserPlus size={16} strokeWidth={1.5} />,
+        onClick: () => router.push("/leads"),
+      };
+    }
+    return {
+      label: "Create Campaign",
+      icon: <Icons.Rocket size={16} strokeWidth={1.5} />,
+      onClick: goToCreateCampaign,
+    };
+  })();
+
+  const greetingText = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  })();
+  const userName = getUser()?.name || "User";
+  const aiScorePct = Math.max(72, Math.min(98, Math.round((analyticsData?.replyRate || 6.7) * 3 + 72)));
+
+  const filteredCampaigns = [...(campaigns || [])].sort((a, b) => {
+    const aTime = a.updated_at || a.created_at || "";
+    const bTime = b.updated_at || b.created_at || "";
+    if (aTime && bTime) return bTime.localeCompare(aTime);
+    if (aTime && !bTime) return -1;
+    if (!aTime && bTime) return 1;
+    return (b.id || 0) - (a.id || 0);
+  });
+  const recentCampaigns = filteredCampaigns.slice(0, 4);
+
+  const dashboardBody = analyticsLoading && activeBaseId ? (
+    <DashboardPageSkeleton />
+  ) : (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 500,
+                color: "#9CA3AF",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+              }}
+            >
+              {greetingText}
+            </span>
+            <button
+              type="button"
+              onClick={toggleSparkBar}
+              aria-label={sparkBarVisible ? "Hide Spark AI banner" : "Show Spark AI banner"}
+              aria-pressed={sparkBarVisible}
+              style={{
+                height: 22,
+                padding: "0 8px",
+                borderRadius: 9999,
+                border: sparkBarVisible ? "1px solid transparent" : "1px solid #C7D2FE",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                cursor: "pointer",
+                background: sparkBarVisible ? "#4F46E5" : "#EEF2FF",
+                color: sparkBarVisible ? "#FFFFFF" : "#4F46E5",
+                fontSize: 11,
+                fontWeight: 500,
+                fontFamily: "Inter, -apple-system, sans-serif",
+                transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
+              }}
+            >
+              <Zap size={11} strokeWidth={1.5} />
+              Spark AI
+            </button>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#065f46', marginBottom: 4 }}>
-              🎉 Welcome to {invitationSuccess.baseName}!
-            </div>
-            <div style={{ fontSize: 14, color: '#047857', lineHeight: 1.5 }}>
-              You've been added as <strong style={{ textTransform: 'capitalize' }}>{invitationSuccess.role}</strong>. 
-              You now have access to this workspace and can start collaborating with your team.
-            </div>
-          </div>
-          <button
-            onClick={() => setInvitationSuccess(null)}
+          <span
             style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#065f46',
-              opacity: 0.7,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '1';
-              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '0.7';
-              e.currentTarget.style.background = 'transparent';
+              fontSize: 30,
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
+              lineHeight: 1.08,
+              color: "var(--color-text)",
+              fontFamily: "Inter, -apple-system, sans-serif",
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+            {userName}
+          </span>
         </div>
-      )}
-      
-      {/* AI Copilot Banner - Only show when there's actionable data */}
-      {activeBase && !copilotBannerDismissed && analyticsData && analyticsData.hotLeads > 0 && (
-        <div style={{
-          borderRadius: 12,
-          padding: '16px 20px',
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.08) 0%, rgba(169, 76, 255, 0.08) 100%)',
-          border: '1px solid rgba(76, 103, 255, 0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Icons.Sparkles size={18} style={{ color: '#fff' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
-                {analyticsData?.hotLeads || 0} Hot leads ready for outreach
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                AI suggests a LinkedIn + Email sequence for best results
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn-primary ms-hover-scale ms-press"
-              onClick={() => router.push('/campaigns/new')}
-              style={{ padding: '8px 16px', fontSize: 13 }}
-            >
-              Create Campaign
-            </button>
-            <button
-              className="btn-ghost ms-hover-scale ms-press"
-              onClick={() => setCopilotBannerDismissed(true)}
-              style={{ padding: '8px 12px', fontSize: 13 }}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
+        <button type="button" className="btn-dashboard-outline" onClick={dashboardPrimaryAction.onClick}>
+          {dashboardPrimaryAction.icon}
+          {dashboardPrimaryAction.label}
+        </button>
+      </div>
 
-      {/* Analytics Overview */}
-      <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: 16,
-        padding: 24,
-        border: '1px solid var(--color-border)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Icons.Chart size={20} style={{ color: 'var(--color-primary)' }} />
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Analytics Overview</h2>
-          </div>
-          <button
-            className="btn-ghost ms-hover-scale ms-press"
-            onClick={() => router.push('/reports')}
-            style={{ padding: '6px 14px', fontSize: 13 }}
-          >
-            View Reports
-          </button>
-        </div>
-        
-        {analyticsLoading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{
-                background: 'var(--color-surface-secondary)',
-                borderRadius: 12,
-                padding: 20,
-                border: '1px solid var(--color-border)'
-              }}>
-                <div className="loading-skeleton" style={{ height: 14, width: '60%', marginBottom: 8 }} />
-                <div className="loading-skeleton" style={{ height: 28, width: '40%' }} />
-              </div>
-            ))}
-          </div>
-        ) : analyticsData ? (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-              <StatCard
-                title="Total Leads"
-                value={analyticsData?.totalLeads?.toLocaleString() || '0'}
-                change={analyticsData?.leadChange ? `${analyticsData.leadChange > 0 ? '+' : ''}${analyticsData.leadChange.toFixed(1)}%` : undefined}
-                trend={analyticsData?.leadChange > 0 ? 'up' : analyticsData?.leadChange < 0 ? 'down' : 'stable'}
-                icon={<Icons.Users size={20} />}
-                color="#4C67FF"
-              />
-              <StatCard
-                title="Hot Leads"
-                value={analyticsData?.hotLeads?.toString() || '0'}
-                change="ready"
-                trend="up"
-                icon={<Icons.Flame size={20} />}
-                color="#ff6b6b"
-              />
-              <StatCard
-                title="Reply Rate"
-                value={typeof analyticsData?.replyRate === 'number' ? `${analyticsData.replyRate.toFixed(1)}%` : '0%'}
-                change={analyticsData?.replyChange ? `${analyticsData.replyChange > 0 ? '+' : ''}${analyticsData.replyChange.toFixed(1)} pp` : undefined}
-                trend={analyticsData?.replyChange > 0 ? 'up' : analyticsData?.replyChange < 0 ? 'down' : 'stable'}
-                icon={<Icons.MessageCircle size={20} />}
-                color="#A94CFF"
-              />
-              <StatCard
-                title="Conversions"
-                value={analyticsData?.conversions?.toLocaleString() || '0'}
-                change={analyticsData?.conversionChange ? `${analyticsData.conversionChange > 0 ? '+' : ''}${analyticsData.conversionChange.toFixed(1)}%` : undefined}
-                trend={analyticsData?.conversionChange > 0 ? 'up' : analyticsData?.conversionChange < 0 ? 'down' : 'stable'}
-                icon={<Icons.CheckCircle size={20} />}
-                color="#4ecdc4"
-              />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {overviewMetrics.map((card) => {
+          const valueMuted = isMutedMetricValue(String(card.value));
+          return (
+          <div key={card.title} className="dashboard-stat-card" style={{ padding: "12px 14px 14px" }}>
+            <div style={{ marginBottom: 6 }}>
+              <span style={{ ...sectionLabelStyle, display: "block" }}>{card.title}</span>
             </div>
-            
-            {/* Mini Funnel Preview */}
-            {analyticsData?.funnel && analyticsData.funnel.totalLeads > 0 && (
-              <div style={{ 
-                marginTop: 16, 
-                padding: 16, 
-                background: 'var(--color-surface-secondary)', 
-                borderRadius: 12,
-                border: '1px solid var(--color-border)'
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--color-text-muted)' }}>
-                  Conversion Funnel
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {[
-                    { label: 'Leads', value: analyticsData.funnel.totalLeads, color: '#4C67FF' },
-                    { label: 'Contacted', value: analyticsData.funnel.contacted, color: '#A94CFF' },
-                    { label: 'Replied', value: analyticsData.funnel.replied, color: '#ffa726' },
-                    { label: 'Converted', value: analyticsData.funnel.converted, color: '#4ecdc4' }
-                  ].map((step, i, arr) => {
-                    const prevValue = i > 0 ? arr[i - 1].value : step.value;
-                    const rate = prevValue > 0 ? Math.round((step.value / prevValue) * 100) : 0;
-                    return (
-                      <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                        <div style={{ 
-                          height: 6, 
-                          background: step.color, 
-                          borderRadius: 3,
-                          opacity: 0.8
-                        }} />
-                        <div style={{ fontSize: 16, fontWeight: 700, marginTop: 8, color: step.color }}>
-                          {step.value}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
-                          {step.label}
-                        </div>
-                        {i > 0 && (
-                          <div style={{ fontSize: 9, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                            {rate}%
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: valueMuted ? 600 : 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.15,
+                color: valueMuted ? SLATE_400 : "#111827",
+                fontFamily: "Inter, -apple-system, sans-serif",
+                wordBreak: "break-word",
+              }}
+            >
+              {card.value}
+            </div>
+            {card.showTrend && (
+              <div style={{ marginTop: 8 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    background: "#F3F4F6",
+                    color: card.trendPositive ? "#059669" : "#DC2626",
+                  }}
+                >
+                  {card.trendPositive ? "↑" : "↓"}
+                  {card.trendValue}
+                  {card.trendSuffix === "pp" ? "pp" : "%"}
+                  <span style={{ fontWeight: 500, color: "#6B7280" }}>vs last month</span>
+                </span>
               </div>
             )}
-          </>
-        ) : (
-          <div style={{
-            textAlign: 'center',
-            padding: '48px 24px',
-            background: 'var(--color-surface-secondary)',
-            borderRadius: 12,
-            border: '1px dashed var(--color-border)'
-          }}>
-            <Icons.Chart size={40} style={{ color: 'var(--color-text-muted)', opacity: 0.5, marginBottom: 12 }} />
-            <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: 14 }}>
-              Select a base from the sidebar to view analytics
-            </p>
+            {card.subline ? (
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 6, lineHeight: 1.35 }}>{card.subline}</div>
+            ) : null}
           </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* Quick Actions Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        {/* Leads Card */}
+      {invitationSuccess && (
         <div
-          onClick={goToLeads}
+          className="dashboard-surface-card"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: 14,
-            padding: 24,
-            border: '1px solid var(--color-border)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.4)';
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 103, 255, 0.12)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'var(--color-border)';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
+            padding: "18px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            position: "relative",
+            animation: "fadeIn 0.5s ease-out",
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-            <div style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'rgba(76, 103, 255, 0.1)',
-              border: '1px solid rgba(76, 103, 255, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Icons.Users size={22} style={{ color: '#4C67FF' }} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Manage Leads</h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>
-                Import, enrich & score
-              </p>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: "#F3F4F6",
+              border: "1px solid #E5E7EB",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icons.Check size={18} strokeWidth={1.5} style={{ color: "#059669" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Welcome to {invitationSuccess.baseName}</div>
+            <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
+              You&apos;ve been added as <strong style={{ textTransform: "capitalize", color: "#374151" }}>{invitationSuccess.role}</strong>. You now have
+              access to this workspace.
             </div>
           </div>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-            Add leads from CSV or AI-generate them. Enrich with contact data and score based on quality.
-          </p>
-        </div>
-
-        {/* Campaigns Card */}
-        <div
-          onClick={() => router.push('/campaigns')}
-          style={{
-            background: 'var(--color-surface)',
-            borderRadius: 14,
-            padding: 24,
-            border: '1px solid var(--color-border)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(169, 76, 255, 0.4)';
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(169, 76, 255, 0.12)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'var(--color-border)';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-            <div style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'rgba(169, 76, 255, 0.1)',
-              border: '1px solid rgba(169, 76, 255, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Icons.Rocket size={22} style={{ color: '#A94CFF' }} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Campaigns</h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>
-                Multi-channel outreach
-              </p>
-            </div>
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-            Create email, LinkedIn, and WhatsApp sequences. Track opens, replies, and conversions.
-          </p>
-        </div>
-
-        {/* Bases Card */}
-        <div
-          onClick={() => router.push('/bases')}
-          style={{
-            background: 'var(--color-surface)',
-            borderRadius: 14,
-            padding: 24,
-            border: '1px solid var(--color-border)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.12)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'var(--color-border)';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-            <div style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Icons.Folder size={22} style={{ color: '#10b981' }} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Workspaces</h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>
-                {bases.length} base{bases.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-            Organize leads and campaigns into separate workspaces for different projects or teams.
-          </p>
-        </div>
-      </div>
-
-      {/* Getting Started - Only show if user has no data */}
-      {activeBase && analyticsData && analyticsData.totalLeads === 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.06) 0%, rgba(169, 76, 255, 0.06) 100%)',
-          borderRadius: 16,
-          padding: 28,
-          border: '1px solid rgba(76, 103, 255, 0.15)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Icons.Sparkles size={20} style={{ color: '#4C67FF' }} />
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Get Started with "{activeBase.name}"</h3>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-            {[
-              { step: 1, title: 'Add Leads', desc: 'Import from CSV or AI-generate', action: goToLeads, color: '#4C67FF' },
-              { step: 2, title: 'Enrich Data', desc: 'Auto-fill missing contact info', action: goToLeads, color: '#A94CFF' },
-              { step: 3, title: 'Launch Campaign', desc: 'Create multi-channel sequence', action: () => router.push('/campaigns/new'), color: '#10b981' }
-            ].map(item => (
-              <div
-                key={item.step}
-                onClick={item.action}
-                style={{
-                  background: 'var(--color-surface)',
-                  borderRadius: 10,
-                  padding: 16,
-                  border: '1px solid var(--color-border)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = item.color;
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-border)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <div style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 6,
-                  background: item.color,
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginBottom: 10
-                }}>
-                  {item.step}
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{item.title}</div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{item.desc}</div>
-              </div>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setInvitationSuccess(null)}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: 8,
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#9CA3AF",
+              transition: "background 0.15s ease, color 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#374151";
+              e.currentTarget.style.background = "#F3F4F6";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#9CA3AF";
+              e.currentTarget.style.background = "transparent";
+            }}
+            aria-label="Dismiss"
+          >
+            <Icons.X size={18} strokeWidth={1.5} />
+          </button>
         </div>
       )}
-    </div>
+
+      <div style={sectionLabelStyle}>Campaigns & activity</div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(260px, 0.95fr) minmax(0, 1.15fr)",
+          gap: 14,
+          alignItems: "stretch",
+        }}
+        className="dashboard-campaigns-grid"
+      >
+        <div
+          className="dashboard-surface-card"
+          style={{
+            padding: "16px 24px",
+            minHeight: 200,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
+            gap: 6,
+            border: "1px dashed #E5E7EB",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+          }}
+        >
+          <Megaphone size={16} strokeWidth={1.5} style={{ color: "#4F46E5", flexShrink: 0 }} aria-hidden />
+          <span style={sectionLabelStyle}>Get started</span>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.2, color: "#111827" }}>
+            Create your first campaign
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: "#6B7280", lineHeight: 1.45, maxWidth: 320 }}>
+            Launch email, LinkedIn, or WhatsApp sequences from this workspace in a few steps.
+          </p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={goToCreateCampaign}
+            style={{
+              marginTop: 2,
+              padding: "8px 16px",
+              borderRadius: 8,
+              fontWeight: 600,
+              fontSize: 13,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Icons.Plus size={16} strokeWidth={1.5} />
+            Create Campaign
+          </button>
+        </div>
+
+        <div
+          className="dashboard-surface-card"
+          style={{
+            padding: "18px 18px",
+            minHeight: 200,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            transition: "box-shadow 0.15s ease",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: recentCampaigns.length === 0 ? 0 : 14,
+              gap: 10,
+              width: "100%",
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "#111827" }}>Recent activity</span>
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{ borderRadius: 8, fontSize: 12, fontWeight: 600, padding: "6px 10px", transition: "opacity 0.15s ease" }}
+              onClick={() => router.push("/campaigns")}
+            >
+              View all
+            </button>
+          </div>
+          {recentCampaigns.length === 0 ? (
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                padding: "8px 16px 16px",
+                color: "var(--color-text-muted)",
+                gap: 10,
+                width: "100%",
+                minHeight: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "var(--color-surface-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid var(--elev-border, var(--color-border))",
+                }}
+              >
+                <Icons.Clock size={22} strokeWidth={1.5} style={{ opacity: 0.6 }} />
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>No recent campaigns</div>
+              <div style={{ fontSize: 12, lineHeight: 1.45, maxWidth: 260 }}>Runs, opens, and replies will appear here once you launch.</div>
+            </div>
+          ) : (
+            <div className="dashboard-recent-campaigns-grid">
+              {recentCampaigns.map((c) => (
+                <CampaignCard
+                  key={c.id}
+                  campaign={c}
+                  baseName={bases.find((b) => b.id === c.base_id)?.name || "Workspace"}
+                  onView={() => router.push(`/campaigns/${c.id}`)}
+                  showDeleteAction={false}
+                  compact
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={sectionLabelStyle}>Quick actions</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: 12,
+        }}
+        className="quick-actions-row dashboard-quick-actions"
+      >
+        {quickActions.map((action) => (
+          <button key={action.key} type="button" className="dashboard-qa-card" onClick={action.onClick}>
+            <span className="dashboard-qa-card-arrow" aria-hidden>
+              <ArrowUpRight size={16} strokeWidth={2} />
+            </span>
+            <div style={{ display: "flex", marginBottom: 8 }}>{action.icon}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", color: "#111827", marginBottom: 4 }}>{action.title}</div>
+            <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>{action.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      {activeBase && !copilotBannerDismissed && analyticsData && analyticsData.hotLeads > 0 && (
+        <div
+          className="dashboard-surface-card"
+          style={{
+            padding: "14px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            transition: "box-shadow 0.15s ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Icons.Zap size={18} strokeWidth={1.5} style={{ color: "#4F46E5" }} />
+              <div style={{ ...sectionLabelStyle, textTransform: "uppercase" }}>Suggestion</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCopilotBannerDismissed(true)}
+              className="icon-btn"
+              style={{ width: 28, height: 28, borderRadius: 8, transition: "background 0.15s ease" }}
+              aria-label="Dismiss"
+            >
+              <Icons.X size={16} strokeWidth={1.5} />
+            </button>
+          </div>
+          <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
+            {analyticsData?.hotLeads || 0} hot leads are ready. Launch a short LinkedIn + Email sequence for faster replies.
+          </div>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ borderRadius: 8, width: "100%", transition: "background 0.15s ease" }}
+            onClick={goToCreateCampaign}
+          >
+            Use suggestion
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  const flowBannerLeadsK = `${(Number(analyticsData?.totalLeads ?? 0) / 1000).toFixed(1)}K`;
+  const flowBannerReply =
+    typeof analyticsData?.replyRate === "number" ? `${analyticsData.replyRate.toFixed(1)}%` : "0.0%";
+
+  return (
+    <>
+      <ProductTour steps={tourSteps} />
+      <div className="dashboard-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <DashboardFlowCtaBanner
+          leadsOptimizedK={flowBannerLeadsK}
+          replyRatePct={flowBannerReply}
+          aiScorePct={`${aiScorePct}%`}
+        />
+        {dashboardBody}
+      </div>
+    </>
   );
 }

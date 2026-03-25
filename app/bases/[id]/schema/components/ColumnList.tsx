@@ -4,12 +4,15 @@ import { BaseColumn } from "@/stores/useColumnStore";
 import { Icons } from "@/components/ui/Icons";
 import { useColumnStore } from "@/stores/useColumnStore";
 import { useNotification } from "@/context/NotificationContext";
+import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface ColumnListProps {
   columns: BaseColumn[];
   baseId: number;
   onEdit: (column: BaseColumn) => void;
   onDelete?: () => void;
+  onAddColumn?: () => void;
 }
 
 const columnTypeLabels: Record<string, string> = {
@@ -27,15 +30,20 @@ const columnTypeLabels: Record<string, string> = {
   formula: "Formula",
 };
 
-export function ColumnList({ columns, baseId, onEdit, onDelete }: ColumnListProps) {
+export function ColumnList({ columns, baseId, onEdit, onDelete, onAddColumn }: ColumnListProps) {
   const { deleteColumn, updateColumn } = useColumnStore();
   const { showSuccess, showError } = useNotification();
+  const confirmDialog = useConfirm();
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleDelete = async (column: BaseColumn) => {
-    if (!confirm(`Delete column "${column.name}"? This will remove the column from all leads. This action cannot be undone.`)) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: "Delete column?",
+      message: `Delete "${column.name}"? This removes the column from all leads. This cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     setDeletingId(column.id);
     try {
@@ -60,13 +68,19 @@ export function ColumnList({ columns, baseId, onEdit, onDelete }: ColumnListProp
 
   if (columns.length === 0) {
     return (
-      <div className="card-enhanced" style={{ padding: "60px 20px", textAlign: "center", borderRadius: 16 }}>
-        <Icons.Columns size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
-        <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No columns yet</h3>
-        <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginBottom: 24 }}>
-          Create your first column to start organizing your leads.
-        </p>
-      </div>
+      <EmptyStateBanner
+        icon={<Icons.Columns size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+        title="No columns yet"
+        description="Create your first column to start organizing your leads. You can also add a status field above."
+        actions={
+          onAddColumn ? (
+            <button type="button" onClick={onAddColumn} className="btn-primary" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Icons.Plus size={16} strokeWidth={1.5} />
+              Add column
+            </button>
+          ) : undefined
+        }
+      />
     );
   }
 

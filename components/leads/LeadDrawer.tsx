@@ -1,13 +1,116 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { getEmailInfo, getEmailDisplayText, getEmailSourceBadge, getEmailStatusBadge, isMaskedEmail } from "@/utils/emailNormalization";
 import { getPhoneInfo, getPhoneSourceBadge } from "@/utils/phoneNormalization";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
+import { Icons } from "@/components/ui/Icons";
 
-export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onClose: () => void; onEnrich?: () => void }) {
+/** Layout tokens — elevated surfaces, minimal gradient noise for a cleaner lead modal. */
+const LD: {
+  panel: CSSProperties;
+  header: CSSProperties;
+  scroll: CSSProperties;
+  section: CSSProperties;
+  sectionHead: CSSProperties;
+  nested: CSSProperties;
+  readOnly: CSSProperties;
+  fieldInput: CSSProperties;
+  statCard: CSSProperties;
+} = {
+  panel: {
+    width: "min(720px, 96vw)",
+    maxHeight: "min(90vh, 920px)",
+    background: "var(--color-surface)",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 14,
+    boxShadow: "var(--elev-shadow-lg)",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  header: {
+    flexShrink: 0,
+    padding: "20px 22px 18px",
+    borderBottom: "1px solid var(--elev-border, var(--color-border))",
+    background: "var(--color-surface)",
+  },
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
+    padding: "20px 22px 28px",
+    background: "var(--color-surface-secondary)",
+  },
+  section: {
+    background: "var(--color-surface)",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: "var(--elev-shadow)",
+  },
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottom: "1px solid var(--elev-border, var(--color-border))",
+  },
+  nested: {
+    marginBottom: 16,
+    padding: 14,
+    background: "var(--color-surface-secondary)",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 10,
+  },
+  readOnly: {
+    padding: "10px 12px",
+    background: "var(--color-surface-secondary)",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 8,
+    fontSize: 14,
+    color: "var(--color-text)",
+  },
+  fieldInput: {
+    width: "100%",
+    padding: "10px 12px",
+    background: "var(--elev-bg)",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 8,
+    fontSize: 14,
+    color: "var(--color-text)",
+    outline: "none",
+    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+    boxSizing: "border-box",
+  },
+  statCard: {
+    background: "var(--color-surface)",
+    border: "1px solid var(--elev-border, var(--color-border))",
+    borderRadius: 12,
+    padding: "20px 22px",
+    marginBottom: 16,
+    boxShadow: "var(--elev-shadow)",
+    borderLeft: "3px solid var(--color-primary)",
+  },
+};
+
+export default function LeadDrawer({
+  lead,
+  onClose,
+  onEnrich,
+  contactEnrichmentPending = false,
+}: {
+  lead: any;
+  onClose: () => void;
+  onEnrich?: () => void;
+  /** True when this lead is in the bulk contact-enrichment queue */
+  contactEnrichmentPending?: boolean;
+}) {
   if (!lead) return null;
 
   const { activeBaseId } = useBaseStore();
@@ -70,6 +173,14 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
     fetchMembers();
   }, [activeBaseId]);
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // Update currentLead when lead prop changes
   useEffect(() => {
     setCurrentLead(lead);
@@ -119,7 +230,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
         await fetchLeads(activeBaseId, pagination.currentPage, pagination.leadsPerPage);
       }
     } catch (error: any) {
-      alert(`Failed to assign owner: ${error?.message || 'Unknown error'}`);
+      showError('Assign owner failed', error?.message || 'Unknown error');
     } finally {
       setAssigningOwner(false);
     }
@@ -205,10 +316,14 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
   const handleEnrich = async () => {
     if (!currentLead.id) {
-      alert('Lead ID is missing');
+      showError('Lead error', 'Lead ID is missing');
       return;
     }
-    
+    if (contactEnrichmentPending) {
+      showError('Still updating', 'This lead is already being enriched. Wait until it finishes.');
+      return;
+    }
+
     setEnriching(true);
     setEnrichmentStatus('Starting enrichment...');
     
@@ -260,7 +375,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
           await onEnrich();
         }
         
-        setEnrichmentStatus('✅ Enrichment successful!');
+        setEnrichmentStatus('Enrichment successful.');
         // Clear status after 2 seconds
         setTimeout(() => {
           setEnrichmentStatus('');
@@ -271,8 +386,8 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
     } catch (error: any) {
       console.error('Enrichment error:', error);
       const errorMsg = error.message || error.error || 'Unknown error';
-      setEnrichmentStatus(`❌ Error: ${errorMsg}`);
-      alert(`Failed to enrich lead: ${errorMsg}`);
+      setEnrichmentStatus(`Error: ${errorMsg}`);
+      showError('Enrich failed', errorMsg);
       setTimeout(() => {
         setEnrichmentStatus('');
       }, 3000);
@@ -362,50 +477,74 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
     return currentLead.email?.split('@')[0] || 'Unknown';
   };
 
+  const leadInitials = (() => {
+    const f = (currentLead.first_name || '').trim();
+    const l = (currentLead.last_name || '').trim();
+    if (f && l) return `${f[0]}${l[0]}`.toUpperCase();
+    if (f) return f.slice(0, 2).toUpperCase();
+    if (l) return l.slice(0, 2).toUpperCase();
+    const local = (currentLead.email || '').split('@')[0] || '';
+    return local.slice(0, 2).toUpperCase() || '?';
+  })();
+
   return (
     <div 
       style={{ 
         position:'fixed', 
         inset:0, 
-        background:'rgba(0,0,0,.5)', 
+        background:'rgba(0,0,0,0.48)', 
         zIndex:1000,
-        backdropFilter: 'blur(4px)'
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        animation: 'leadDrawerBackdropIn 0.2s ease-out',
       }} 
       onClick={onClose}
+      role="presentation"
     >
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes leadDrawerBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes leadDrawerPanelIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}} />
       <div 
         style={{ 
-          position:'absolute', 
-          right:0, 
-          top:72, 
-          height:'calc(100vh - 72px)', 
-          width: 'min(600px, 90vw)',
-          background:'var(--elev-bg)', 
-          borderLeft:'1px solid var(--elev-border)', 
-          boxShadow:'-10px 0 40px rgba(0,0,0,.2)', 
-          padding:24,
-          overflowY: 'auto',
-          animation: 'slideInRight 0.3s ease-out'
+          ...LD.panel,
+          animation: 'leadDrawerPanelIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
         }} 
         onClick={(e)=>e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lead-detail-title"
       >
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes slideInRight {
-            from {
-              transform: translateX(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
-          }
-        `}} />
-
         {/* Header */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 24, paddingBottom: 20, borderBottom: '2px solid var(--color-border)' }}>
-          <div style={{ flex: 1 }}>
-            <h2 style={{ margin:0, fontSize: 24, fontWeight: 700, marginBottom: 8, color: 'var(--color-text)' }}>
+        <header style={LD.header}>
+        <div style={{ display:'flex', gap: 16, alignItems:'flex-start' }}>
+          <div
+            aria-hidden
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              background: 'var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              flexShrink: 0,
+              boxShadow: 'var(--elev-shadow)',
+            }}
+          >
+            {leadInitials}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 id="lead-detail-title" style={{ margin:0, fontSize: 21, fontWeight: 700, marginBottom: 6, color: 'var(--color-text)', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
               {getLeadName()}
             </h2>
             {(() => {
@@ -415,16 +554,20 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
               const statusBadge = getEmailStatusBadge(emailInfo);
               
               return emailInfo.isValid ? (
-                <div style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span>{displayText}</span>
+                <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', lineHeight: 1.45 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icons.Mail size={14} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', opacity: 0.85 }} />
+                    {displayText}
+                  </span>
                   {sourceBadge && (
                     <span style={{
-                      background: 'rgba(76, 103, 255, 0.1)',
-                      color: '#4C67FF',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
+                      background: 'var(--color-surface-secondary)',
+                      color: 'var(--color-primary)',
+                      padding: '3px 9px',
+                      borderRadius: 999,
                       fontSize: '11px',
-                      fontWeight: '600'
+                      fontWeight: 600,
+                      border: '1px solid var(--elev-border, var(--color-border))',
                     }}>
                       {sourceBadge}
                     </span>
@@ -432,146 +575,213 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                   {statusBadge && (
                     <span style={{
                       fontSize: '11px',
-                      opacity: 0.7,
-                      color: 'var(--color-text-muted)'
+                      color: 'var(--color-text-muted)',
                     }}>
                       {statusBadge}
                     </span>
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 12, fontStyle: 'italic' }}>
+                <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 10, fontStyle: 'italic' }}>
                   {displayText}
                 </div>
               );
             })()}
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               {currentLead.company && (
-                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                  <strong>Company:</strong> {currentLead.company}
-                </div>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: 'var(--color-text)',
+                  padding: '5px 11px',
+                  borderRadius: 999,
+                  background: 'var(--color-surface-secondary)',
+                  border: '1px solid var(--elev-border, var(--color-border))',
+                }}>
+                  <Icons.Briefcase size={13} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+                  {currentLead.company}
+                </span>
               )}
               {currentLead.role && (
-                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                  <strong>Role:</strong> {currentLead.role}
-                </div>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: 'var(--color-text)',
+                  padding: '5px 11px',
+                  borderRadius: 999,
+                  background: 'var(--color-surface-secondary)',
+                  border: '1px solid var(--elev-border, var(--color-border))',
+                }}>
+                  <Icons.User size={13} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+                  {currentLead.role}
+                </span>
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            {/* Enrich Button in Header - Always Visible */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexShrink: 0 }}>
             {!hasEnrichmentData && (
               <button
                 onClick={handleEnrich}
-                disabled={enriching}
+                disabled={enriching || contactEnrichmentPending}
+                title={contactEnrichmentPending ? 'This lead is still being enriched from the table.' : undefined}
                 style={{
-                  padding: '8px 16px',
-                  background: enriching 
-                    ? 'rgba(76, 103, 255, 0.3)' 
-                    : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-                  color: 'white',
+                  padding: '9px 16px',
+                  background: enriching || contactEnrichmentPending
+                    ? 'rgba(76, 103, 255, 0.35)' 
+                    : 'var(--color-primary)',
+                  color: '#fff',
                   border: 'none',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: enriching ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: enriching ? 'none' : '0 2px 8px rgba(76, 103, 255, 0.3)',
+                  cursor: enriching || contactEnrichmentPending ? 'not-allowed' : 'pointer',
+                  transition: 'opacity 0.15s ease, transform 0.15s ease',
+                  boxShadow: enriching || contactEnrichmentPending ? 'none' : 'var(--elev-shadow)',
                   whiteSpace: 'nowrap',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6
+                  gap: 6,
                 }}
                 onMouseEnter={(e) => {
-                  if (!enriching) {
+                  if (!enriching && !contactEnrichmentPending) {
+                    e.currentTarget.style.opacity = '0.92';
                     e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(76, 103, 255, 0.4)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!enriching) {
+                  if (!enriching && !contactEnrichmentPending) {
+                    e.currentTarget.style.opacity = '1';
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(76, 103, 255, 0.3)';
                   }
                 }}
               >
-                {enriching ? (
+                {contactEnrichmentPending ? (
                   <>
-                    <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span>
-                    <span>Enriching...</span>
+                    <Icons.Loader size={16} strokeWidth={1.5} className="animate-spin" style={{ color: '#fff' }} />
+                    <span>Updating…</span>
+                  </>
+                ) : enriching ? (
+                  <>
+                    <Icons.Loader size={16} strokeWidth={1.5} className="animate-spin" style={{ color: '#fff' }} />
+                    <span>Enriching…</span>
                   </>
                 ) : (
                   <>
-                    <span>✨</span>
-                    <span>Enrich Lead</span>
+                    <Icons.Sparkles size={16} strokeWidth={1.5} style={{ color: '#fff' }} />
+                    <span>Enrich</span>
                   </>
                 )}
               </button>
             )}
             <button 
-              className="btn-ghost" 
-              onClick={onClose} 
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
               style={{ 
-                padding: '8px 12px',
-                borderRadius: 8,
-                fontSize: 18,
-                minWidth: 40,
-                height: 40
+                width: 40,
+                height: 40,
+                padding: 0,
+                borderRadius: 10,
+                border: '1px solid var(--elev-border, var(--color-border))',
+                background: 'var(--color-surface-secondary)',
+                color: 'var(--color-text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                cursor: 'pointer',
               }}
             >
-              ✕
+              <Icons.X size={18} strokeWidth={1.5} />
             </button>
           </div>
         </div>
+        </header>
+
+        <div style={LD.scroll}>
 
         {/* Enrichment Status Banner */}
-        {enrichmentStatus && (
+        {enrichmentStatus && (() => {
+          const statusLower = enrichmentStatus.toLowerCase();
+          const isSuccess = statusLower.includes('successful');
+          const isError = statusLower.startsWith('error:') || /\bfailed\b/i.test(enrichmentStatus);
+          const iconColor = isSuccess ? '#22c55e' : isError ? '#ef4444' : 'var(--color-primary)';
+          return (
           <div style={{
             padding: '12px 16px',
             marginBottom: 16,
-            background: enrichmentStatus.includes('✅') 
-              ? 'rgba(78, 205, 196, 0.1)' 
-              : enrichmentStatus.includes('❌')
-              ? 'rgba(255, 107, 107, 0.1)'
-              : 'rgba(76, 103, 255, 0.1)',
-            border: `1px solid ${enrichmentStatus.includes('✅') 
-              ? 'rgba(78, 205, 196, 0.3)' 
-              : enrichmentStatus.includes('❌')
-              ? 'rgba(255, 107, 107, 0.3)'
-              : 'rgba(76, 103, 255, 0.3)'}`,
+            background: isSuccess
+              ? 'rgba(34, 197, 94, 0.1)'
+              : isError
+              ? 'rgba(239, 68, 68, 0.1)'
+              : 'rgba(76, 103, 255, 0.08)',
+            border: `1px solid ${isSuccess
+              ? 'rgba(34, 197, 94, 0.35)'
+              : isError
+              ? 'rgba(239, 68, 68, 0.35)'
+              : 'rgba(76, 103, 255, 0.25)'}`,
             borderRadius: 12,
             fontSize: 13,
             color: 'var(--color-text)',
-            textAlign: 'center',
-            fontWeight: 500
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            gap: 10,
           }}>
-            {enrichmentStatus}
+            {isSuccess ? (
+              <Icons.CheckCircle size={18} strokeWidth={1.5} style={{ color: iconColor, flexShrink: 0 }} />
+            ) : isError ? (
+              <Icons.AlertCircle size={18} strokeWidth={1.5} style={{ color: iconColor, flexShrink: 0 }} />
+            ) : (
+              <Icons.Loader size={18} strokeWidth={1.5} className="animate-spin" style={{ color: iconColor, flexShrink: 0 }} />
+            )}
+            <span style={{ textAlign: 'left', lineHeight: 1.4 }}>{enrichmentStatus}</span>
           </div>
-        )}
+          );
+        })()}
 
         {/* Owner Assignment */}
-        <div style={{ 
-          background: 'var(--color-surface-secondary)', 
-          borderRadius: 12, 
-          padding: 16, 
-          marginBottom: 24,
-          border: '1px solid var(--color-border)'
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--color-text)' }}>
-            Assigned To
+        <div style={{ ...LD.section, marginBottom: 16 }}>
+          <div style={{ ...LD.sectionHead, marginBottom: 12, paddingBottom: 0, borderBottom: 'none' }}>
+            <Icons.Users size={18} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>
+              Assigned to
+            </div>
           </div>
-          {currentLead.owner ? (
+          {assigningOwner ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 0',
+              }}
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <Icons.Loader size={20} strokeWidth={1.5} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+              <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 500 }}>Updating assignment…</span>
+            </div>
+          ) : currentLead.owner ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '36px',
                   height: '36px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                  background: 'var(--color-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#000000',
+                  color: '#fff',
                   fontSize: '14px',
                   fontWeight: '600'
                 }}>
@@ -583,14 +793,17 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => handleAssignOwner(null)}
                 disabled={assigningOwner}
                 style={{
                   padding: '6px 12px',
-                  background: 'transparent',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '6px',
+                  background: 'var(--color-surface-secondary)',
+                  border: '1px solid var(--elev-border, var(--color-border))',
+                  borderRadius: 8,
                   fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--color-text-muted)',
                   cursor: assigningOwner ? 'not-allowed' : 'pointer',
                   opacity: assigningOwner ? 0.5 : 1
                 }}
@@ -609,7 +822,8 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: '#ffffff',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text)',
                 border: '1px solid var(--color-border)',
                 borderRadius: '8px',
                 fontSize: '14px',
@@ -628,85 +842,102 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Score & Tier Card */}
         <div style={{ 
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)', 
-          borderRadius: 16, 
-          padding: 20, 
-          marginBottom: 24,
-          border: '1px solid rgba(76, 103, 255, 0.2)',
+          ...LD.statCard,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 16
+          gap: 20,
         }}>
           <div>
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Lead Score
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Lead score
             </div>
             <div style={{ 
-              fontSize: 36, 
+              fontSize: 34, 
               fontWeight: 700, 
-              color: currentLead.score && currentLead.score > 80 ? '#4ecdc4' : currentLead.score && currentLead.score > 60 ? '#ffa726' : '#888',
-              lineHeight: 1
+              color: currentLead.score && currentLead.score > 80 ? '#4ecdc4' : currentLead.score && currentLead.score > 60 ? '#ffa726' : 'var(--color-text-muted)',
+              lineHeight: 1,
+              letterSpacing: '-0.03em',
             }}>
-              {currentLead.score || '—'}
+              {currentLead.score ?? '—'}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Tier
             </div>
             <div style={{ 
-              fontSize: 24, 
+              fontSize: 22, 
               fontWeight: 700,
-              color: currentLead.tier === 'Hot' ? '#ff6b6b' : currentLead.tier === 'Warm' ? '#ffa726' : '#888',
-              lineHeight: 1
+              color: currentLead.tier === 'Hot' ? '#ff6b6b' : currentLead.tier === 'Warm' ? '#ffa726' : 'var(--color-text-muted)',
+              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
             }}>
-              {currentLead.tier || 'Cold'}
-              {currentLead.tier === 'Hot' ? ' 🔥' : currentLead.tier === 'Warm' ? ' 🌡️' : ' ❄️'}
+              <span>{currentLead.tier || 'Cold'}</span>
+              {currentLead.tier === 'Hot' ? (
+                <Icons.Flame size={22} strokeWidth={1.5} style={{ color: '#ff6b6b' }} />
+              ) : currentLead.tier === 'Warm' ? (
+                <Icons.Thermometer size={22} strokeWidth={1.5} style={{ color: '#ffa726' }} />
+              ) : (
+                <Icons.Snowflake size={22} strokeWidth={1.5} style={{ color: '#94a3b8' }} />
+              )}
             </div>
           </div>
         </div>
 
         {/* Editable Lead Information Section - Always Visible */}
-        <div style={{ 
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.08) 0%, rgba(169, 76, 255, 0.08) 100%)', 
-          borderRadius: 16, 
-          padding: 24, 
-          marginBottom: 24,
-          border: '1px solid rgba(76, 103, 255, 0.2)',
-          boxShadow: '0 4px 12px rgba(76, 103, 255, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={LD.section}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--elev-border, var(--color-border))' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 24 }}>👤</span>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>
-                Lead Information
-              </h3>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: 'var(--color-surface-secondary)',
+                border: '1px solid var(--elev-border, var(--color-border))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icons.User size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  Lead details
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                  Core fields and notes
+                </p>
+              </div>
             </div>
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
                 style={{
-                  padding: '8px 16px',
-                  background: 'rgba(76, 103, 255, 0.15)',
-                  border: '1px solid rgba(76, 103, 255, 0.3)',
-                  borderRadius: 8,
-                  color: '#4C67FF',
+                  padding: '8px 14px',
+                  background: 'var(--color-surface-secondary)',
+                  border: '1px solid var(--elev-border, var(--color-border))',
+                  borderRadius: 10,
+                  color: 'var(--color-text)',
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  transition: 'all 0.2s'
+                  transition: 'background 0.15s ease, border-color 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(76, 103, 255, 0.25)';
+                  e.currentTarget.style.borderColor = 'var(--color-primary)';
+                  e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(76, 103, 255, 0.15)';
+                  e.currentTarget.style.borderColor = '';
+                  e.currentTarget.style.background = 'var(--color-surface-secondary)';
                 }}
               >
-                <span>✏️</span>
+                <Icons.Edit size={16} strokeWidth={1.5} />
                 <span>Edit</span>
               </button>
             ) : (
@@ -742,10 +973,10 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     });
                   }}
                   style={{
-                    padding: '8px 16px',
+                    padding: '8px 14px',
                     background: 'var(--color-surface-secondary)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 8,
+                    border: '1px solid var(--elev-border, var(--color-border))',
+                    borderRadius: 10,
                     color: 'var(--color-text)',
                     fontSize: 13,
                     fontWeight: 600,
@@ -758,20 +989,31 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                   onClick={handleSave}
                   disabled={saving}
                   style={{
-                    padding: '8px 16px',
-                    background: saving ? 'rgba(76, 103, 255, 0.3)' : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                    padding: '8px 14px',
+                    background: saving ? 'rgba(76, 103, 255, 0.45)' : 'var(--color-primary)',
                     border: 'none',
-                    borderRadius: 8,
-                    color: saving ? '#888' : '#000',
+                    borderRadius: 10,
+                    color: saving ? 'rgba(255,255,255,0.7)' : '#fff',
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: saving ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6
+                    gap: 6,
+                    boxShadow: saving ? 'none' : 'var(--elev-shadow)',
                   }}
                 >
-                  {saving ? '⏳ Saving...' : '💾 Save'}
+                  {saving ? (
+                    <>
+                      <Icons.Loader size={16} strokeWidth={1.5} className="animate-spin" />
+                      <span>Saving…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icons.FileEdit size={16} strokeWidth={1.5} />
+                      <span>Save</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -792,7 +1034,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -804,12 +1046,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.first_name || '—'}
                 </div>
               )}
@@ -829,7 +1071,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -841,12 +1083,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.last_name || '—'}
                 </div>
               )}
@@ -866,7 +1108,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -878,12 +1120,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.email || '—'}
                 </div>
               )}
@@ -904,7 +1146,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -916,12 +1158,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ ...LD.readOnly, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {(() => {
                     const phoneInfo = getPhoneInfo(currentLead.phone, currentLead.enrichment);
                     const sourceBadge = getPhoneSourceBadge(phoneInfo);
@@ -929,7 +1171,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     if (phoneInfo.normalized) {
                       return (
                         <>
-                          <span>📞</span>
+                          <Icons.Phone size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                           <a href={`tel:${phoneInfo.normalized}`} style={{ color: '#4C67FF', textDecoration: 'none', fontWeight: 500 }}>
                             {phoneInfo.normalized}
                           </a>
@@ -969,7 +1211,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -981,12 +1223,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.company || '—'}
                 </div>
               )}
@@ -1006,7 +1248,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1018,12 +1260,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.role || '—'}
                 </div>
               )}
@@ -1043,7 +1285,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1055,12 +1297,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.industry || '—'}
                 </div>
               )}
@@ -1081,7 +1323,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1094,17 +1336,13 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
                 <div style={{ 
-                  padding: '10px 12px', 
-                  background: 'rgba(255, 255, 255, 0.05)', 
-                  borderRadius: 8, 
-                  fontSize: 14, 
-                  color: 'var(--color-text)', 
+                  ...LD.readOnly,
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: 8, 
@@ -1116,7 +1354,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                 }}>
                   {getLinkedInUrl(enrichment) ? (
                     <>
-                      <span style={{ flexShrink: 0 }}>💼</span>
+                      <Icons.Linkedin size={18} style={{ flexShrink: 0, color: '#0077b5' }} />
                       <a 
                         href={getLinkedInUrl(enrichment)} 
                         target="_blank" 
@@ -1159,7 +1397,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1171,12 +1409,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.region || '—'}
                 </div>
               )}
@@ -1199,7 +1437,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1211,12 +1449,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.score ?? '—'}
                 </div>
               )}
@@ -1235,7 +1473,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1248,7 +1486,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
@@ -1258,7 +1496,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                   <option value="Cold">Cold</option>
                 </select>
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)' }}>
+                <div style={{ ...LD.readOnly }}>
                   {currentLead.tier ? (
                     <span style={{
                       background: currentLead.tier === 'Hot' ? 'rgba(255, 107, 107, 0.2)' : 
@@ -1293,7 +1531,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     width: '100%',
                     padding: '10px 12px',
                     background: 'var(--elev-bg)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)',
+                    border: '1px solid var(--elev-border, var(--color-border))',
                     borderRadius: 8,
                     fontSize: 14,
                     color: 'var(--color-text)',
@@ -1307,12 +1545,12 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                    e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               ) : (
-                <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, fontSize: 14, color: 'var(--color-text)', whiteSpace: 'pre-wrap', minHeight: '60px' }}>
+                <div style={{ ...LD.readOnly, whiteSpace: 'pre-wrap', minHeight: 60 }}>
                   {currentLead.notes || '—'}
                 </div>
               )}
@@ -1322,33 +1560,48 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Quick Enrich Button - Always visible if no enrichment */}
         {!hasEnrichmentData && (
-          <div style={{ 
-            marginBottom: 24,
-            padding: '20px',
-            background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.08) 0%, rgba(169, 76, 255, 0.08) 100%)',
-            borderRadius: 16,
-            border: '1px solid rgba(76, 103, 255, 0.2)',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-              Get comprehensive insights about this lead including company information, recent news, funding details, tech stack, and industry trends.
+          <div style={{ ...LD.section, textAlign: 'left' }}>
+            <div style={{ ...LD.sectionHead, marginBottom: 14 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'var(--color-surface-secondary)',
+                border: '1px solid var(--elev-border, var(--color-border))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icons.Sparkles size={18} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  Enrichment
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500, marginTop: 2 }}>
+                  Company, news, funding, tech stack, and industry context
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16, lineHeight: 1.65 }}>
+              Run AI enrichment to fill structured insights for this lead. Results appear in the sections below.
             </div>
             <button
               onClick={handleEnrich}
-              disabled={enriching}
+              disabled={enriching || contactEnrichmentPending}
               style={{
-                padding: '14px 28px',
-                background: enriching 
-                  ? 'rgba(76, 103, 255, 0.3)' 
-                  : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                padding: '12px 20px',
+                background: enriching || contactEnrichmentPending
+                  ? 'rgba(76, 103, 255, 0.35)' 
+                  : 'var(--color-primary)',
                 color: 'white',
                 border: 'none',
-                borderRadius: 12,
-                fontSize: 15,
+                borderRadius: 10,
+                fontSize: 14,
                 fontWeight: 600,
-                cursor: enriching ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: enriching ? 'none' : '0 4px 12px rgba(76, 103, 255, 0.3)',
+                cursor: enriching || contactEnrichmentPending ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.15s ease, transform 0.15s ease',
+                boxShadow: enriching || contactEnrichmentPending ? 'none' : 'var(--elev-shadow)',
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
@@ -1356,26 +1609,31 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                 gap: 8
               }}
               onMouseEnter={(e) => {
-                if (!enriching) {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(76, 103, 255, 0.4)';
+                if (!enriching && !contactEnrichmentPending) {
+                  e.currentTarget.style.opacity = '0.92';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (!enriching) {
+                if (!enriching && !contactEnrichmentPending) {
+                  e.currentTarget.style.opacity = '1';
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(76, 103, 255, 0.3)';
                 }
               }}
             >
-              {enriching ? (
+              {contactEnrichmentPending ? (
                 <>
-                  <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span>
-                  <span>Enriching Lead...</span>
+                  <Icons.Loader size={18} strokeWidth={1.5} className="animate-spin" style={{ color: '#fff' }} />
+                  <span>Updating from table…</span>
+                </>
+              ) : enriching ? (
+                <>
+                  <Icons.Loader size={18} strokeWidth={1.5} className="animate-spin" style={{ color: '#fff' }} />
+                  <span>Enriching lead…</span>
                 </>
               ) : (
                 <>
-                  <span>✨</span>
+                  <Icons.Sparkles size={18} strokeWidth={1.5} style={{ color: '#fff' }} />
                   <span>Enrich Lead</span>
                 </>
               )}
@@ -1385,21 +1643,15 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Raw Tavily Company Insights (from lead generation) */}
         {hasRawTavilyCompany && !hasStructuredCompany && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.08) 0%, rgba(169, 76, 255, 0.08) 100%)',
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(76, 103, 255, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{ fontSize: 24 }}>🏢</span>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Company Insights</h3>
+          <div style={LD.section}>
+            <div style={LD.sectionHead}>
+              <Icons.Briefcase size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Company insights</h3>
             </div>
 
             {/* AI Answer */}
             {companyInsights.answer && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12 }}>
+              <div style={{ ...LD.nested }}>
                 <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600 }}>Summary</div>
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--color-text)' }}>
                   {companyInsights.answer}
@@ -1411,7 +1663,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {companyInsights.results && companyInsights.results.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>📰</span>
+                  <Icons.FileText size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Research Results</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1424,29 +1676,27 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       style={{
                         display: 'block',
                         padding: '12px 16px',
-                        background: 'rgba(255, 255, 255, 0.06)',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 12,
                         textDecoration: 'none',
                         color: 'var(--color-text)',
                         fontSize: 13,
                         transition: 'all 0.2s ease',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        border: '1px solid var(--elev-border, var(--color-border))'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(76, 103, 255, 0.2)';
-                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.4)';
-                        e.currentTarget.style.transform = 'translateX(4px)';
+                        e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
+                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.35)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.transform = 'translateX(0)';
+                        e.currentTarget.style.background = 'var(--color-surface-secondary)';
+                        e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                       }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 14 }}>🔗</span>
+                        <Icons.ExternalLink size={14} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                         {result.title}
-                        <span style={{ fontSize: 10, marginLeft: 'auto' }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ marginLeft: 'auto', color: 'var(--color-text-muted)', flexShrink: 0 }} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
                         {result.content?.substring(0, 200)}...
@@ -1461,21 +1711,15 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Raw Tavily Person Insights (from lead generation) */}
         {hasRawTavilyPerson && !hasStructuredPerson && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, rgba(169, 76, 255, 0.08) 0%, rgba(76, 103, 255, 0.08) 100%)',
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(169, 76, 255, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{ fontSize: 24 }}>👤</span>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Person Insights</h3>
+          <div style={LD.section}>
+            <div style={LD.sectionHead}>
+              <Icons.User size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Person insights</h3>
             </div>
 
             {/* AI Answer */}
             {personInsights.answer && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12 }}>
+              <div style={{ ...LD.nested }}>
                 <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600 }}>Summary</div>
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--color-text)' }}>
                   {personInsights.answer}
@@ -1487,7 +1731,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {personInsights.results && personInsights.results.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>🔍</span>
+                  <Icons.Search size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Research Results</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1500,23 +1744,21 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       style={{
                         display: 'block',
                         padding: '12px 16px',
-                        background: 'rgba(255, 255, 255, 0.06)',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 12,
                         textDecoration: 'none',
                         color: 'var(--color-text)',
                         fontSize: 13,
                         transition: 'all 0.2s ease',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        border: '1px solid var(--elev-border, var(--color-border))'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(169, 76, 255, 0.2)';
-                        e.currentTarget.style.borderColor = 'rgba(169, 76, 255, 0.4)';
-                        e.currentTarget.style.transform = 'translateX(4px)';
+                        e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
+                        e.currentTarget.style.borderColor = 'rgba(169, 76, 255, 0.35)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.transform = 'translateX(0)';
+                        e.currentTarget.style.background = 'var(--color-surface-secondary)';
+                        e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                       }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14 }}>{result.title}</div>
@@ -1533,21 +1775,15 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Tavily Web Insights - Company Section */}
         {companyInsights.company_info && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.08) 0%, rgba(169, 76, 255, 0.08) 100%)',
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(76, 103, 255, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{ fontSize: 24 }}>🏢</span>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Company Insights</h3>
+          <div style={LD.section}>
+            <div style={LD.sectionHead}>
+              <Icons.Briefcase size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Company insights</h3>
             </div>
 
             {/* Company Description */}
             {companyInsights.company_info.description && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12 }}>
+              <div style={{ ...LD.nested }}>
                 <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600 }}>Description</div>
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--color-text)' }}>
                   {companyInsights.company_info.description}
@@ -1559,7 +1795,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {companyInsights.recent_news && companyInsights.recent_news.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>📰</span>
+                  <Icons.FileText size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Recent News</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1572,29 +1808,27 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       style={{
                         display: 'block',
                         padding: '12px 16px',
-                        background: 'rgba(255, 255, 255, 0.06)',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 12,
                         textDecoration: 'none',
                         color: 'var(--color-text)',
                         fontSize: 13,
                         transition: 'all 0.2s ease',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        border: '1px solid var(--elev-border, var(--color-border))'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(76, 103, 255, 0.2)';
-                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.4)';
-                        e.currentTarget.style.transform = 'translateX(4px)';
+                        e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
+                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.35)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.transform = 'translateX(0)';
+                        e.currentTarget.style.background = 'var(--color-surface-secondary)';
+                        e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                       }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 14 }}>📰</span>
+                        <Icons.FileText size={14} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                         {news.title}
-                        <span style={{ fontSize: 10, marginLeft: 'auto' }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ marginLeft: 'auto', color: 'var(--color-text-muted)', flexShrink: 0 }} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
                         {news.snippet || news.title || 'Recent company news'}
@@ -1610,9 +1844,10 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
               <div style={{ 
                 marginBottom: 16,
                 padding: '16px 18px',
-                background: 'rgba(78, 205, 196, 0.12)',
+                background: 'var(--color-surface-secondary)',
                 borderRadius: 12,
-                border: '1px solid rgba(78, 205, 196, 0.3)'
+                border: '1px solid var(--elev-border, var(--color-border))',
+                borderLeft: '3px solid #4ecdc4',
               }}>
                 <div style={{ 
                   fontSize: 13, 
@@ -1624,7 +1859,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                   gap: 8,
                   lineHeight: 1.4
                 }}>
-                  <span style={{ fontSize: 18 }}>💰</span>
+                  <Icons.TrendingUp size={18} strokeWidth={1.5} style={{ color: '#4ecdc4', flexShrink: 0 }} />
                   <span>Funding Information</span>
                 </div>
                 <div style={{ 
@@ -1654,9 +1889,9 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       marginTop: 4
                     }}
                   >
-                    <span>🔗</span>
+                    <Icons.ExternalLink size={14} strokeWidth={1.5} style={{ flexShrink: 0 }} />
                     View Source
-                    <span style={{ fontSize: 10 }}>↗</span>
+                    <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ opacity: 0.8 }} />
                   </a>
                 )}
               </div>
@@ -1666,7 +1901,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {companyInsights.company_info.tech_stack && companyInsights.company_info.tech_stack.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>⚙️</span>
+                  <Icons.Settings size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Tech Stack</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1674,13 +1909,13 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     <span 
                       key={idx}
                       style={{
-                        padding: '6px 12px',
-                        background: 'rgba(76, 103, 255, 0.2)',
+                        padding: '5px 11px',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 8,
                         fontSize: 12,
                         fontWeight: 600,
-                        color: '#4C67FF',
-                        border: '1px solid rgba(76, 103, 255, 0.3)'
+                        color: 'var(--color-text)',
+                        border: '1px solid var(--elev-border, var(--color-border))'
                       }}
                     >
                       {tech}
@@ -1694,7 +1929,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {companyInsights.sources && companyInsights.sources.length > 0 && (
               <div>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>🔗</span>
+                  <Icons.ExternalLink size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Sources</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1706,28 +1941,31 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       rel="noopener noreferrer"
                       style={{
                         fontSize: 12,
-                        color: '#4C67FF',
+                        color: 'var(--color-primary)',
                         textDecoration: 'none',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 8,
-                        padding: '6px 10px',
+                        padding: '8px 10px',
                         borderRadius: 8,
-                        background: 'rgba(76, 103, 255, 0.1)',
-                        transition: 'all 0.2s ease'
+                        background: 'var(--color-surface-secondary)',
+                        border: '1px solid var(--elev-border, var(--color-border))',
+                        transition: 'background 0.15s ease, border-color 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(76, 103, 255, 0.2)';
+                        e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
+                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(76, 103, 255, 0.1)';
+                        e.currentTarget.style.background = 'var(--color-surface-secondary)';
+                        e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                       }}
                     >
-                      <span>🔗</span>
+                      <Icons.ExternalLink size={14} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-primary)' }} />
                       <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>
                         {source.title || source.url}
                       </span>
-                      <span style={{ fontSize: 10 }}>↗</span>
+                      <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                     </a>
                   ))}
                 </div>
@@ -1738,21 +1976,15 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Tavily Person Insights */}
         {personInsights.person_info && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, rgba(169, 76, 255, 0.08) 0%, rgba(76, 103, 255, 0.08) 100%)',
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(169, 76, 255, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{ fontSize: 24 }}>👤</span>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Person Insights</h3>
+          <div style={LD.section}>
+            <div style={LD.sectionHead}>
+              <Icons.User size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Person insights</h3>
             </div>
 
             {/* Bio */}
             {personInsights.person_info.bio && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12 }}>
+              <div style={{ ...LD.nested }}>
                 <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600 }}>Bio</div>
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--color-text)' }}>
                   {personInsights.person_info.bio}
@@ -1764,7 +1996,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {personInsights.recent_activity && personInsights.recent_activity.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>📱</span>
+                  <Icons.Radio size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Recent Activity</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1779,31 +2011,37 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                         alignItems: 'center',
                         gap: 12,
                         padding: '12px 16px',
-                        background: 'rgba(255, 255, 255, 0.06)',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 12,
                         textDecoration: 'none',
                         color: 'var(--color-text)',
                         fontSize: 13,
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        border: '1px solid var(--elev-border, var(--color-border))',
                         transition: 'all 0.2s ease'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(169, 76, 255, 0.2)';
-                        e.currentTarget.style.borderColor = 'rgba(169, 76, 255, 0.4)';
+                        e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
+                        e.currentTarget.style.borderColor = 'rgba(169, 76, 255, 0.35)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.background = 'var(--color-surface-secondary)';
+                        e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                       }}
                     >
-                      <span style={{ fontSize: 20 }}>
-                        {activity.platform === 'LinkedIn' ? '💼' : activity.platform === 'Twitter' ? '🐦' : '💻'}
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28 }}>
+                        {activity.platform === 'LinkedIn' ? (
+                          <Icons.Briefcase size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
+                        ) : activity.platform === 'Twitter' ? (
+                          <Icons.MessageCircle size={20} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+                        ) : (
+                          <Icons.Radio size={20} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+                        )}
                       </span>
                       <span style={{ fontWeight: 600, minWidth: 80 }}>{activity.platform}</span>
                       <span style={{ color: 'var(--color-text-muted)', flex: 1, fontSize: 12, lineHeight: 1.4 }}>
                         {activity.snippet || activity.title || `Check out this ${activity.platform} activity`}
                       </span>
-                      <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>↗</span>
+                      <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                     </a>
                   ))}
                 </div>
@@ -1814,7 +2052,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
             {personInsights.person_info.expertise && personInsights.person_info.expertise.length > 0 && (
               <div>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>🎯</span>
+                  <Icons.Target size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
                   <span>Expertise</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1822,13 +2060,13 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     <span 
                       key={idx}
                       style={{
-                        padding: '6px 12px',
-                        background: 'rgba(169, 76, 255, 0.2)',
+                        padding: '5px 11px',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 8,
                         fontSize: 12,
                         fontWeight: 600,
-                        color: '#A94CFF',
-                        border: '1px solid rgba(169, 76, 255, 0.3)'
+                        color: 'var(--color-text)',
+                        border: '1px solid var(--elev-border, var(--color-border))'
                       }}
                     >
                       {exp}
@@ -1842,19 +2080,13 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Industry Trends */}
         {industryInsights.industry_trends && (
-          <div style={{ 
-            background: 'rgba(255, 167, 38, 0.1)',
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(255, 167, 38, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{ fontSize: 24 }}>📊</span>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Industry Trends</h3>
+          <div style={LD.section}>
+            <div style={LD.sectionHead}>
+              <Icons.Chart size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Industry trends</h3>
             </div>
             {industryInsights.industry_trends.insights && (
-              <div style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 16, padding: 12, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, color: 'var(--color-text)' }}>
+              <div style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 16, ...LD.nested, color: 'var(--color-text)' }}>
                 {industryInsights.industry_trends.insights}
               </div>
             )}
@@ -1871,27 +2103,27 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       style={{
                         display: 'block',
                         padding: '12px 16px',
-                        background: 'rgba(255, 255, 255, 0.06)',
+                        background: 'var(--color-surface-secondary)',
                         borderRadius: 12,
                         textDecoration: 'none',
                         color: 'var(--color-text)',
                         fontSize: 13,
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        border: '1px solid var(--elev-border, var(--color-border))',
                         transition: 'all 0.2s ease'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 167, 38, 0.2)';
+                        e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
                         e.currentTarget.style.borderColor = 'rgba(255, 167, 38, 0.4)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.background = 'var(--color-surface-secondary)';
+                        e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
                       }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 14 }}>📊</span>
+                        <Icons.Chart size={14} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                         {trend.title}
-                        <span style={{ fontSize: 10, marginLeft: 'auto' }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ marginLeft: 'auto', color: 'var(--color-text-muted)', flexShrink: 0 }} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
                         {trend.insight || trend.title || 'Industry trend information'}
@@ -1906,21 +2138,15 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Social Profiles & Additional Info (from Apollo enrichment) */}
         {enrichment.apollo_data && (enrichment.apollo_data.linkedin_url || enrichment.apollo_data.twitter_url || enrichment.apollo_data.github_url || enrichment.apollo_data.facebook_url || enrichment.apollo_data.title || enrichment.apollo_data.headline) && (
-          <div style={{ 
-            background: 'rgba(169, 76, 255, 0.05)', 
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(169, 76, 255, 0.2)'
-          }}>
-            <div style={{ fontSize: 14, color: 'var(--color-text)', marginBottom: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 20 }}>🔗</span>
-              <span>Social Profiles & Additional Info</span>
+          <div style={LD.section}>
+            <div style={{ ...LD.sectionHead, marginBottom: 14 }}>
+              <Icons.Share size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Social profiles</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               {/* Social Media Links */}
               {(enrichment.apollo_data.linkedin_url || enrichment.apollo_data.twitter_url || enrichment.apollo_data.github_url || enrichment.apollo_data.facebook_url) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 12, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 12, borderBottom: '1px solid var(--elev-border, var(--color-border))' }}>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 600 }}>Social Profiles</div>
                   {enrichment.apollo_data.linkedin_url && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1929,7 +2155,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       </svg>
                       <a href={enrichment.apollo_data.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>LinkedIn</span>
-                        <span style={{ fontSize: 12, flexShrink: 0 }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                       </a>
                     </div>
                   )}
@@ -1940,7 +2166,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       </svg>
                       <a href={enrichment.apollo_data.twitter_url} target="_blank" rel="noopener noreferrer" style={{ color: '#1DA1F2', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                         <span>Twitter</span>
-                        <span style={{ fontSize: 12 }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                       </a>
                     </div>
                   )}
@@ -1951,7 +2177,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       </svg>
                       <a href={enrichment.apollo_data.github_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                         <span>GitHub</span>
-                        <span style={{ fontSize: 12 }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                       </a>
                     </div>
                   )}
@@ -1962,7 +2188,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                       </svg>
                       <a href={enrichment.apollo_data.facebook_url} target="_blank" rel="noopener noreferrer" style={{ color: '#1877F2', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                         <span>Facebook</span>
-                        <span style={{ fontSize: 12 }}>↗</span>
+                        <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                       </a>
                     </div>
                   )}
@@ -1970,14 +2196,14 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
               )}
               {enrichment.apollo_data.title && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>💼</span>
+                  <Icons.Briefcase size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Title:</strong>
                   <span style={{ flex: 1 }}>{enrichment.apollo_data.title}</span>
                 </div>
               )}
               {enrichment.apollo_data.headline && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>📝</span>
+                  <Icons.FileText size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Headline:</strong>
                   <span style={{ flex: 1, lineHeight: 1.5 }}>{enrichment.apollo_data.headline}</span>
                 </div>
@@ -1988,34 +2214,28 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Company Information */}
         {(companyData.name || companyData.website || companyData.linkedin_url || companyData.employees || enrichment.apollo_data?.organization) && (
-          <div style={{ 
-            background: 'rgba(76, 103, 255, 0.05)', 
-            borderRadius: 16, 
-            padding: 20, 
-            marginBottom: 20,
-            border: '1px solid rgba(76, 103, 255, 0.2)'
-          }}>
-            <div style={{ fontSize: 14, color: 'var(--color-text)', marginBottom: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 20 }}>🏢</span>
-              <span>Company Information</span>
+          <div style={LD.section}>
+            <div style={{ ...LD.sectionHead, marginBottom: 14 }}>
+              <Icons.Briefcase size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Company directory</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               {(companyData.name || enrichment.apollo_data?.organization?.name) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>🏢</span>
+                  <Icons.Briefcase size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Company:</strong>
                   <span style={{ flex: 1, fontWeight: 600 }}>{companyData.name || enrichment.apollo_data?.organization?.name}</span>
                 </div>
               )}
               {(companyData.website || enrichment.apollo_data?.organization?.website_url) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>🌐</span>
+                  <Icons.ExternalLink size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Website:</strong>
                   <a href={companyData.website || enrichment.apollo_data?.organization?.website_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4C67FF', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {companyData.website || enrichment.apollo_data?.organization?.website_url}
                     </span>
-                    <span style={{ fontSize: 12, flexShrink: 0 }}>↗</span>
+                    <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                   </a>
                 </div>
               )}
@@ -2026,27 +2246,27 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                   </svg>
                   <a href={companyData.linkedin_url || enrichment.apollo_data?.organization?.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>View Company Profile</span>
-                    <span style={{ fontSize: 12, flexShrink: 0 }}>↗</span>
+                    <Icons.ExternalLink size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: 'var(--color-text-muted)' }} />
                   </a>
                 </div>
               )}
               {(companyData.employees || enrichment.apollo_data?.organization?.estimated_num_employees) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>👥</span>
+                  <Icons.Users size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Employees:</strong>
                   <span style={{ flex: 1 }}>{companyData.employees || enrichment.apollo_data?.organization?.estimated_num_employees}</span>
                 </div>
               )}
               {(enrichment.apollo_data?.organization?.phone || companyData.phone) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>📞</span>
+                  <Icons.Phone size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Phone:</strong>
                   <span style={{ flex: 1 }}>{enrichment.apollo_data?.organization?.phone || companyData.phone}</span>
                 </div>
               )}
               {enrichment.apollo_data?.organization?.industry && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>🏭</span>
+                  <Icons.Briefcase size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Industry:</strong>
                   <span style={{ flex: 1 }}>{enrichment.apollo_data.organization.industry}</span>
                 </div>
@@ -2057,19 +2277,13 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
 
         {/* Enrichment Purpose */}
         {enrichment.purpose && (
-          <div style={{ 
-            background: 'rgba(76, 103, 255, 0.08)', 
-            borderRadius: 12, 
-            padding: 16, 
-            marginBottom: 20,
-            border: '1px solid rgba(76, 103, 255, 0.2)'
-          }}>
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>🎯</span>
-              <span>Enrichment Purpose</span>
+          <div style={{ ...LD.section, padding: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icons.Target size={14} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+              <span>Enrichment purpose</span>
             </div>
-            <div style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--color-text)', lineHeight: 1.6 }}>
-              "{enrichment.purpose}"
+            <div style={{ fontSize: 13, color: 'var(--color-text)', lineHeight: 1.65, fontWeight: 500 }}>
+              {enrichment.purpose}
             </div>
           </div>
         )}
@@ -2087,7 +2301,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
                     fontSize: 12, 
                     padding: '6px 12px',
                     background: 'rgba(76, 103, 255, 0.15)',
-                    border: '1px solid rgba(76, 103, 255, 0.3)'
+                    border: '1px solid var(--elev-border, var(--color-border))'
                   }}
                 >
                   {typeof value === 'string' ? value : key}
@@ -2097,13 +2311,7 @@ export default function LeadDrawer({ lead, onClose, onEnrich }: { lead: any; onC
         </div>
         )}
 
-        {/* Animation styles */}
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}} />
+        </div>
       </div>
     </div>
   );

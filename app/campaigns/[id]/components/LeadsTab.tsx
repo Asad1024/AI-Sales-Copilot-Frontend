@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { getEmailInfo, getEmailDisplayText, isMaskedEmail } from "@/utils/emailNormalization";
 
 interface Campaign {
@@ -69,9 +70,16 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
       </div>
 
       {loadingLeads ? (
-        <div style={{ textAlign: 'center', padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <Icons.Loader size={32} style={{ animation: 'spin 1s linear infinite', color: '#4C67FF' }} />
-          <div style={{ fontSize: 14, color: '#888' }}>Loading leads...</div>
+        <div
+          style={{
+            maxHeight: 600,
+            overflow: 'auto',
+            border: '1px solid var(--elev-border)',
+            borderRadius: 12,
+            background: 'var(--elev-bg)',
+          }}
+        >
+          <TableSkeleton columns={7} rows={8} withCard={false} ariaLabel="Loading campaign leads" />
         </div>
       ) : displayLeads.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>

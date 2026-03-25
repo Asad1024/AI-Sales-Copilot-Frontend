@@ -1,24 +1,27 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSocket } from "@/hooks/useSocket";
-import { CampaignHeader } from "./components/CampaignHeader";
+import { Icons } from "@/components/ui/Icons";
+import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
+import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { CampaignStats } from "./components/CampaignStats";
 import { CampaignGrid } from "./components/CampaignGrid";
 import { TierBreakdown } from "./components/TierBreakdown";
-
 export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId } = useBaseStore();
   const { 
-    campaigns, 
     loading, 
     fetchCampaigns, 
+    filters,
+    setFilters,
     getFilteredCampaigns,
     refreshCampaign 
   } = useCampaignStore();
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   
   const socket = useSocket();
 
@@ -52,14 +55,105 @@ export default function CampaignsPage() {
   const filteredCampaigns = getFilteredCampaigns();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <CampaignHeader />
+    <div style={{
+      minHeight: "calc(100vh - 56px)",
+      width: "100%",
+      background: "var(--color-canvas)",
+      display: "flex",
+      flexDirection: "column",
+      padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+      gap: 12,
+      boxSizing: "border-box",
+    }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: 16,
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 260, flexWrap: "wrap" }}>
+          <ToolbarSearchField
+            variant="minimal"
+            value={filters.search}
+            onChange={(v) => setFilters({ search: v })}
+            placeholder="Search campaigns"
+            style={{ minWidth: 260, maxWidth: 640, flex: 1 }}
+            aria-label="Search campaigns"
+          />
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <ToolbarFilterButton variant="minimal" open={showFilterMenu} onClick={() => setShowFilterMenu((v) => !v)} />
+            {showFilterMenu && (
+              <div
+                style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                onClick={() => setShowFilterMenu(false)}
+                aria-hidden="true"
+              />
+            )}
+            {showFilterMenu && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  left: 0,
+                  minWidth: 190,
+                  zIndex: 100,
+                  borderRadius: 10,
+                  border: "1px solid var(--elev-border)",
+                  background: "var(--elev-bg)",
+                  boxShadow: "var(--elev-shadow-lg)",
+                  padding: 6,
+                }}
+              >
+                {[
+                  { id: "all", label: "All Status" },
+                  { id: "running", label: "Running" },
+                  { id: "paused", label: "Paused" },
+                  { id: "draft", label: "Draft" },
+                  { id: "completed", label: "Completed" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setFilters({ status: item.id as "all" | "running" | "paused" | "draft" | "completed" });
+                      setShowFilterMenu(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      border: "none",
+                      background: filters.status === item.id ? "rgba(76,103,255,0.12)" : "transparent",
+                      color: "var(--color-text)",
+                      padding: "9px 10px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    {filters.status === item.id && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#818cf8" }} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <button type="button" className="btn-dashboard-outline" onClick={() => router.push("/campaigns/new")}>
+          <Icons.Plus size={16} strokeWidth={1.5} />
+          Create Campaign
+        </button>
+      </div>
       <CampaignStats />
       <TierBreakdown />
-      <CampaignGrid 
-        campaigns={filteredCampaigns}
-        loading={loading}
-      />
+      <CampaignGrid campaigns={filteredCampaigns} loading={Boolean(activeBaseId && loading)} />
     </div>
   );
 }

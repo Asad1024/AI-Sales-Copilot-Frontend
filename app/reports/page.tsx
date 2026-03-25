@@ -4,6 +4,7 @@ import { StatCard, ProgressBar, CircularProgress } from "@/components/ui/DataVis
 import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { Icons } from "@/components/ui/Icons";
+import BaseCard from "@/components/ui/BaseCard";
 
 // Enhanced Line Chart Component for trends with better context
 const LineChart = ({ 
@@ -382,34 +383,14 @@ export default function ReportsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header */}
-      <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: 16,
-        padding: '24px 28px',
-        border: '1px solid var(--color-border)',
+      <BaseCard style={{
+        padding: '20px 24px',
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
         flexWrap: 'wrap',
         gap: 16
       }}>
-        <div>
-          <h1 style={{ 
-            fontSize: 24, 
-            fontWeight: 700, 
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10
-          }}>
-            <Icons.Chart size={22} style={{ color: '#4C67FF' }} />
-            Sales Analytics
-          </h1>
-          <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: '6px 0 0 0' }}>
-            Key metrics and trends for your sales pipeline
-          </p>
-        </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {periods.map((period) => (
@@ -449,7 +430,7 @@ export default function ReportsPage() {
             </div>
           )}
         </div>
-      </div>
+      </BaseCard>
 
       {error && (
         <div style={{
@@ -518,12 +499,7 @@ export default function ReportsPage() {
           {/* Charts Row 1 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
             {/* Lead Trends */}
-            <div style={{
-              background: 'var(--color-surface)',
-              borderRadius: 14,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
+            <BaseCard style={{ padding: 24 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.TrendingUp size={18} style={{ color: '#4C67FF' }} />
                 Lead Acquisition Trend
@@ -553,15 +529,10 @@ export default function ReportsPage() {
                   <div style={{ fontSize: 12, marginTop: 4 }}>Add leads to see your growth trend</div>
                 </div>
               )}
-            </div>
+            </BaseCard>
 
             {/* Conversion Funnel */}
-            <div style={{
-              background: 'var(--color-surface)',
-              borderRadius: 14,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
+            <BaseCard style={{ padding: 24 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Target size={18} style={{ color: '#A94CFF' }} />
                 Conversion Funnel
@@ -573,7 +544,7 @@ export default function ReportsPage() {
                   No funnel data available
                 </div>
               )}
-            </div>
+            </BaseCard>
           </div>
 
           {/* Charts Row 2 */}

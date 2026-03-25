@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { useNotification } from "@/context/NotificationContext";
 
 interface NumberCellProps {
   value: any;
@@ -10,6 +11,7 @@ interface NumberCellProps {
 }
 
 export function NumberCell({ value, onUpdate, editable = true, min, max }: NumberCellProps) {
+  const { showWarning } = useNotification();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value || ""));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,11 +31,11 @@ export function NumberCell({ value, onUpdate, editable = true, min, max }: Numbe
     const numValue = editValue === "" ? null : parseFloat(editValue);
     if (numValue !== null && !isNaN(numValue)) {
       if (min !== undefined && numValue < min) {
-        alert(`Value must be at least ${min}`);
+        showWarning('Invalid value', `Value must be at least ${min}.`);
         return;
       }
       if (max !== undefined && numValue > max) {
-        alert(`Value must be at most ${max}`);
+        showWarning('Invalid value', `Value must be at most ${max}.`);
         return;
       }
       if (numValue !== value) {

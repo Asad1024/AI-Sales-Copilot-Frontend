@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAIPlan } from "@/lib/flowClient";
+import { useNotification } from "@/context/NotificationContext";
 
 export default function NewGoalPage() {
+  const { showError } = useNotification();
   const [goal, setGoal] = useState("Get 30 demos with UAE real estate founders in 30 days.");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function NewGoalPage() {
       router.push("/flow/plan");
     } catch (error) {
       console.error("Failed to create AI plan:", error);
-      alert("Failed to create AI plan. Please try again.");
+      showError("Plan creation failed", "Failed to create AI plan. Please try again.");
     } finally {
       setLoading(false);
     }

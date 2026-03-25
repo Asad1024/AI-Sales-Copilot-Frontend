@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
+import { Icons } from "@/components/ui/Icons";
 
 type CsvImportModalProps = {
   open: boolean;
@@ -306,8 +307,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
       style={{ 
         position:'fixed', 
         inset:0, 
-        background:'rgba(0,0,0,.6)', 
-        backdropFilter: 'blur(4px)',
+        background:'rgba(0,0,0,.55)', 
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         zIndex:1000, 
         display:'flex', 
         alignItems:'center', 
@@ -324,37 +326,71 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
         width:'min(900px, 96vw)', 
         maxWidth: '96vw',
         maxHeight: '90vh',
-        background:'var(--elev-bg)', 
-        border:'1px solid var(--elev-border)', 
+        background:'var(--color-surface)', 
+        border:'1px solid var(--color-border)', 
         borderRadius:16, 
-        padding:24,
+        padding:0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        boxShadow: '0 24px 64px var(--color-shadow)'
       }}>
-        {/* Header - Fixed */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, flexShrink: 0 }}>
-          <div>
-            <h3 style={{ margin:0, fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              📥 Import CSV to Base
-            </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: 'var(--color-text-muted)' }}>
-              Upload your CSV file and we'll automatically detect and map the columns
-            </p>
+        <div style={{
+          padding: '18px 20px',
+          borderBottom: '1px solid var(--color-border)',
+          background: 'var(--color-surface-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: 'rgba(76, 103, 255, 0.14)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Icons.Upload size={20} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                Import CSV
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                Upload a file — we&apos;ll suggest column mappings you can adjust before importing.
+              </p>
+            </div>
           </div>
           <button 
-            className="btn-ghost" 
+            type="button"
             onClick={onClose}
+            aria-label="Close"
             style={{ 
-              padding: '8px 12px',
-              fontSize: 14,
-              minWidth: 'auto'
+              width: 36,
+              height: 36,
+              padding: 0,
+              borderRadius: 10,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            ✕
+            <Icons.X size={18} strokeWidth={1.5} />
           </button>
         </div>
+
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
         {/* Scrollable Content */}
         <div style={{ 
@@ -368,9 +404,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
           <div style={{ 
             marginBottom: 20,
             padding: 20,
-            background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.05) 0%, rgba(169, 76, 255, 0.05) 100%)',
+            background: 'var(--color-surface-secondary)',
             borderRadius: 12,
-            border: '2px dashed rgba(76, 103, 255, 0.3)',
+            border: '1px dashed var(--color-border)',
             textAlign: 'center',
             transition: 'all 0.3s ease'
           }}>
@@ -388,9 +424,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
             <label style={{ 
               display: 'inline-block',
               padding: '10px 20px',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-              color: '#000',
-              borderRadius: 8,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              borderRadius: 10,
               fontSize: 14,
               fontWeight: 600,
               cursor: 'pointer',
@@ -437,9 +473,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
           {importProgress?.isImporting && (
             <div style={{ 
               padding: 20, 
-              background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)', 
+              background: 'var(--color-surface-secondary)', 
               borderRadius: 12, 
-              border: '1px solid rgba(76, 103, 255, 0.3)',
+              border: '1px solid var(--color-border)',
               marginBottom: 16
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 12 }}>
@@ -453,7 +489,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#4C67FF' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-primary)' }}>
                     {Math.round((importProgress.current / importProgress.total) * 100)}%
                   </div>
                   {onCancel && (
@@ -496,12 +532,12 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                 <div style={{
                   width: `${(importProgress.current / importProgress.total) * 100}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #4C67FF 0%, #A94CFF 100%)',
+                  background: 'var(--color-primary)',
                   borderRadius: 5,
                   transition: 'width 0.3s ease',
                   position: 'relative',
                   overflow: 'hidden',
-                  boxShadow: '0 0 10px rgba(76, 103, 255, 0.5)'
+                  boxShadow: '0 0 0 1px rgba(255,255,255,0.08) inset'
                 }}>
                   <div style={{
                     position: 'absolute',
@@ -551,9 +587,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
               <div style={{ 
                 marginBottom: 20,
                 padding: 16,
-                background: 'rgba(76, 103, 255, 0.05)',
+                background: 'var(--color-surface-secondary)',
                 borderRadius: 12,
-                border: '1px solid rgba(76, 103, 255, 0.2)'
+                border: '1px solid var(--color-border)'
               }}>
                 <h4 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span>📊</span> AI Detected Field Mappings
@@ -580,9 +616,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                           flexDirection: 'column',
                           gap: 8,
                           padding: '12px', 
-                          background: detectedField ? 'rgba(76, 103, 255, 0.1)' : 'var(--color-surface)', 
+                          background: detectedField ? 'rgba(76, 103, 255, 0.08)' : 'var(--color-surface)', 
                           borderRadius: 8,
-                          border: detectedField ? '1px solid rgba(76, 103, 255, 0.3)' : '1px solid var(--color-border)'
+                          border: detectedField ? '1px solid var(--color-primary)' : '1px solid var(--color-border)'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -631,7 +667,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                         {detectedField && (
                           <div style={{ 
                             fontSize: 11, 
-                            color: '#4C67FF',
+                            color: 'var(--color-primary)',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 4
@@ -662,7 +698,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                         <>
                           {mappedRows.length} of {rawRows.length} rows will be imported
                           {mappedRows.length < rawRows.length && (
-                            <span style={{ color: '#4C67FF', marginLeft: 4 }}>
+                            <span style={{ color: 'var(--color-primary)', marginLeft: 4 }}>
                               (limited to first {importLimit})
                             </span>
                           )}
@@ -871,9 +907,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                   padding: '10px 24px', 
                   fontSize: 14,
                   fontWeight: 600,
-                  background: importProgress?.isImporting 
+                  background: importProgress?.isImporting
                     ? 'var(--color-surface-secondary)' 
-                    : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                    : 'var(--color-primary)',
                   opacity: importProgress?.isImporting ? 0.6 : 1,
                   cursor: importProgress?.isImporting ? 'not-allowed' : 'pointer'
                 }}
@@ -888,6 +924,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -428,7 +428,7 @@ export default function LandingPage() {
   return (
     <div className="landing-page">
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
         .landing-page {
           --gradient-primary: linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%);
@@ -436,7 +436,7 @@ export default function LandingPage() {
           --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
           --glass-bg: rgba(255, 255, 255, 0.03);
           --glass-border: rgba(255, 255, 255, 0.08);
-          font-family: 'Outfit', sans-serif;
+          font-family: 'Inter', sans-serif;
           background: #050508;
           color: #fff;
           overflow-x: hidden;
@@ -754,7 +754,7 @@ export default function LandingPage() {
           font-size: 24px;
           font-weight: 700;
           color: #fff;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: 'Inter', sans-serif;
         }
 
         /* Video Section */

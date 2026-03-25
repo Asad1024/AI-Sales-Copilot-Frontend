@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useNotification } from "@/context/NotificationContext";
 
 export default function ContactPage() {
+  const { showSuccess } = useNotification();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -13,7 +15,7 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Send to API
-    alert('Thank you for your message! We\'ll get back to you soon.');
+    showSuccess('Message sent', "Thank you for your message! We'll get back to you soon.");
     setFormData({ name: '', email: '', company: '', message: '' });
   };
 

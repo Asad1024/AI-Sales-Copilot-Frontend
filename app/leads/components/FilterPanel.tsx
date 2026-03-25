@@ -35,7 +35,7 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
         boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
         padding: "16px",
         minWidth: "300px",
-        zIndex: 1001,
+        zIndex: 5000,
       }}
     >
       <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "12px" }}>Filters</div>

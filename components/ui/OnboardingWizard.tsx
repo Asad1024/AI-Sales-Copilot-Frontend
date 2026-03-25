@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useBase } from '@/context/BaseContext';
 import { apiRequest } from '@/lib/apiClient';
 import { Icons } from './Icons';
+import { useNotification } from '@/context/NotificationContext';
 
 interface OnboardingWizardProps {
   onComplete?: () => void;
@@ -13,6 +14,7 @@ type WizardStep = 'base' | 'leads' | 'enrich' | 'campaign';
 
 const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
   const router = useRouter();
+  const { showError } = useNotification();
   const { bases, activeBaseId, refreshBases } = useBase();
   const [currentStep, setCurrentStep] = useState<WizardStep>('base');
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
       }, 500);
     } catch (error: any) {
       console.error('Failed to create base:', error);
-      alert(error.message || 'Failed to create base. Please try again.');
+      showError('Create failed', error.message || 'Failed to create base. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -130,13 +132,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
 
   return (
     <div className="card-enhanced" style={{
-      marginBottom: '32px',
-      padding: '32px',
-      borderRadius: '20px',
-      border: '2px solid rgba(76, 103, 255, 0.2)',
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.05) 0%, rgba(169, 76, 255, 0.05) 100%)'
+      marginBottom: '24px',
+      padding: '20px 22px',
+      borderRadius: '14px',
+      border: '1px solid rgba(255, 255, 255, 0.12)',
+      background: 'radial-gradient(circle at center, rgba(76, 103, 255, 0.10), rgba(255, 255, 255, 0.02) 70%)'
     }}>
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <h2 style={{
           fontSize: '24px',
           fontWeight: '700',
@@ -153,12 +155,12 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
       </div>
 
       {/* Progress Steps */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', overflowX: 'auto' }}>
         {[
-          { id: 'base', label: 'Create Base', icon: '📁' },
-          { id: 'leads', label: 'Add Leads', icon: '👥' },
-          { id: 'enrich', label: 'Enrich & Score', icon: '✨' },
-          { id: 'campaign', label: 'Create Campaign', icon: '🚀' }
+          { id: 'base', label: 'Create Base', icon: <Icons.Folder size={14} /> },
+          { id: 'leads', label: 'Add Leads', icon: <Icons.Users size={14} /> },
+          { id: 'enrich', label: 'Enrich & Score', icon: <Icons.Sparkles size={14} /> },
+          { id: 'campaign', label: 'Create Campaign', icon: <Icons.Rocket size={14} /> }
         ].map((step, index) => {
           const stepId = step.id as WizardStep;
           const isActive = currentStep === stepId;
@@ -169,52 +171,47 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
             (stepId === 'campaign' && campaignsCount > 0);
           
           return (
-            <div key={stepId} style={{
-              flex: 1,
-              minWidth: '120px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '16px',
-              borderRadius: '12px',
-              background: isActive 
-                ? 'linear-gradient(135deg, rgba(76, 103, 255, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)'
-                : isCompleted
-                ? 'rgba(76, 103, 255, 0.1)'
-                : 'transparent',
-              border: isActive ? '2px solid #4C67FF' : '1px solid var(--color-border)',
-              position: 'relative'
-            }}>
-              <div style={{ fontSize: '24px' }}>{step.icon}</div>
+            <React.Fragment key={stepId}>
               <div style={{
-                fontSize: '12px',
-                fontWeight: isActive ? '600' : '400',
-                color: isActive ? '#4C67FF' : isCompleted ? '#4C67FF' : 'var(--color-text-muted)',
-                textAlign: 'center'
+                minWidth: '120px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px'
               }}>
-                {step.label}
-              </div>
-              {isCompleted && (
                 <div style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#4C67FF',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '999px',
+                  border: isActive ? '1.5px solid #4C67FF' : isCompleted ? '1.5px solid #10b981' : '1.5px solid var(--color-border)',
+                  background: isActive ? 'rgba(76, 103, 255, 0.14)' : isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.03)',
+                  color: isActive ? '#4C67FF' : isCompleted ? '#10b981' : 'var(--color-text-muted)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#000',
-                  fontSize: '12px',
-                  fontWeight: '700'
+                  justifyContent: 'center'
                 }}>
-                  ✓
+                  {isCompleted ? <Icons.Check size={14} /> : step.icon}
                 </div>
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: isActive ? '#4C67FF' : isCompleted ? '#10b981' : 'var(--color-text-muted)',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {step.label}
+                </div>
+              </div>
+              {index < 3 && (
+                <div style={{
+                  width: '42px',
+                  height: '2px',
+                  borderRadius: '999px',
+                  background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #4C67FF 100%)' : 'rgba(255,255,255,0.16)',
+                  marginTop: '-14px'
+                }} />
               )}
-            </div>
+            </React.Fragment>
           );
         })}
       </div>

@@ -1,6 +1,10 @@
+"use client";
+
 import { useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
+import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Template {
   id: number;
@@ -25,6 +29,8 @@ interface SequenceTabProps {
 }
 
 export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }: SequenceTabProps) {
+  const { showError, showSuccess, showWarning } = useNotification();
+  const confirm = useConfirm();
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [newStep, setNewStep] = useState({
     templateId: '',
@@ -34,14 +40,14 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
 
   const handleAddStep = async () => {
     if (!newStep.templateId) {
-      alert('Please select a template');
+      showWarning('Template required', 'Please select a template.');
       return;
     }
     
     try {
       const template = templates.find(t => t.id === Number(newStep.templateId));
       if (!template) {
-        alert('Template not found');
+        showError('Not found', 'Template not found.');
         return;
       }
       
@@ -58,15 +64,21 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
       onRefresh();
       setShowAddStepModal(false);
       setNewStep({ templateId: '', delay: 1, channel: 'email' });
-      alert('Step added successfully');
+      showSuccess('Step added', 'Sequence step saved.');
     } catch (error: any) {
       console.error('Failed to add step:', error);
-      alert(error?.message || 'Failed to add step');
+      showError('Add failed', error?.message || 'Failed to add step');
     }
   };
 
   const handleDeleteStep = async (stepId: number) => {
-    if (!confirm('Delete this sequence step?')) return;
+    const ok = await confirm({
+      title: "Delete step?",
+      message: "Remove this sequence step from the campaign?",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
     
     try {
       await apiRequest(`/campaigns/${campaignId}/templates/${stepId}`, {
@@ -74,10 +86,10 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
       });
       
       onRefresh();
-      alert('Step deleted successfully');
+      showSuccess('Step removed', 'Sequence step deleted.');
     } catch (error: any) {
       console.error('Failed to delete step:', error);
-      alert(error?.message || 'Failed to delete step');
+      showError('Delete failed', error?.message || 'Failed to delete step');
     }
   };
 

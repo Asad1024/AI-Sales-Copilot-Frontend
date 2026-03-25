@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiRequest } from '@/lib/apiClient';
+import { LEAD_STATUS_STORAGE_KEY } from '@/lib/leadStatus';
 
 export interface Lead {
   id: number;
@@ -340,8 +341,9 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   getFilteredLeads: () => {
     const { leads, filters } = get();
     let filtered = leads.filter(lead => {
+      const statusStr = String(lead.custom_fields?.[LEAD_STATUS_STORAGE_KEY] ?? '');
       const matchesSearch = !filters.search || 
-        `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''}`
+        `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''} ${statusStr}`
           .toLowerCase()
           .includes(filters.search.toLowerCase());
       
@@ -390,6 +392,10 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
           case 'owner':
             aValue = a.owner?.name || '';
             bValue = b.owner?.name || '';
+            break;
+          case 'lead_status':
+            aValue = String(a.custom_fields?.[LEAD_STATUS_STORAGE_KEY] ?? '').toLowerCase();
+            bValue = String(b.custom_fields?.[LEAD_STATUS_STORAGE_KEY] ?? '').toLowerCase();
             break;
           default:
             return 0;

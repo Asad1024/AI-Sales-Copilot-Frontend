@@ -62,22 +62,20 @@ export default function AdminSidebar({ isOpen, onClose, collapsed = false, onTog
         />
       )}
 
-      <aside 
-        className={`sidebar ${isOpen || !isMobile ? 'open' : 'closed'} ${collapsed ? 'collapsed' : 'expanded'}`}
+      <aside
+        className={`sidebar ${isOpen || !isMobile ? "open" : "closed"} ${collapsed ? "collapsed" : "expanded"}`}
         style={{
-          position: 'fixed',
-          top: '72px',
+          position: "fixed",
+          top: 0,
           left: 0,
-          width: collapsed ? '80px' : '280px',
-          height: 'calc(100vh - 72px)',
-          background: 'var(--color-surface)',
-          backdropFilter: 'blur(20px)',
-          borderRight: '1px solid var(--color-border)',
-          transition: 'all 0.3s ease',
+          width: 256,
+          height: "100vh",
+          background: "#07070a",
+          borderRight: "1px solid rgba(255,255,255,0.05)",
+          transition: "all 0.2s ease",
           zIndex: 30,
-          overflowY: 'auto',
-          transform: isMobile && !isOpen ? 'translateX(-100%)' : 'translateX(0)',
-          boxShadow: '2px 0 8px var(--color-shadow)'
+          overflowY: "auto",
+          transform: isMobile && !isOpen ? "translateX(-100%)" : "translateX(0)",
         }}
       >
         <div style={{ padding: '24px 16px' }}>

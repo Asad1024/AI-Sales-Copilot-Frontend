@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { apiRequest, getUser, clearAuth } from "@/lib/apiClient";
+import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 const ShieldIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -9,6 +11,8 @@ const ShieldIcon = () => (
 );
 
 export default function SafetySection() {
+  const { showWarning, showSuccess, showError, showInfo } = useNotification();
+  const confirmDelete = useConfirm();
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -16,37 +20,30 @@ export default function SafetySection() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== "DELETE") {
-      alert("Please type DELETE to confirm account deletion");
+      showWarning("Confirmation", "Type DELETE to confirm account deletion.");
       return;
     }
 
-    const finalConfirm = confirm(
-      "⚠️ FINAL WARNING ⚠️\n\n" +
-      "This action is PERMANENT and CANNOT be undone!\n\n" +
-      "All your data will be deleted:\n" +
-      "• Your account\n" +
-      "• Your workspaces (or transferred to other admins)\n" +
-      "• Your leads and campaigns\n" +
-      "• All your settings\n\n" +
-      "Are you absolutely sure?"
-    );
+    const finalOk = await confirmDelete({
+      title: "Permanently delete account?",
+      message:
+        "This cannot be undone. Your account, workspaces, leads, campaigns, and settings will be removed or transferred per policy.",
+      confirmLabel: "Delete account",
+      variant: "danger",
+    });
 
-    if (!finalConfirm) return;
+    if (!finalOk) return;
 
     setDeleting(true);
     try {
       await apiRequest("/auth/account", { method: "DELETE" });
       
-      // Clear local data
       clearAuth();
       
-      // Show success message
-      alert("Your account has been deleted successfully. You will be redirected to the home page.");
-      
-      // Redirect to home
+      showSuccess("Account deleted", "Redirecting to the home page.");
       window.location.href = "/";
     } catch (error: any) {
-      alert(error?.message || "Failed to delete account. Please try again or contact support.");
+      showError("Deletion failed", error?.message || "Failed to delete account. Please try again or contact support.");
     } finally {
       setDeleting(false);
     }
@@ -87,9 +84,9 @@ export default function SafetySection() {
                   onClick={async () => {
                     try {
                       await apiRequest("/email-verification/resend", { method: "POST" });
-                      alert("Verification email sent! Check your inbox.");
+                      showSuccess("Email sent", "Check your inbox for the verification link.");
                     } catch (error: any) {
-                      alert(error?.message || "Failed to send verification email");
+                      showError("Send failed", error?.message || "Failed to send verification email");
                     }
                   }}
                   style={{
@@ -124,7 +121,7 @@ export default function SafetySection() {
             <button
               onClick={() => {
                 // TODO: Implement password change modal
-                alert("Password change feature coming soon! For now, use the password reset link on the login page.");
+                showInfo("Password change", "This feature is coming soon. Use the password reset link on the login page.");
               }}
               style={{
                 padding: "8px 16px",

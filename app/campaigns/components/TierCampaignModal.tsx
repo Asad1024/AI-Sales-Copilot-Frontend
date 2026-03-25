@@ -5,6 +5,7 @@ import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { apiRequest } from "@/lib/apiClient";
+import { useNotification } from "@/context/NotificationContext";
 
 interface TierCampaignModalProps {
   tier: 'Hot' | 'Warm' | 'Cold';
@@ -13,6 +14,7 @@ interface TierCampaignModalProps {
 
 export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
   const router = useRouter();
+  const { showWarning, showError } = useNotification();
   const { activeBaseId } = useBaseStore();
   const { fetchCampaigns } = useCampaignStore();
   const [selectedChannels, setSelectedChannels] = useState<('email' | 'linkedin' | 'whatsapp' | 'call')[]>([]);
@@ -21,7 +23,7 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
   
   const handleCreate = async () => {
     if (!activeBaseId || selectedChannels.length === 0) {
-      alert('Please select at least one channel');
+      showWarning('Channels', 'Please select at least one channel.');
       return;
     }
 
@@ -37,7 +39,7 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
       });
 
       if (tierLeads.length === 0) {
-        alert(`No ${tier.toLowerCase()} leads available for this base.`);
+        showWarning('No leads', `No ${tier.toLowerCase()} leads available for this workspace.`);
         return;
       }
 
@@ -70,7 +72,7 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
       }
     } catch (error: any) {
       console.error('Failed to create campaign:', error);
-      alert(error?.message || 'Failed to create campaign. Please try again.');
+      showError('Create failed', error?.message || 'Failed to create campaign. Please try again.');
     } finally {
       setCreating(false);
     }

@@ -1,84 +1,62 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { Icons } from "@/components/ui/Icons";
 import { useSearchParams } from "next/navigation";
-import { apiRequest, getUser, clearAuth, getToken } from "@/lib/apiClient";
+import {
+  apiRequest,
+  getUser,
+  clearAuth,
+  getToken,
+  setToken,
+  setUser,
+} from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { API_BASE } from "@/lib/api";
-import { setToken, setUser } from "@/lib/apiClient";
 import SafetySection from "./SafetySection";
+import BaseCard from "@/components/ui/BaseCard";
+import { useNotification } from "@/context/NotificationContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 // Icon Components
 const UserIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
+  <Icons.User size={18} strokeWidth={1.5} />
 );
 
 const PlugIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-  </svg>
+  <Icons.Plug size={18} strokeWidth={1.5} />
 );
 
 const ShieldIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-  </svg>
+  <Icons.Shield size={18} strokeWidth={1.5} />
 );
 
 
 const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"></polyline>
-  </svg>
+  <Icons.Check size={18} strokeWidth={1.5} />
 );
 
 const MailIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-    <polyline points="22,6 12,13 2,6"></polyline>
-  </svg>
+  <Icons.Mail size={18} strokeWidth={1.5} />
 );
 
 const BuildingIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 21h18"></path>
-    <path d="M5 21V7l8-4v18"></path>
-    <path d="M19 21V11l-6-4"></path>
-    <line x1="9" y1="9" x2="9" y2="9"></line>
-    <line x1="9" y1="12" x2="9" y2="12"></line>
-    <line x1="9" y1="15" x2="9" y2="15"></line>
-    <line x1="9" y1="18" x2="9" y2="18"></line>
-  </svg>
+  <Icons.Briefcase size={18} strokeWidth={1.5} />
 );
 
 const MessageIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-  </svg>
+  <Icons.MessageCircle size={18} strokeWidth={1.5} />
 );
 
 const EyeIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-    <circle cx="12" cy="12" r="3"></circle>
-  </svg>
+  <Icons.Eye size={18} strokeWidth={1.5} />
 );
 
 const EyeOffIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-    <line x1="1" y1="1" x2="23" y2="23"></line>
-  </svg>
+  <Icons.EyeOff size={18} strokeWidth={1.5} />
 );
 
 const AlertIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-    <line x1="12" y1="9" x2="12" y2="13"></line>
-    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-  </svg>
+  <Icons.AlertCircle size={18} strokeWidth={1.5} />
 );
 
 export default function SettingsPage() {
@@ -95,40 +73,6 @@ export default function SettingsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
-        borderRadius: '20px',
-        padding: '32px',
-        border: '1px solid rgba(76, 103, 255, 0.2)'
-      }}>
-        <h1 style={{ 
-          margin: '0 0 8px 0', 
-          fontSize: '28px', 
-          fontWeight: '700',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <span style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#000'
-          }}>
-            <ShieldIcon />
-          </span>
-          Settings
-        </h1>
-        <p style={{ fontSize: '16px', color: '#888', margin: 0 }}>
-          Manage your account settings, integrations, and preferences
-        </p>
-      </div>
-
       {/* Tabs */}
       <div style={{ 
         display: 'flex', 
@@ -176,16 +120,17 @@ export default function SettingsPage() {
       </div>
 
       {/* Content */}
-      <div className="card-enhanced" style={{ borderRadius: 16, padding: '32px', minHeight: '400px' }}>
+      <BaseCard style={{ borderRadius: 12, padding: '24px', minHeight: '400px' }}>
         {tab === 'profile' && <ProfileSection />}
         {tab === 'connectors' && <ConnectorsSection />}
         {tab === 'safety' && <SafetySection />}
-      </div>
+      </BaseCard>
     </div>
   );
 }
 
 function ProfileSection() {
+  const { showSuccess, showError } = useNotification();
   const user = getUser();
   const [name, setName] = useState(user?.name || '');
   const [company, setCompany] = useState(user?.company || '');
@@ -199,15 +144,23 @@ function ProfileSection() {
         method: 'PUT',
         body: JSON.stringify({ name, company, timezone })
       });
-      alert('Profile updated successfully');
+      showSuccess('Profile updated', 'Your profile was saved.');
       window.location.reload();
     } catch (error: any) {
       console.error('Failed to update profile:', error);
-      alert(error?.message || 'Failed to update profile');
+      showError('Update failed', error?.message || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    const onGlobalSave = () => {
+      handleSave();
+    };
+    window.addEventListener("app:settings-save", onGlobalSave as EventListener);
+    return () => window.removeEventListener("app:settings-save", onGlobalSave as EventListener);
+  });
 
   return (
     <div style={{ maxWidth: '640px' }}>
@@ -369,6 +322,8 @@ function ProfileSection() {
 }
 
 function ConnectorsSection() {
+  const { showError, showSuccess, showWarning } = useNotification();
+  const confirm = useConfirm();
   const { activeBaseId } = useBase();
   const searchParams = useSearchParams();
   const connectProvider = searchParams?.get('connect');
@@ -523,12 +478,12 @@ function ConnectorsSection() {
     window.history.replaceState({}, '', '/settings');
     
     if (unipileError) {
-      alert('Failed to connect account. Please try again.');
+      showError('Connection failed', 'Failed to connect account. Please try again.');
       return;
     }
     
     if (!activeBaseId) {
-      alert('Please select a base first.');
+      showWarning('Workspace required', 'Please select a workspace first.');
       return;
     }
     
@@ -586,7 +541,7 @@ function ConnectorsSection() {
               linkedIn: linkedInConnected, 
               whatsApp: whatsAppConnected 
             });
-            alert('Account connected successfully!');
+            showSuccess('Connected', 'Account connected successfully.');
             return; // Success, stop polling
           }
           
@@ -603,7 +558,7 @@ function ConnectorsSection() {
               linkedIn: linkedInJustConnected,
               whatsApp: whatsAppJustConnected
             });
-            alert('Account connected successfully!');
+            showSuccess('Connected', 'Account connected successfully.');
             return; // Success, stop polling
           }
           
@@ -645,7 +600,7 @@ function ConnectorsSection() {
 
   const handleUnipileConnect = async (provider: 'unipile_linkedin' | 'unipile_whatsapp', linkedInAccountType?: string) => {
     if (!activeBaseId) {
-      alert("Please select a base first");
+      showWarning("Workspace required", "Please select a workspace first.");
       return;
     }
 
@@ -671,11 +626,11 @@ function ConnectorsSection() {
       if (response.authUrl) {
         window.location.href = response.authUrl;
       } else {
-        alert('Failed to generate authentication link');
+        showError('Auth link failed', 'Failed to generate authentication link');
       }
     } catch (error: any) {
       console.error('Failed to generate auth link:', error);
-      alert(error?.message || 'Failed to generate authentication link');
+      showError('Auth link failed', error?.message || 'Failed to generate authentication link');
     }
   };
 
@@ -743,7 +698,7 @@ function ConnectorsSection() {
 
   return (
     <div>
-      <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <PlugIcon />
@@ -800,13 +755,20 @@ function ConnectorsSection() {
               integration={sendGridIntegration}
               onConnect={() => setShowSendGridModal(true)}
               onDisconnect={async () => {
-                if (sendGridIntegration && confirm("Are you sure you want to disconnect SendGrid?")) {
-                  try {
-                    await apiRequest(`/integrations/${sendGridIntegration.id}`, { method: "DELETE" });
-                    await loadIntegrations();
-                  } catch (error: any) {
-                    alert(error?.message || "Failed to disconnect");
-                  }
+                if (!sendGridIntegration) return;
+                const ok = await confirm({
+                  title: "Disconnect SendGrid?",
+                  message: "You can reconnect anytime from this page.",
+                  confirmLabel: "Disconnect",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                try {
+                  await apiRequest(`/integrations/${sendGridIntegration.id}`, { method: "DELETE" });
+                  await loadIntegrations();
+                  showSuccess("Disconnected", "SendGrid was removed.");
+                } catch (error: any) {
+                  showError("Disconnect failed", error?.message || "Failed to disconnect");
                 }
               }}
               icon={MailIcon}
@@ -828,13 +790,20 @@ function ConnectorsSection() {
               integration={airtableIntegration}
               onConnect={() => setShowAirtableModal(true)}
               onDisconnect={async () => {
-                if (airtableIntegration && confirm("Are you sure you want to disconnect Airtable?")) {
-                  try {
-                    await apiRequest(`/integrations/${airtableIntegration.id}`, { method: "DELETE" });
-                    await loadIntegrations();
-                  } catch (error: any) {
-                    alert(error?.message || "Failed to disconnect");
-                  }
+                if (!airtableIntegration) return;
+                const ok = await confirm({
+                  title: "Disconnect Airtable?",
+                  message: "You can reconnect anytime from this page.",
+                  confirmLabel: "Disconnect",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                try {
+                  await apiRequest(`/integrations/${airtableIntegration.id}`, { method: "DELETE" });
+                  await loadIntegrations();
+                  showSuccess("Disconnected", "Airtable was removed.");
+                } catch (error: any) {
+                  showError("Disconnect failed", error?.message || "Failed to disconnect");
                 }
               }}
               icon={BuildingIcon}
@@ -855,13 +824,20 @@ function ConnectorsSection() {
               integration={whatsappIntegration}
               onConnect={() => handleUnipileConnect('unipile_whatsapp')}
               onDisconnect={async () => {
-                if (whatsappIntegration && confirm("Are you sure you want to disconnect WhatsApp?")) {
-                  try {
-                    await apiRequest(`/integrations/${whatsappIntegration.id}`, { method: "DELETE" });
-                    await loadIntegrations();
-                  } catch (error: any) {
-                    alert(error?.message || "Failed to disconnect");
-                  }
+                if (!whatsappIntegration) return;
+                const ok = await confirm({
+                  title: "Disconnect WhatsApp?",
+                  message: "You can reconnect anytime from this page.",
+                  confirmLabel: "Disconnect",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                try {
+                  await apiRequest(`/integrations/${whatsappIntegration.id}`, { method: "DELETE" });
+                  await loadIntegrations();
+                  showSuccess("Disconnected", "WhatsApp was removed.");
+                } catch (error: any) {
+                  showError("Disconnect failed", error?.message || "Failed to disconnect");
                 }
               }}
               icon={MessageIcon}
@@ -873,13 +849,20 @@ function ConnectorsSection() {
               integration={linkedinIntegration}
               onConnect={() => setShowLinkedInAccountTypeModal(true)}
               onDisconnect={async () => {
-                if (linkedinIntegration && confirm("Are you sure you want to disconnect LinkedIn?")) {
-                  try {
-                    await apiRequest(`/integrations/${linkedinIntegration.id}`, { method: "DELETE" });
-                    await loadIntegrations();
-                  } catch (error: any) {
-                    alert(error?.message || "Failed to disconnect");
-                  }
+                if (!linkedinIntegration) return;
+                const ok = await confirm({
+                  title: "Disconnect LinkedIn?",
+                  message: "You can reconnect anytime from this page.",
+                  confirmLabel: "Disconnect",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                try {
+                  await apiRequest(`/integrations/${linkedinIntegration.id}`, { method: "DELETE" });
+                  await loadIntegrations();
+                  showSuccess("Disconnected", "LinkedIn was removed.");
+                } catch (error: any) {
+                  showError("Disconnect failed", error?.message || "Failed to disconnect");
                 }
               }}
               icon={MessageIcon}
@@ -891,13 +874,20 @@ function ConnectorsSection() {
               integration={twilioIntegration}
               onConnect={() => setShowTwilioModal(true)}
               onDisconnect={async () => {
-                if (twilioIntegration && confirm("Are you sure you want to disconnect Twilio?")) {
-                  try {
-                    await apiRequest(`/integrations/${twilioIntegration.id}`, { method: "DELETE" });
-                    await loadIntegrations();
-                  } catch (error: any) {
-                    alert(error?.message || "Failed to disconnect");
-                  }
+                if (!twilioIntegration) return;
+                const ok = await confirm({
+                  title: "Disconnect Twilio?",
+                  message: "You can reconnect anytime from this page.",
+                  confirmLabel: "Disconnect",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                try {
+                  await apiRequest(`/integrations/${twilioIntegration.id}`, { method: "DELETE" });
+                  await loadIntegrations();
+                  showSuccess("Disconnected", "Twilio was removed.");
+                } catch (error: any) {
+                  showError("Disconnect failed", error?.message || "Failed to disconnect");
                 }
               }}
               icon={MessageIcon}
@@ -1966,6 +1956,7 @@ function LinkedInAccountTypeModal({
   onClose: () => void;
   onContinue: (accountType: string) => void;
 }) {
+  const { showWarning } = useNotification();
   const [accountType, setAccountType] = useState<string>("");
 
   const accountTypes = [
@@ -1977,7 +1968,7 @@ function LinkedInAccountTypeModal({
 
   const handleContinue = () => {
     if (!accountType) {
-      alert("Please select your LinkedIn account type");
+      showWarning("Account type", "Please select your LinkedIn account type.");
       return;
     }
     onContinue(accountType);

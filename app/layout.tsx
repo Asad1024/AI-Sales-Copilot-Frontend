@@ -26,8 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     pathname.startsWith("/auth") ||
     pathname.startsWith("/demo") ||
     pathname.startsWith("/flow");
+  const isOnboardingPage = pathname?.startsWith("/onboarding");
   const isAdminPage = pathname?.startsWith('/admin');
-  const showHeaderSidebar = !isPublicPage;
+  const showHeaderSidebar = !isPublicPage && !isOnboardingPage;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -48,6 +49,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (pathname.startsWith("/templates")) return { title: "Templates", description: "Manage reusable outreach content." };
     if (pathname.startsWith("/reports")) return { title: "Reports", description: "Review analytics, funnel, and trends." };
     if (pathname.startsWith("/team")) return { title: "Team", description: "Manage collaborators and permissions." };
+    if (pathname.startsWith("/notifications"))
+      return { title: "Notifications", description: "Account activity, workspace changes, security, and system alerts." };
     if (pathname.startsWith("/settings/test-configuration"))
       return { title: "Test Configuration", description: "Verify email, LinkedIn, WhatsApp, and call integrations." };
     if (pathname.startsWith("/settings")) return { title: "Settings", description: "Configure your Spark AI workspace." };
@@ -131,6 +134,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </main>
                   </div>
                   </WebSocketProvider>
+              </AuthGuard>
+            ) : isOnboardingPage ? (
+              <AuthGuard>
+                <main
+                  style={{
+                    minHeight: "100vh",
+                    margin: 0,
+                    padding: 0,
+                    background: "#f8fafc",
+                  }}
+                >
+                  {children}
+                </main>
               </AuthGuard>
             ) : (
               <main

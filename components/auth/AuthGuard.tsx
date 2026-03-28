@@ -1,7 +1,8 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isAuthenticated } from "@/lib/apiClient";
+import { isAuthenticated, getUser } from "@/lib/apiClient";
+import { userNeedsOnboarding } from "@/lib/authRouting";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -26,16 +27,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Email verification before onboarding or any other app area (API enforces this too)
+    const u = getUser();
+    if (isAuthenticated() && u && u.email_verified === false) {
+      router.replace("/auth/verify-required");
+      setChecked(false);
+      return;
+    }
+
     // Onboarding page handles its own logic
     if (isOnboarding) {
       setChecked(true);
       return;
     }
 
-    // For authenticated users on protected routes:
-    // Only redirect to onboarding if explicitly flagged as needing it (new signup)
-    // This flag is ONLY set to "false" during new signup, never during login
-    const needsOnboarding = localStorage.getItem("sparkai:profile_complete") === "false";
+    // Server-owned onboarding flag (synced on login/refresh; works across devices)
+    const needsOnboarding = userNeedsOnboarding(u);
     if (needsOnboarding) {
       router.push("/onboarding");
       setChecked(false);

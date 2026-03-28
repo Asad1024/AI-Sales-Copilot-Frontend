@@ -145,20 +145,37 @@ export function TemplatesCardsSkeleton() {
       aria-busy="true"
       aria-label="Loading templates"
     >
-      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <div key={i} className="skeleton-page-card" style={{ minHeight: 220, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-            <Bar style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Bar style={{ height: 16, width: "85%", borderRadius: 8, marginBottom: 10 }} />
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          className="skeleton-page-card bases-workspace-card"
+          style={{
+            minHeight: 200,
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            boxSizing: "border-box",
+            pointerEvents: "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+              <Bar style={{ height: 10, width: 80, borderRadius: 4 }} />
+              <Bar style={{ height: 22, width: "72%", borderRadius: 8 }} />
               <Bar style={{ height: 12, width: "55%", borderRadius: 6 }} />
             </div>
+            <Bar style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
           </div>
-          <Bar style={{ height: 72, width: "100%", borderRadius: 10 }} />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <Bar style={{ width: 40, height: 40, borderRadius: 10 }} />
-            <Bar style={{ width: 40, height: 40, borderRadius: 10 }} />
-            <Bar style={{ width: 40, height: 40, borderRadius: 10 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 14 }}>
+            <div>
+              <Bar style={{ height: 10, width: 56, borderRadius: 4, marginBottom: 6 }} />
+              <Bar style={{ height: 16, width: "90%", borderRadius: 6 }} />
+            </div>
+            <div>
+              <Bar style={{ height: 10, width: 40, borderRadius: 4, marginBottom: 6 }} />
+              <Bar style={{ height: 48, width: "100%", borderRadius: 8 }} />
+            </div>
           </div>
         </div>
       ))}

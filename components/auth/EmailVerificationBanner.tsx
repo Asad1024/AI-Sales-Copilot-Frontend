@@ -2,18 +2,30 @@
 
 import { useState, useEffect } from "react";
 import { X, Mail, AlertCircle, CheckCircle } from "lucide-react";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { getToken, getUser, type User } from "@/lib/apiClient";
+import { API_BASE } from "@/lib/api";
 
 /**
  * Email Verification Banner
  * Shows a banner to unverified users prompting them to verify their email
  */
 export function EmailVerificationBanner() {
-  const { user } = useAuthStore();
+  const [gu, setGu] = useState<User | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sync = () => setGu(getUser());
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("sparkai:user-changed", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("sparkai:user-changed", sync);
+    };
+  }, []);
 
   // Reset sent state after 5 seconds
   useEffect(() => {
@@ -24,7 +36,7 @@ export function EmailVerificationBanner() {
   }, [sent]);
 
   // Don't show if user is verified or banner is dismissed
-  if (!user || user.email_verified || dismissed) {
+  if (!gu || gu.email_verified || dismissed) {
     return null;
   }
 
@@ -33,17 +45,14 @@ export function EmailVerificationBanner() {
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/auth/verify-email/send`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const token = getToken();
+      const response = await fetch(`${API_BASE}/api/auth/verify-email/send`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       const data = await response.json();
 

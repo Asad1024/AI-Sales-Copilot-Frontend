@@ -1,13 +1,14 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { apiRequest, getUser, setUser } from "@/lib/apiClient";
+import { useLayoutEffect, useState } from "react";
+import { apiRequest, authAPI, getUser, setUser, type User } from "@/lib/apiClient";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
+  const [skippedIntro, setSkippedIntro] = useState(false);
   const [role, setRole] = useState("");
   const [timezone, setTimezone] = useState("UTC");
   const [saving, setSaving] = useState(false);
@@ -36,22 +37,58 @@ export default function OnboardingPage() {
     "Asia/Tokyo"
   ];
 
+  useLayoutEffect(() => {
+    const u = getUser();
+    if (!u) return;
+    if (u.onboarding_completed === true) {
+      router.replace("/dashboard");
+      return;
+    }
+    const n = (u.name ?? "").trim();
+    const c = (u.company ?? "").trim();
+    if (n && c) {
+      setName(u.name);
+      setCompany(u.company ?? "");
+      setStep(2);
+      setSkippedIntro(true);
+    } else {
+      if (n) setName(u.name);
+      if (c) setCompany(u.company ?? "");
+    }
+  }, [router]);
+
   const complete = async () => {
     setError(null);
     setSaving(true);
     try {
       const profile = await apiRequest("/auth/profile", {
         method: "PUT",
-        body: JSON.stringify({ name, company, role, timezone }),
+        body: JSON.stringify({
+          name,
+          company,
+          role,
+          timezone,
+          complete_onboarding: true,
+        }),
       });
 
       if (profile?.user) {
-        setUser(profile.user);
+        setUser(profile.user as User);
       } else {
         const existing = getUser();
         if (existing) {
-          setUser({ ...existing, name: name || existing.name, company: company || existing.company });
+          setUser({
+            ...existing,
+            name: name || existing.name,
+            company: company || existing.company,
+            onboarding_completed: true,
+          });
         }
+      }
+      try {
+        await authAPI.refresh();
+      } catch {
+        /* ignore */
       }
 
       const basesResp = await apiRequest("/bases");
@@ -62,13 +99,6 @@ export default function OnboardingPage() {
           body: JSON.stringify({ name: company ? `${company} Base` : `${name || "My"} Base` }),
         });
       }
-
-      localStorage.setItem("sparkai:profile_complete", "true");
-      try {
-        const userStr = localStorage.getItem("sparkai:user");
-        const user = userStr && userStr !== "undefined" && userStr !== "null" ? JSON.parse(userStr) : {};
-        localStorage.setItem("sparkai:user", JSON.stringify({ ...user, name, company, role, timezone }));
-      } catch {}
 
       router.push("/dashboard");
     } catch (e: any) {
@@ -120,7 +150,9 @@ export default function OnboardingPage() {
             Welcome to Sales Co-Pilot
           </h1>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
-            Let's set up your account in a few steps
+            {skippedIntro
+              ? "One more step to finish your workspace"
+              : "Let's set up your account in a few steps"}
           </p>
         </div>
 
@@ -131,20 +163,31 @@ export default function OnboardingPage() {
           gap: "8px",
           marginBottom: "24px"
         }}>
-          {[1, 2].map((s) => (
+          {skippedIntro ? (
             <div
-              key={s}
               style={{
-                width: "80px",
+                width: "168px",
                 height: "4px",
                 borderRadius: "2px",
-                background: s <= step
-                  ? "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)"
-                  : "#e2e8f0",
-                transition: "background 0.3s ease"
+                background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
               }}
             />
-          ))}
+          ) : (
+            [1, 2].map((s) => (
+              <div
+                key={s}
+                style={{
+                  width: "80px",
+                  height: "4px",
+                  borderRadius: "2px",
+                  background: s <= step
+                    ? "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)"
+                    : "#e2e8f0",
+                  transition: "background 0.3s ease"
+                }}
+              />
+            ))
+          )}
         </div>
 
         {/* Card */}
@@ -349,28 +392,30 @@ export default function OnboardingPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-                  <button
-                    onClick={() => setStep(1)}
-                    style={{
-                      flex: 1,
-                      padding: "12px 20px",
-                      borderRadius: "10px",
-                      border: "1px solid #e2e8f0",
-                      background: "#fff",
-                      color: "#475569",
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease"
-                    }}
-                  >
-                    Back
-                  </button>
+                  {!skippedIntro && (
+                    <button
+                      onClick={() => setStep(1)}
+                      style={{
+                        flex: 1,
+                        padding: "12px 20px",
+                        borderRadius: "10px",
+                        border: "1px solid #e2e8f0",
+                        background: "#fff",
+                        color: "#475569",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      Back
+                    </button>
+                  )}
                   <button
                     onClick={complete}
                     disabled={saving || !canProceed}
                     style={{
-                      flex: 2,
+                      flex: skippedIntro ? 1 : 2,
                       padding: "12px 20px",
                       borderRadius: "10px",
                       border: "none",

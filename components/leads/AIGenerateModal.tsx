@@ -129,29 +129,25 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
   const handleSuggestionTopic = async (topic: string) => {
     setError("");
     setSuggestionLoadingTopic(topic);
-    setProgress(`AI is preparing a lead brief for "${topic}"...`);
+    setProgress(`AI is drafting a search prompt for "${topic}"...`);
     try {
-      const response = await apiRequest("/ai/plan", {
+      const response = await apiRequest("/ai/lead-prompt-from-suggestion", {
         method: "POST",
-        body: JSON.stringify({
-          goal: `Generate high quality B2B leads for topic: ${topic}`,
-          user_id: 1,
-        }),
+        body: JSON.stringify({ topic }),
       });
-      const plan = response?.plan || {};
-      const audience = plan?.audience ? JSON.stringify(plan.audience) : `Target audience: ${topic}`;
-      const leadSources = Array.isArray(plan?.lead_sources) ? plan.lead_sources.join(", ") : "";
-      const generatedPrompt = `Topic: ${topic}
-Audience details: ${audience}
-Lead source preference: ${leadSources || "Verified business contacts"}
-Need decision-maker leads with name, role, company, email, LinkedIn URL, industry, and region.`;
-      setPrompt(generatedPrompt);
+      const p = typeof response?.prompt === "string" ? response.prompt.trim() : "";
+      if (!p) {
+        throw new Error("No prompt returned from AI");
+      }
+      setPrompt(p);
       setProgress("");
-    } catch {
-      setPrompt(`Find B2B leads for: ${topic}.
-Include decision-makers with company size, location, and buying intent signals.
-Return name, role, company, email, LinkedIn URL, and region.`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not generate prompt";
+      setError(msg);
       setProgress("");
+      setPrompt(
+        `Find B2B decision-makers for: ${topic}. Include specific job titles, industries, locations (e.g. United States or your target region), and company size (e.g. 50–500 employees or startups). Add signals that help narrow to qualified prospects.`
+      );
     } finally {
       setSuggestionLoadingTopic(null);
     }

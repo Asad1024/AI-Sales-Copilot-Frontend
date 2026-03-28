@@ -321,6 +321,6 @@ export const api = {
   },
 
   async markAllNotificationsRead() {
-    return apiRequest("/api/notifications/read-all", { method: "POST" });
+    return apiRequest("/api/notifications/read-all", { method: "PATCH" });
   },
 };

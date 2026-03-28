@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { Icons } from "@/components/ui/Icons";
+import { useNotificationStore } from "@/stores/useNotificationStore";
 
 interface PageHeaderProps {
   title: string;
@@ -25,6 +26,12 @@ export default function PageHeader({
   const router = useRouter();
   const pathname = usePathname();
   const [showWorkspaceRequired, setShowWorkspaceRequired] = useState(false);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const refreshUnreadCount = useNotificationStore((s) => s.refreshUnreadCount);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   const onDashboardPrimaryClick = () => {
     if (!activeBaseId) {
@@ -41,6 +48,7 @@ export default function PageHeader({
   const isTemplatesRoute = pathname?.startsWith("/templates");
   const isReportsRoute = pathname?.startsWith("/reports");
   const isTeamRoute = pathname?.startsWith("/team");
+  const isNotificationsRoute = pathname?.startsWith("/notifications");
   const isAdminRoute = pathname?.startsWith("/admin");
 
   const showHeaderNewCampaign =
@@ -52,6 +60,7 @@ export default function PageHeader({
     !isTemplatesRoute &&
     !isReportsRoute &&
     !isTeamRoute &&
+    !isNotificationsRoute &&
     !isAdminRoute;
 
   return (
@@ -111,22 +120,33 @@ export default function PageHeader({
           <button
             type="button"
             className="icon-btn header-utility-btn"
-            onClick={() => router.push("/settings")}
+            onClick={() => router.push("/notifications")}
             style={{ borderRadius: 8, width: 36, height: 36, position: "relative", border: "0.5px solid var(--color-border)" }}
             aria-label="Notifications"
           >
             <Icons.Bell size={18} strokeWidth={1.5} />
-            <span
-              style={{
-                position: "absolute",
-                top: 7,
-                right: 7,
-                width: 7,
-                height: 7,
-                borderRadius: 999,
-                background: "#ef4444",
-              }}
-            />
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: 7,
+                  right: 7,
+                  width: 7,
+                  height: 7,
+                  borderRadius: 999,
+                  background: "#ef4444",
+                }}
+              />
+            )}
+          </button>
+          <button
+            type="button"
+            className="icon-btn header-utility-btn"
+            onClick={() => router.push("/settings")}
+            style={{ borderRadius: 8, width: 36, height: 36, border: "0.5px solid var(--color-border)" }}
+            aria-label="Settings"
+          >
+            <Icons.Settings size={18} strokeWidth={1.5} />
           </button>
           {showHeaderNewCampaign && (
             <button className="btn-primary shimmer-cta" onClick={onDashboardPrimaryClick} style={{ borderRadius: 8 }}>

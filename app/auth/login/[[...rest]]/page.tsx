@@ -2,8 +2,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { authAPI, apiRequest } from "@/lib/apiClient";
+import { authAPI, isAuthenticated } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/api";
+import { routeAfterSuccessfulSession } from "@/lib/authRouting";
+import GoogleSignInRedirecting from "@/components/auth/GoogleSignInRedirecting";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleRedirecting, setGoogleRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -19,47 +22,41 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!mounted || !isAuthenticated()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await authAPI.refresh();
+        if (cancelled) return;
+        await routeAfterSuccessfulSession(router, searchParams);
+      } catch {
+        /* stale token */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, router, searchParams]);
+
+  const startGoogleSignIn = () => {
+    setError(null);
+    setGoogleRedirecting(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.location.href = `${API_BASE}/api/auth/google`;
+      });
+    });
+  };
+
   const onLogin = async () => {
     setError(null);
     setLoading(true);
     try {
       await authAPI.login(email, password);
-      // Existing users logging in are always considered "profile complete" - skip onboarding
-      localStorage.setItem("sparkai:profile_complete", "true");
-      
-      // Check for pending invitation
-      const invitationToken = searchParams.get('invitation') || 
-        (typeof window !== 'undefined' ? sessionStorage.getItem('pendingInvitation') : null);
-      
-      if (invitationToken) {
-        try {
-          // Accept the invitation
-          const inviteResponse = await apiRequest(`/invitations/${invitationToken}/accept`, {
-            method: 'POST'
-          });
-          
-          // Store invitation details for display
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('invitationAccepted', JSON.stringify({
-              baseName: inviteResponse.base?.name,
-              role: inviteResponse.role,
-              message: inviteResponse.message,
-            }));
-            sessionStorage.removeItem('pendingInvitation');
-          }
-          
-          // Redirect to dashboard with success message
-          router.push("/dashboard?invited=true");
-          return;
-        } catch (inviteError: any) {
-          console.error('Failed to accept invitation:', inviteError);
-          // Continue to dashboard even if invitation acceptance fails
-        }
-      }
-      
-      router.push("/dashboard");
-    } catch (e: any) {
-      setError(e?.message || "Login failed");
+      await routeAfterSuccessfulSession(router, searchParams);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -71,8 +68,10 @@ export default function LoginPage() {
       display: "flex",
       background: "#f8fafc",
       opacity: mounted ? 1 : 0,
-      transition: "opacity 0.6s ease-in-out"
+      transition: "opacity 0.6s ease-in-out",
+      position: "relative",
     }}>
+      {googleRedirecting ? <GoogleSignInRedirecting /> : null}
       {/* Left Panel - Branding */}
       <div style={{
         flex: 1,
@@ -264,8 +263,9 @@ export default function LoginPage() {
 
           {/* Google Sign In */}
           <button
-            onClick={() => { window.location.href = `${API_BASE}/auth/google`; }}
-            disabled={loading}
+            type="button"
+            onClick={startGoogleSignIn}
+            disabled={loading || googleRedirecting}
             style={{
               width: "100%",
               padding: "12px 20px",
@@ -275,7 +275,7 @@ export default function LoginPage() {
               color: "#1e293b",
               fontSize: "14px",
               fontWeight: "600",
-              cursor: "pointer",
+              cursor: loading || googleRedirecting ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -286,6 +286,7 @@ export default function LoginPage() {
               transform: mounted ? "translateY(0)" : "translateY(20px)"
             }}
             onMouseOver={(e) => { 
+              if (loading || googleRedirecting) return;
               e.currentTarget.style.background = "#f8fafc"; 
               e.currentTarget.style.borderColor = "#cbd5e1";
               e.currentTarget.style.transform = "translateY(-2px)";

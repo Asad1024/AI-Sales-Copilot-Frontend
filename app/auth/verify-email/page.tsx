@@ -1,158 +1,245 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle, XCircle, Loader2, Mail } from "lucide-react";
-import { useAuthStore } from "@/stores/useAuthStore";
+import Link from "next/link";
+import { authAPI, getUser, setUser } from "@/lib/apiClient";
+import { userNeedsOnboarding } from "@/lib/authRouting";
+import { API_BASE } from "@/lib/api";
 
-function VerifyEmailContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { refreshUser } = useAuthStore();
-  const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying");
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    const token = searchParams.get("token");
-
-    if (!token) {
-      setStatus("error");
-      setMessage("Invalid verification link. No token provided.");
-      return;
-    }
-
-    verifyEmail(token);
-  }, [searchParams]);
-
-  const verifyEmail = async (token: string) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/auth/verify-email/confirm`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ token }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Verification failed");
-      }
-
-      setStatus("success");
-      setMessage(data.message || "Email verified successfully!");
-
-      // Refresh user data if logged in
-      await refreshUser();
-
-      // Redirect to dashboard after 3 seconds
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 3000);
-    } catch (error: any) {
-      setStatus("error");
-      setMessage(error.message || "Failed to verify email. Please try again.");
-    }
-  };
-
+function AuthShell({
+  children,
+  subtitle,
+}: {
+  children: ReactNode;
+  subtitle?: string;
+}) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 border border-slate-200 dark:border-slate-800">
-          {/* Icon */}
-          <div className="flex justify-center mb-6">
-            {status === "verifying" && (
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
-              </div>
-            )}
-            {status === "success" && (
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-              </div>
-            )}
-            {status === "error" && (
-              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
-              </div>
-            )}
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f8fafc",
+        padding: "20px",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: "420px" }}>
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "16px",
+              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              boxShadow: "0 8px 24px rgba(76, 103, 255, 0.3)",
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
           </div>
-
-          {/* Title */}
-          <h1 className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-2">
-            {status === "verifying" && "Verifying your email..."}
-            {status === "success" && "Email verified!"}
-            {status === "error" && "Verification failed"}
+          <h1
+            style={{
+              fontSize: "26px",
+              fontWeight: "700",
+              color: "#1e293b",
+              margin: "0 0 8px 0",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Sales Co-Pilot
           </h1>
-
-          {/* Message */}
-          <p className="text-center text-slate-600 dark:text-slate-400 mb-6">
-            {message || "Please wait while we verify your email address."}
-          </p>
-
-          {/* Actions */}
-          {status === "success" && (
-            <div className="space-y-3">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <p className="text-sm text-green-800 dark:text-green-200 text-center">
-                  Redirecting to dashboard in 3 seconds...
-                </p>
-              </div>
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                Go to Dashboard Now
-              </button>
-            </div>
-          )}
-
-          {status === "error" && (
-            <div className="space-y-3">
-              <button
-                onClick={() => router.push("/auth/login")}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                Go to Login
-              </button>
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
-              >
-                Back to Dashboard
-              </button>
-            </div>
-          )}
-
-          {status === "verifying" && (
-            <div className="flex justify-center">
-              <div className="animate-pulse flex space-x-2">
-                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
-                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animation-delay-200"></div>
-                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animation-delay-400"></div>
-              </div>
-            </div>
-          )}
+          <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>{subtitle ?? "Email verification"}</p>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "16px",
+            padding: "32px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04)",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          {children}
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "24px" }}>
+          <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
             Need help?{" "}
-            <a
-              href="mailto:support@salescopilot.com"
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-            >
+            <a href="mailto:support@salescopilot.com" style={{ color: "#4C67FF", fontWeight: 600, textDecoration: "none" }}>
               Contact support
             </a>
           </p>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes verifyEmailSpin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
+  );
+}
+
+function VerifyEmailContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (!token) {
+      setError("Invalid verification link. No token provided.");
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/verify-email/confirm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Verification failed");
+        if (cancelled) return;
+
+        if (data.user) {
+          const cur = getUser();
+          if (cur) setUser({ ...cur, ...data.user, email_verified: true });
+        }
+        try {
+          await authAPI.refresh();
+        } catch {
+          /* session optional */
+        }
+
+        router.replace(userNeedsOnboarding(getUser()) ? "/onboarding" : "/dashboard");
+      } catch (e: unknown) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Verification failed");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, router]);
+
+  if (error) {
+    return (
+      <AuthShell subtitle="Something went wrong">
+        <div
+          style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+          }}
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        </div>
+        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#1e293b", margin: "0 0 8px 0", textAlign: "center" }}>
+          Verification failed
+        </h2>
+        <p style={{ fontSize: "14px", color: "#64748b", margin: "0 0 24px 0", textAlign: "center", lineHeight: 1.5 }}>{error}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <Link
+            href="/auth/verify-required"
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "12px 20px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              color: "#fff",
+              fontSize: "14px",
+              fontWeight: "600",
+              textAlign: "center",
+              textDecoration: "none",
+              boxSizing: "border-box",
+            }}
+          >
+            Back to verify page
+          </Link>
+          <Link
+            href="/auth/login"
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "12px 20px",
+              borderRadius: "10px",
+              border: "1px solid #e2e8f0",
+              color: "#475569",
+              fontSize: "14px",
+              fontWeight: "600",
+              textAlign: "center",
+              textDecoration: "none",
+              boxSizing: "border-box",
+            }}
+          >
+            Go to sign in
+          </Link>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell subtitle="Confirming your email">
+      <div
+        style={{
+          width: "56px",
+          height: "56px",
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          margin: "0 auto 20px",
+        }}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          strokeWidth="2.5"
+          style={{ animation: "verifyEmailSpin 1s linear infinite" }}
+        >
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+      </div>
+      <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#1e293b", margin: "0 0 8px 0", textAlign: "center" }}>
+        Verifying your email…
+      </h2>
+      <p style={{ fontSize: "14px", color: "#64748b", margin: 0, textAlign: "center", lineHeight: 1.5 }}>
+        Please wait while we confirm your address. You&apos;ll be redirected to onboarding or your dashboard.
+      </p>
+    </AuthShell>
   );
 }
 
@@ -160,8 +247,18 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#f8fafc",
+            color: "#64748b",
+            fontSize: 14,
+          }}
+        >
+          Loading…
         </div>
       }
     >

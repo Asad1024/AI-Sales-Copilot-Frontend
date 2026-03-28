@@ -22,7 +22,7 @@ interface NotificationStore {
   websocketConnected: boolean;
   
   // Actions
-  fetchNotifications: (unreadOnly?: boolean) => Promise<void>;
+  fetchNotifications: (opts?: { unreadOnly?: boolean; search?: string; type?: string; limit?: number; offset?: number }) => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: number) => Promise<void>;
@@ -38,11 +38,17 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   error: null,
   websocketConnected: false,
 
-  fetchNotifications: async (unreadOnly = false) => {
+  fetchNotifications: async (opts) => {
     set({ loading: true, error: null });
     try {
-      const params = unreadOnly ? '?unread_only=true' : '';
-      const data = await apiRequest(`/notifications${params}`);
+      const params = new URLSearchParams();
+      if (opts?.unreadOnly) params.set("unread_only", "true");
+      if (opts?.search?.trim()) params.set("search", opts.search.trim());
+      if (opts?.type && opts.type !== "all") params.set("type", opts.type);
+      if (opts?.limit != null) params.set("limit", String(opts.limit));
+      if (opts?.offset != null) params.set("offset", String(opts.offset));
+      const qs = params.toString();
+      const data = await apiRequest(`/notifications${qs ? `?${qs}` : ""}`);
       set({
         notifications: data.notifications || [],
         unreadCount: data.unread_count || 0,
@@ -56,12 +62,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   markAsRead: async (id: number) => {
     try {
+      const prev = get().notifications.find((n) => n.id === id);
+      const wasUnread = Boolean(prev && !prev.read_at);
       await apiRequest(`/notifications/${id}/read`, { method: 'PATCH' });
       set((state) => ({
         notifications: state.notifications.map((n) =>
           n.id === id ? { ...n, read_at: new Date().toISOString() } : n
         ),
-        unreadCount: Math.max(0, state.unreadCount - 1),
+        unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
       }));
     } catch (error: any) {
       console.error('Failed to mark notification as read:', error);
@@ -78,6 +86,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         })),
         unreadCount: 0,
       }));
+      await get().refreshUnreadCount();
     } catch (error: any) {
       console.error('Failed to mark all as read:', error);
     }

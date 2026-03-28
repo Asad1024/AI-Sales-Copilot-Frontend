@@ -22,6 +22,7 @@ import {
   Bolt,
   LogOut,
   User,
+  Bell,
 } from "lucide-react";
 
 function CollapsedHoverTip({ label, children }: { label: string; children: ReactNode }) {
@@ -152,6 +153,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const secondaryNav: NavItem[] = [
     { href: "/reports", label: "Reports", icon: <BarChart2 size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/team", label: "Team", icon: <UserCircle2 size={iconSize} strokeWidth={iconStroke} /> },
+    { href: "/notifications", label: "Notifications", icon: <Bell size={iconSize} strokeWidth={iconStroke} /> },
     ...(mounted && user?.role === "admin"
       ? [{ href: "/admin", label: "Admin", icon: <Shield size={iconSize} strokeWidth={iconStroke} /> }]
       : []),
@@ -595,7 +597,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   type="button"
                   onClick={() => {
                     clearAuth();
-                    localStorage.removeItem("sparkai:profile_complete");
                     window.location.href = "/auth/login";
                   }}
                   style={{

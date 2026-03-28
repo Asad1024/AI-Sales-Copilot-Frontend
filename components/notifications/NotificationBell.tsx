@@ -11,7 +11,7 @@ export function NotificationBell() {
   // Fetch notifications on mount
   useEffect(() => {
     refreshUnreadCount();
-    fetchNotifications(true); // Fetch unread only initially
+    fetchNotifications({ unreadOnly: true });
     
     // Poll for unread count every 60 seconds (WebSocket handles real-time updates)
     const interval = setInterval(() => {
@@ -24,7 +24,7 @@ export function NotificationBell() {
   // Fetch all notifications when dropdown opens
   useEffect(() => {
     if (showDropdown) {
-      fetchNotifications();
+      fetchNotifications({});
     }
   }, [showDropdown, fetchNotifications]);
 

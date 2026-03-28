@@ -1,19 +1,317 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { CSSProperties, ComponentType } from "react";
+import { MoreVertical, Pencil, Copy, Trash2, Eye } from "lucide-react";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { useNotification } from "@/context/NotificationContext";
 import { useBase } from "@/context/BaseContext";
-import BaseCard from "@/components/ui/BaseCard";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
 import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { TemplatesCardsSkeleton } from "@/components/ui/PageRouteSkeletons";
 
+const TEMPLATE_CARD_ACCENTS = [
+  { icon: "#f97316" },
+  { icon: "#0ea5e9" },
+  { icon: "#22c55e" },
+  { icon: "#a855f7" },
+  { icon: "#ec4899" },
+  { icon: "#eab308" },
+  { icon: "#6366f1" },
+  { icon: "#14b8a6" },
+] as const;
+
+const templateMenuItemBase: CSSProperties = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "9px 11px",
+  border: "none",
+  borderRadius: 8,
+  background: "transparent",
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 500,
+  fontFamily: "Inter, -apple-system, sans-serif",
+  color: "var(--color-text)",
+  textAlign: "left",
+  boxSizing: "border-box",
+};
+
+function TemplateWorkspaceCard({
+  template,
+  ChannelIcon,
+  accentIcon,
+  onEdit,
+  onPreview,
+  onDuplicate,
+  onDelete,
+  duplicating,
+  deleting,
+}: {
+  template: any;
+  ChannelIcon: ComponentType<{ size?: number; strokeWidth?: number | string; style?: CSSProperties }>;
+  accentIcon: string;
+  onEdit: () => void;
+  onPreview: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  duplicating: boolean;
+  deleting: boolean;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      const el = menuWrapRef.current;
+      if (el && !el.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const vars =
+    template.variables && typeof template.variables === "object" && !Array.isArray(template.variables)
+      ? (template.variables as Record<string, unknown>)
+      : {};
+  const title = String(vars.name ?? "Untitled template");
+  const category = String(vars.category ?? "Outreach");
+  const subjectRaw = vars.subject != null && String(vars.subject).trim() !== "" ? String(vars.subject) : null;
+  const chLabel = String(template.channel || template.type || "email");
+
+  return (
+    <div className="bases-workspace-card" style={{ position: "relative" }}>
+      <div style={{ padding: "16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 6,
+                color: "#94a3b8",
+              }}
+            >
+              <Icons.FileText size={14} strokeWidth={1.5} style={{ color: accentIcon }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Template
+              </span>
+            </div>
+            <h3
+              className="bases-workspace-card-title"
+              style={{
+                margin: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                letterSpacing: "-0.02em",
+              }}
+              title={title}
+            >
+              {title}
+            </h3>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "var(--color-text-muted)",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                flexWrap: "wrap",
+              }}
+            >
+              <span>{category}</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <ChannelIcon size={12} strokeWidth={1.5} style={{ color: accentIcon, flexShrink: 0 }} />
+              <span style={{ textTransform: "capitalize" }}>{chLabel}</span>
+              {template.visibility === "workspace" && (
+                <>
+                  <span style={{ opacity: 0.4 }}>·</span>
+                  <span style={{ color: "#818cf8", fontWeight: 600 }}>Shared</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div
+            ref={menuWrapRef}
+            style={{ position: "relative", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <button
+              type="button"
+              className="bases-workspace-card-menu-trigger"
+              title="Preview template"
+              aria-label="Preview template"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPreview();
+              }}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+              }}
+            >
+              <Eye size={18} strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              className="bases-workspace-card-menu-trigger"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title="Template actions"
+              onClick={() => setMenuOpen((v) => !v)}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+              }}
+            >
+              <MoreVertical size={18} strokeWidth={2} />
+            </button>
+            {menuOpen && (
+              <div
+                className="bases-workspace-card-menu-panel"
+                role="menu"
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: "calc(100% + 6px)",
+                  zIndex: 40,
+                  minWidth: 176,
+                  padding: 4,
+                  borderRadius: 12,
+                  border: "1px solid var(--elev-border, #e2e8f0)",
+                  background: "var(--elev-bg, #ffffff)",
+                  boxShadow: "0 10px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.06)",
+                }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  style={templateMenuItemBase}
+                  className="bases-workspace-card-menu-item"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onPreview();
+                  }}
+                >
+                  <Eye size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  style={templateMenuItemBase}
+                  className="bases-workspace-card-menu-item"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEdit();
+                  }}
+                >
+                  <Pencil size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  style={templateMenuItemBase}
+                  className="bases-workspace-card-menu-item"
+                  disabled={duplicating}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDuplicate();
+                  }}
+                >
+                  {duplicating ? (
+                    <span className="ui-spinner-ring ui-spinner-ring--sm" aria-hidden />
+                  ) : (
+                    <Copy size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
+                  )}
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  style={{ ...templateMenuItemBase, color: "#dc2626" }}
+                  className="bases-workspace-card-menu-item bases-workspace-card-menu-item--danger"
+                  disabled={deleting}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete();
+                  }}
+                >
+                  {deleting ? (
+                    <span className="ui-spinner-ring ui-spinner-ring--sm" aria-hidden />
+                  ) : (
+                    <Trash2 size={16} strokeWidth={2} />
+                  )}
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 14 }}>
+          <div>
+            <div className="bases-workspace-card-metric-label">Subject</div>
+            <div
+              className="bases-workspace-card-metric-value"
+              style={{
+                marginTop: 2,
+                fontWeight: 600,
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                wordBreak: "break-word",
+              }}
+              title={subjectRaw ?? undefined}
+            >
+              {subjectRaw ?? "—"}
+            </div>
+          </div>
+          <div>
+            <div className="bases-workspace-card-metric-label">Body</div>
+            <p
+              className="line-clamp-3 text-sm font-medium leading-snug text-slate-600 dark:text-slate-400"
+              style={{ margin: "2px 0 0", wordBreak: "break-word" }}
+            >
+              {template.content?.trim() ? template.content : "—"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TemplatesPage() {
-  const router = useRouter();
   const { activeBaseId } = useBase();
   const { showSuccess, showError, showWarning } = useNotification();
   const [templates, setTemplates] = useState<any[]>([]);
@@ -50,6 +348,7 @@ export default function TemplatesPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -60,6 +359,15 @@ export default function TemplatesPage() {
     visibility: 'private' as 'private' | 'workspace',
   });
 
+  useEffect(() => {
+    if (!previewTemplate) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewTemplate(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewTemplate]);
+
   const categories = ["All", "Outreach", "Follow-up", "Social", "Meeting", "Proposal"];
 
   const filteredTemplates = templates.filter((t) => {
@@ -69,7 +377,13 @@ export default function TemplatesPage() {
     const name = String((t.variables as any)?.name || "").toLowerCase();
     const content = String(t.content || "").toLowerCase();
     const channel = String(t.channel || "").toLowerCase();
-    const searchMatch = !query || name.includes(query) || content.includes(query) || channel.includes(query);
+    const subjectLine = String((t.variables as any)?.subject || "").toLowerCase();
+    const searchMatch =
+      !query ||
+      name.includes(query) ||
+      content.includes(query) ||
+      channel.includes(query) ||
+      subjectLine.includes(query);
     return categoryMatch && searchMatch;
   });
 
@@ -250,17 +564,33 @@ export default function TemplatesPage() {
       gap: 12,
       boxSizing: "border-box",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2, gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 260, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: 16,
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 260, flexWrap: "wrap" }}>
           <ToolbarSearchField
+            variant="minimal"
             value={search}
             onChange={setSearch}
             placeholder="Search templates"
-            style={{ minWidth: 220, maxWidth: 640, flex: 1 }}
+            style={{ minWidth: 260, maxWidth: 640, flex: 1 }}
             aria-label="Search templates"
           />
-          <div style={{ position: "relative" }}>
-            <ToolbarFilterButton label="Category" open={showCategoryMenu} onClick={() => setShowCategoryMenu((v) => !v)} />
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <ToolbarFilterButton
+              variant="minimal"
+              label="Category"
+              open={showCategoryMenu}
+              onClick={() => setShowCategoryMenu((v) => !v)}
+            />
             {showCategoryMenu && (
               <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setShowCategoryMenu(false)} aria-hidden="true" />
             )}
@@ -312,26 +642,16 @@ export default function TemplatesPage() {
         </div>
         <button
           type="button"
+          className="btn-dashboard-outline focus-ring"
+          aria-label="Create new template"
           onClick={() => {
             setFormData({ name: "", type: "email", subject: "", content: "", category: "Outreach", visibility: "private" });
             setEditingTemplate(null);
             setShowCreateModal(true);
           }}
-          className="btn-primary shimmer-cta"
-          aria-label="Create new template"
-          style={{
-            borderRadius: 10,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "9px 18px",
-            fontSize: 13,
-            fontWeight: 600,
-            boxShadow: "var(--elev-shadow)",
-          }}
         >
           <Icons.Plus size={16} strokeWidth={1.5} />
-          New template
+          New Template
         </button>
       </div>
 
@@ -351,8 +671,7 @@ export default function TemplatesPage() {
                 setEditingTemplate(null);
                 setShowCreateModal(true);
               }}
-              className="btn-primary"
-              style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600 }}
+              className="btn-dashboard-outline focus-ring"
             >
               <Icons.Plus size={16} strokeWidth={1.5} />
               Create a template
@@ -370,260 +689,64 @@ export default function TemplatesPage() {
             gap: 14,
           }}
         >
-          {filteredTemplates.map((template) => (
-            <div key={template.id} style={{ position: "relative" }}>
-            <BaseCard
-              style={{
-                padding: "16px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-                borderRadius: 14,
-                border: "1px solid var(--elev-border, var(--color-border))",
-                boxShadow: "var(--elev-shadow)",
-              }}
-            >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: "rgba(99,102,241,0.08)",
-                    border: "0.5px solid rgba(99,102,241,0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {(() => {
-                    const IconComponent = getTypeIcon(template.channel || template.type);
-                    return <IconComponent size={20} strokeWidth={1.5} style={{ color: "#a5b4fc" }} />;
-                  })()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      letterSpacing: "-0.02em",
-                      margin: 0,
-                      color: "var(--color-text)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {(template.variables as any)?.name || "Untitled template"}
-                  </h3>
-                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>
-                    {(template.variables as any)?.category || "Outreach"} · {Object.keys(template.variables || {}).length} fields
-                  </div>
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  background: "rgba(255,255,255,0.05)",
-                  border: "0.5px solid rgba(255,255,255,0.08)",
-                  color: "var(--color-text-muted)",
-                  flexShrink: 0,
-                }}
-              >
-                {template.channel || template.type}
-              </span>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  background: "rgba(255,255,255,0.05)",
-                  border: "0.5px solid rgba(255,255,255,0.08)",
-                  color: "var(--color-text-muted)",
-                  flexShrink: 0,
-                  marginLeft: 6,
-                }}
-              >
-                {template.visibility === "workspace" ? "Shared" : "Private"}
-              </span>
-            </div>
-
-            {(template.variables as any)?.subject && (
-              <div
-                style={{
-                  background: "var(--color-surface-secondary)",
-                  borderRadius: 8,
-                  padding: "10px 12px",
-                  fontSize: 13,
-                  color: "var(--color-text)",
-                  border: "0.5px solid rgba(255,255,255,0.08)",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 8,
-                }}
-              >
-                <Icons.Mail size={14} strokeWidth={1.5} style={{ color: "var(--color-text-muted)", flexShrink: 0, marginTop: 2 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+          {filteredTemplates.map((template) => {
+            const ChannelIcon = getTypeIcon(template.channel || template.type);
+            const accentIcon =
+              TEMPLATE_CARD_ACCENTS[Math.abs(Number(template.id)) % TEMPLATE_CARD_ACCENTS.length].icon;
+            return (
+              <div key={template.id} style={{ position: "relative" }}>
+                <TemplateWorkspaceCard
+                  template={template}
+                  ChannelIcon={ChannelIcon}
+                  accentIcon={accentIcon}
+                  onEdit={() => handleEditTemplate(template)}
+                  onPreview={() => setPreviewTemplate(template)}
+                  onDuplicate={() => handleDuplicateTemplate(template)}
+                  onDelete={() => openDeleteTemplate(template)}
+                  duplicating={duplicatingId === template.id}
+                  deleting={deletingId === template.id}
+                />
+                {duplicatingId === template.id && (
                   <div
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
                     style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: "var(--color-text-muted)",
-                      marginBottom: 4,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
+                      position: "absolute",
+                      inset: 0,
+                      borderRadius: 12,
+                      background: "rgba(0,0,0,0.4)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 10,
+                      backdropFilter: "blur(3px)",
+                      zIndex: 50,
                     }}
                   >
-                    Subject
+                    <span className="ui-spinner-ring" style={{ width: 28, height: 28 }} aria-hidden />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>Duplicating…</span>
+                    <span
+                      style={{
+                        position: "absolute",
+                        width: 1,
+                        height: 1,
+                        padding: 0,
+                        margin: -1,
+                        overflow: "hidden",
+                        clip: "rect(0,0,0,0)",
+                        whiteSpace: "nowrap",
+                        border: 0,
+                      }}
+                    >
+                      Duplicating template, please wait
+                    </span>
                   </div>
-                  <div style={{ fontWeight: 500, lineHeight: 1.4 }}>{(template.variables as any).subject}</div>
-                </div>
-              </div>
-            )}
-
-            <div
-              style={{
-                background: "var(--color-surface-secondary)",
-                borderRadius: 8,
-                padding: 12,
-                fontSize: 13,
-                color: "var(--color-text-muted)",
-                border: "0.5px solid rgba(255,255,255,0.08)",
-                maxHeight: 112,
-                overflow: "hidden",
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.55,
-                fontFamily: "Inter, -apple-system, sans-serif",
-              }}
-            >
-              {template.content}
-            </div>
-
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                onClick={() => handleEditTemplate(template)}
-                className="btn-ghost header-utility-btn"
-                aria-label="Edit template"
-                style={{
-                  borderRadius: 8,
-                  width: 40,
-                  height: 40,
-                  padding: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "0.5px solid rgba(255,255,255,0.1)",
-                  background: "rgba(255,255,255,0.03)",
-                }}
-              >
-                <Icons.Edit {...PORTAL_ACTION_ICON} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDuplicateTemplate(template)}
-                disabled={duplicatingId === template.id}
-                className="btn-ghost header-utility-btn"
-                aria-label="Duplicate template"
-                style={{
-                  borderRadius: 8,
-                  width: 40,
-                  height: 40,
-                  padding: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "0.5px solid rgba(255,255,255,0.1)",
-                  background: "rgba(255,255,255,0.03)",
-                  opacity: duplicatingId === template.id ? 0.5 : 1,
-                  cursor: duplicatingId === template.id ? "not-allowed" : "pointer",
-                }}
-              >
-                {duplicatingId === template.id ? (
-                  <span className="ui-spinner-ring ui-spinner-ring--sm" aria-hidden />
-                ) : (
-                  <Icons.Copy {...PORTAL_ACTION_ICON} />
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={() => openDeleteTemplate(template)}
-                disabled={deletingId === template.id}
-                className="header-utility-btn"
-                aria-label="Delete template"
-                style={{
-                  borderRadius: 8,
-                  width: 40,
-                  height: 40,
-                  padding: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "0.5px solid rgba(248,113,113,0.25)",
-                  background: "rgba(248,113,113,0.08)",
-                  color: "#f87171",
-                  cursor: deletingId === template.id ? "not-allowed" : "pointer",
-                  opacity: deletingId === template.id ? 0.5 : 1,
-                }}
-              >
-                {deletingId === template.id ? (
-                  <span className="ui-spinner-ring ui-spinner-ring--sm" aria-hidden />
-                ) : (
-                  <Icons.Trash {...PORTAL_ACTION_ICON} />
-                )}
-              </button>
-            </div>
-            </BaseCard>
-            {duplicatingId === template.id && (
-              <div
-                role="status"
-                aria-live="polite"
-                aria-busy="true"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: 12,
-                  background: "rgba(0,0,0,0.4)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                  backdropFilter: "blur(3px)",
-                  zIndex: 3,
-                }}
-              >
-                <span className="ui-spinner-ring" style={{ width: 28, height: 28 }} aria-hidden />
-                <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>Duplicating…</span>
-                <span
-                  style={{
-                    position: "absolute",
-                    width: 1,
-                    height: 1,
-                    padding: 0,
-                    margin: -1,
-                    overflow: "hidden",
-                    clip: "rect(0,0,0,0)",
-                    whiteSpace: "nowrap",
-                    border: 0,
-                  }}
-                >
-                  Duplicating template, please wait
-                </span>
               </div>
-            )}
-          </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {!loading && templates.length > 0 && filteredTemplates.length === 0 && (
@@ -856,6 +979,187 @@ export default function TemplatesPage() {
                 }}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewTemplate && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            backdropFilter: "blur(10px)",
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setPreviewTemplate(null)}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="template-preview-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(560px, 100%)",
+              maxHeight: "min(85vh, 720px)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              background: "var(--elev-bg)",
+              border: "1px solid var(--elev-border)",
+              borderRadius: 20,
+              boxShadow: "var(--elev-shadow-lg)",
+            }}
+          >
+            <div
+              style={{
+                flexShrink: 0,
+                padding: "24px 28px 16px",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 16,
+                borderBottom: "1px solid var(--elev-border)",
+              }}
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="bases-workspace-card-metric-label" style={{ marginBottom: 6 }}>
+                  Preview
+                </div>
+                <h2
+                  id="template-preview-title"
+                  style={{
+                    margin: 0,
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: "var(--color-text)",
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {String(
+                    (previewTemplate.variables as any)?.name ||
+                      previewTemplate.name ||
+                      "Untitled template"
+                  )}
+                </h2>
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span style={{ textTransform: "capitalize" }}>
+                    {(previewTemplate.variables as any)?.category || "Outreach"}
+                  </span>
+                  <span style={{ opacity: 0.45 }}>·</span>
+                  <span style={{ textTransform: "capitalize" }}>
+                    {previewTemplate.channel || previewTemplate.type || "email"}
+                  </span>
+                  {previewTemplate.visibility === "workspace" && (
+                    <>
+                      <span style={{ opacity: 0.45 }}>·</span>
+                      <span style={{ color: "#818cf8", fontWeight: 600 }}>Shared</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="bases-workspace-card-menu-trigger"
+                aria-label="Close preview"
+                onClick={() => setPreviewTemplate(null)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                <Icons.X size={18} strokeWidth={1.75} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: "auto",
+                overflowX: "hidden",
+                overscrollBehavior: "contain",
+                padding: "20px 28px",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div>
+                  <div className="bases-workspace-card-metric-label">Subject</div>
+                  <p
+                    style={{
+                      margin: "6px 0 0",
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "var(--color-text)",
+                      lineHeight: 1.5,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {(previewTemplate.variables as any)?.subject != null &&
+                    String((previewTemplate.variables as any).subject).trim() !== ""
+                      ? String((previewTemplate.variables as any).subject)
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <div className="bases-workspace-card-metric-label">Body</div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: 14,
+                      borderRadius: 12,
+                      background: "var(--color-surface-secondary)",
+                      border: "1px solid var(--elev-border)",
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                      color: "var(--color-text)",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {previewTemplate.content?.trim() ? previewTemplate.content : "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                flexShrink: 0,
+                padding: "16px 28px 24px",
+                display: "flex",
+                justifyContent: "flex-end",
+                borderTop: "1px solid var(--elev-border)",
+              }}
+            >
+              <button type="button" className="btn-dashboard-outline focus-ring" onClick={() => setPreviewTemplate(null)}>
+                Close
               </button>
             </div>
           </div>

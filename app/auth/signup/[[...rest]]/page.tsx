@@ -4,6 +4,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { authAPI, apiRequest } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/api";
+import GoogleSignInRedirecting from "@/components/auth/GoogleSignInRedirecting";
+
+function decodeGooglePendingJwt(token: string): { purpose?: string; name?: string; email?: string } | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    return JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,20 +26,62 @@ export default function SignupPage() {
   const [dob, setDob] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleRedirecting, setGoogleRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const pendingGoogleToken = searchParams.get("pending");
+  const pendingTrim = pendingGoogleToken?.trim() ?? "";
+  const googlePendingPayload = pendingTrim ? decodeGooglePendingJwt(pendingTrim) : null;
+  /** Derived on each render so Google button + “or” never flash before effects run. */
+  const isGoogleFinishFlow = Boolean(
+    googlePendingPayload?.purpose === "google_oauth_pending" &&
+      typeof googlePendingPayload?.email === "string"
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  const startGoogleSignUp = () => {
+    setError(null);
+    setGoogleRedirecting(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.location.href = `${API_BASE}/api/auth/google`;
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (!pendingTrim) return;
+    const payload = decodeGooglePendingJwt(pendingTrim);
+    if (!payload || payload.purpose !== "google_oauth_pending" || typeof payload.email !== "string") {
+      setError("This Google sign-up link is invalid or expired. Use “Continue with Google” again.");
+      return;
+    }
+    setError(null);
+    if (payload.name) setName(String(payload.name));
+    setEmail(String(payload.email));
+  }, [pendingTrim]);
+
   const onSignup = async () => {
     setError(null);
     setLoading(true);
     try {
+      if (isGoogleFinishFlow && pendingTrim) {
+        await authAPI.googleCompleteSignup({
+          pending_token: pendingTrim,
+          name: name.trim(),
+          company: company.trim() || undefined,
+          dob: dob.trim() || undefined,
+          password: password.trim().length >= 6 ? password.trim() : undefined,
+        });
+        router.replace("/auth/verify-required");
+        return;
+      }
+
       await authAPI.signup(email, password, name, company || undefined, dob || undefined);
-      localStorage.setItem("sparkai:profile_complete", "false");
       
       // Check for pending invitation
       const invitationToken = searchParams.get('invitation');
@@ -49,8 +102,7 @@ export default function SignupPage() {
             }));
           }
           
-          // Redirect to dashboard with success message (skip onboarding if joining via invitation)
-          router.push("/dashboard?invited=true");
+          router.push("/auth/verify-required?invited=1");
           return;
         } catch (inviteError: any) {
           console.error('Failed to accept invitation:', inviteError);
@@ -58,7 +110,7 @@ export default function SignupPage() {
         }
       }
       
-      router.push("/onboarding");
+      router.push("/auth/verify-required");
     } catch (e: any) {
       setError(e?.message || "Signup failed");
     } finally {
@@ -66,7 +118,9 @@ export default function SignupPage() {
     }
   };
 
-  const canSubmit = name.trim() && email && password.length >= 6;
+  const emailOk = Boolean(email.includes("@") && email.includes("."));
+  const passwordOk = isGoogleFinishFlow ? password.length === 0 || password.length >= 6 : password.length >= 6;
+  const canSubmit = Boolean(name.trim() && emailOk && passwordOk);
 
   return (
     <div style={{
@@ -74,8 +128,10 @@ export default function SignupPage() {
       display: "flex",
       background: "#f8fafc",
       opacity: mounted ? 1 : 0,
-      transition: "opacity 0.6s ease-in-out"
+      transition: "opacity 0.6s ease-in-out",
+      position: "relative",
     }}>
+      {googleRedirecting ? <GoogleSignInRedirecting /> : null}
       {/* Left Panel - Branding */}
       <div style={{
         flex: 1,
@@ -291,7 +347,7 @@ export default function SignupPage() {
               transform: mounted ? "translateY(0)" : "translateY(-10px)",
               transition: "all 0.6s ease-out 0.3s"
             }}>
-              Create your account
+              {isGoogleFinishFlow ? "Finish your registration" : "Create your account"}
             </h2>
             <p style={{ 
               fontSize: "14px", 
@@ -300,14 +356,35 @@ export default function SignupPage() {
               opacity: mounted ? 1 : 0,
               transition: "opacity 0.6s ease-out 0.4s"
             }}>
-              Join thousands of sales teams • No credit card required
+              {isGoogleFinishFlow
+                ? "Google verified your email. Add any extra details, then create your account."
+                : "Join thousands of sales teams • No credit card required"}
             </p>
           </div>
 
+          {isGoogleFinishFlow && (
+            <div
+              style={{
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                marginBottom: "20px",
+                fontSize: "13px",
+                color: "#1e40af",
+                lineHeight: 1.5,
+              }}
+            >
+              Signed in with Google as <strong style={{ wordBreak: "break-all" }}>{email}</strong>. Password is optional if you only want to use Google.
+            </div>
+          )}
+
           {/* Google Sign Up */}
+          {!isGoogleFinishFlow && (
           <button
-            onClick={() => { window.location.href = `${API_BASE}/auth/google`; }}
-            disabled={loading}
+            type="button"
+            onClick={startGoogleSignUp}
+            disabled={loading || googleRedirecting}
             style={{
               width: "100%",
               padding: "12px 20px",
@@ -317,7 +394,7 @@ export default function SignupPage() {
               color: "#1e293b",
               fontSize: "14px",
               fontWeight: "600",
-              cursor: "pointer",
+              cursor: loading || googleRedirecting ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -328,6 +405,7 @@ export default function SignupPage() {
               transform: mounted ? "translateY(0)" : "translateY(20px)"
             }}
             onMouseOver={(e) => { 
+              if (loading || googleRedirecting) return;
               e.currentTarget.style.background = "#f8fafc"; 
               e.currentTarget.style.borderColor = "#cbd5e1";
               e.currentTarget.style.transform = "translateY(-2px)";
@@ -348,8 +426,10 @@ export default function SignupPage() {
             </svg>
             Continue with Google
           </button>
+          )}
 
           {/* Divider */}
+          {!isGoogleFinishFlow && (
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -360,6 +440,7 @@ export default function SignupPage() {
             <span style={{ fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>or</span>
             <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
           </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -440,13 +521,14 @@ export default function SignupPage() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly={isGoogleFinishFlow}
                 autoComplete="email"
                 style={{
                   width: "100%",
                   padding: "12px 40px 12px 14px",
                   borderRadius: "10px",
                   border: email.includes('@') && email.includes('.') ? "1px solid #10b981" : "1px solid #e2e8f0",
-                  background: "#fff",
+                  background: isGoogleFinishFlow ? "#f1f5f9" : "#fff",
                   color: "#1e293b",
                   fontSize: "14px",
                   outline: "none",
@@ -530,12 +612,15 @@ export default function SignupPage() {
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
-                Password
+                Password{" "}
+                {isGoogleFinishFlow ? (
+                  <span style={{ color: "#94a3b8", fontWeight: "400" }}>(optional — min 6 if you want email login)</span>
+                ) : null}
               </label>
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Min. 6 characters"
+                  placeholder={isGoogleFinishFlow ? "Leave empty for Google-only" : "Min. 6 characters"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"

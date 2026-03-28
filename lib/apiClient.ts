@@ -8,11 +8,14 @@ export interface User {
   dob?: string;
   role?: "admin" | "user";
   email_verified?: boolean;
+  /** Server-owned; when false and email is verified, user must finish onboarding. */
+  onboarding_completed?: boolean;
 }
 
 export interface AuthResponse {
   token: string;
   user: User;
+  base?: { id: number; name: string };
 }
 
 export interface PasswordResetRequestResponse {
@@ -34,6 +37,7 @@ export const setToken = (token: string) => {
 export const setUser = (user: User) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('sparkai:user', JSON.stringify(user));
+    window.dispatchEvent(new Event('sparkai:user-changed'));
   }
 };
 
@@ -232,7 +236,18 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     } catch {
       errorData = { error: `HTTP error! status: ${response.status}` };
     }
-    
+
+    if (
+      response.status === 403 &&
+      errorData?.code === "EMAIL_NOT_VERIFIED" &&
+      typeof window !== "undefined"
+    ) {
+      const p = window.location.pathname || "";
+      if (!p.startsWith("/auth")) {
+        window.location.href = "/auth/verify-required";
+      }
+    }
+
     // Create error object with more details
     const error = new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
     (error as any).status = response.status;
@@ -350,6 +365,31 @@ export const authAPI = {
     }
 
     return response.json();
+  },
+
+  /** Finish account after Google OAuth (new users receive `pending` JWT in URL). */
+  googleCompleteSignup: async (payload: {
+    pending_token: string;
+    name: string;
+    company?: string;
+    dob?: string;
+    password?: string;
+  }): Promise<AuthResponse> => {
+    const response = await fetch(`${API_BASE}/api/auth/google/complete-signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Could not complete sign-up" }));
+      throw new Error(error.error || "Could not complete sign-up");
+    }
+
+    const data: AuthResponse = await response.json();
+    setToken(data.token);
+    setUser(data.user);
+    return data;
   },
 };
 

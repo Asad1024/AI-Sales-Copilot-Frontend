@@ -1,6 +1,9 @@
 "use client";
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useLeadStore } from "@/stores/useLeadStore";
+import { useBaseStore } from "@/stores/useBaseStore";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 interface NextStepsGuidanceProps {
   onEnrich: () => void;
@@ -9,6 +12,8 @@ interface NextStepsGuidanceProps {
 }
 
 export function NextStepsGuidance({ onEnrich, onScore, enriching = false }: NextStepsGuidanceProps) {
+  const router = useRouter();
+  const { activeBaseId } = useBaseStore();
   const { leads } = useLeadStore();
 
   const enrichmentStatus = useMemo(() => {
@@ -96,7 +101,7 @@ export function NextStepsGuidance({ onEnrich, onScore, enriching = false }: Next
         <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>→</span>
         <button
           className="btn-primary ms-hover-scale ms-press focus-ring"
-          onClick={() => window.location.href = '/campaigns/new'}
+          onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
           style={{ padding: '6px 12px', fontSize: 12 }}
         >
           Create Campaign

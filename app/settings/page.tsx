@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Icons } from "@/components/ui/Icons";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   apiRequest,
   getUser,
@@ -13,6 +13,7 @@ import {
 import { useBase } from "@/context/BaseContext";
 import { API_BASE } from "@/lib/api";
 import SafetySection from "./SafetySection";
+import { TestConfigurationSection } from "./TestConfigurationSection";
 import BaseCard from "@/components/ui/BaseCard";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -59,16 +60,37 @@ const AlertIcon = () => (
   <Icons.AlertCircle size={18} strokeWidth={1.5} />
 );
 
+type SettingsTabId = "profile" | "connectors" | "safety" | "test-configuration";
+
+function parseSettingsTab(raw: string | null): SettingsTabId {
+  if (raw === "connectors" || raw === "safety" || raw === "test-configuration") return raw;
+  return "profile";
+}
+
+const TestConfigTabIcon = () => <Icons.Zap size={18} strokeWidth={1.5} />;
+
 export default function SettingsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams?.get('tab') as 'profile' | 'connectors' | 'safety' | null;
-  const connectProvider = searchParams?.get('connect');
-  const [tab, setTab] = useState<'profile' | 'connectors' | 'safety'>(initialTab || 'profile');
+  const [tab, setTab] = useState<SettingsTabId>(() => parseSettingsTab(searchParams?.get("tab")));
+
+  useEffect(() => {
+    setTab(parseSettingsTab(searchParams?.get("tab")));
+  }, [searchParams]);
+
+  const selectTab = (id: SettingsTabId) => {
+    setTab(id);
+    const p = new URLSearchParams(searchParams?.toString() || "");
+    p.set("tab", id);
+    if (id !== "connectors") p.delete("connect");
+    router.replace(`/settings?${p.toString()}`);
+  };
 
   const tabs = [
-    { id: 'profile' as const, label: 'Profile', icon: UserIcon },
-    { id: 'connectors' as const, label: 'Connectors', icon: PlugIcon },
-    { id: 'safety' as const, label: 'Safety', icon: ShieldIcon },
+    { id: "profile", label: "Profile", icon: UserIcon },
+    { id: "connectors", label: "Connectors", icon: PlugIcon },
+    { id: "safety", label: "Safety", icon: ShieldIcon },
+    { id: "test-configuration", label: "Test configuration", icon: TestConfigTabIcon },
   ];
 
   return (
@@ -84,7 +106,7 @@ export default function SettingsPage() {
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setTab(id)}
+            onClick={() => selectTab(id as SettingsTabId)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -121,9 +143,10 @@ export default function SettingsPage() {
 
       {/* Content */}
       <BaseCard style={{ borderRadius: 12, padding: '24px', minHeight: '400px' }}>
-        {tab === 'profile' && <ProfileSection />}
-        {tab === 'connectors' && <ConnectorsSection />}
-        {tab === 'safety' && <SafetySection />}
+        {tab === "profile" && <ProfileSection />}
+        {tab === "connectors" && <ConnectorsSection />}
+        {tab === "safety" && <SafetySection />}
+        {tab === "test-configuration" && <TestConfigurationSection />}
       </BaseCard>
     </div>
   );
@@ -314,6 +337,33 @@ function ProfileSection() {
             }}
           >
             Reset
+          </button>
+        </div>
+
+        <div
+          style={{
+            marginTop: '32px',
+            paddingTop: '24px',
+            borderTop: '1px solid var(--elev-border, var(--color-border-light))',
+          }}
+        >
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => {
+              clearAuth();
+              window.location.href = '/auth/login';
+            }}
+            style={{
+              padding: '12px 20px',
+              fontSize: '14px',
+              fontWeight: '600',
+              borderRadius: '10px',
+              color: '#EF4444',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+            }}
+          >
+            Log out
           </button>
         </div>
       </div>

@@ -50,7 +50,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
       await refreshBases();
       if (data?.base?.id) {
         setActiveBaseId(data.base.id);
-        router.push(`/bases/${data.base.id}/leads`);
+        router.push(`/bases/${data.base.id}/leads?welcome=1`);
       }
       setBaseName("");
       setModalOpen(false);
@@ -164,8 +164,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   left: collapsed ? "100%" : 0,
                   right: collapsed ? "auto" : 0,
                   marginLeft: collapsed ? 8 : 0,
-                  minWidth: collapsed ? 220 : undefined,
-                  width: collapsed ? 240 : undefined,
+                  minWidth: collapsed ? 232 : undefined,
+                  width: collapsed ? 252 : undefined,
                   background: "#FFFFFF",
                   border: "1px solid #E5E7EB",
                   borderRadius: 10,

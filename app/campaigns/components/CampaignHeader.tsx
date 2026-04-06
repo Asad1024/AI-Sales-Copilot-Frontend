@@ -5,6 +5,8 @@ import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
+import { useBaseStore } from "@/stores/useBaseStore";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 const getChannelIcon = (channel: string) => {
   switch (channel) {
@@ -18,6 +20,7 @@ const getChannelIcon = (channel: string) => {
 
 export function CampaignHeader() {
   const router = useRouter();
+  const { activeBaseId } = useBaseStore();
   const { filters, setFilters } = useCampaignStore();
 
   return (
@@ -73,7 +76,7 @@ export function CampaignHeader() {
           })}
         </div>
         <button 
-          onClick={() => router.push('/campaigns/new')}
+          onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
           style={{
             background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
             border: 'none',

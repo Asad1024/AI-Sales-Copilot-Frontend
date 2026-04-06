@@ -10,7 +10,6 @@ interface BaseCardProps {
   base: any;
   stats: { leads: number; campaigns: number; enriched: number; scored: number };
   isLoading: boolean;
-  nextSteps: any[];
   onRename: (id: number, name: string) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onSetActive: (id: number) => void;
@@ -30,7 +29,7 @@ const BASE_COLORS = [
 export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActive }: BaseCardProps) {
   const router = useRouter();
   const { showSuccess, showError } = useNotification();
-  const { permissions } = useBasePermissions(base.id);
+  const { permissions, loading: permissionsLoading } = useBasePermissions(base.id);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState<string>(base?.name ?? "");
   const [renameSaving, setRenameSaving] = useState(false);
@@ -176,6 +175,23 @@ export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActi
     { label: "Enriched", value: stats.enriched },
     { label: "Scored", value: stats.scored },
   ];
+
+  const isEmptyWorkspace = stats.leads === 0 && stats.campaigns === 0;
+  const showNextSteps = !isLoading && !isRenaming && isEmptyWorkspace;
+  const showAddLeadsCta = permissionsLoading || permissions.canReadLeads;
+  const showCreateCampaignCta = permissionsLoading || permissions.canCreateCampaigns;
+
+  const goLeads = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSetActive(base.id);
+    router.push(`/bases/${base.id}/leads`);
+  };
+
+  const goNewCampaign = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSetActive(base.id);
+    router.push("/campaigns/new");
+  };
 
   return (
     <div className="bases-workspace-card" onClick={handleOpen} style={{ cursor: "pointer", position: "relative" }}>
@@ -383,6 +399,32 @@ export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActi
             </div>
           ))}
         </div>
+
+        {showNextSteps && (
+          <div className="bases-workspace-card-next" onClick={(e) => e.stopPropagation()}>
+            <p className="bases-workspace-card-next-label">
+              Next: add people to reach out to, then launch a campaign. You can also open the card to go to Leads.
+            </p>
+            {showAddLeadsCta || showCreateCampaignCta ? (
+              <div className="bases-workspace-card-next-actions">
+                {showAddLeadsCta && (
+                  <button type="button" className="bases-workspace-next-cta-primary" onClick={goLeads}>
+                    Add leads
+                  </button>
+                )}
+                {showCreateCampaignCta && (
+                  <button type="button" className="dashboard-demo-toggle-badge" onClick={goNewCampaign}>
+                    Create campaign
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="bases-workspace-card-next-hint">
+                You have view-only access. Ask a workspace admin to add leads or create campaigns.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

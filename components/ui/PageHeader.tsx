@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import { Icons } from "@/components/ui/Icons";
-import { useNotificationStore } from "@/stores/useNotificationStore";
+import HeaderTopRightPills from "@/components/ui/HeaderTopRightPills";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 interface PageHeaderProps {
   title: string;
@@ -25,20 +23,9 @@ export default function PageHeader({
 }: PageHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [showWorkspaceRequired, setShowWorkspaceRequired] = useState(false);
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
-  const refreshUnreadCount = useNotificationStore((s) => s.refreshUnreadCount);
-
-  useEffect(() => {
-    refreshUnreadCount();
-  }, [refreshUnreadCount]);
 
   const onDashboardPrimaryClick = () => {
-    if (!activeBaseId) {
-      setShowWorkspaceRequired(true);
-      return;
-    }
-    router.push("/campaigns/new");
+    goToNewCampaignOrWorkspaces(router, activeBaseId);
   };
   const isLeadsRoute = pathname?.includes("/leads");
   const isCampaignsRoute = pathname?.startsWith("/campaigns");
@@ -83,7 +70,7 @@ export default function PageHeader({
           flexWrap: "wrap",
         }}
       >
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             className="app-page-header-title"
             style={{
@@ -113,41 +100,16 @@ export default function PageHeader({
             {description}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, border: "0.5px solid var(--color-border)", background: "var(--color-surface-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ThemeToggle />
-          </div>
-          <button
-            type="button"
-            className="icon-btn header-utility-btn"
-            onClick={() => router.push("/notifications")}
-            style={{ borderRadius: 8, width: 36, height: 36, position: "relative", border: "0.5px solid var(--color-border)" }}
-            aria-label="Notifications"
-          >
-            <Icons.Bell size={18} strokeWidth={1.5} />
-            {unreadCount > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: 7,
-                  right: 7,
-                  width: 7,
-                  height: 7,
-                  borderRadius: 999,
-                  background: "#ef4444",
-                }}
-              />
-            )}
-          </button>
-          <button
-            type="button"
-            className="icon-btn header-utility-btn"
-            onClick={() => router.push("/settings")}
-            style={{ borderRadius: 8, width: 36, height: 36, border: "0.5px solid var(--color-border)" }}
-            aria-label="Settings"
-          >
-            <Icons.Settings size={18} strokeWidth={1.5} />
-          </button>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          }}
+        >
+          <HeaderTopRightPills />
           {showHeaderNewCampaign && (
             <button className="btn-primary shimmer-cta" onClick={onDashboardPrimaryClick} style={{ borderRadius: 8 }}>
               New Campaign
@@ -155,53 +117,6 @@ export default function PageHeader({
           )}
         </div>
       </div>
-      {showWorkspaceRequired && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 120,
-            padding: 20,
-          }}
-          onClick={() => setShowWorkspaceRequired(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: 460,
-              background: "var(--elev-bg, var(--color-surface))",
-              border: "0.5px solid var(--elev-border, var(--color-border))",
-              borderRadius: 12,
-              padding: 20,
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Workspace Required</div>
-            <div style={{ fontSize: 14, color: "var(--color-text-muted)", marginBottom: 16 }}>
-              You need to create or select a workspace before launching a campaign.
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button className="btn-ghost" onClick={() => setShowWorkspaceRequired(false)} style={{ borderRadius: 8 }}>
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  setShowWorkspaceRequired(false);
-                  router.push("/bases");
-                }}
-                style={{ borderRadius: 8 }}
-              >
-                Create Workspace
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

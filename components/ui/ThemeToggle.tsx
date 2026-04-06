@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Icons } from "./Icons";
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ compact }: { compact?: boolean }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [mounted, setMounted] = useState(false);
 
@@ -40,9 +40,12 @@ export default function ThemeToggle() {
     applyTheme(newTheme);
   };
 
+  const btn = compact ? 24 : 30;
+  const iconSz = compact ? 14 : 18;
+
   if (!mounted) {
     return (
-      <div style={{ width: '30px', height: '30px' }} />
+      <div style={{ width: btn, height: btn }} />
     );
   }
 
@@ -52,8 +55,8 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       style={{
-        width: 30,
-        height: 30,
+        width: btn,
+        height: btn,
         background: 'transparent',
         border: 'none',
         borderRadius: '6px',
@@ -83,7 +86,7 @@ export default function ThemeToggle() {
           transform: `rotate(${theme === 'light' ? '0deg' : '90deg'})`,
         }}
       >
-        <Icons.Sun size={18} strokeWidth={1.5} />
+        <Icons.Sun size={iconSz} strokeWidth={1.5} />
       </span>
       <span
         style={{
@@ -94,7 +97,7 @@ export default function ThemeToggle() {
           transform: `rotate(${theme === 'dark' ? '0deg' : '-90deg'})`,
         }}
       >
-        <Icons.Moon size={18} strokeWidth={1.5} />
+        <Icons.Moon size={iconSz} strokeWidth={1.5} />
       </span>
     </button>
   );

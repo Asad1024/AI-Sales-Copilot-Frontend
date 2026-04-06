@@ -13,6 +13,7 @@ import { WebSocketProvider } from "@/components/notifications/WebSocketProvider"
 import AuthGuard from "@/components/auth/AuthGuard";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import PageHeader from "@/components/ui/PageHeader";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -51,8 +52,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (pathname.startsWith("/team")) return { title: "Team", description: "Manage collaborators and permissions." };
     if (pathname.startsWith("/notifications"))
       return { title: "Notifications", description: "Account activity, workspace changes, security, and system alerts." };
-    if (pathname.startsWith("/settings/test-configuration"))
-      return { title: "Test Configuration", description: "Verify email, LinkedIn, WhatsApp, and call integrations." };
     if (pathname.startsWith("/settings")) return { title: "Settings", description: "Configure your Spark AI workspace." };
     if (pathname.startsWith("/admin")) return { title: "Admin", description: "Control platform-wide settings and users." };
     return { title: "Spark AI", description: "Premium AI-native sales workspace." };
@@ -116,7 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       <PageHeader
                         title={pageMeta.title}
                         description={pageMeta.description}
-                        onNewCampaign={() => router.push("/campaigns/new")}
+                        onNewCampaign={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
                         onWatchDemo={() => router.push("/demo")}
                         activeBaseId={activeBaseId != null ? String(activeBaseId) : undefined}
                         onAddLead={() =>

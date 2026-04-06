@@ -65,6 +65,12 @@ export default function CampaignNew() {
     activeBaseId = undefined;
   }
 
+  useEffect(() => {
+    if (activeBaseId === null) {
+      router.replace("/bases");
+    }
+  }, [activeBaseId, router]);
+
   // Don't render until we have base context
   if (activeBaseId === undefined) {
     return (

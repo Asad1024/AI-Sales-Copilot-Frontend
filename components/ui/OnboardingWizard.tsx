@@ -5,6 +5,7 @@ import { useBase } from '@/context/BaseContext';
 import { apiRequest } from '@/lib/apiClient';
 import { Icons } from './Icons';
 import { useNotification } from '@/context/NotificationContext';
+import { goToNewCampaignOrWorkspaces } from '@/lib/goToNewCampaign';
 
 interface OnboardingWizardProps {
   onComplete?: () => void;
@@ -356,7 +357,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
           </p>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => router.push('/campaigns/new')}
+              onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
               className="btn-primary"
               style={{ padding: '12px 24px' }}
             >

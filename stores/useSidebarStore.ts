@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const EXPANDED = 220;
+const EXPANDED = 232;
 const COLLAPSED = 56;
 
 type SidebarStore = {

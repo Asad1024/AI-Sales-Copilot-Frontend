@@ -5,14 +5,16 @@ import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSocket } from "@/hooks/useSocket";
 import { Icons } from "@/components/ui/Icons";
+import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { CampaignStats } from "./components/CampaignStats";
 import { CampaignGrid } from "./components/CampaignGrid";
 import { TierBreakdown } from "./components/TierBreakdown";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 export default function CampaignsPage() {
   const router = useRouter();
-  const { activeBaseId } = useBaseStore();
+  const { activeBaseId, bases, refreshBases } = useBaseStore();
   const { 
     loading, 
     fetchCampaigns, 
@@ -24,6 +26,12 @@ export default function CampaignsPage() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   
   const socket = useSocket();
+
+  useEffect(() => {
+    if (!activeBaseId && bases.length === 0) {
+      refreshBases();
+    }
+  }, [activeBaseId, bases.length, refreshBases]);
 
   // Fetch campaigns when base changes
   useEffect(() => {
@@ -53,6 +61,34 @@ export default function CampaignsPage() {
   }, [socket, refreshCampaign]);
 
   const filteredCampaigns = getFilteredCampaigns();
+
+  if (!activeBaseId) {
+    return (
+      <div
+        style={{
+          minHeight: "calc(100vh - 56px)",
+          width: "100%",
+          background: "var(--color-canvas)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+          gap: 16,
+          boxSizing: "border-box",
+        }}
+      >
+        <EmptyStateBanner
+          icon={<Icons.Folder size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+          title="No Active Workspace"
+          description="Please create a workspace to launch and manage campaigns."
+          actions={
+            <button className="btn-primary" style={{ borderRadius: 8 }} onClick={() => router.push("/bases")}>
+              Create a workspace
+            </button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -146,7 +182,11 @@ export default function CampaignsPage() {
             )}
           </div>
         </div>
-        <button type="button" className="btn-dashboard-outline" onClick={() => router.push("/campaigns/new")}>
+        <button
+          type="button"
+          className="btn-dashboard-outline"
+          onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
+        >
           <Icons.Plus size={16} strokeWidth={1.5} />
           Create Campaign
         </button>

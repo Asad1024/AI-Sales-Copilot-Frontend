@@ -34,8 +34,9 @@ const getLeadName = (lead: Lead) => {
   return lead.phone || 'Unknown Lead';
 };
 
-/** Narrow sticky rail so horizontal scroll feels lighter */
-const IDX_COL_W = 28;
+/** Sticky index + checkbox rails */
+const IDX_COL_W = 36;
+const CB_COL_W = 34;
 const CB_STICKY_LEFT = IDX_COL_W;
 
 // System columns that are always available
@@ -314,18 +315,23 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       case 'score': {
         const s = lead.score;
         if (s === null || s === undefined) {
-          return <span className="text-[8px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
+          return <span className="text-[10px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
         }
         const n = Number(s);
-        const tierCls =
-          n > 80
-            ? "bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300"
-            : n > 60
-              ? "bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-300"
-              : "bg-slate-50 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300";
+        const scoreColor =
+          n >= 80
+            ? "#047857"
+            : n >= 60
+              ? "#1d4ed8"
+              : n >= 40
+                ? "#b45309"
+                : n >= 20
+                  ? "#c2410c"
+                  : "#475569";
         return (
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[8px] font-medium ${tierCls}`}
+            className="inline-flex min-w-[2rem] items-center text-[11px] tabular-nums font-semibold"
+            style={{ color: scoreColor }}
           >
             {s}
           </span>
@@ -335,16 +341,18 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       case 'tier': {
         const t = lead.tier;
         if (!t) {
-          return <span className="text-[8px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
+          return <span className="text-[10px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
         }
-        const tierCls =
-          t === "Hot"
-            ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300"
-            : t === "Warm"
-              ? "bg-orange-50 text-orange-500 dark:bg-orange-950/40 dark:text-orange-300"
-              : "bg-slate-50 text-slate-500 dark:bg-slate-800/80 dark:text-slate-400";
+        const TierIcon =
+          t === "Hot" ? Icons.Flame : t === "Warm" ? Icons.Thermometer : Icons.Snowflake;
+        const tierColor =
+          t === "Hot" ? "#be123c" : t === "Warm" ? "#b45309" : "#0369a1";
         return (
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[8px] font-medium ${tierCls}`}>
+          <span
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-tight"
+            style={{ color: tierColor }}
+          >
+            <TierIcon size={13} strokeWidth={2} style={{ color: tierColor, flexShrink: 0 }} aria-hidden />
             {t}
           </span>
         );
@@ -452,6 +460,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
               style={{
                 padding: `${CELL_PAD_Y}px 6px`,
                 textAlign: "center",
+                verticalAlign: "middle",
                 width: IDX_COL_W,
                 minWidth: IDX_COL_W,
                 borderBottom: `1px solid ${ROW_BORDER}`,
@@ -466,10 +475,11 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
             <th
               className="bg-slate-50/50 dark:bg-slate-800/50"
               style={{
-                padding: `${CELL_PAD_Y}px 6px`,
+                padding: `${CELL_PAD_Y}px 2px`,
                 textAlign: "center",
-                width: IDX_COL_W,
-                minWidth: IDX_COL_W,
+                verticalAlign: "middle",
+                width: CB_COL_W,
+                minWidth: CB_COL_W,
                 borderBottom: `1px solid ${ROW_BORDER}`,
                 position: "sticky",
                 left: CB_STICKY_LEFT,
@@ -477,7 +487,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                 boxShadow: "1px 0 0 var(--color-border-light)",
               }}
             >
-              <div className="flex h-full w-full items-center justify-center">
+              <div className="leads-table-checkbox-wrap">
                 <input
                   type="checkbox"
                   className="leads-table-checkbox"
@@ -563,7 +573,8 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                               style={{
                                 padding: `${CELL_PAD_Y}px 6px`,
                                 textAlign: "center",
-                              fontSize: 8,
+                                verticalAlign: "middle",
+                                fontSize: 8,
                                 color: "var(--color-text-muted)",
                                 fontWeight: 600,
                                 position: "sticky",
@@ -577,7 +588,11 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                             </td>
                             <td
                               style={{
-                                padding: `${CELL_PAD_Y}px 6px`,
+                                padding: `${CELL_PAD_Y}px 2px`,
+                                textAlign: "center",
+                                verticalAlign: "middle",
+                                width: CB_COL_W,
+                                minWidth: CB_COL_W,
                                 position: "sticky",
                                 left: CB_STICKY_LEFT,
                                 zIndex: 11,
@@ -588,18 +603,20 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                                 e.stopPropagation();
                               }}
                             >
-                              <input
-                                type="checkbox"
-                                className="leads-table-checkbox"
-                                checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  toggleLeadSelection(lead.id);
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                              />
+                              <div className="leads-table-checkbox-wrap">
+                                <input
+                                  type="checkbox"
+                                  className="leads-table-checkbox"
+                                  checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    toggleLeadSelection(lead.id);
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                />
+                              </div>
                             </td>
                             {allColumns.map((column) => (
                               <td
@@ -668,7 +685,8 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                           style={{
                             padding: `${CELL_PAD_Y}px 6px`,
                             textAlign: "center",
-                              fontSize: 8,
+                            verticalAlign: "middle",
+                            fontSize: 8,
                             color: "var(--color-text-muted)",
                             fontWeight: 600,
                             position: "sticky",
@@ -682,7 +700,11 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                         </td>
                         <td
                           style={{
-                            padding: `${CELL_PAD_Y}px 6px`,
+                            padding: `${CELL_PAD_Y}px 2px`,
+                            textAlign: "center",
+                            verticalAlign: "middle",
+                            width: CB_COL_W,
+                            minWidth: CB_COL_W,
                             position: "sticky",
                             left: CB_STICKY_LEFT,
                             zIndex: 11,
@@ -693,18 +715,20 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                             e.stopPropagation();
                           }}
                         >
-                          <input
-                            type="checkbox"
-                            className="leads-table-checkbox"
-                            checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleLeadSelection(lead.id);
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                          />
+                          <div className="leads-table-checkbox-wrap">
+                            <input
+                              type="checkbox"
+                              className="leads-table-checkbox"
+                              checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleLeadSelection(lead.id);
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                            />
+                          </div>
                         </td>
                         {allColumns.map((column) => (
                           <td

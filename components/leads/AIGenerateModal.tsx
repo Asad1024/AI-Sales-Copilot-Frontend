@@ -1,11 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import EnrichmentLoader from "./EnrichmentLoader";
 import { Icons } from "@/components/ui/Icons";
 
 type Props = { open: boolean; onClose: () => void; onGenerated: (rows: any[]) => void };
+
+const SUGGESTION_LOADING_PHASES = [
+  "Mapping your segment…",
+  "Choosing titles & seniority…",
+  "Setting region & company size…",
+  "Adding buying signals…",
+  "Almost ready…",
+];
 
 export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   const { activeBaseId } = useBase();
@@ -32,6 +40,17 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
     "Healthcare Operations Heads",
     "Logistics Decision Makers",
   ];
+
+  useEffect(() => {
+    if (!suggestionLoadingTopic) return;
+    let i = 0;
+    setProgress(`${SUGGESTION_LOADING_PHASES[0]} · ${suggestionLoadingTopic}`);
+    const id = window.setInterval(() => {
+      i = (i + 1) % SUGGESTION_LOADING_PHASES.length;
+      setProgress(`${SUGGESTION_LOADING_PHASES[i]} · ${suggestionLoadingTopic}`);
+    }, 1200);
+    return () => window.clearInterval(id);
+  }, [suggestionLoadingTopic]);
 
   if (!open) return null;
 
@@ -129,7 +148,6 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
   const handleSuggestionTopic = async (topic: string) => {
     setError("");
     setSuggestionLoadingTopic(topic);
-    setProgress(`AI is drafting a search prompt for "${topic}"...`);
     try {
       const response = await apiRequest("/ai/lead-prompt-from-suggestion", {
         method: "POST",
@@ -283,28 +301,58 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
                   Describe your target leads
                 </label>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 8, marginBottom: 12 }}>
-                  {suggestionPrompts.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => handleSuggestionTopic(item)}
-                      disabled={generating || suggestionLoadingTopic === item}
-                      style={{
-                        border: "1px solid var(--color-border)",
-                        background: "var(--color-surface-secondary)",
-                        color: "var(--color-text)",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        padding: "8px 10px",
-                        height: "auto",
-                        cursor: generating ? "not-allowed" : "pointer",
-                        textAlign: "left",
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {suggestionLoadingTopic === item ? "Generating..." : item}
-                    </button>
-                  ))}
+                  {suggestionPrompts.map((item) => {
+                    const loadingChip = suggestionLoadingTopic === item;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => handleSuggestionTopic(item)}
+                        disabled={generating || Boolean(suggestionLoadingTopic)}
+                        style={{
+                          border: loadingChip
+                            ? "1px solid rgba(99, 102, 241, 0.55)"
+                            : "1px solid var(--color-border)",
+                          background: loadingChip
+                            ? "linear-gradient(135deg, rgba(238, 242, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)"
+                            : "var(--color-surface-secondary)",
+                          color: "var(--color-text)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                          padding: "10px 12px",
+                          minHeight: 44,
+                          cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                          textAlign: "left",
+                          lineHeight: 1.35,
+                          boxShadow: loadingChip ? "0 0 0 3px rgba(99, 102, 241, 0.18)" : undefined,
+                          transition: "border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease",
+                        }}
+                      >
+                        {loadingChip ? (
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <Icons.Sparkles
+                              size={15}
+                              strokeWidth={1.75}
+                              style={{
+                                color: "var(--color-primary)",
+                                flexShrink: 0,
+                                animation: "spin 0.9s linear infinite",
+                              }}
+                            />
+                            <span style={{ fontWeight: 600 }}>Crafting your prompt…</span>
+                          </span>
+                        ) : (
+                          item
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
                 <textarea 
                   className="input" 

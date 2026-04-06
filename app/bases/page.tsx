@@ -38,11 +38,21 @@ export default function BasesPage() {
     if (!name.trim()) return;
     try {
       setLoadingCreate(true);
-      await apiRequest("/bases", { method: "POST", body: JSON.stringify({ user_id: 1, name }) });
+      const data = await apiRequest("/bases", {
+        method: "POST",
+        body: JSON.stringify({ user_id: 1, name: name.trim() }),
+      });
       setName("");
       setShowCreateModal(false);
       await refreshBases();
-      showSuccess("Workspace created", "Your new workspace is ready.");
+      const newId = data?.base?.id;
+      if (typeof newId === "number" && newId > 0) {
+        setActiveBaseId(newId);
+        showSuccess("Workspace created", "Opening Leads — add your first contacts here.");
+        router.push(`/bases/${newId}/leads?welcome=1`);
+      } else {
+        showSuccess("Workspace created", "Your new workspace is ready. Open it below to add leads.");
+      }
     } catch (e: any) {
       showError("Could not create workspace", e?.message || "Failed to create workspace.");
     } finally {
@@ -114,6 +124,13 @@ export default function BasesPage() {
     }
     return searched;
   }, [bases, search, filter, baseQuickStats]);
+
+  const allVisibleEmpty =
+    filtered.length > 0 &&
+    filtered.every((b: { id: number }) => {
+      const s = baseQuickStats[b.id];
+      return s !== undefined && s.leads === 0 && s.campaigns === 0;
+    });
 
   if (basesLoading && bases.length === 0) {
     return <WorkspacePageSkeleton />;
@@ -221,6 +238,21 @@ export default function BasesPage() {
           </button>
         </div>
 
+        {allVisibleEmpty && (
+          <div className="bases-onboarding-hint" role="status">
+            <Icons.Folder size={20} strokeWidth={1.5} className="bases-onboarding-hint-icon" />
+            <div>
+              <p className="bases-onboarding-hint-body">
+                Your workspace is ready. Use <strong>Add leads</strong> on a card to import contacts, then{" "}
+                <strong>Create campaign</strong> to start outreach. The dashboard checklist also tracks these steps.
+              </p>
+              <button type="button" className="bases-onboarding-hint-link" onClick={() => router.push("/dashboard")}>
+                Go to dashboard
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
         {bases.length === 0 && (
           <EmptyStateBanner
@@ -257,10 +289,11 @@ export default function BasesPage() {
                 base={b}
                 stats={baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 }}
                 isLoading={loadingStats[b.id] === true}
-                nextSteps={[]}
                 onRename={renameBase}
                 onDelete={deleteBase}
-                onSetActive={(id) => { setActiveBaseId(id); }}
+                onSetActive={(id) => {
+                  setActiveBaseId(id);
+                }}
               />
             ))}
           </div>

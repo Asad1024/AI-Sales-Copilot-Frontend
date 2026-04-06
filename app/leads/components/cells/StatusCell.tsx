@@ -2,6 +2,31 @@
 import { useState, useRef, useEffect } from "react";
 import { Icons } from "@/components/ui/Icons";
 
+type AppIcon = typeof Icons.Circle;
+
+/** Icons aligned with pipeline stages (values match DEFAULT_LEAD_STATUS_OPTIONS). */
+const LEAD_STATUS_ICONS: Record<string, AppIcon> = {
+  new: Icons.Circle,
+  contacted: Icons.Mail,
+  qualified: Icons.Target,
+  negotiation: Icons.Handshake,
+  won: Icons.CheckCircle,
+  lost: Icons.TrendingDown,
+};
+
+function LeadStatusIcon({
+  statusValue,
+  color,
+  size = 12,
+}: {
+  statusValue: string;
+  color: string;
+  size?: number;
+}) {
+  const Ic = LEAD_STATUS_ICONS[statusValue] ?? Icons.Tag;
+  return <Ic size={size} strokeWidth={2} style={{ color, flexShrink: 0 }} aria-hidden />;
+}
+
 interface StatusCellProps {
   value: any;
   onUpdate: (value: any) => void | Promise<void>;
@@ -77,15 +102,19 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
     return (
       <span
         style={{
-          background: `${selectedOption.color}20`,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          background: `${selectedOption.color}18`,
           color: selectedOption.color,
-          padding: "3px 10px",
-          borderRadius: "6px",
-          fontSize: "10px",
-          fontWeight: "600",
-          border: `1px solid ${selectedOption.color}40`,
+          padding: "4px 10px",
+          borderRadius: "8px",
+          fontSize: "11px",
+          fontWeight: 600,
+          border: `1px solid ${selectedOption.color}35`,
         }}
       >
+        <LeadStatusIcon statusValue={selectedOption.value} color={selectedOption.color} size={13} />
         {selectedOption.label}
       </span>
     );
@@ -127,7 +156,7 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                gap: 10,
                 background: value === opt.value ? `${opt.color}10` : "transparent",
                 transition: "background 0.2s",
               }}
@@ -138,15 +167,7 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
                 e.currentTarget.style.background = value === opt.value ? `${opt.color}10` : "transparent";
               }}
             >
-              <div
-                style={{
-                  width: "12px",
-                  height: "12px",
-                  borderRadius: "50%",
-                  background: opt.color,
-                  border: `2px solid ${opt.color}80`,
-                }}
-              />
+              <LeadStatusIcon statusValue={opt.value} color={opt.color} size={14} />
               <span style={{ fontSize: "12px", fontWeight: value === opt.value ? "600" : "500" }}>
                 {opt.label}
               </span>
@@ -193,31 +214,24 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
             setIsEditing(true);
           }}
           style={{
-            background: `${selectedOption.color}20`,
+            background: `${selectedOption.color}18`,
             color: selectedOption.color,
-            padding: "2px 8px",
-            borderRadius: "6px",
-            fontSize: "10px",
-            fontWeight: "600",
-            border: `1px solid ${selectedOption.color}40`,
+            padding: "4px 10px",
+            borderRadius: "8px",
+            fontSize: "11px",
+            fontWeight: 600,
+            border: `1px solid ${selectedOption.color}38`,
             display: "inline-flex",
             alignItems: "center",
-            gap: "5px",
+            gap: 6,
             cursor: "pointer",
             fontFamily: "inherit",
           }}
           aria-label={`Status: ${selectedOption.label}. Change status`}
         >
-          <div
-            style={{
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              background: selectedOption.color,
-            }}
-          />
+          <LeadStatusIcon statusValue={selectedOption.value} color={selectedOption.color} size={13} />
           {selectedOption.label}
-          <Icons.ChevronDown size={10} strokeWidth={2} style={{ opacity: 0.65 }} aria-hidden />
+          <Icons.ChevronDown size={12} strokeWidth={2} style={{ opacity: 0.65 }} aria-hidden />
         </button>
       ) : (
         <button
@@ -234,18 +248,21 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 24,
-            height: 24,
-            padding: 0,
-            borderRadius: 5,
-            border: "1px dashed var(--color-border)",
+            gap: 6,
+            minHeight: 30,
+            padding: "4px 10px",
+            borderRadius: 8,
+            border: "1px solid var(--color-border)",
             background: "var(--color-surface-secondary)",
             color: "var(--color-text-muted)",
             cursor: "pointer",
-            gap: 3,
+            fontSize: 11,
+            fontWeight: 500,
+            fontFamily: "inherit",
           }}
         >
-          <Icons.Tag size={10} strokeWidth={1.75} aria-hidden />
+          <Icons.Circle size={14} strokeWidth={1.75} style={{ opacity: 0.7 }} aria-hidden />
+          <span>Set status</span>
         </button>
       )}
     </div>

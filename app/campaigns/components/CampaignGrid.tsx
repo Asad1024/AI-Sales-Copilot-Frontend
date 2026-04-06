@@ -8,6 +8,7 @@ import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { useCampaignStore, Campaign } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 import CampaignCard from "./CampaignCard";
 
 interface CampaignGridProps {
@@ -69,7 +70,7 @@ export function CampaignGrid({ campaigns, loading, onDelete }: CampaignGridProps
   const router = useRouter();
   const { showError, showSuccess } = useNotification();
   const confirm = useConfirm();
-  const { bases } = useBaseStore();
+  const { bases, activeBaseId } = useBaseStore();
   const { deleteCampaign } = useCampaignStore();
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -106,7 +107,7 @@ export function CampaignGrid({ campaigns, loading, onDelete }: CampaignGridProps
             <>
               <button
                 type="button"
-                onClick={() => router.push("/campaigns/new")}
+                onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
                 className="btn-dashboard-outline focus-ring"
               >
                 <Icons.Plus size={16} strokeWidth={1.5} />

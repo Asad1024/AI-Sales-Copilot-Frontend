@@ -4,6 +4,8 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  /** Profile photo URL (e.g. from Google sign-in). */
+  avatar_url?: string;
   company?: string;
   dob?: string;
   role?: "admin" | "user";

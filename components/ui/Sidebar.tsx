@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { getUser, clearAuth } from "@/lib/apiClient";
+import { usePathname, useRouter } from "next/navigation";
+import { getUser, type User } from "@/lib/apiClient";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import BaseSelector from "./BaseSelector";
+import ThemeToggle from "./ThemeToggle";
+import { Icons } from "./Icons";
+import { useNotificationStore } from "@/stores/useNotificationStore";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -14,15 +17,12 @@ import {
   FileText,
   BarChart2,
   UserCircle2,
-  Settings,
   Shield,
+  Settings,
   PanelLeftClose,
   PanelLeftOpen,
-  MoreHorizontal,
+  ChevronRight,
   Bolt,
-  LogOut,
-  User,
-  Bell,
 } from "lucide-react";
 
 function CollapsedHoverTip({ label, children }: { label: string; children: ReactNode }) {
@@ -98,24 +98,80 @@ const ACTIVE_NAV_BG = "rgba(239, 246, 255, 0.5)";
 const ACTIVE_NAV_TEXT = "#2563EB";
 const ACTIVE_NAV_ACCENT = "#2563EB";
 
+function SidebarUserAvatar({ avatarUrl, initials }: { avatarUrl?: string | null; initials: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => setImgFailed(false), [avatarUrl]);
+  const showImg = Boolean(avatarUrl?.trim()) && !imgFailed;
+  return (
+    <div
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        overflow: "hidden",
+        flexShrink: 0,
+        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+      }}
+    >
+      {showImg ? (
+        // eslint-disable-next-line @next/next/no-img-element -- external OAuth URLs (Google)
+        <img
+          src={avatarUrl!.trim()}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={() => setImgFailed(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      ) : (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 12,
+            color: "#fff",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
   const { activeBaseId } = useBaseStore();
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const refreshUnreadCount = useNotificationStore((s) => s.refreshUnreadCount);
 
-  const sidebarWidth = isMobile ? Math.min(280, typeof window !== "undefined" ? window.innerWidth : 280) : collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
+  const sidebarWidth = isMobile ? Math.min(288, typeof window !== "undefined" ? window.innerWidth : 288) : collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
 
   useEffect(() => {
     setMounted(true);
     setUser(getUser());
     setIsMobile(window.innerWidth <= 768);
   }, []);
+
+  useEffect(() => {
+    const syncUser = () => setUser(getUser());
+    window.addEventListener("sparkai:user-changed", syncUser);
+    return () => window.removeEventListener("sparkai:user-changed", syncUser);
+  }, []);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -153,7 +209,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const secondaryNav: NavItem[] = [
     { href: "/reports", label: "Reports", icon: <BarChart2 size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/team", label: "Team", icon: <UserCircle2 size={iconSize} strokeWidth={iconStroke} /> },
-    { href: "/notifications", label: "Notifications", icon: <Bell size={iconSize} strokeWidth={iconStroke} /> },
     ...(mounted && user?.role === "admin"
       ? [{ href: "/admin", label: "Admin", icon: <Shield size={iconSize} strokeWidth={iconStroke} /> }]
       : []),
@@ -173,7 +228,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       style={{
         height: 1,
         background: "#E5E7EB",
-        margin: "8px 12px",
+        margin: "3px 12px",
         flexShrink: 0,
       }}
       className="sidebar-premium-divider"
@@ -191,8 +246,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           color: "#9CA3AF",
           textTransform: "uppercase",
           padding: "0 12px",
-          marginTop: isFirstCategory ? 20 : 16,
-          marginBottom: 6,
+          marginTop: isFirstCategory ? 10 : 8,
+          marginBottom: 4,
           fontFamily: "Inter, sans-serif",
         }}
       >
@@ -213,23 +268,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             alignItems: "center",
             justifyContent: collapsed && !isMobile ? "center" : "flex-start",
             gap: 10,
-            minHeight: 36,
-            height: 36,
-            padding: collapsed && !isMobile ? "0 10px" : "0 9px",
+            minHeight: active ? 42 : 34,
+            padding: collapsed && !isMobile
+              ? `${active ? 8 : 5}px 10px`
+              : `${active ? 10 : 7}px ${active ? 14 : 11}px`,
             boxSizing: "border-box",
-            borderLeft: collapsed && !isMobile ? "none" : `3px solid ${active ? ACTIVE_NAV_ACCENT : "transparent"}`,
-            boxShadow:
-              collapsed && !isMobile && active ? `inset 3px 0 0 0 ${ACTIVE_NAV_ACCENT}` : "none",
-            borderRadius: 8,
+            borderLeft: active ? `3px solid ${ACTIVE_NAV_ACCENT}` : "3px solid transparent",
+            boxShadow: "none",
+            borderRadius: active ? 10 : 8,
             textDecoration: "none",
             fontSize: 14,
             fontWeight: active ? 600 : 500,
             fontFamily: "Inter, sans-serif",
-            transition: "background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease",
+            transition: "background 150ms ease, color 150ms ease, padding 150ms ease, border-radius 150ms ease, min-height 150ms ease",
             color: active ? ACTIVE_NAV_TEXT : "#374151",
             background: active ? ACTIVE_NAV_BG : "transparent",
             position: "relative",
-            marginBottom: 2,
+            marginBottom: 5,
           }}
           onMouseEnter={(e) => {
             if (!active) {
@@ -291,7 +346,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           style={{
             height: 56,
             minHeight: 56,
-            padding: collapsed && !isMobile ? "0 10px" : "0 12px",
+            paddingTop: 0,
+            paddingBottom: 0,
+            paddingRight: collapsed && !isMobile ? 10 : 12,
+            paddingLeft: collapsed && !isMobile ? 17 : 21,
             borderBottom: "1px solid #E5E7EB",
             display: "flex",
             alignItems: "center",
@@ -302,6 +360,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         >
           <Link
             href="/dashboard"
+            className="sidebar-logo-link"
             title="Sales Co-Pilot"
             style={{
               display: "flex",
@@ -401,14 +460,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               flexDirection: "column",
             }}
           >
-            <div style={{ paddingTop: 8, paddingBottom: 8 }}>{renderNavItems(dashboardNav)}</div>
+            <div style={{ paddingTop: 3, paddingBottom: 3 }}>{renderNavItems(dashboardNav)}</div>
             <Divider />
-            <div style={{ paddingTop: 0, paddingBottom: 8 }}>
+            <div style={{ paddingTop: 0, paddingBottom: 3 }}>
               <GroupLabel text="Campaigns" isFirstCategory />
               {renderNavItems(campaignsNav)}
             </div>
             <Divider />
-            <div style={{ paddingTop: 8, paddingBottom: 8 }}>
+            <div style={{ paddingTop: 3, paddingBottom: 3 }}>
               <GroupLabel text="Analytics" />
               {renderNavItems(secondaryNav)}
             </div>
@@ -420,217 +479,179 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div
           className="sidebar-premium-user"
           style={{
-            padding: "12px 10px",
+            padding: "14px 12px",
             borderTop: "1px solid #E5E7EB",
             position: "relative",
             flexShrink: 0,
           }}
         >
           {collapsed && !isMobile ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 999,
-                  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 12,
-                  flexShrink: 0,
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
-                {userInitials}
-              </div>
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((v) => !v)}
-                aria-label="Account menu"
+            <Link
+              href="/settings"
+              className="sidebar-user-box-link"
+              title="Settings"
+              aria-label="Open settings"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 8px",
+                borderRadius: 10,
+                background: "#F3F4F6",
+                textDecoration: "none",
+                color: "inherit",
+                transition: "background 150ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#E8EAED";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#F3F4F6";
+              }}
+            >
+              <SidebarUserAvatar avatarUrl={user?.avatar_url} initials={userInitials} />
+              <span
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: 8,
-                  border: "none",
-                  background: "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   color: "#9CA3AF",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "color 150ms ease",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#4F46E5";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#9CA3AF";
-                }}
+                aria-hidden
               >
-                <MoreHorizontal size={18} strokeWidth={1.5} />
-              </button>
-            </div>
+                <ChevronRight size={18} strokeWidth={1.5} />
+              </span>
+            </Link>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 999,
-                  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 12,
-                  flexShrink: 0,
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
-                {userInitials}
-              </div>
+            <Link
+              href="/settings"
+              className="sidebar-user-box-link"
+              title="Settings"
+              aria-label="Open settings"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                minWidth: 0,
+                padding: "12px 14px",
+                borderRadius: 10,
+                background: "#F3F4F6",
+                textDecoration: "none",
+                color: "inherit",
+                transition: "background 150ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#E8EAED";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#F3F4F6";
+              }}
+            >
+              <SidebarUserAvatar avatarUrl={user?.avatar_url} initials={userInitials} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#111827" }}>
                   {user?.name || "Account"}
                 </div>
                 <div style={{ fontSize: 11, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user?.email || ""}
+                  {user?.company?.trim() || "—"}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((v) => !v)}
-                aria-label="Account menu"
+              <span
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: 8,
-                  border: "none",
-                  background: "transparent",
-                  color: "#9CA3AF",
-                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  color: "#9CA3AF",
+                }}
+                aria-hidden
+              >
+                <ChevronRight size={18} strokeWidth={1.5} />
+              </span>
+            </Link>
+          )}
+
+          <div
+            style={{
+              marginTop: 10,
+              paddingTop: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 6,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Link
+                href="/settings"
+                className="sidebar-footer-icon-link"
+                title="Settings"
+                aria-label="Settings"
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#6B7280",
+                  textDecoration: "none",
+                  borderRadius: 6,
                   transition: "color 150ms ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "#4F46E5";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#9CA3AF";
+                  e.currentTarget.style.color = "#6B7280";
                 }}
               >
-                <MoreHorizontal size={18} strokeWidth={1.5} />
-              </button>
+                <Settings size={16} strokeWidth={1.75} />
+              </Link>
+              <ThemeToggle compact />
             </div>
-          )}
-
-          {userMenuOpen && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setUserMenuOpen(false)} aria-hidden />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "calc(100% + 8px)",
-                  left: collapsed && !isMobile ? 8 : 10,
-                  width: 160,
-                  padding: 8,
-                  background: "#FFFFFF",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: 8,
-                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
-                  zIndex: 50,
-                }}
-              >
-                <Link
-                  href="/settings"
-                  onClick={() => setUserMenuOpen(false)}
+            <button
+              type="button"
+              className="icon-btn header-utility-btn"
+              onClick={() => router.push("/notifications")}
+              style={{
+                borderRadius: 6,
+                width: 24,
+                height: 24,
+                position: "relative",
+                border: "none",
+                background: "transparent",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                color: "#6B7280",
+                padding: 0,
+              }}
+              aria-label="Notifications"
+            >
+              <Icons.Bell size={15} strokeWidth={1.5} />
+              {unreadCount > 0 && (
+                <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    height: 32,
-                    padding: "0 8px",
-                    borderRadius: 6,
-                    textDecoration: "none",
-                    color: "#374151",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    transition: "background 150ms ease",
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    width: 6,
+                    height: 6,
+                    borderRadius: 999,
+                    background: "#ef4444",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F4F6")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <User size={16} strokeWidth={1.5} />
-                  Profile settings
-                </Link>
-                <Link
-                  href="/settings/test-configuration"
-                  onClick={() => setUserMenuOpen(false)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    height: 32,
-                    padding: "0 8px",
-                    borderRadius: 6,
-                    textDecoration: "none",
-                    color: "#374151",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    transition: "background 150ms ease",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F4F6")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <Settings size={16} strokeWidth={1.5} />
-                  Settings
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearAuth();
-                    window.location.href = "/auth/login";
-                  }}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    height: 32,
-                    padding: "0 8px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: "transparent",
-                    color: "#374151",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    transition: "background 150ms ease, color 150ms ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#F3F4F6";
-                    e.currentTarget.style.color = "#EF4444";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#374151";
-                  }}
-                >
-                  <LogOut size={16} strokeWidth={1.5} />
-                  Logout
-                </button>
-              </div>
-            </>
-          )}
+                />
+              )}
+            </button>
+          </div>
         </div>
       </aside>
     </>

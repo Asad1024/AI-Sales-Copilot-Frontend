@@ -9,8 +9,11 @@ import { useCampaignStore } from "@/stores/useCampaignStore";
 import CampaignCard from "@/app/campaigns/components/CampaignCard";
 import { DashboardPageSkeleton } from "@/components/ui/PageRouteSkeletons";
 import DashboardFlowCtaBanner from "@/components/ui/DashboardFlowCtaBanner";
-import { Zap, Megaphone, ArrowUpRight } from "lucide-react";
+import DashboardOnboardingSteppers from "@/components/ui/DashboardOnboardingSteppers";
+import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
+import { ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
 import { useSparkBarStore } from "@/stores/useSparkBarStore";
+import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 type StatMetric = {
   title: string;
@@ -22,14 +25,21 @@ type StatMetric = {
   subline?: string | null;
 };
 
-const SLATE_400 = "#94A3B8";
-
 const sectionLabelStyle = {
   fontSize: 11,
   fontWeight: 500 as const,
   letterSpacing: "0.08em",
   textTransform: "uppercase" as const,
   color: "#9CA3AF",
+};
+
+/** Stat grid labels — stronger hierarchy than section rails */
+const metricLabelStyle = {
+  fontSize: 12,
+  fontWeight: 600 as const,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  color: "#4B5563",
 };
 
 function isMutedMetricValue(value: string): boolean {
@@ -61,8 +71,9 @@ export default function Dashboard() {
   const activeBase = bases.find((b) => b.id === activeBaseId);
   const { campaigns, fetchCampaigns } = useCampaignStore();
   const hasLeads = Number(analyticsData?.totalLeads || 0) > 0;
-  const sparkBarVisible = useSparkBarStore((s) => s.visible);
-  const toggleSparkBar = useSparkBarStore((s) => s.toggle);
+  const hasCampaigns = (campaigns?.length ?? 0) > 0;
+  const setupStepperVisible = useSparkBarStore((s) => s.setupStepperVisible);
+  const toggleSetupStepper = useSparkBarStore((s) => s.toggleSetupStepper);
 
   useEffect(() => {
     const invited = searchParams.get("invited");
@@ -172,11 +183,7 @@ export default function Dashboard() {
     }
   };
   const goToCreateCampaign = () => {
-    if (!activeBaseId) {
-      router.push("/bases");
-      return;
-    }
-    router.push("/campaigns/new");
+    goToNewCampaignOrWorkspaces(router, activeBaseId);
   };
   const leadChange = Number(analyticsData?.leadChange ?? NaN);
   const campaignChange = Number(analyticsData?.campaignChange ?? NaN);
@@ -253,16 +260,16 @@ export default function Dashboard() {
   const dashboardPrimaryAction = (() => {
     if (!activeBaseId) {
       return {
-        label: "Create Campaign",
-        icon: <Icons.Rocket size={16} strokeWidth={1.5} />,
-        onClick: () => router.push("/campaigns/new"),
+        label: "Create workspace",
+        icon: <Icons.Folder size={16} strokeWidth={1.5} />,
+        onClick: () => router.push("/bases"),
       };
     }
     if (!hasLeads) {
       return {
         label: "Add leads",
         icon: <Icons.UserPlus size={16} strokeWidth={1.5} />,
-        onClick: () => router.push("/leads"),
+        onClick: goToLeads,
       };
     }
     return {
@@ -280,6 +287,11 @@ export default function Dashboard() {
   })();
   const userName = getUser()?.name || "User";
   const aiScorePct = Math.max(72, Math.min(98, Math.round((analyticsData?.replyRate || 6.7) * 3 + 72)));
+
+  const setupStepsDone =
+    (activeBaseId ? 1 : 0) + (hasLeads ? 1 : 0) + (hasCampaigns ? 1 : 0);
+  const setupStepsTotal = 3;
+  const setupProgressPct = Math.round((setupStepsDone / setupStepsTotal) * 100);
 
   const filteredCampaigns = [...(campaigns || [])].sort((a, b) => {
     const aTime = a.updated_at || a.created_at || "";
@@ -311,36 +323,49 @@ export default function Dashboard() {
             </span>
             <button
               type="button"
-              onClick={toggleSparkBar}
-              aria-label={sparkBarVisible ? "Hide Spark AI banner" : "Show Spark AI banner"}
-              aria-pressed={sparkBarVisible}
+              onClick={toggleSetupStepper}
+              aria-label={
+                setupStepperVisible
+                  ? "Hide getting started steps (workspace, leads, campaign)"
+                  : "Show getting started steps (workspace, leads, campaign)"
+              }
+              aria-pressed={setupStepperVisible}
+              title={
+                setupStepperVisible
+                  ? "Hide the getting started stepper below"
+                  : "Show the getting started stepper: workspace → leads → campaign"
+              }
               style={{
-                height: 22,
-                padding: "0 8px",
+                height: 24,
+                padding: "0 10px 0 12px",
                 borderRadius: 9999,
-                border: sparkBarVisible ? "1px solid transparent" : "1px solid #C7D2FE",
+                border: setupStepperVisible ? "1px solid transparent" : "1px solid #C7D2FE",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 3,
+                gap: 5,
                 cursor: "pointer",
-                background: sparkBarVisible ? "#4F46E5" : "#EEF2FF",
-                color: sparkBarVisible ? "#FFFFFF" : "#4F46E5",
+                background: setupStepperVisible ? "#4F46E5" : "#EEF2FF",
+                color: setupStepperVisible ? "#FFFFFF" : "#4F46E5",
                 fontSize: 11,
-                fontWeight: 500,
+                fontWeight: 600,
                 fontFamily: "Inter, -apple-system, sans-serif",
                 transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
               }}
             >
-              <Zap size={11} strokeWidth={1.5} />
-              Spark AI
+              Setup steps
+              {setupStepperVisible ? (
+                <ChevronUp size={12} strokeWidth={2.25} aria-hidden />
+              ) : (
+                <ChevronDown size={12} strokeWidth={2.25} aria-hidden />
+              )}
             </button>
           </div>
           <span
             style={{
-              fontSize: 30,
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-              lineHeight: 1.08,
+              fontSize: 22,
+              fontWeight: 600,
+              letterSpacing: "-0.03em",
+              lineHeight: 1.2,
               color: "var(--color-text)",
               fontFamily: "Inter, -apple-system, sans-serif",
             }}
@@ -355,6 +380,30 @@ export default function Dashboard() {
       </div>
 
       <div
+        className="dashboard-stepper-panel-wrap"
+        style={{
+          overflow: setupStepperVisible ? "visible" : "hidden",
+          maxHeight: setupStepperVisible ? 3200 : 0,
+          opacity: setupStepperVisible ? 1 : 0,
+          transition:
+            "max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
+          pointerEvents: setupStepperVisible ? "auto" : "none",
+        }}
+        aria-hidden={!setupStepperVisible}
+      >
+        <div style={{ paddingBottom: setupStepperVisible ? 2 : 0 }}>
+          <DashboardOnboardingSteppers
+            activeBaseId={activeBaseId}
+            hasLeads={hasLeads}
+            hasCampaigns={hasCampaigns}
+            onGoWorkspace={() => router.push("/bases")}
+            onGoLeads={goToLeads}
+            onGoCampaign={goToCreateCampaign}
+          />
+        </div>
+      </div>
+
+      <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -364,25 +413,27 @@ export default function Dashboard() {
         {overviewMetrics.map((card) => {
           const valueMuted = isMutedMetricValue(String(card.value));
           return (
-          <div key={card.title} className="dashboard-stat-card" style={{ padding: "12px 14px 14px" }}>
-            <div style={{ marginBottom: 6 }}>
-              <span style={{ ...sectionLabelStyle, display: "block" }}>{card.title}</span>
+          <div key={card.title} className="dashboard-stat-card" style={{ padding: "14px 16px 16px" }}>
+            <div style={{ marginBottom: 8 }}>
+              <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block" }}>
+                {card.title}
+              </span>
             </div>
             <div
               style={{
-                fontSize: 28,
-                fontWeight: valueMuted ? 600 : 700,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.15,
-                color: valueMuted ? SLATE_400 : "#111827",
+                fontSize: 34,
+                fontWeight: 800,
+                letterSpacing: "-0.035em",
+                lineHeight: 1.12,
+                color: valueMuted ? "#64748B" : "#0F172A",
                 fontFamily: "Inter, -apple-system, sans-serif",
                 wordBreak: "break-word",
               }}
             >
               {card.value}
             </div>
-            {card.showTrend && (
-              <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 10, minHeight: 28 }}>
+              {card.showTrend ? (
                 <span
                   style={{
                     display: "inline-flex",
@@ -390,9 +441,10 @@ export default function Dashboard() {
                     gap: 4,
                     fontSize: 11,
                     fontWeight: 600,
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    background: "#F3F4F6",
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    background: "rgba(243, 244, 246, 0.95)",
+                    border: "1px solid rgba(255, 255, 255, 0.8)",
                     color: card.trendPositive ? "#059669" : "#DC2626",
                   }}
                 >
@@ -401,10 +453,32 @@ export default function Dashboard() {
                   {card.trendSuffix === "pp" ? "pp" : "%"}
                   <span style={{ fontWeight: 500, color: "#6B7280" }}>vs last month</span>
                 </span>
-              </div>
-            )}
+              ) : (
+                <span
+                  className="dashboard-stat-trend-neutral"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    background: "rgba(248, 250, 252, 0.95)",
+                    border: "1px solid rgba(226, 232, 240, 0.9)",
+                    color: "#64748B",
+                  }}
+                >
+                  <span style={{ opacity: 0.85 }} aria-hidden>
+                    →
+                  </span>
+                  Baseline
+                  <span style={{ fontWeight: 500, color: "#94A3B8" }}>· no prior period</span>
+                </span>
+              )}
+            </div>
             {card.subline ? (
-              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 6, lineHeight: 1.35 }}>{card.subline}</div>
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 8, lineHeight: 1.35 }}>{card.subline}</div>
             ) : null}
           </div>
           );
@@ -486,60 +560,19 @@ export default function Dashboard() {
         }}
         className="dashboard-campaigns-grid"
       >
-        <div
-          className="dashboard-surface-card"
-          style={{
-            padding: "16px 24px",
-            minHeight: 200,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            textAlign: "center",
-            gap: 6,
-            border: "1px dashed #E5E7EB",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-          }}
-        >
-          <Megaphone size={16} strokeWidth={1.5} style={{ color: "#4F46E5", flexShrink: 0 }} aria-hidden />
-          <span style={sectionLabelStyle}>Get started</span>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.2, color: "#111827" }}>
-            Create your first campaign
-          </h2>
-          <p style={{ margin: 0, fontSize: 13, color: "#6B7280", lineHeight: 1.45, maxWidth: 320 }}>
-            Launch email, LinkedIn, or WhatsApp sequences from this workspace in a few steps.
-          </p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={goToCreateCampaign}
-            style={{
-              marginTop: 2,
-              padding: "8px 16px",
-              borderRadius: 8,
-              fontWeight: 600,
-              fontSize: 13,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Icons.Plus size={16} strokeWidth={1.5} />
-            Create Campaign
-          </button>
-        </div>
+        <DashboardGetStartedChecklist
+          activeBaseId={activeBaseId}
+          hasLeads={hasLeads}
+          hasCampaigns={hasCampaigns}
+          setupStepsDone={setupStepsDone}
+          setupStepsTotal={setupStepsTotal}
+          setupProgressPct={setupProgressPct}
+          onCreateWorkspace={() => router.push("/bases")}
+          onAddLeads={goToLeads}
+          onCreateCampaign={goToCreateCampaign}
+        />
 
-        <div
-          className="dashboard-surface-card"
-          style={{
-            padding: "18px 18px",
-            minHeight: 200,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "stretch",
-            transition: "box-shadow 0.15s ease",
-          }}
-        >
+        <div className="dashboard-surface-card dashboard-recent-activity-panel">
           <div
             style={{
               display: "flex",
@@ -554,8 +587,7 @@ export default function Dashboard() {
             <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "#111827" }}>Recent activity</span>
             <button
               type="button"
-              className="btn-ghost"
-              style={{ borderRadius: 8, fontSize: 12, fontWeight: 600, padding: "6px 10px", transition: "opacity 0.15s ease" }}
+              className="dashboard-demo-toggle-badge"
               onClick={() => router.push("/campaigns")}
             >
               View all

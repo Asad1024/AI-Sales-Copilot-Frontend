@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
@@ -16,6 +16,7 @@ import { useViewStore } from "@/stores/useViewStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
+import { LeadsEmptyWorkspaceBanner } from "@/app/leads/components/LeadsEmptyWorkspaceBanner";
 import { LeadsTableSkeleton } from "@/components/ui/TableSkeleton";
 
 const EnhancedCsvImportModal = dynamic(() => import("@/components/leads/EnhancedCsvImportModal").then(m => ({ default: m.EnhancedCsvImportModal })), { ssr: false });
@@ -30,6 +31,7 @@ const ScoreModal = dynamic(() => import("@/components/leads/ScoreModal").then(m 
 export default function BaseLeadsPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const baseId = params?.id ? parseInt(params.id as string) : null;
   const { bases, setActiveBaseId, refreshBases } = useBaseStore();
   const { activeBaseId } = useBaseStore();
@@ -66,6 +68,14 @@ export default function BaseLeadsPage() {
 
   const filteredLeads = getFilteredLeads();
   const currentBaseId = baseId || activeBaseId;
+  const showWelcomeHint = searchParams.get("welcome") === "1";
+  const clearWelcomeHint = () => {
+    if (!baseId) return;
+    router.replace(`/bases/${baseId}/leads`, { scroll: false });
+  };
+  const workspaceName = bases.find((b) => b.id === currentBaseId)?.name ?? "";
+  const showZeroLeadsBanner =
+    Boolean(baseId) && !loading && !permissionsLoading && pagination.totalLeads === 0;
 
   useEffect(() => {
     const syncBaseFromUrl = async () => {
@@ -332,6 +342,17 @@ export default function BaseLeadsPage() {
         }
       `}</style>
 
+      {showZeroLeadsBanner && (
+        <LeadsEmptyWorkspaceBanner
+          workspaceName={workspaceName}
+          showWelcomeHint={showWelcomeHint}
+          onDismissWelcome={clearWelcomeHint}
+          canCreateLeads={permissions.canCreateLeads}
+          onGenerateAI={() => setGenOpen(true)}
+          onImportCSV={() => setImportOpen(true)}
+        />
+      )}
+
       {/* Stats */}
       <div
         style={{
@@ -504,8 +525,8 @@ export default function BaseLeadsPage() {
               <EmptyStateBanner
                 style={{ width: "100%", maxWidth: 560, margin: "0 auto" }}
                 icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
-                title="No leads yet"
-                description="Generate with AI, import CSV, or connect your CRM to fill this workspace."
+                title="No leads in this table yet"
+                description="Use the buttons above or here to generate with AI, import CSV, or connect your CRM."
                 actions={
                   permissions.canCreateLeads ? (
                     <>

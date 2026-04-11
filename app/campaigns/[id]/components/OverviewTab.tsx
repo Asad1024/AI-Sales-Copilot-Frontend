@@ -100,7 +100,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
                   <Icons.Mail size={20} style={{ color: '#3b82f6' }} />
                   Email Metrics
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
                   Track email delivery, opens, clicks, and replies
                 </p>
               </div>
@@ -136,7 +136,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
                   <Icons.MessageCircle size={20} style={{ color: '#25D366' }} />
                   WhatsApp Metrics
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
                   Track messages sent, delivered, and replies for WhatsApp campaigns
                 </p>
               </div>
@@ -177,7 +177,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
                   <Icons.Linkedin size={20} style={{ color: '#0077b5' }} />
                   LinkedIn Metrics
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
                   Track connection invitations sent, accepted, and engagement
                 </p>
               </div>
@@ -213,7 +213,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
                   <Icons.Phone size={20} style={{ color: '#4ecdc4' }} />
                   Call Metrics
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: 0, paddingLeft: 30 }}>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
                   Track call initiation, answers, completions, and outcomes
                 </p>
               </div>
@@ -238,7 +238,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
         }
         
         return channelSections.length > 0 ? channelSections : (
-          <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-muted)' }}>
             No channel metrics available yet. Start the campaign to see metrics.
           </div>
         );

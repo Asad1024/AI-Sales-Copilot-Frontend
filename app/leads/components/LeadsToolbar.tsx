@@ -34,7 +34,8 @@ export function LeadsToolbar({
   onImportCSV,
 }: LeadsToolbarProps) {
   const embedded = variant === "embedded";
-  const { filters, setFilters, leads } = useLeadStore();
+  const { filters, setFilters, pagination } = useLeadStore();
+  const hasAnyLeads = (pagination?.totalLeads ?? 0) > 0;
   const { activeBaseId } = useBaseStore();
   const { permissions } = useBasePermissions(activeBaseId);
   const [showColumnMenu, setShowColumnMenu] = useState(false);
@@ -208,7 +209,7 @@ export function LeadsToolbar({
               <button
                 type="button"
                 className="btn-primary focus-ring h-10 min-h-10 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
-                disabled={leads.length === 0}
+                disabled={!hasAnyLeads}
                 onClick={() => onEnrich()}
                 style={{
                   display: "inline-flex",
@@ -217,6 +218,8 @@ export function LeadsToolbar({
                   gap: 8,
                   flexShrink: 0,
                   whiteSpace: "nowrap",
+                  opacity: hasAnyLeads ? 1 : 0.45,
+                  cursor: hasAnyLeads ? "pointer" : "not-allowed",
                 }}
               >
                 <Icons.Sparkles size={16} strokeWidth={1.5} />
@@ -225,7 +228,7 @@ export function LeadsToolbar({
               <button
                 type="button"
                 className="btn-primary focus-ring h-10 min-h-10 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
-                disabled={leads.length === 0}
+                disabled={!hasAnyLeads}
                 onClick={() => onScore()}
                 style={{
                   display: "inline-flex",
@@ -234,6 +237,8 @@ export function LeadsToolbar({
                   gap: 8,
                   flexShrink: 0,
                   whiteSpace: "nowrap",
+                  opacity: hasAnyLeads ? 1 : 0.45,
+                  cursor: hasAnyLeads ? "pointer" : "not-allowed",
                 }}
               >
                 <Icons.Chart size={16} strokeWidth={1.5} />

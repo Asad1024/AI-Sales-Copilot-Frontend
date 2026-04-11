@@ -75,9 +75,9 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
       overflow: 'hidden'
     }}>
       <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: `${color}20`, borderRadius: '50%' }} />
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 8, fontWeight: 600, position: 'relative', zIndex: 1 }}>{title}</div>
+      <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600, position: 'relative', zIndex: 1 }}>{title}</div>
       <div style={{ fontSize: 32, fontWeight: 700, color, position: 'relative', zIndex: 1 }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 12, color: '#888', marginTop: 8, position: 'relative', zIndex: 1 }}>{subtitle}</div>}
+      {subtitle && <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, position: 'relative', zIndex: 1 }}>{subtitle}</div>}
     </div>
   );
 
@@ -85,7 +85,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
     <div>
       <div style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>Campaign Analytics</h3>
-        <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
           Performance metrics and insights
         </p>
       </div>
@@ -102,7 +102,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 </h3>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   📤 Sending & Delivery
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -118,7 +118,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
               </div>
               
               <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   💡 Engagement
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -130,7 +130,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
               
               {((campaign.spam_reports || 0) > 0 || (campaign.unsubscribed || 0) > 0) && (
                 <div style={{ marginBottom: 16 }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     ⚠️ Issues
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -148,8 +148,8 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 <div style={{ marginTop: 20, padding: 20, background: campaign.healthScore >= 85 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)' : campaign.healthScore >= 70 ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)' : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)', borderRadius: 12, border: `1px solid ${campaign.healthScore >= 85 ? '#10b98140' : campaign.healthScore >= 70 ? '#f59e0b40' : '#ef444440'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#888', marginBottom: 4 }}>Deliverability Health Score</div>
-                      <div style={{ fontSize: 12, color: '#888' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 4 }}>Deliverability Health Score</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                         {campaign.healthScore >= 95 ? '✅ Excellent' : campaign.healthScore >= 85 ? '✅ Good' : campaign.healthScore >= 70 ? '⚠️ Fair - needs improvement' : '🚨 Poor - critical issues'}
                       </div>
                     </div>
@@ -170,7 +170,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   <Icons.MessageCircle size={18} style={{ color: '#25D366' }} />
                   WhatsApp Metrics
                 </h3>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
                   Track messages sent, delivered, and replies for WhatsApp campaigns
                 </p>
               </div>
@@ -190,12 +190,12 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   <Icons.Phone size={18} style={{ color: '#6366f1' }} />
                   Call Metrics
                 </h3>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
                   Track calls initiated, answered, and completed with transcripts
                 </p>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   📞 Call Status
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -205,7 +205,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 </div>
               </div>
               <div>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#888', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   📊 Call Outcomes
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -299,7 +299,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                       <div style={{ width: '33%', height: `${openedHeight}%`, background: 'linear-gradient(to top, #A94CFF, rgba(169, 76, 255, 0.3))', borderRadius: '4px 4px 0 0', minHeight: openedHeight > 0 ? 4 : 0 }} />
                       <div style={{ width: '33%', height: `${repliedHeight}%`, background: 'linear-gradient(to top, #ff6b6b, rgba(255, 107, 107, 0.3))', borderRadius: '4px 4px 0 0', minHeight: repliedHeight > 0 ? 4 : 0 }} />
                     </div>
-                    <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Day {day}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>Day {day}</div>
                   </div>
                 );
               })}
@@ -307,15 +307,15 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
             <div style={{ display: 'flex', gap: 16, marginTop: 16, justifyContent: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 12, height: 12, background: '#4C67FF', borderRadius: 2 }} />
-                <span style={{ fontSize: 12, color: '#888' }}>Sent</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Sent</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 12, height: 12, background: '#A94CFF', borderRadius: 2 }} />
-                <span style={{ fontSize: 12, color: '#888' }}>Opened</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Opened</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 12, height: 12, background: '#ff6b6b', borderRadius: 2 }} />
-                <span style={{ fontSize: 12, color: '#888' }}>Replied</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Replied</span>
               </div>
             </div>
           </div>

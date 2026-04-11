@@ -1,6 +1,6 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, type CSSProperties } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { Icons } from "@/components/ui/Icons";
@@ -90,7 +90,6 @@ interface SequenceStep {
 
 export default function CampaignDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { showError, showSuccess } = useNotification();
   const { activeBaseId, bases } = useBase();
   const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'inbox'|'leads'|'transcripts'>('overview');
@@ -233,9 +232,24 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
     setUpdating(true);
     try {
       if (campaign.status === 'draft') {
-        // Launch draft campaign using the start endpoint
+        // Launch draft: backend needs launch_now and/or schedule.start (wizard saves schedule in config)
+        const sch = ((campaign.config as Record<string, unknown>)?.schedule || {}) as {
+          start?: string | null;
+          end?: string | null;
+          launch_now?: boolean;
+        };
+        const launch_now =
+          sch.launch_now === true ? true : sch.start ? false : true;
         const response = await apiRequest(`/campaigns/${campaign.id}/start`, {
-          method: 'POST'
+          method: 'POST',
+          body: JSON.stringify({
+            launch_now,
+            schedule: {
+              start: sch.start ?? null,
+              end: sch.end ?? null,
+              launch_now,
+            },
+          }),
         });
         setCampaign(response?.campaign || { ...campaign, status: 'running' });
       } else if (campaign.status === 'running') {
@@ -246,9 +260,23 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
         });
         setCampaign(response?.campaign || { ...campaign, status: 'paused' });
       } else if (campaign.status === 'paused') {
-        // Resume paused campaign using the start endpoint
+        const sch = ((campaign.config as Record<string, unknown>)?.schedule || {}) as {
+          start?: string | null;
+          end?: string | null;
+          launch_now?: boolean;
+        };
+        const launch_now =
+          sch.launch_now === true ? true : sch.start ? false : true;
         const response = await apiRequest(`/campaigns/${campaign.id}/start`, {
-          method: 'POST'
+          method: 'POST',
+          body: JSON.stringify({
+            launch_now,
+            schedule: {
+              start: sch.start ?? null,
+              end: sch.end ?? null,
+              launch_now,
+            },
+          }),
         });
         setCampaign(response?.campaign || { ...campaign, status: 'running' });
       }
@@ -270,16 +298,31 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
     }
   };
 
+  const pageShellStyle: CSSProperties = {
+    minHeight: "calc(100vh - 56px)",
+    width: "100%",
+    background: "var(--color-canvas)",
+    display: "flex",
+    flexDirection: "column",
+    padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+    gap: 12,
+    boxSizing: "border-box",
+  };
+
+  const surfaceCardStyle: CSSProperties = {
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    borderRadius: 16,
+    boxShadow: "0 4px 24px var(--color-shadow)",
+  };
+
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }} aria-busy="true" aria-label="Loading campaign">
+      <div style={pageShellStyle} aria-busy="true" aria-label="Loading campaign">
         <div
-          className="card-enhanced"
           style={{
-            borderRadius: 12,
+            ...surfaceCardStyle,
             padding: 24,
-            border: "0.5px solid rgba(255,255,255,0.1)",
-            background: "#111113",
             display: "flex",
             flexDirection: "column",
             gap: 16,
@@ -291,22 +334,19 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
               <div className="ui-skeleton" style={{ height: 22, width: "40%", borderRadius: 6 }} />
               <div className="ui-skeleton" style={{ height: 14, width: "28%", borderRadius: 6 }} />
             </div>
-            <div className="ui-skeleton" style={{ height: 36, width: 120, borderRadius: 8 }} />
+            <div className="ui-skeleton" style={{ height: 40, width: 120, borderRadius: 10 }} />
           </div>
           <div className="ui-skeleton" style={{ height: 14, width: "100%", borderRadius: 6 }} />
         </div>
         <div
-          className="card-enhanced"
           style={{
-            borderRadius: 12,
+            ...surfaceCardStyle,
             padding: 24,
-            border: "0.5px solid rgba(255,255,255,0.1)",
-            background: "#111113",
             minHeight: 280,
           }}
         >
-          <div className="ui-skeleton" style={{ height: 40, width: "100%", borderRadius: 8, marginBottom: 16 }} />
-          <div className="ui-skeleton" style={{ height: 180, width: "100%", borderRadius: 10 }} />
+          <div className="ui-skeleton" style={{ height: 44, width: "100%", borderRadius: 10, marginBottom: 16 }} />
+          <div className="ui-skeleton" style={{ height: 180, width: "100%", borderRadius: 12 }} />
         </div>
       </div>
     );
@@ -314,27 +354,31 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
   if (!campaign) {
     return (
-      <div className="card-enhanced" style={{ borderRadius: 16, padding: 60, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div style={pageShellStyle}>
+        <div style={{ ...surfaceCardStyle, padding: "48px 32px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
         <div style={{ 
           width: 64, 
           height: 64, 
           borderRadius: '50%', 
-          background: 'rgba(255, 107, 107, 0.1)',
+          background: 'rgba(239, 68, 68, 0.1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <Icons.AlertCircle size={32} style={{ color: '#ff6b6b' }} />
+          <Icons.AlertCircle size={32} strokeWidth={1.5} style={{ color: '#ef4444' }} />
         </div>
-        <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: 8 }}>Campaign not found</h3>
+        <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: 8, color: "var(--color-text)" }}>Campaign not found</h3>
+        <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0, maxWidth: 360 }}>This campaign may have been deleted or you don&apos;t have access.</p>
         <button 
+          type="button"
           className="btn-primary" 
           onClick={() => router.push('/campaigns')} 
-          style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8 }}
+          style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10, padding: "10px 18px" }}
         >
           <Icons.ChevronLeft size={16} />
           Back to Campaigns
         </button>
+        </div>
       </div>
     );
   }
@@ -342,8 +386,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
   const baseName = bases.find(b => b.id === campaign.base_id)?.name || 'Unknown Base';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header */}
+    <div style={pageShellStyle}>
       <CampaignHeader 
         campaign={campaign}
         baseName={baseName}
@@ -352,8 +395,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
         onEdit={handleEdit}
       />
 
-      {/* Tabs */}
-      <div className="card-enhanced" style={{ borderRadius: 16, padding: 24 }}>
+      <div style={{ ...surfaceCardStyle, padding: 20, overflow: "visible" }}>
         <CampaignTabs tab={tab} setTab={setTab as any} />
 
         {/* Tab Content */}

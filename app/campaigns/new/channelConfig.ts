@@ -29,6 +29,8 @@ export interface ChannelStep {
 export interface ChannelConfig {
   id: ChannelType;
   label: string;
+  /** Short line for campaign wizard channel cards (step 1). */
+  wizardCardDescription: string;
   icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
   steps: ChannelStep[];
   requiresIntegration?: boolean;
@@ -45,6 +47,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
   email: {
     id: 'email',
     label: 'Email',
+    wizardCardDescription: 'Best open rates',
     icon: Icons.Mail,
     requiresIntegration: true,
     integrationProvider: 'sendgrid',
@@ -58,6 +61,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
   linkedin: {
     id: 'linkedin',
     label: 'LinkedIn',
+    wizardCardDescription: 'B2B professionals',
     icon: Icons.Linkedin,
     requiresIntegration: true,
     integrationProvider: 'unipile_linkedin',
@@ -89,10 +93,11 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
   whatsapp: {
     id: 'whatsapp',
     label: 'WhatsApp',
+    wizardCardDescription: 'High response rate',
     icon: Icons.MessageCircle,
     requiresIntegration: true,
     integrationProvider: 'unipile_whatsapp',
-    maxThrottle: 50, // Example limit - adjust based on actual WhatsApp limits
+    maxThrottle: 100,
     throttleKey: 'whatsapp',
     steps: [
       { stepType: 'whatsapp_templates', channel: 'whatsapp', required: true, order: 1 },
@@ -101,10 +106,11 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
   call: {
     id: 'call',
     label: 'Call',
+    wizardCardDescription: 'Direct & personal',
     icon: Icons.Phone,
     requiresIntegration: true,
     integrationProvider: 'twilio',
-    maxThrottle: 20, // Example limit - adjust based on actual call limits
+    maxThrottle: 100,
     throttleKey: 'call',
     steps: [
       { stepType: 'call_knowledge_base', channel: 'call', required: true, order: 1 },

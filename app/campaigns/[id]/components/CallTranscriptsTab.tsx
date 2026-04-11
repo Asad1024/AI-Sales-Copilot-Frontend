@@ -34,7 +34,7 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; i
   failed: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Failed', icon: Icons.AlertCircle },
   no_answer: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'No Answer', icon: Icons.Phone },
   busy: { color: '#fb923c', bg: 'rgba(251, 146, 60, 0.1)', label: 'Busy', icon: Icons.Phone },
-  initiated: { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)', label: 'Initiated', icon: Icons.Clock },
+  initiated: { color: 'var(--color-primary)', bg: 'rgba(99, 102, 241, 0.1)', label: 'Initiated', icon: Icons.Clock },
   ringing: { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)', label: 'Ringing', icon: Icons.Phone },
   cancelled: { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)', label: 'Cancelled', icon: Icons.X }
 };
@@ -129,8 +129,8 @@ export function CallTranscriptsTab() {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: 60 }}>
-        <Icons.Loader size={40} style={{ animation: 'spin 1s linear infinite', color: '#6366f1' }} />
-        <div style={{ marginTop: 16, fontSize: 16, color: '#888' }}>Loading call logs...</div>
+        <Icons.Loader size={40} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary)' }} />
+        <div style={{ marginTop: 16, fontSize: 16, color: 'var(--color-text-muted)' }}>Loading call logs...</div>
       </div>
     );
   }
@@ -145,7 +145,7 @@ export function CallTranscriptsTab() {
           style={{ 
             marginTop: 20, 
             padding: '12px 24px', 
-            background: '#6366f1', 
+            background: 'var(--color-primary)', 
             color: 'white', 
             borderRadius: 8,
             border: 'none',
@@ -166,10 +166,10 @@ export function CallTranscriptsTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h3 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Icons.Phone size={20} style={{ color: '#6366f1' }} />
+            <Icons.Phone size={20} style={{ color: 'var(--color-primary)' }} />
             Call Transcripts & Recordings ({filteredCallLogs.length})
           </h3>
-          <p style={{ fontSize: 14, color: '#888', margin: 0 }}>
+          <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: 0 }}>
             View detailed call logs with transcripts and recordings from ElevenLabs
           </p>
         </div>
@@ -181,7 +181,7 @@ export function CallTranscriptsTab() {
             alignItems: 'center',
             gap: 8,
             padding: '12px 20px',
-            background: syncing ? '#9ca3af' : '#6366f1',
+            background: syncing ? '#9ca3af' : 'var(--color-primary)',
             color: 'white',
             border: 'none',
             borderRadius: 8,
@@ -199,19 +199,19 @@ export function CallTranscriptsTab() {
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
         <div style={{ padding: 16, background: 'var(--elev-bg)', borderRadius: 12, border: '1px solid var(--elev-border)' }}>
-          <div style={{ fontSize: 12, color: '#888', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Total Calls</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#6366f1' }}>{stats.total}</div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Total Calls</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-primary)' }}>{stats.total}</div>
         </div>
         <div style={{ padding: 16, background: 'var(--elev-bg)', borderRadius: 12, border: '1px solid var(--elev-border)' }}>
-          <div style={{ fontSize: 12, color: '#888', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Completed</div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Completed</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: '#10b981' }}>{stats.completed}</div>
         </div>
         <div style={{ padding: 16, background: 'var(--elev-bg)', borderRadius: 12, border: '1px solid var(--elev-border)' }}>
-          <div style={{ fontSize: 12, color: '#888', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Answered</div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Answered</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6' }}>{stats.answered}</div>
         </div>
         <div style={{ padding: 16, background: 'var(--elev-bg)', borderRadius: 12, border: '1px solid var(--elev-border)' }}>
-          <div style={{ fontSize: 12, color: '#888', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>With Transcript</div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>With Transcript</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: '#8b5cf6' }}>{stats.with_transcript}</div>
         </div>
       </div>
@@ -232,8 +232,8 @@ export function CallTranscriptsTab() {
               padding: '10px 16px',
               background: 'transparent',
               border: 'none',
-              borderBottom: filter === tab.value ? '2px solid #6366f1' : '2px solid transparent',
-              color: filter === tab.value ? '#6366f1' : '#888',
+              borderBottom: filter === tab.value ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: filter === tab.value ? 'var(--color-primary)' : 'var(--color-text-muted)',
               cursor: 'pointer',
               fontSize: 14,
               fontWeight: 600,
@@ -255,9 +255,9 @@ export function CallTranscriptsTab() {
           borderRadius: 12,
           border: '1px dashed rgba(99, 102, 241, 0.3)'
         }}>
-          <Icons.Phone size={48} style={{ color: '#6366f1', opacity: 0.5 }} />
+          <Icons.Phone size={48} style={{ color: 'var(--color-primary)', opacity: 0.5 }} />
           <div style={{ fontSize: 18, fontWeight: 600, marginTop: 16, marginBottom: 8 }}>No call logs yet</div>
-          <div style={{ fontSize: 14, color: '#888' }}>
+          <div style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
             {filter === 'all' 
               ? 'Call logs will appear here once calls are initiated'
               : `No ${filter.replace('_', ' ')} calls found`
@@ -286,7 +286,7 @@ export function CallTranscriptsTab() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                      <Icons.User size={18} style={{ color: '#6366f1' }} />
+                      <Icons.User size={18} style={{ color: 'var(--color-primary)' }} />
                       <div style={{ fontWeight: 600, fontSize: 16 }}>
                         {log.lead?.name || 'Unknown Lead'}
                       </div>
@@ -307,7 +307,7 @@ export function CallTranscriptsTab() {
                         {statusInfo.label}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#888' }}>
+                    <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--color-text-muted)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Icons.Phone size={14} />
                         {log.phone_number}
@@ -321,10 +321,10 @@ export function CallTranscriptsTab() {
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#6366f1', marginBottom: 4 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 4 }}>
                       {formatDuration(log.duration_seconds)}
                     </div>
-                    <div style={{ fontSize: 12, color: '#888' }}>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                       {log.started_at ? new Date(log.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'Not started'}
                     </div>
                   </div>
@@ -347,7 +347,7 @@ export function CallTranscriptsTab() {
                         cursor: 'pointer',
                         fontSize: 14,
                         fontWeight: 600,
-                        color: '#6366f1',
+                        color: 'var(--color-primary)',
                         transition: 'all 0.2s'
                       }}
                     >
@@ -387,7 +387,7 @@ export function CallTranscriptsTab() {
                 {/* Recording */}
                 {log.recording_url && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#888' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)' }}>
                       <Icons.Play size={14} />
                       Call Recording
                     </div>
@@ -410,7 +410,7 @@ export function CallTranscriptsTab() {
                   paddingTop: 12, 
                   borderTop: '1px solid var(--color-border)',
                   fontSize: 12,
-                  color: '#888'
+                  color: 'var(--color-text-muted)'
                 }}>
                   <div>
                     {log.call_id && (

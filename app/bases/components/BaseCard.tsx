@@ -179,7 +179,9 @@ export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActi
   const isEmptyWorkspace = stats.leads === 0 && stats.campaigns === 0;
   const showNextSteps = !isLoading && !isRenaming && isEmptyWorkspace;
   const showAddLeadsCta = permissionsLoading || permissions.canReadLeads;
-  const showCreateCampaignCta = permissionsLoading || permissions.canCreateCampaigns;
+  /** Campaigns need recipients — only show after at least one lead exists */
+  const showCreateCampaignCta =
+    !permissionsLoading && permissions.canCreateCampaigns && stats.leads > 0;
 
   const goLeads = (e: React.MouseEvent) => {
     e.stopPropagation();

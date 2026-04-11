@@ -36,7 +36,7 @@ const getLeadName = (lead: Lead) => {
 
 /** Sticky index + checkbox rails */
 const IDX_COL_W = 36;
-const CB_COL_W = 34;
+const CB_COL_W = 44;
 const CB_STICKY_LEFT = IDX_COL_W;
 
 // System columns that are always available
@@ -59,7 +59,16 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
   const { showSuccess, showError } = useNotification();
   const selectedCount = Array.isArray(selectedLeads) ? selectedLeads.length : 0;
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
+  const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null);
   const pendingLeadSet = useMemo(() => new Set(pendingLeadIds), [pendingLeadIds]);
+
+  useEffect(() => {
+    const el = selectAllCheckboxRef.current;
+    if (!el) return;
+    const total = leads.length;
+    const selected = Array.isArray(selectedLeads) ? selectedLeads.length : 0;
+    el.indeterminate = total > 0 && selected > 0 && selected < total;
+  }, [selectedLeads, leads.length]);
 
   // Fetch columns when base changes
   useEffect(() => {
@@ -236,12 +245,12 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
     if (isSelected) return "rgba(37, 99, 235, 0.1)";
     const colored = getRowColor(lead);
     if (colored !== "transparent") return colored;
-    return "transparent";
+    return _stripeIndex % 2 === 0 ? "rgba(248, 250, 252, 0.58)" : "transparent";
   };
 
   const ROW_BORDER = "#f8fafc";
-  const HOVER_BG = "rgba(239, 246, 255, 0.45)";
-  const CELL_PAD_Y = 20;
+  const HOVER_BG = "rgba(239, 246, 255, 0.62)";
+  const CELL_PAD_Y = 14;
   const CELL_PAD_X = 14;
 
   const applyRowHoverBg = (tr: HTMLTableRowElement, bg: string) => {
@@ -445,7 +454,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
         tableLayout: "auto",
       }}>
         <thead
-          className="text-[7px] font-bold uppercase tracking-widest text-slate-400 bg-slate-50/50 dark:bg-slate-800/50 dark:text-slate-500"
+          className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50/90 dark:bg-slate-800/80 dark:text-slate-400"
           style={{
             position: "sticky",
             top: 0,
@@ -489,6 +498,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
             >
               <div className="leads-table-checkbox-wrap">
                 <input
+                  ref={selectAllCheckboxRef}
                   type="checkbox"
                   className="leads-table-checkbox"
                   aria-label="Select all leads"
@@ -533,7 +543,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                           style={{
                             padding: "12px 14px",
                             fontWeight: 600,
-                            fontSize: 8,
+                            fontSize: 11,
                             color: "var(--color-text-muted)",
                             letterSpacing: "0.06em",
                             textTransform: "uppercase",
@@ -574,7 +584,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                                 padding: `${CELL_PAD_Y}px 6px`,
                                 textAlign: "center",
                                 verticalAlign: "middle",
-                                fontSize: 8,
+                                fontSize: 11,
                                 color: "var(--color-text-muted)",
                                 fontWeight: 600,
                                 position: "sticky",
@@ -686,7 +696,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                             padding: `${CELL_PAD_Y}px 6px`,
                             textAlign: "center",
                             verticalAlign: "middle",
-                            fontSize: 8,
+                            fontSize: 11,
                             color: "var(--color-text-muted)",
                             fontWeight: 600,
                             position: "sticky",

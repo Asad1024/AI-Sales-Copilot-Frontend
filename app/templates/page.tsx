@@ -564,6 +564,19 @@ export default function TemplatesPage() {
       gap: 12,
       boxSizing: "border-box",
     }}>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: "var(--color-text-muted)",
+          maxWidth: 800,
+        }}
+      >
+        Reusable messages for your workspace. When you create a campaign, open{" "}
+        <strong style={{ color: "var(--color-text)" }}>My saved templates</strong> on the email, LinkedIn, or
+        WhatsApp steps to pull from this library—or use AI drafts there instead.
+      </p>
       <div
         style={{
           display: "flex",

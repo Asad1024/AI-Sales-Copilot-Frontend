@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
+import { useLeadStore } from "@/stores/useLeadStore";
 import { useSocket } from "@/hooks/useSocket";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
@@ -15,6 +16,7 @@ import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId, bases, refreshBases } = useBaseStore();
+  const { pagination, fetchLeads } = useLeadStore();
   const { 
     loading, 
     fetchCampaigns, 
@@ -37,6 +39,12 @@ export default function CampaignsPage() {
   useEffect(() => {
     fetchCampaigns(activeBaseId);
   }, [activeBaseId, fetchCampaigns]);
+
+  // Ensure lead totals are available for "add leads first" guidance.
+  useEffect(() => {
+    if (!activeBaseId) return;
+    fetchLeads(activeBaseId, 1, 1);
+  }, [activeBaseId, fetchLeads]);
 
   // Listen for real-time campaign metrics updates via WebSocket
   useEffect(() => {
@@ -61,6 +69,8 @@ export default function CampaignsPage() {
   }, [socket, refreshCampaign]);
 
   const filteredCampaigns = getFilteredCampaigns();
+  const totalLeads = pagination?.totalLeads ?? 0;
+  const showNoLeadsBanner = Boolean(activeBaseId) && totalLeads === 0;
 
   if (!activeBaseId) {
     return (
@@ -191,6 +201,24 @@ export default function CampaignsPage() {
           Create Campaign
         </button>
       </div>
+      {showNoLeadsBanner && (
+        <div className="bases-onboarding-hint" role="status">
+          <Icons.Users size={20} strokeWidth={1.5} className="bases-onboarding-hint-icon" />
+          <div>
+            <p className="bases-onboarding-hint-body">
+              Your workspace is selected, but there are no leads yet. Add or import leads first, then create
+              campaigns from this page.
+            </p>
+            <button
+              type="button"
+              className="bases-onboarding-hint-link"
+              onClick={() => router.push(`/bases/${activeBaseId}/leads?welcome=1`)}
+            >
+              Add leads
+            </button>
+          </div>
+        </div>
+      )}
       <CampaignStats />
       <TierBreakdown />
       <CampaignGrid campaigns={filteredCampaigns} loading={Boolean(activeBaseId && loading)} />

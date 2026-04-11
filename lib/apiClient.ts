@@ -146,13 +146,17 @@ const CACHE_DURATION = 2000; // 2 seconds cache for GET requests
 export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   // Only cache GET requests
   const isGetRequest = !options.method || options.method === 'GET';
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  /** Never cache GET /api/campaigns/:id — draft wizard must see fresh config after PUT. */
+  const isSingleCampaignGet =
+    isGetRequest && /^\/api\/campaigns\/\d+$/.test(normalizedEndpoint);
   const cacheKey = `${endpoint}_${JSON.stringify(options.body || '')}`;
   
   if (!isGetRequest && requestCache.size > 0) {
     requestCache.clear();
   }
 
-  if (isGetRequest) {
+  if (isGetRequest && !isSingleCampaignGet) {
     const cached = requestCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data;
@@ -178,9 +182,6 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Ensure endpoint starts with /api
-  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
-  
   const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
     ...options,
     headers,
@@ -199,8 +200,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
       
       if (retryResponse.ok) {
         const data = await retryResponse.json();
-        // Cache successful GET requests
-        if (isGetRequest && retryResponse.ok) {
+        if (isGetRequest && retryResponse.ok && !isSingleCampaignGet) {
           requestCache.set(cacheKey, { data, timestamp: Date.now() });
         }
         return data;
@@ -250,8 +250,12 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
       }
     }
 
-    // Create error object with more details
-    const error = new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
+    // Prefer human-readable `message` when the API sends both `error` and `message` (e.g. SMTP setup hints).
+    const error = new Error(
+      errorData.message ||
+        errorData.error ||
+        `HTTP error! status: ${response.status}`
+    );
     (error as any).status = response.status;
     (error as any).response = { data: errorData };
     throw error;
@@ -259,8 +263,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
   const data = await response.json();
   
-  // Cache successful GET requests
-  if (isGetRequest && response.ok) {
+  if (isGetRequest && response.ok && !isSingleCampaignGet) {
     requestCache.set(cacheKey, { data, timestamp: Date.now() });
     // Clean old cache entries (keep only last 50)
     if (requestCache.size > 50) {

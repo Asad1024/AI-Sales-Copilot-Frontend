@@ -54,11 +54,11 @@ export function TableSkeleton({
         <tr style={{ background: "var(--color-surface-secondary)", borderBottom: "1px solid var(--color-border)" }}>
           {leadingIndexCheckbox && (
             <>
-              <th style={{ padding: "12px 6px", width: 28 }}>
+              <th style={{ padding: "12px 6px", width: 36, minWidth: 36 }}>
                 <CellBar style={{ height: 7, width: 14, borderRadius: 3, margin: "0 auto" }} />
               </th>
-              <th style={{ padding: "12px 6px", width: 28 }}>
-                <CellBar style={{ height: 10, width: 10, borderRadius: 3, margin: "0 auto" }} />
+              <th style={{ padding: "12px 6px", width: 44, minWidth: 44 }}>
+                <CellBar style={{ height: 10, width: 10, borderRadius: 4, margin: "0 auto" }} />
               </th>
             </>
           )}
@@ -206,7 +206,7 @@ export function LeadsTableSkeleton({ rows = 12, dataColumns = 8 }: { rows?: numb
         bareTable
         leadingIndexCheckbox
         trailingActions={false}
-        tableMinWidth={Math.max(720, 28 + 28 + dataColumns * 132)}
+        tableMinWidth={Math.max(720, 36 + 44 + dataColumns * 132)}
         ariaLabel="Loading leads"
       />
     </div>

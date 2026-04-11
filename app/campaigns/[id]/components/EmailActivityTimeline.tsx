@@ -146,7 +146,7 @@ export function EmailActivityTimeline({ campaignId, leadId, leadEmail }: EmailAc
       configs[type] || {
         icon: <Icons.Circle size={16} />,
         label: type,
-        color: "#888",
+        color: "var(--color-text-muted)",
         bgColor: "rgba(128, 128, 128, 0.1)",
       }
     );

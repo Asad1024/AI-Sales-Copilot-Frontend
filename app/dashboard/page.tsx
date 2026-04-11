@@ -8,7 +8,6 @@ import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import CampaignCard from "@/app/campaigns/components/CampaignCard";
 import { DashboardPageSkeleton } from "@/components/ui/PageRouteSkeletons";
-import DashboardFlowCtaBanner from "@/components/ui/DashboardFlowCtaBanner";
 import DashboardOnboardingSteppers from "@/components/ui/DashboardOnboardingSteppers";
 import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
 import { ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
@@ -74,6 +73,14 @@ export default function Dashboard() {
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
   const setupStepperVisible = useSparkBarStore((s) => s.setupStepperVisible);
   const toggleSetupStepper = useSparkBarStore((s) => s.toggleSetupStepper);
+  const setSetupStepperVisible = useSparkBarStore((s) => s.setSetupStepperVisible);
+
+  /** Once there is at least one campaign (same condition as hiding “Get started”), collapse the stepper. Users can reopen via “Setup steps”. */
+  useEffect(() => {
+    if (hasCampaigns) {
+      setSetupStepperVisible(false);
+    }
+  }, [hasCampaigns, setSetupStepperVisible]);
 
   useEffect(() => {
     const invited = searchParams.get("invited");
@@ -286,7 +293,6 @@ export default function Dashboard() {
     return "Good evening";
   })();
   const userName = getUser()?.name || "User";
-  const aiScorePct = Math.max(72, Math.min(98, Math.round((analyticsData?.replyRate || 6.7) * 3 + 72)));
 
   const setupStepsDone =
     (activeBaseId ? 1 : 0) + (hasLeads ? 1 : 0) + (hasCampaigns ? 1 : 0);
@@ -554,23 +560,27 @@ export default function Dashboard() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(260px, 0.95fr) minmax(0, 1.15fr)",
+          gridTemplateColumns: hasCampaigns
+            ? "minmax(0, 1fr)"
+            : "minmax(260px, 0.95fr) minmax(0, 1.15fr)",
           gap: 14,
           alignItems: "stretch",
         }}
         className="dashboard-campaigns-grid"
       >
-        <DashboardGetStartedChecklist
-          activeBaseId={activeBaseId}
-          hasLeads={hasLeads}
-          hasCampaigns={hasCampaigns}
-          setupStepsDone={setupStepsDone}
-          setupStepsTotal={setupStepsTotal}
-          setupProgressPct={setupProgressPct}
-          onCreateWorkspace={() => router.push("/bases")}
-          onAddLeads={goToLeads}
-          onCreateCampaign={goToCreateCampaign}
-        />
+        {!hasCampaigns ? (
+          <DashboardGetStartedChecklist
+            activeBaseId={activeBaseId}
+            hasLeads={hasLeads}
+            hasCampaigns={hasCampaigns}
+            setupStepsDone={setupStepsDone}
+            setupStepsTotal={setupStepsTotal}
+            setupProgressPct={setupProgressPct}
+            onCreateWorkspace={() => router.push("/bases")}
+            onAddLeads={goToLeads}
+            onCreateCampaign={goToCreateCampaign}
+          />
+        ) : null}
 
         <div className="dashboard-surface-card dashboard-recent-activity-panel">
           <div
@@ -706,19 +716,10 @@ export default function Dashboard() {
     </>
   );
 
-  const flowBannerLeadsK = `${(Number(analyticsData?.totalLeads ?? 0) / 1000).toFixed(1)}K`;
-  const flowBannerReply =
-    typeof analyticsData?.replyRate === "number" ? `${analyticsData.replyRate.toFixed(1)}%` : "0.0%";
-
   return (
     <>
       <ProductTour steps={tourSteps} />
       <div className="dashboard-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <DashboardFlowCtaBanner
-          leadsOptimizedK={flowBannerLeadsK}
-          replyRatePct={flowBannerReply}
-          aiScorePct={`${aiScorePct}%`}
-        />
         {dashboardBody}
       </div>
     </>

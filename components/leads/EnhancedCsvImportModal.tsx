@@ -143,7 +143,14 @@ export function EnhancedCsvImportModal({ open, onClose, onImported }: { open: bo
           else if (mapping.targetColumn === "last_name") leadData.last_name = value;
           else if (mapping.targetColumn === "email") leadData.email = value;
           else if (mapping.targetColumn === "phone") leadData.phone = value;
-          else if (mapping.targetColumn === "company") leadData.company = value;
+          else if (mapping.targetColumn === "linkedin_url") {
+            leadData.enrichment = {
+              ...(typeof leadData.enrichment === "object" && leadData.enrichment !== null
+                ? leadData.enrichment
+                : {}),
+              linkedin_url: value,
+            };
+          } else if (mapping.targetColumn === "company") leadData.company = value;
           else if (mapping.targetColumn === "role") leadData.role = value;
           else if (mapping.targetColumn === "region") leadData.region = value;
           else if (mapping.targetColumn === "industry") leadData.industry = value;

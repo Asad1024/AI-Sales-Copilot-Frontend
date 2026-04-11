@@ -53,7 +53,7 @@ export function InboxTab() {
     <div>
       <div style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>Campaign Inbox</h3>
-        <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
           Replies and conversations from this campaign ({replies.length})
         </p>
       </div>
@@ -82,7 +82,7 @@ export function InboxTab() {
             <Icons.Mail size={32} style={{ color: '#4C67FF' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No replies yet</div>
-          <div style={{ fontSize: 13, color: '#888' }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
             Replies will appear here once leads start responding
           </div>
         </div>
@@ -126,11 +126,11 @@ export function InboxTab() {
                         <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
                           {reply.lead_name || 'Unknown Lead'}
                         </div>
-                        <div style={{ fontSize: 12, color: '#888' }}>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                           {reply.lead_phone || reply.lead_email || 'No contact info'}
                         </div>
                       </div>
-                      <div style={{ fontSize: 12, color: '#888' }}>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                         {new Date(reply.createdAt).toLocaleString()}
                       </div>
                     </div>

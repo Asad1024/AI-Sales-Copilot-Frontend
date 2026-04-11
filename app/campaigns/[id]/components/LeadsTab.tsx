@@ -58,7 +58,7 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
           <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 4px 0' }}>
             Campaign Leads
           </h3>
-          <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
             {campaign.tier_filter 
               ? `${campaign.tier_filter} tier leads in this campaign`
               : 'All leads in this campaign'}
@@ -95,7 +95,7 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
             <Icons.Mail size={32} style={{ color: '#4C67FF' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No leads found</div>
-          <div style={{ fontSize: 13, color: '#888' }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
             {campaign.tier_filter 
               ? `No ${campaign.tier_filter.toLowerCase()} leads available for this base.`
               : 'No leads available for this campaign.'}
@@ -126,7 +126,7 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
                 style={{
                   padding: '8px 16px',
                   background: 'transparent',
-                  color: '#888',
+                  color: 'var(--color-text-muted)',
                   border: '1px solid var(--elev-border)',
                   borderRadius: '6px',
                   fontSize: 12,
@@ -215,7 +215,7 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
                                    lead.tier === 'Warm' ? 'rgba(255, 167, 38, 0.2)' : 
                                    'rgba(128, 128, 128, 0.2)',
                         color: lead.tier === 'Hot' ? '#ff6b6b' : 
-                               lead.tier === 'Warm' ? '#ffa726' : '#888',
+                               lead.tier === 'Warm' ? '#ffa726' : 'var(--color-text-muted)',
                         padding: '4px 8px', 
                         borderRadius: 4, 
                         fontSize: 11, 

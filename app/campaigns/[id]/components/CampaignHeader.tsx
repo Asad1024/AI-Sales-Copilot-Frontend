@@ -4,8 +4,8 @@ import { Icons } from "@/components/ui/Icons";
 interface Campaign {
   id: number;
   name: string;
-  channel: 'email' | 'linkedin' | 'whatsapp' | 'call';
-  status: 'running' | 'paused' | 'draft' | 'completed';
+  channel: "email" | "linkedin" | "whatsapp" | "call";
+  status: "running" | "paused" | "draft" | "completed";
   base_id: number;
   updated_at?: string;
   tier_filter?: string;
@@ -25,170 +25,224 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
 
   const getChannelIcon = (channel: string) => {
     switch (channel) {
-      case 'email': return Icons.Mail;
-      case 'linkedin': return Icons.Linkedin;
-      case 'whatsapp': return Icons.MessageCircle;
-      case 'call': return Icons.Phone;
-      default: return Icons.Rocket;
+      case "email":
+        return Icons.Mail;
+      case "linkedin":
+        return Icons.Linkedin;
+      case "whatsapp":
+        return Icons.MessageCircle;
+      case "call":
+        return Icons.Phone;
+      default:
+        return Icons.Rocket;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'running': return { bg: 'rgba(76, 103, 255, 0.2)', color: '#4C67FF' };
-      case 'paused': return { bg: 'rgba(255, 107, 107, 0.2)', color: '#ff6b6b' };
-      case 'draft': return { bg: 'rgba(255, 167, 38, 0.2)', color: '#ffa726' };
-      case 'completed': return { bg: 'rgba(78, 205, 196, 0.2)', color: '#4ecdc4' };
-      default: return { bg: 'rgba(128, 128, 128, 0.2)', color: '#888' };
+      case "running":
+        return {
+          bg: "rgba(76, 103, 255, 0.12)",
+          color: "var(--color-primary)",
+          border: "1px solid rgba(76, 103, 255, 0.28)",
+        };
+      case "paused":
+        return {
+          bg: "rgba(245, 158, 11, 0.12)",
+          color: "#d97706",
+          border: "1px solid rgba(245, 158, 11, 0.35)",
+        };
+      case "draft":
+        return {
+          bg: "var(--color-surface-secondary)",
+          color: "var(--color-text-muted)",
+          border: "1px solid var(--color-border)",
+        };
+      case "completed":
+        return {
+          bg: "rgba(16, 185, 129, 0.12)",
+          color: "#059669",
+          border: "1px solid rgba(16, 185, 129, 0.3)",
+        };
+      default:
+        return {
+          bg: "var(--color-surface-secondary)",
+          color: "var(--color-text-muted)",
+          border: "1px solid var(--color-border)",
+        };
     }
   };
 
-  const statusColors = getStatusColor(campaign.status);
+  const statusStyle = getStatusStyle(campaign.status);
   const ChannelIcon = getChannelIcon(campaign.channel);
 
   return (
-    <div className="card-enhanced" style={{ 
-      borderRadius: 16, 
-      padding: 24,
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.05) 0%, rgba(169, 76, 255, 0.05) 100%)',
-      border: '1px solid rgba(76, 103, 255, 0.2)'
-    }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ margin: '0 0 12px 0', fontSize: '32px', fontWeight: 700, background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+    <div
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: 16,
+        boxShadow: "0 4px 24px var(--color-shadow)",
+        padding: "22px 24px",
+        overflow: "visible",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 20 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: "capitalize",
+                ...statusStyle,
+              }}
+            >
+              {campaign.status === "completed" && <Icons.CheckCircle size={13} strokeWidth={1.75} />}
+              {campaign.status === "running" && <Icons.Circle size={10} style={{ fill: "currentColor" }} />}
+              {campaign.status === "paused" && <Icons.Pause size={13} strokeWidth={1.75} />}
+              {campaign.status === "draft" && <Icons.FileText size={13} strokeWidth={1.75} />}
+              {campaign.status}
+            </span>
+          </div>
+
+          <h1
+            style={{
+              margin: "0 0 12px 0",
+              fontSize: "clamp(20px, 2.2vw, 26px)",
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+              lineHeight: 1.2,
+              color: "var(--color-text)",
+            }}
+          >
             {campaign.name}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-            <div className="text-hint" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ChannelIcon size={16} />
-              Channel: {campaign.channel}
-            </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13, color: "var(--color-text-muted)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <ChannelIcon size={15} strokeWidth={1.5} style={{ color: "var(--color-primary)", opacity: 0.9 }} />
+              <span style={{ textTransform: "capitalize" }}>{campaign.channel}</span>
+            </span>
             {campaign.channels && campaign.channels.length > 1 && (
-              <div style={{ 
-                fontSize: 12, 
-                color: '#4C67FF', 
-                fontWeight: 600,
-                padding: '4px 8px',
-                background: 'rgba(76, 103, 255, 0.1)',
-                borderRadius: 6
-              }}>
-                +{campaign.channels.length - 1} more channel{campaign.channels.length - 1 !== 1 ? 's' : ''}
-              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "3px 8px",
+                  borderRadius: 8,
+                  background: "rgba(76, 103, 255, 0.08)",
+                  color: "var(--color-primary)",
+                  border: "1px solid rgba(76, 103, 255, 0.2)",
+                }}
+              >
+                +{campaign.channels.length - 1} more
+              </span>
             )}
-            <div className="text-hint">• {baseName}</div>
+            <span aria-hidden>·</span>
+            <span>{baseName}</span>
             {campaign.tier_filter && (
-              <div style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: 4, 
-                padding: '4px 10px',
-                background: campaign.tier_filter === 'Hot' ? 'rgba(255, 107, 107, 0.1)' :
-                            campaign.tier_filter === 'Warm' ? 'rgba(255, 167, 38, 0.1)' :
-                            'rgba(128, 128, 128, 0.1)',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                color: campaign.tier_filter === 'Hot' ? '#ff6b6b' :
-                       campaign.tier_filter === 'Warm' ? '#ffa726' : '#888'
-              }}>
-                {campaign.tier_filter === 'Hot' ? <Icons.Flame size={14} /> : 
-                 campaign.tier_filter === 'Warm' ? <Icons.Thermometer size={14} /> : 
-                 <Icons.Snowflake size={14} />}
-                {campaign.tier_filter} Leads
-              </div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 10px",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background:
+                    campaign.tier_filter === "Hot"
+                      ? "rgba(239, 68, 68, 0.08)"
+                      : campaign.tier_filter === "Warm"
+                        ? "rgba(245, 158, 11, 0.1)"
+                        : "var(--color-surface-secondary)",
+                  color:
+                    campaign.tier_filter === "Hot"
+                      ? "#dc2626"
+                      : campaign.tier_filter === "Warm"
+                        ? "#d97706"
+                        : "var(--color-text-muted)",
+                  border: "1px solid var(--color-border-light)",
+                }}
+              >
+                {campaign.tier_filter === "Hot" ? <Icons.Flame size={13} /> : null}
+                {campaign.tier_filter === "Warm" ? <Icons.Thermometer size={13} /> : null}
+                {campaign.tier_filter !== "Hot" && campaign.tier_filter !== "Warm" ? <Icons.Snowflake size={13} /> : null}
+                {campaign.tier_filter}
+              </span>
             )}
           </div>
           {campaign.updated_at && (
-            <div className="text-hint" style={{ fontSize: 12 }}>
-              Last updated: {new Date(campaign.updated_at).toLocaleString()}
+            <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 10 }}>
+              Last updated {new Date(campaign.updated_at).toLocaleString()}
             </div>
           )}
         </div>
-        <div style={{ display:'flex', gap:8, flexWrap: 'wrap' }}>
-          <button 
-            className="btn-ghost" 
-            onClick={()=>router.push('/campaigns')}
-            style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Icons.ChevronLeft size={16} />
-            Back
-          </button>
-          <button 
-            className="btn-primary" 
-            onClick={onToggleStatus}
-            disabled={updating || campaign.status === 'completed'}
-            style={{ 
-              padding: '10px 20px',
-              opacity: (updating || campaign.status === 'completed') ? 0.6 : 1,
-              cursor: (updating || campaign.status === 'completed') ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {updating ? (
-              <>
-                <Icons.Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                Updating...
-              </>
-            ) : campaign.status === 'running' ? (
-              <>
-                <Icons.Pause size={16} />
-                Pause
-              </>
-            ) : campaign.status === 'paused' ? (
-              <>
-                <Icons.Play size={16} />
-                Resume
-              </>
-            ) : campaign.status === 'draft' ? (
-              <>
-                <Icons.Rocket size={16} />
-                Launch
-              </>
-            ) : (
-              <>
-                <Icons.CheckCircle size={16} />
-                Completed
-              </>
-            )}
-          </button>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <style dangerouslySetInnerHTML={{__html: `
-            @keyframes spin {
+            @keyframes campaign-header-spin {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
             }
           `}} />
-          <button 
-            className="btn-ghost" 
-            onClick={onEdit}
-            style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 6 }}
+          <button
+            type="button"
+            className="btn-dashboard-outline focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-2 rounded-[10px] px-4 text-[13px] font-medium"
+            onClick={() => router.push("/campaigns")}
           >
-            <Icons.FileEdit size={16} />
+            <Icons.ChevronLeft size={16} strokeWidth={1.5} />
+            Back
+          </button>
+          <button
+            type="button"
+            className="btn-primary focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-2 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
+            onClick={onToggleStatus}
+            disabled={updating || campaign.status === "completed"}
+          >
+            {updating ? (
+              <>
+                <Icons.Loader size={16} strokeWidth={1.5} style={{ animation: "campaign-header-spin 0.9s linear infinite" }} />
+                Updating…
+              </>
+            ) : campaign.status === "running" ? (
+              <>
+                <Icons.Pause size={16} strokeWidth={1.5} />
+                Pause
+              </>
+            ) : campaign.status === "paused" ? (
+              <>
+                <Icons.Play size={16} strokeWidth={1.5} />
+                Resume
+              </>
+            ) : campaign.status === "draft" ? (
+              <>
+                <Icons.Rocket size={16} strokeWidth={1.5} />
+                Launch
+              </>
+            ) : (
+              <>
+                <Icons.CheckCircle size={16} strokeWidth={1.5} />
+                Completed
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn-dashboard-outline focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-2 rounded-[10px] px-4 text-[13px] font-medium"
+            onClick={onEdit}
+          >
+            <Icons.FileEdit size={16} strokeWidth={1.5} />
             Edit
           </button>
         </div>
       </div>
-
-      {/* Status Badge */}
-      <div style={{ marginTop: 16 }}>
-        <span style={{
-          background: statusColors.bg,
-          color: statusColors.color,
-          padding: '6px 14px',
-          borderRadius: '20px',
-          fontSize: '12px',
-          fontWeight: '600',
-          textTransform: 'capitalize',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6
-        }}>
-          {campaign.status === 'completed' && <Icons.CheckCircle size={14} />}
-          {campaign.status === 'running' && <Icons.Circle size={14} style={{ fill: statusColors.color }} />}
-          {campaign.status === 'paused' && <Icons.Pause size={14} />}
-          {campaign.status === 'draft' && <Icons.FileText size={14} />}
-          {campaign.status}
-        </span>
-      </div>
     </div>
   );
 }
-

@@ -98,7 +98,7 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>Email Sequence</h3>
-          <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
             Configure your multi-step outreach sequence
           </p>
         </div>
@@ -136,7 +136,7 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
             <Icons.FileText size={32} style={{ color: '#4C67FF' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No sequence steps yet</div>
-          <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>
             Add steps to create your outreach sequence
           </div>
           <button 
@@ -168,7 +168,7 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#000000',
+                    color: 'var(--color-text)',
                     fontWeight: 700,
                     fontSize: 14
                   }}>
@@ -178,12 +178,12 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
                     <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
                       Step {index + 1}
                       {index > 0 && (
-                        <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>
+                        <span style={{ fontSize: 12, color: 'var(--color-text-muted)', marginLeft: 8 }}>
                           (Wait {step.delay_days || 1} day{step.delay_days !== 1 ? 's' : ''} after step {index})
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: '#888' }}>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                       Channel: {step.channel} • Template: {(step.variables as any)?.name || 'Untitled'}
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
                     : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
                   border: 'none',
                   borderRadius: 10,
-                  color: !newStep.templateId ? '#888' : '#000000',
+                  color: !newStep.templateId ? 'var(--color-text-muted)' : 'var(--color-text)',
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: !newStep.templateId ? 'not-allowed' : 'pointer'

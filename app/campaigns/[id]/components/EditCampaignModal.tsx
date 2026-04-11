@@ -92,7 +92,7 @@ export function EditCampaignModal({ campaign, editData, updating, totalLeads, on
               background: 'rgba(76, 103, 255, 0.1)',
               borderRadius: 8,
               fontSize: 13,
-              color: '#888'
+              color: 'var(--color-text-muted)'
             }}>
               <strong>Target Tier:</strong> {campaign.tier_filter} Leads ({campaign.leads || totalLeads} leads)
             </div>

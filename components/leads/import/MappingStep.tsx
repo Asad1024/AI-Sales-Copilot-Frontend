@@ -22,6 +22,7 @@ const SYSTEM_FIELDS = [
   { value: "last_name", label: "Last Name" },
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone" },
+  { value: "linkedin_url", label: "LinkedIn URL" },
   { value: "company", label: "Company" },
   { value: "role", label: "Role/Title" },
   { value: "region", label: "Region" },
@@ -82,6 +83,8 @@ export function MappingStep({ csvHeaders, csvRows, baseColumns, onMappingComplet
         targetColumn = "email";
       } else if (headerLower.includes("phone") || headerLower.includes("tel")) {
         targetColumn = "phone";
+      } else if (headerLower.includes("linkedin")) {
+        targetColumn = "linkedin_url";
       } else if (headerLower.includes("company") || headerLower.includes("organization")) {
         targetColumn = "company";
       } else if (headerLower.includes("role") || headerLower.includes("title") || headerLower.includes("position")) {

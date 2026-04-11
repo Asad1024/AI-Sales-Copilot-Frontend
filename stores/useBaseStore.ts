@@ -13,6 +13,19 @@ export interface Base {
   updated_at?: string;
 }
 
+/** Restore selected workspace immediately on client so routes like /campaigns/new?edit= don’t redirect before refreshBases runs. */
+function readStoredActiveBaseId(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const s = localStorage.getItem("sparkai:active_base_id");
+    if (!s) return null;
+    const n = Number(s);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 interface BaseStore {
   bases: Base[];
   activeBaseId: number | null;
@@ -27,7 +40,7 @@ interface BaseStore {
 
 export const useBaseStore = create<BaseStore>((set, get) => ({
   bases: [],
-  activeBaseId: null,
+  activeBaseId: readStoredActiveBaseId(),
   loading: false,
   
   setBases: (bases) => set({ bases }),

@@ -662,7 +662,8 @@ export default function BaseLeadsPage() {
         onClose={() => setShowScoreModal(false)}
         onScored={async () => {
           if (currentBaseId) {
-            await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
+            clearCache(currentBaseId);
+            await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
           }
         }}
       />

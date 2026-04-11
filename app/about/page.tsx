@@ -22,7 +22,7 @@ export default function AboutPage() {
               height: '40px',
               width: '40px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -34,7 +34,7 @@ export default function AboutPage() {
             <span style={{
               fontSize: '20px',
               fontWeight: '700',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>Spark AI</span>
@@ -51,7 +51,7 @@ export default function AboutPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 24px 0',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
@@ -123,7 +123,7 @@ export default function AboutPage() {
         <div style={{
           textAlign: 'center',
           padding: '60px',
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
           borderRadius: '24px'
         }}>
           <h2 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 16px 0' }}>

@@ -39,12 +39,12 @@ export function AIInsightsPanel() {
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
         <div style={{
-          background: 'rgba(76, 103, 255, 0.1)',
+          background: 'rgba(124, 58, 237, 0.1)',
           borderRadius: '12px',
           padding: '16px',
-          border: '1px solid rgba(76, 103, 255, 0.3)'
+          border: '1px solid rgba(124, 58, 237, 0.3)'
         }}>
-          <h4 style={{ fontSize: '14px', fontWeight: '600', margin: '0 0 8px 0', color: '#4C67FF' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: '600', margin: '0 0 8px 0', color: '#7C3AED' }}>
             High-Intent Leads
           </h4>
           <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>

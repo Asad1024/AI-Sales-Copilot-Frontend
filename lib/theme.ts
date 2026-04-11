@@ -21,7 +21,7 @@ export interface ThemeColors {
 
 export const themes: Record<ResolvedTheme, ThemeColors> = {
   light: {
-    primary: '#4C67FF',
+    primary: '#7C3AED',
     accent: '#A94CFF',
     background: '#ffffff',
     surface: '#f8fafc',
@@ -32,13 +32,13 @@ export const themes: Record<ResolvedTheme, ThemeColors> = {
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     shadow: 'rgba(0, 0, 0, 0.1)',
-    success: '#4C67FF',
+    success: '#7C3AED',
     warning: '#ffa726',
     error: '#ff6b6b',
     info: '#4ecdc4',
   },
   dark: {
-    primary: '#4C67FF',
+    primary: '#7C3AED',
     accent: '#A94CFF',
     background: '#0a0a0a',
     surface: '#1a1a1a',
@@ -49,7 +49,7 @@ export const themes: Record<ResolvedTheme, ThemeColors> = {
     border: 'rgba(255, 255, 255, 0.1)',
     borderLight: 'rgba(255, 255, 255, 0.05)',
     shadow: 'rgba(0, 0, 0, 0.3)',
-    success: '#4C67FF',
+    success: '#7C3AED',
     warning: '#ffa726',
     error: '#ff6b6b',
     info: '#4ecdc4',

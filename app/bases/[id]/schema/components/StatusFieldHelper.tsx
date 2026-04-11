@@ -13,7 +13,7 @@ const COMMON_STATUS_TEMPLATES = [
   {
     name: "Deal Status",
     options: [
-      { value: "new", label: "New", color: "#4C67FF" },
+      { value: "new", label: "New", color: "#7C3AED" },
       { value: "contacted", label: "Contacted", color: "#ffa726" },
       { value: "qualified", label: "Qualified", color: "#66bb6a" },
       { value: "proposal", label: "Proposal", color: "#ab47bc" },
@@ -25,7 +25,7 @@ const COMMON_STATUS_TEMPLATES = [
   {
     name: "Lead Status",
     options: [
-      { value: "new", label: "New", color: "#4C67FF" },
+      { value: "new", label: "New", color: "#7C3AED" },
       { value: "contacted", label: "Contacted", color: "#ffa726" },
       { value: "qualified", label: "Qualified", color: "#66bb6a" },
       { value: "nurturing", label: "Nurturing", color: "#ab47bc" },
@@ -73,9 +73,9 @@ export function StatusFieldHelper({ baseId, onCreated }: StatusFieldHelperProps)
   };
 
   return (
-    <div style={{ marginTop: "24px", padding: "20px", background: "rgba(76, 103, 255, 0.05)", borderRadius: "12px", border: "1px solid rgba(76, 103, 255, 0.2)" }}>
+    <div style={{ marginTop: "24px", padding: "20px", background: "rgba(124, 58, 237, 0.05)", borderRadius: "12px", border: "1px solid rgba(124, 58, 237, 0.2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-        <Icons.Lightbulb size={20} style={{ color: "#4C67FF" }} />
+        <Icons.Lightbulb size={20} style={{ color: "#7C3AED" }} />
         <h4 style={{ fontSize: "14px", fontWeight: "600", margin: 0 }}>Quick Create Status Field</h4>
       </div>
       <p style={{ fontSize: "12px", color: "var(--color-text-muted)", marginBottom: "16px" }}>

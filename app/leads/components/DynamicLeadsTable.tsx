@@ -1,11 +1,11 @@
 "use client";
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Icons } from "@/components/ui/Icons";
 import { useLeadStore, Lead } from "@/stores/useLeadStore";
 import { useColumnStore, BaseColumn } from "@/stores/useColumnStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
-import { getPhoneInfo, getPhoneSourceBadge } from "@/utils/phoneNormalization";
+import { getPhoneInfo } from "@/utils/phoneNormalization";
 import { getEmailInfo, getEmailDisplayText, isMaskedEmail } from "@/utils/emailNormalization";
 import { useNotification } from "@/context/NotificationContext";
 import { LEAD_STATUS_STORAGE_KEY, DEFAULT_LEAD_STATUS_OPTIONS } from "@/lib/leadStatus";
@@ -36,18 +36,82 @@ const getLeadName = (lead: Lead) => {
 
 /** Sticky index + checkbox rails */
 const IDX_COL_W = 36;
-const CB_COL_W = 44;
+const CB_COL_W = 50;
 const CB_STICKY_LEFT = IDX_COL_W;
 
-// System columns that are always available
+const LEAD_TABLE_CHECKBOX_STYLE: React.CSSProperties = {
+  width: 18,
+  height: 18,
+  cursor: "pointer",
+  margin: 0,
+  flexShrink: 0,
+  accentColor: "var(--color-primary, #7C3AED)",
+};
+
+/** Campaign wizard (lead step) datatable chrome — shared with `app/campaigns/new/page.tsx` lead picker */
+const WIZARD_LEAD_TABLE_CARD: React.CSSProperties = {
+  borderRadius: 12,
+  border: "1px solid var(--color-border)",
+  /** `visible` so in-cell menus portaled to body are not clipped; rounded corners from border + background. */
+  overflow: "visible",
+  background: "var(--color-surface)",
+};
+const WIZARD_LEAD_TABLE: React.CSSProperties = {
+  width: "100%",
+  borderCollapse: "collapse",
+  fontSize: 13,
+  minWidth: 720,
+};
+const WIZARD_LEAD_THEAD_ROW: React.CSSProperties = {
+  background: "var(--color-surface-secondary)",
+  textAlign: "left",
+};
+const WIZARD_LEAD_TH: React.CSSProperties = {
+  padding: "12px 14px",
+  textAlign: "left",
+  fontSize: 11,
+  fontWeight: 500,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  color: "#9ca3af",
+};
+const WIZARD_LEAD_TH_CHECK: React.CSSProperties = {
+  ...WIZARD_LEAD_TH,
+  width: CB_COL_W,
+  minWidth: CB_COL_W,
+  textAlign: "center",
+};
+const WIZARD_LEAD_TD: React.CSSProperties = {
+  padding: "10px 14px",
+};
+const WIZARD_LEAD_ROW_HOVER = "rgba(67, 56, 202, 0.04)";
+const WIZARD_LEAD_ROW_BORDER = "1px solid var(--color-border)";
+
+function getLeadColumnMinWidth(column: { id?: string | number; name?: string; system?: boolean }): number {
+  if (!column.system || column.id == null) return 144;
+  const id = String(column.id);
+  const map: Record<string, number> = {
+    name: 160,
+    email: 220,
+    phone: 144,
+    owner: 204,
+    score: 96,
+    tier: 108,
+    company: 168,
+    lead_status: 188,
+  };
+  return map[id] ?? 144;
+}
+
+// System columns that are always available (company immediately after phone)
 const SYSTEM_COLUMNS = [
   { id: 'name', name: 'Name', type: 'text' as const, visible: true, system: true },
   { id: 'email', name: 'Email', type: 'email' as const, visible: true, system: true },
   { id: 'phone', name: 'Phone', type: 'phone' as const, visible: true, system: true },
+  { id: 'company', name: 'Company', type: 'text' as const, visible: true, system: true },
   { id: 'owner', name: 'Owner', type: 'text' as const, visible: true, system: true },
   { id: 'score', name: 'AI Score', type: 'number' as const, visible: true, system: true },
   { id: 'tier', name: 'Tier', type: 'select' as const, visible: true, system: true },
-  { id: 'company', name: 'Company', type: 'text' as const, visible: true, system: true },
   { id: 'lead_status', name: 'Lead status', type: 'status' as const, visible: true, system: true },
 ];
 
@@ -57,7 +121,6 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
   const { activeBaseId } = useBaseStore();
   const { permissions } = useBasePermissions(activeBaseId);
   const { showSuccess, showError } = useNotification();
-  const selectedCount = Array.isArray(selectedLeads) ? selectedLeads.length : 0;
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
   const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null);
   const pendingLeadSet = useMemo(() => new Set(pendingLeadIds), [pendingLeadIds]);
@@ -227,7 +290,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
         return 'transparent';
       case 'score':
         const score = lead.score ?? 0;
-        if (score >= 80) return 'rgba(76, 103, 255, 0.08)';
+        if (score >= 80) return 'rgba(124, 58, 237, 0.08)';
         if (score >= 60) return 'rgba(255, 167, 38, 0.08)';
         return 'rgba(158, 158, 158, 0.05)';
       case 'owner':
@@ -241,17 +304,12 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
     }
   };
 
-  const resolveRowBackground = (lead: Lead, _stripeIndex: number, isSelected: boolean): string => {
-    if (isSelected) return "rgba(37, 99, 235, 0.1)";
+  /** Wizard-style rows: no zebra; optional colorBy tint only. */
+  const resolveRowBackground = (lead: Lead): string => {
+    if (!filters.colorBy) return "transparent";
     const colored = getRowColor(lead);
-    if (colored !== "transparent") return colored;
-    return _stripeIndex % 2 === 0 ? "rgba(248, 250, 252, 0.58)" : "transparent";
+    return colored !== "transparent" ? colored : "transparent";
   };
-
-  const ROW_BORDER = "#f8fafc";
-  const HOVER_BG = "rgba(239, 246, 255, 0.62)";
-  const CELL_PAD_Y = 14;
-  const CELL_PAD_X = 14;
 
   const applyRowHoverBg = (tr: HTMLTableRowElement, bg: string) => {
     tr.querySelectorAll("td").forEach((td) => {
@@ -274,8 +332,8 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                   alignItems: 'center',
                   gap: 6,
                   borderRadius: 999,
-                  border: '1px solid rgba(76, 103, 255, 0.28)',
-                  background: 'rgba(76, 103, 255, 0.08)',
+                  border: '1px solid rgba(124, 58, 237, 0.28)',
+                  background: 'rgba(124, 58, 237, 0.08)',
                   color: 'var(--color-primary)',
                   fontSize: 8,
                   fontWeight: 600,
@@ -409,27 +467,25 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
   }
 
   return (
-    <div 
-      ref={tableContainerRef}
-      className="leads-table-scroll"
-      style={{ 
-        background: embedded ? "transparent" : "var(--color-surface)", 
-        border: embedded ? "none" : "1px solid var(--color-border)",
-        borderRadius: embedded ? 0 : 12,
-        boxShadow: embedded ? "none" : "0 1px 3px var(--color-shadow)",
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
         height: "100%",
         width: "100%",
-        minHeight: "400px",
+        minHeight: embedded ? "clamp(260px, 42vh, 520px)" : 400,
         maxHeight: "100%",
-        overflow: "auto",
         position: "relative",
-        display: "block",
+        background: embedded ? "transparent" : "transparent",
       }}
     >
       <style>{`
         .leads-table-scroll {
           scrollbar-width: thin;
           scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+          flex: 1;
+          min-height: 0;
+          overflow: auto;
         }
         .leads-table-scroll::-webkit-scrollbar {
           height: 4px;
@@ -446,15 +502,11 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
           background: rgba(148, 163, 184, 0.65);
         }
       `}</style>
-      <table style={{ 
-        width: "100%", 
-        borderCollapse: "collapse",
-        minWidth: "max-content",
-        display: "table",
-        tableLayout: "auto",
-      }}>
+      <div ref={tableContainerRef} className="leads-table-scroll">
+        <div style={embedded ? WIZARD_LEAD_TABLE_CARD : { ...WIZARD_LEAD_TABLE_CARD, boxShadow: "0 1px 3px var(--color-shadow)" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={WIZARD_LEAD_TABLE}>
         <thead
-          className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50/90 dark:bg-slate-800/80 dark:text-slate-400"
           style={{
             position: "sticky",
             top: 0,
@@ -463,62 +515,55 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
             visibility: "visible",
           }}
         >
-          <tr style={{ borderBottom: `1px solid ${ROW_BORDER}` }}>
+          <tr style={WIZARD_LEAD_THEAD_ROW}>
             <th
-              className="bg-slate-50/50 dark:bg-slate-800/50"
               style={{
-                padding: `${CELL_PAD_Y}px 6px`,
+                ...WIZARD_LEAD_TH,
                 textAlign: "center",
                 verticalAlign: "middle",
                 width: IDX_COL_W,
                 minWidth: IDX_COL_W,
-                borderBottom: `1px solid ${ROW_BORDER}`,
                 position: "sticky",
                 left: 0,
                 zIndex: 12,
+                background: "var(--color-surface-secondary)",
                 boxShadow: "1px 0 0 var(--color-border-light)",
               }}
             >
               #
             </th>
             <th
-              className="bg-slate-50/50 dark:bg-slate-800/50"
               style={{
-                padding: `${CELL_PAD_Y}px 2px`,
-                textAlign: "center",
+                ...WIZARD_LEAD_TH_CHECK,
                 verticalAlign: "middle",
                 width: CB_COL_W,
                 minWidth: CB_COL_W,
-                borderBottom: `1px solid ${ROW_BORDER}`,
                 position: "sticky",
                 left: CB_STICKY_LEFT,
                 zIndex: 12,
+                background: "var(--color-surface-secondary)",
                 boxShadow: "1px 0 0 var(--color-border-light)",
               }}
             >
-              <div className="leads-table-checkbox-wrap">
-                <input
-                  ref={selectAllCheckboxRef}
-                  type="checkbox"
-                  className="leads-table-checkbox"
-                  aria-label="Select all leads"
-                  checked={Array.isArray(selectedLeads) && selectedLeads.length === leads.length && leads.length > 0}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    toggleSelectAll();
-                  }}
-                />
-              </div>
+              <input
+                ref={selectAllCheckboxRef}
+                type="checkbox"
+                aria-label="Select all leads"
+                style={LEAD_TABLE_CHECKBOX_STYLE}
+                checked={Array.isArray(selectedLeads) && selectedLeads.length === leads.length && leads.length > 0}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  toggleSelectAll();
+                }}
+              />
             </th>
             {allColumns.map((column) => (
               <th
                 key={`header-${column.id || column.name}`}
-                className="bg-slate-50/50 dark:bg-slate-800/50"
                 style={{
-                  padding: `${CELL_PAD_Y}px ${CELL_PAD_X}px`,
-                  textAlign: "left",
-                  minWidth: "128px",
-                  borderBottom: `1px solid ${ROW_BORDER}`,
+                  ...WIZARD_LEAD_TH,
+                  minWidth: getLeadColumnMinWidth(column),
+                  background: "var(--color-surface-secondary)",
                 }}
               >
                 {column.name}
@@ -537,7 +582,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                   return (
                     <React.Fragment key={groupKey}>
                       {/* Group header */}
-                      <tr style={{ background: "var(--color-surface-secondary)", borderBottom: `1px solid ${ROW_BORDER}` }}>
+                      <tr style={{ background: "var(--color-surface-secondary)", borderBottom: WIZARD_LEAD_ROW_BORDER }}>
                         <td
                           colSpan={allColumns.length + 2}
                           style={{
@@ -555,33 +600,28 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                       {/* Group leads */}
                       {groupLeads.map((lead) => {
                         const index = globalIndex++;
-                        const isSelected = Array.isArray(selectedLeads) && selectedLeads.includes(lead.id);
-                        const rowBaseBg = resolveRowBackground(lead, index, isSelected);
+                        const rowBaseBg = resolveRowBackground(lead);
                         return (
                           <tr
                             key={lead.id}
                             className="leads-table-data-row"
                             style={{
-                              borderBottom: `1px solid ${ROW_BORDER}`,
+                              borderTop: WIZARD_LEAD_ROW_BORDER,
                               cursor: "pointer",
                               background: rowBaseBg,
                               transition: "background 0.15s ease",
                             }}
                             onClick={() => onLeadClick(lead)}
                             onMouseEnter={(e) => {
-                              if (!isSelected) {
-                                applyRowHoverBg(e.currentTarget, HOVER_BG);
-                              }
+                              applyRowHoverBg(e.currentTarget, WIZARD_LEAD_ROW_HOVER);
                             }}
                             onMouseLeave={(e) => {
-                              if (!isSelected) {
-                                applyRowHoverBg(e.currentTarget, rowBaseBg);
-                              }
+                              applyRowHoverBg(e.currentTarget, rowBaseBg);
                             }}
                           >
                             <td
                               style={{
-                                padding: `${CELL_PAD_Y}px 6px`,
+                                ...WIZARD_LEAD_TD,
                                 textAlign: "center",
                                 verticalAlign: "middle",
                                 fontSize: 11,
@@ -598,7 +638,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                             </td>
                             <td
                               style={{
-                                padding: `${CELL_PAD_Y}px 2px`,
+                                ...WIZARD_LEAD_TD,
                                 textAlign: "center",
                                 verticalAlign: "middle",
                                 width: CB_COL_W,
@@ -613,27 +653,26 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                                 e.stopPropagation();
                               }}
                             >
-                              <div className="leads-table-checkbox-wrap">
-                                <input
-                                  type="checkbox"
-                                  className="leads-table-checkbox"
-                                  checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    toggleLeadSelection(lead.id);
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                  }}
-                                />
-                              </div>
+                              <input
+                                type="checkbox"
+                                style={LEAD_TABLE_CHECKBOX_STYLE}
+                                checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  toggleLeadSelection(lead.id);
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                                aria-label={`Select lead ${lead.id}`}
+                              />
                             </td>
                             {allColumns.map((column) => (
                               <td
                                 key={column.id || column.name}
                                 style={{
-                                  padding: `${CELL_PAD_Y}px ${CELL_PAD_X}px`,
-                                  minWidth: "116px",
+                                  ...WIZARD_LEAD_TD,
+                                  minWidth: getLeadColumnMinWidth(column),
                                   verticalAlign: "middle",
                                   background: rowBaseBg,
                                 }}
@@ -665,15 +704,14 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
               } else {
                 // Render ungrouped leads with insert row capability
                 return leads.map((lead, index) => {
-                  const isSelected = Array.isArray(selectedLeads) && selectedLeads.includes(lead.id);
-                  const rowBaseBg = resolveRowBackground(lead, index, isSelected);
+                  const rowBaseBg = resolveRowBackground(lead);
 
                   return (
                     <React.Fragment key={lead.id}>
                       <tr
                         className="leads-table-data-row"
                         style={{
-                          borderBottom: `1px solid ${ROW_BORDER}`,
+                          borderTop: WIZARD_LEAD_ROW_BORDER,
                           cursor: "pointer",
                           background: rowBaseBg,
                           transition: "background 0.15s ease",
@@ -681,19 +719,15 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                         }}
                         onClick={() => onLeadClick(lead)}
                         onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            applyRowHoverBg(e.currentTarget, HOVER_BG);
-                          }
+                          applyRowHoverBg(e.currentTarget, WIZARD_LEAD_ROW_HOVER);
                         }}
                         onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            applyRowHoverBg(e.currentTarget, rowBaseBg);
-                          }
+                          applyRowHoverBg(e.currentTarget, rowBaseBg);
                         }}
                       >
                         <td
                           style={{
-                            padding: `${CELL_PAD_Y}px 6px`,
+                            ...WIZARD_LEAD_TD,
                             textAlign: "center",
                             verticalAlign: "middle",
                             fontSize: 11,
@@ -710,7 +744,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                         </td>
                         <td
                           style={{
-                            padding: `${CELL_PAD_Y}px 2px`,
+                            ...WIZARD_LEAD_TD,
                             textAlign: "center",
                             verticalAlign: "middle",
                             width: CB_COL_W,
@@ -725,27 +759,26 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                             e.stopPropagation();
                           }}
                         >
-                          <div className="leads-table-checkbox-wrap">
-                            <input
-                              type="checkbox"
-                              className="leads-table-checkbox"
-                              checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                toggleLeadSelection(lead.id);
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                            />
-                          </div>
+                          <input
+                            type="checkbox"
+                            style={LEAD_TABLE_CHECKBOX_STYLE}
+                            checked={Array.isArray(selectedLeads) && selectedLeads.includes(lead.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleLeadSelection(lead.id);
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            aria-label={`Select lead ${lead.id}`}
+                          />
                         </td>
                         {allColumns.map((column) => (
                           <td
                             key={column.id || column.name}
                             style={{
-                              padding: `${CELL_PAD_Y}px ${CELL_PAD_X}px`,
-                              minWidth: "116px",
+                              ...WIZARD_LEAD_TD,
+                              minWidth: getLeadColumnMinWidth(column),
                               verticalAlign: "middle",
                               background: rowBaseBg,
                             }}
@@ -775,48 +808,98 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
               }
             })()}
           </tbody>
-        </table>
+            </table>
+          </div>
 
-      {pagination.totalPages > 1 && (
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 16,
-          paddingTop: 14,
-          paddingLeft: embedded ? 4 : 0,
-          paddingRight: embedded ? 4 : 0,
-          borderTop: "1px solid var(--color-border-light)",
-        }}>
-          <div style={{ fontSize: "10px", color: "var(--color-text-muted)" }}>
-            Showing <strong>{(pagination.currentPage - 1) * pagination.leadsPerPage + 1}</strong> - <strong>{Math.min(pagination.currentPage * pagination.leadsPerPage, pagination.totalLeads)}</strong> of <strong>{pagination.totalLeads}</strong> leads
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => {
-                const newPage = Math.max(1, pagination.currentPage - 1);
-                setPagination({ currentPage: newPage });
+          {pagination.totalPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "8px 12px",
+                borderTop: "1px solid var(--color-border)",
+                fontSize: 12,
+                color: "var(--color-text-muted)",
               }}
-              disabled={pagination.currentPage === 1}
-              className="btn-ghost"
-              style={{ padding: '8px 16px', fontSize: 13 }}
             >
-              Previous
-            </button>
-            <button
-              onClick={() => {
-                const newPage = Math.min(pagination.totalPages, pagination.currentPage + 1);
-                setPagination({ currentPage: newPage });
-              }}
-              disabled={pagination.currentPage === pagination.totalPages}
-              className="btn-ghost"
-              style={{ padding: '8px 16px', fontSize: 13 }}
-            >
-              Next
-            </button>
-          </div>
+              <span style={{ lineHeight: "32px", fontSize: 12 }}>
+                Showing{" "}
+                <strong style={{ color: "var(--color-text)" }}>
+                  {(pagination.currentPage - 1) * pagination.leadsPerPage + 1}
+                </strong>
+                –
+                <strong style={{ color: "var(--color-text)" }}>
+                  {Math.min(pagination.currentPage * pagination.leadsPerPage, pagination.totalLeads)}
+                </strong>{" "}
+                of <strong style={{ color: "var(--color-text)" }}>{pagination.totalLeads}</strong> leads
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newPage = Math.max(1, pagination.currentPage - 1);
+                    setPagination({ currentPage: newPage });
+                  }}
+                  disabled={pagination.currentPage === 1}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    height: 32,
+                    minHeight: 32,
+                    padding: "0 10px",
+                    borderRadius: 6,
+                    border: "1px solid #e5e7eb",
+                    background: "var(--color-surface)",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#374151",
+                    cursor: pagination.currentPage === 1 ? "not-allowed" : "pointer",
+                    opacity: pagination.currentPage === 1 ? 0.45 : 1,
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newPage = Math.min(pagination.totalPages, pagination.currentPage + 1);
+                    setPagination({ currentPage: newPage });
+                  }}
+                  disabled={pagination.currentPage === pagination.totalPages}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    height: 32,
+                    minHeight: 32,
+                    padding: "0 10px",
+                    borderRadius: 6,
+                    border: "1px solid #e5e7eb",
+                    background: "var(--color-surface)",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#374151",
+                    cursor: pagination.currentPage === pagination.totalPages ? "not-allowed" : "pointer",
+                    opacity: pagination.currentPage === pagination.totalPages ? 0.45 : 1,
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

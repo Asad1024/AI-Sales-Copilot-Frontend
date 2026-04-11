@@ -75,14 +75,14 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
       } else {
         // Redirect to settings page to connect Airtable
         onClose();
-        router.push('/settings?tab=connectors&connect=airtable');
+        router.push('/settings?tab=integrations&connect=airtable');
       }
     } else {
       // For other providers, show coming soon or redirect to settings
       setProvider(providerName);
       if (status === 'not_connected') {
         onClose();
-        router.push('/settings?tab=connectors');
+        router.push('/settings?tab=integrations');
       } else {
         showInfo("Coming soon", `${providerName} integration is coming soon.`);
       }
@@ -169,12 +169,12 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
                         background: isConnected
                           ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)'
                           : provider === p.name 
-                            ? 'linear-gradient(135deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)' 
+                            ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)' 
                             : 'var(--color-surface)',
                         border: isConnected
                           ? '2px solid #10b981'
                           : provider === p.name 
-                            ? '2px solid #4C67FF' 
+                            ? '2px solid #7C3AED' 
                             : '1px solid var(--color-border)',
                         borderRadius: 12,
                         cursor: 'pointer',
@@ -233,7 +233,7 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
                   );
                 })}
               </div>
-              <div style={{ marginTop: 16, padding: 12, background: 'rgba(76, 103, 255, 0.05)', borderRadius: 8 }}>
+              <div style={{ marginTop: 16, padding: 12, background: 'rgba(124, 58, 237, 0.05)', borderRadius: 8 }}>
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
                   <strong>Connected platforms:</strong> Click to import directly. <strong>Not connected:</strong> Click to connect in Settings.
                 </p>
@@ -245,13 +245,13 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
         {/* Info Message */}
         <div style={{ 
           padding: 16, 
-          background: 'rgba(76, 103, 255, 0.1)', 
+          background: 'rgba(124, 58, 237, 0.1)', 
           borderRadius: 12, 
           marginBottom: 20,
-          border: '1px solid rgba(76, 103, 255, 0.2)'
+          border: '1px solid rgba(124, 58, 237, 0.2)'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <Icons.Info size={20} style={{ color: '#4C67FF', flexShrink: 0, marginTop: 2 }} />
+            <Icons.Info size={20} style={{ color: '#7C3AED', flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
                 How it works

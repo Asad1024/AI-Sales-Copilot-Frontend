@@ -1,19 +1,70 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icons } from "@/components/ui/Icons";
 import type { StepInfo } from "./stepFlowCalculator";
 import { WIZARD_STEP_SHORT_LABEL } from "./wizardStepLabels";
 
-const ACCENT = "#5b4fc9";
-const ACCENT_SOFT = "rgba(91, 79, 201, 0.45)";
+/** Matches app `--color-primary` (#7C3AED) */
+const ACCENT = "var(--color-primary, #7C3AED)";
+const ACCENT_SOFT = "rgba(124, 58, 237, 0.45)";
 const TRACK_INCOMPLETE = "#cbd5e1";
 const LABEL_INACTIVE = "#9ca3af";
 
-/** Same height for every step’s circle row so connector lines share one vertical center. */
-const CONNECTOR_ROW_MIN_HEIGHT = 48;
+/** How many step columns stay visible at once; wider flows scroll horizontally. */
+const MAX_VISIBLE_STEPS = 8;
+/** Right padding when chevron overlay is shown so the last circle does not sit under it. */
+const STEP_SCROLL_END_GUTTER = 22;
 
-const MAX_VISIBLE_STEPS = 7;
+type StepperMetrics = {
+  colWidth: number;
+  gap: number;
+  circleCurrent: number;
+  circleOther: number;
+  borderCurrent: number;
+  borderOther: number;
+  numFontCurrent: number;
+  numFontOther: number;
+  checkCurrent: number;
+  checkOther: number;
+  labelFont: number;
+  labelMaxHeight: number;
+  connectorRowMinHeight: number;
+  trackHeight: number;
+  trackMinWidth: number;
+  rowMarginBottom: number;
+};
+
+/** Fixed stepper geometry — no viewport scaling (8-slot window scrolls only). */
+const WIZARD_STEPPER_METRICS: StepperMetrics = {
+  colWidth: 108,
+  gap: 12,
+  circleCurrent: 48,
+  circleOther: 36,
+  borderCurrent: 4,
+  borderOther: 2,
+  numFontCurrent: 16,
+  numFontOther: 13,
+  checkCurrent: 24,
+  checkOther: 18,
+  labelFont: 12,
+  labelMaxHeight: 42,
+  connectorRowMinHeight: 54,
+  trackHeight: 5,
+  trackMinWidth: 8,
+  rowMarginBottom: 12,
+};
+
+function minStepperRowWidth(stepCount: number, m: StepperMetrics): number {
+  if (stepCount <= 1) return 0;
+  return stepCount * m.colWidth + Math.max(0, stepCount - 1) * m.gap;
+}
+
+/** Pixel width of the first `slotCount` steps (used for 8-at-a-time viewport). */
+function rowWidthForSlots(slotCount: number, m: StepperMetrics): number {
+  if (slotCount <= 0) return 0;
+  return slotCount * m.colWidth + Math.max(0, slotCount - 1) * m.gap;
+}
 
 type Props = {
   steps: StepInfo[];
@@ -22,84 +73,140 @@ type Props = {
   onStepClick?: (stepNumber: number) => void;
   /** True while parent is saving / navigating — step targets ignore clicks. */
   navigationDisabled?: boolean;
+  /** Step column that shows an inline loader (e.g. save-before-jump in progress). */
+  loadingStepNumber?: number | null;
 };
 
-/** Default window start: ~3 steps before current, clamped (max 7 visible). */
-function getDefaultWindowStart(total: number, currentIdx: number): number {
-  if (total <= MAX_VISIBLE_STEPS) return 0;
-  const safeIdx = Math.max(0, Math.min(currentIdx, total - 1));
-  let start = Math.max(0, safeIdx - 3);
-  let end = start + MAX_VISIBLE_STEPS - 1;
-  if (end > total - 1) {
-    end = total - 1;
-    start = Math.max(0, end - (MAX_VISIBLE_STEPS - 1));
-  }
-  return start;
-}
-
-/** Pannable range: window must stay wide enough to include the current step. */
-function getPanBounds(total: number, curIdx: number): { min: number; max: number } {
-  if (total <= MAX_VISIBLE_STEPS) return { min: 0, max: 0 };
-  const safe = Math.max(0, Math.min(curIdx, total - 1));
-  const min = Math.max(0, safe - (MAX_VISIBLE_STEPS - 1));
-  const max = Math.min(total - MAX_VISIBLE_STEPS, safe);
-  return { min, max };
-}
-
 /**
- * Windowed stepper (max 7). When there are more steps, left/right controls at the end pan the window.
+ * Horizontal stepper: at most 8 columns wide when there are more than 8 steps (then scroll).
+ * Fixed pixel size (no resize scaling). Current step scrolls into view when navigating.
  */
 export function WizardCircularStepper({
   steps,
   currentStepNumber,
   onStepClick,
   navigationDisabled = false,
+  loadingStepNumber = null,
 }: Props) {
-  const [panStart, setPanStart] = useState<number | null>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  /** Outer width only — used to center the 8-slot viewport; does not change step metrics. */
+  const [outerWidth, setOuterWidth] = useState(0);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const n = steps.length;
+  const m = WIZARD_STEPPER_METRICS;
+
+  const updateScrollEdges = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanScrollRight(max > 2 && el.scrollLeft < max - 2);
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = outerRef.current;
+    if (!el || n <= 1) return;
+    const apply = () => setOuterWidth(el.clientWidth);
+    apply();
+    const ro = new ResizeObserver(() => apply());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [n]);
 
   useEffect(() => {
-    setPanStart(null);
-  }, [currentStepNumber]);
+    if (steps.length <= 1) return;
+    const root = scrollRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLElement>("[data-wizard-current-step='true']");
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    requestAnimationFrame(() => updateScrollEdges());
+  }, [currentStepNumber, steps.length, updateScrollEdges]);
+
+  useEffect(() => {
+    if (loadingStepNumber == null || steps.length <= 1) return;
+    const root = scrollRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLElement>(`[data-wizard-step="${loadingStepNumber}"]`);
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    requestAnimationFrame(() => updateScrollEdges());
+  }, [loadingStepNumber, steps.length, updateScrollEdges]);
+
+  /** Track overflow so the right chevron only shows when there is more to see. */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || steps.length <= 1) return;
+    updateScrollEdges();
+    const onScroll = () => updateScrollEdges();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(() => updateScrollEdges());
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [steps.length, n, updateScrollEdges]);
+
+  /** Vertical wheel scrolls the strip horizontally (Shift+wheel still uses native horizontal). */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || steps.length <= 1) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.shiftKey) return;
+      const { deltaX, deltaY } = e;
+      if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
+      const nextLeft = el.scrollLeft + deltaY;
+      const maxLeft = el.scrollWidth - el.clientWidth;
+      if (deltaY < 0 && el.scrollLeft <= 0) return;
+      if (deltaY > 0 && el.scrollLeft >= maxLeft - 1) return;
+      el.scrollLeft = Math.max(0, Math.min(maxLeft, nextLeft));
+      e.preventDefault();
+      updateScrollEdges();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [steps.length, updateScrollEdges]);
 
   if (steps.length <= 1) return null;
 
-  const n = steps.length;
-  const currentIdx = steps.findIndex((s) => s.stepNumber === currentStepNumber);
-  const curIdx = currentIdx >= 0 ? currentIdx : 0;
-  const needsWindow = n > MAX_VISIBLE_STEPS;
-  const { min: startMin, max: startMax } = getPanBounds(n, curIdx);
-  const defaultStart = getDefaultWindowStart(n, curIdx);
-  const windowStart =
-    panStart != null
-      ? Math.min(startMax, Math.max(startMin, panStart))
-      : defaultStart;
-  const windowEnd = needsWindow ? windowStart + MAX_VISIBLE_STEPS - 1 : n - 1;
-
-  /** On the final wizard step, pan chevrons stay off (no window nudge past “done”). */
-  const atLastWizardStep = curIdx >= n - 1;
-  const canPanLeft =
-    needsWindow && windowStart > startMin && !atLastWizardStep;
-  const canPanRight =
-    needsWindow && windowStart < startMax && !atLastWizardStep;
-
   const stepClickable = Boolean(onStepClick) && !navigationDisabled;
+  const rowPixelWidth = minStepperRowWidth(n, m);
+  const visibleWindowPx =
+    n > MAX_VISIBLE_STEPS
+      ? rowWidthForSlots(MAX_VISIBLE_STEPS, m)
+      : rowPixelWidth;
+  const capScrollViewport = n > MAX_VISIBLE_STEPS;
+  const trackOuterMaxCss = capScrollViewport
+    ? `min(100%, ${visibleWindowPx}px)`
+    : "100%";
+  const scrollPaneMaxCss = capScrollViewport
+    ? `min(100%, ${visibleWindowPx}px)`
+    : "100%";
+  const trackOuterWidthPx = visibleWindowPx;
+  const connectorBandHeight = m.connectorRowMinHeight;
+  const centerOuter =
+    outerWidth > 0 && trackOuterWidthPx + 16 < outerWidth ? "center" : "flex-start";
 
   const renderStepColumn = (s: StepInfo, globalIdx: number) => {
     const isCurrent = s.stepNumber === currentStepNumber;
     const isPast = s.stepNumber < currentStepNumber;
     const isFuture = !isCurrent && !isPast;
+    const isLoadingJump = loadingStepNumber != null && loadingStepNumber === s.stepNumber;
     const label = WIZARD_STEP_SHORT_LABEL[s.stepType] || s.stepType;
 
     const leftComplete =
       globalIdx > 0 && currentStepNumber > steps[globalIdx - 1]!.stepNumber;
     const rightComplete = currentStepNumber > s.stepNumber;
 
-    const circleSize = isCurrent ? 40 : 30;
-    const borderW = isCurrent ? 3 : 2;
+    const circleSize =
+      isLoadingJump || isCurrent ? m.circleCurrent : m.circleOther;
+    const borderW =
+      isLoadingJump || isCurrent ? m.borderCurrent : m.borderOther;
 
     const circleSpan = (
       <span
         aria-current={isCurrent ? "step" : undefined}
+        aria-busy={isLoadingJump ? true : undefined}
         title={`Step ${s.stepNumber}: ${label}`}
         style={{
           width: circleSize,
@@ -108,31 +215,43 @@ export function WizardCircularStepper({
           flexShrink: 0,
           boxSizing: "border-box",
           border: `${borderW}px solid ${
-            isCurrent
+            isLoadingJump || isCurrent
               ? ACCENT
               : isPast
                 ? ACCENT
                 : "var(--color-border, #e2e8f0)"
           }`,
-          background: isCurrent
-            ? ACCENT
-            : isPast
-              ? ACCENT
-              : "var(--color-surface, #fff)",
-          boxShadow: isCurrent ? "0 4px 14px rgba(91, 79, 201, 0.35)" : "none",
+          background:
+            isLoadingJump || isCurrent
+              ? "var(--color-surface, #fff)"
+              : isPast
+                ? ACCENT
+                : "var(--color-surface, #fff)",
+          boxShadow: "none",
           transition:
             "width 0.2s, height 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: isCurrent ? 14 : 12,
+          fontSize: isCurrent ? m.numFontCurrent : m.numFontOther,
           fontWeight: 700,
           fontVariantNumeric: "tabular-nums",
-          color: isCurrent || isPast ? "#fff" : LABEL_INACTIVE,
+          color: isPast ? "#fff" : isCurrent || isLoadingJump ? ACCENT : LABEL_INACTIVE,
         }}
       >
-        {isPast ? (
-          <Icons.Check size={isCurrent ? 20 : 16} strokeWidth={2.5} style={{ color: "#fff" }} />
+        {isLoadingJump ? (
+          <Icons.Loader
+            size={Math.max(14, Math.round(circleSize * 0.42))}
+            strokeWidth={2.5}
+            style={{ color: ACCENT, animation: "spin 0.85s linear infinite" }}
+            aria-hidden
+          />
+        ) : isPast ? (
+          <Icons.Check
+            size={isCurrent ? m.checkCurrent : m.checkOther}
+            strokeWidth={2.5}
+            style={{ color: "#fff" }}
+          />
         ) : (
           s.stepNumber
         )}
@@ -142,7 +261,7 @@ export function WizardCircularStepper({
     const labelSpan = (
       <span
         style={{
-          fontSize: 11,
+          fontSize: m.labelFont,
           fontWeight: isCurrent ? 700 : isPast ? 600 : 500,
           color: isCurrent ? ACCENT : isFuture ? LABEL_INACTIVE : ACCENT,
           textAlign: "center",
@@ -150,7 +269,7 @@ export function WizardCircularStepper({
           maxWidth: "100%",
           padding: "0 2px",
           overflow: "hidden",
-          maxHeight: 30,
+          maxHeight: m.labelMaxHeight,
           wordBreak: "break-word",
         }}
       >
@@ -165,16 +284,16 @@ export function WizardCircularStepper({
           alignItems: "center",
           justifyContent: "center",
           width: "100%",
-          minHeight: CONNECTOR_ROW_MIN_HEIGHT,
-          marginBottom: 10,
+          minHeight: m.connectorRowMinHeight,
+          marginBottom: m.rowMarginBottom,
         }}
       >
         <div
           aria-hidden
           style={{
             flex: 1,
-            height: 4,
-            minWidth: 6,
+            height: m.trackHeight,
+            minWidth: m.trackMinWidth,
             borderRadius: 2,
             background:
               globalIdx === 0
@@ -189,8 +308,8 @@ export function WizardCircularStepper({
           aria-hidden
           style={{
             flex: 1,
-            height: 4,
-            minWidth: 6,
+            height: m.trackHeight,
+            minWidth: m.trackMinWidth,
             borderRadius: 2,
             background:
               globalIdx >= n - 1
@@ -206,9 +325,13 @@ export function WizardCircularStepper({
     return (
       <div
         key={`${s.stepNumber}-${s.stepType}`}
+        data-wizard-step={s.stepNumber}
+        data-wizard-current-step={isCurrent ? "true" : "false"}
         style={{
-          flex: "1 1 0",
-          minWidth: 0,
+          flex: "0 0 auto",
+          width: m.colWidth,
+          minWidth: m.colWidth,
+          maxWidth: m.colWidth,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -247,32 +370,7 @@ export function WizardCircularStepper({
     );
   };
 
-  const segments: ReactNode[] = [];
-  if (needsWindow) {
-    for (let gi = windowStart; gi <= windowEnd; gi++) {
-      segments.push(renderStepColumn(steps[gi]!, gi));
-    }
-  } else {
-    for (let gi = 0; gi < n; gi++) {
-      segments.push(renderStepColumn(steps[gi]!, gi));
-    }
-  }
-
-  const panBtnBase = {
-    flex: 1,
-    minWidth: 36,
-    height: CONNECTOR_ROW_MIN_HEIGHT,
-    padding: 0,
-    margin: 0,
-    border: "none",
-    background: "transparent",
-    color: ACCENT,
-    cursor: "pointer" as const,
-    display: "flex" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    transform: "none" as const,
-  };
+  const segments = steps.map((s, gi) => renderStepColumn(s, gi));
 
   return (
     <div
@@ -284,99 +382,100 @@ export function WizardCircularStepper({
         boxSizing: "border-box",
       }}
     >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div
+        ref={outerRef}
         style={{
-          display: "flex",
           width: "100%",
-          alignItems: "flex-start",
-          gap: 8,
+          display: "flex",
+          justifyContent: centerOuter,
+          boxSizing: "border-box",
         }}
       >
         <div
           style={{
             display: "flex",
-            flex: 1,
-            minWidth: 0,
-            alignItems: "flex-start",
-            justifyContent: "space-between",
+            flexDirection: "row",
+            alignItems: "stretch",
+            width: capScrollViewport ? trackOuterMaxCss : "100%",
+            maxWidth: trackOuterMaxCss,
+            boxSizing: "border-box",
           }}
         >
-          {segments}
-        </div>
-        {needsWindow ? (
           <div
             style={{
-              flex: "0 0 auto",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              alignSelf: "flex-start",
-              paddingTop: 0,
+              position: "relative",
+              flex: capScrollViewport ? "1 1 auto" : "1 1 0%",
+              minWidth: 0,
+              width: capScrollViewport ? undefined : "100%",
+              maxWidth: scrollPaneMaxCss,
+              boxSizing: "border-box",
             }}
           >
             <div
+              ref={scrollRef}
+              className="wizard-stepper-scroll"
               style={{
-                display: "flex",
-                alignItems: "center",
-                minHeight: CONNECTOR_ROW_MIN_HEIGHT,
-                marginBottom: 10,
-                borderRadius: 999,
-                border: `2px solid ${ACCENT}`,
-                background: "var(--color-surface, #fff)",
-                boxShadow: "0 2px 8px rgba(91, 79, 201, 0.12)",
-                overflow: "hidden",
+                width: "100%",
+                overflowX: "auto",
+                overflowY: "hidden",
+                paddingBottom: 6,
+                paddingRight: canScrollRight ? STEP_SCROLL_END_GUTTER : 0,
+                boxSizing: "border-box",
+                overscrollBehaviorX: "contain",
+                WebkitOverflowScrolling: "touch",
               }}
-              role="group"
-              aria-label="Scroll steps"
             >
-              <button
-                type="button"
-                aria-label="Show earlier steps"
-                title="Earlier steps"
-                disabled={!canPanLeft}
-                onClick={() => {
-                  const base = panStart != null ? windowStart : defaultStart;
-                  setPanStart(Math.max(startMin, base - 1));
-                }}
-                style={{
-                  ...panBtnBase,
-                  opacity: canPanLeft ? 1 : 0.35,
-                  cursor: canPanLeft ? "pointer" : "not-allowed",
-                }}
-              >
-                <Icons.ChevronLeft size={18} aria-hidden />
-              </button>
               <div
-                aria-hidden
                 style={{
-                  width: 1,
-                  alignSelf: "stretch",
-                  background: "rgba(91, 79, 201, 0.35)",
-                  flexShrink: 0,
-                }}
-              />
-              <button
-                type="button"
-                aria-label="Show later steps"
-                title="Later steps"
-                disabled={!canPanRight}
-                onClick={() => {
-                  const base = panStart != null ? windowStart : defaultStart;
-                  setPanStart(Math.min(startMax, base + 1));
-                }}
-                style={{
-                  ...panBtnBase,
-                  opacity: canPanRight ? 1 : 0.35,
-                  cursor: canPanRight ? "pointer" : "not-allowed",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: m.gap,
+                  width: "max-content",
                 }}
               >
-                <Icons.ChevronRight size={18} aria-hidden />
-              </button>
+                {segments}
+              </div>
             </div>
-            {/* Spacer aligns with step label row under circles */}
-            <div style={{ minHeight: 30, marginTop: 0 }} aria-hidden />
+            {canScrollRight ? (
+              <button
+                type="button"
+                aria-label="Scroll to more steps"
+                title="More steps"
+                onClick={() => {
+                  const el = scrollRef.current;
+                  if (!el) return;
+                  const delta = Math.min(360, Math.max(160, Math.floor(el.clientWidth * 0.5)));
+                  el.scrollBy({ left: delta, behavior: "smooth" });
+                  window.setTimeout(() => updateScrollEdges(), 280);
+                }}
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  width: 32,
+                  height: connectorBandHeight,
+                  margin: 0,
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "none",
+                  borderRadius: 0,
+                  background:
+                    "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 38%, var(--color-surface, #fff) 72%)",
+                  color: ACCENT,
+                  cursor: "pointer",
+                  boxShadow: "none",
+                  zIndex: 2,
+                  pointerEvents: "auto",
+                }}
+              >
+                <Icons.ChevronRight size={20} strokeWidth={2.25} aria-hidden />
+              </button>
+            ) : null}
           </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );

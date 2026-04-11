@@ -39,7 +39,7 @@ export default function ContactPage() {
               height: '40px',
               width: '40px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -51,7 +51,7 @@ export default function ContactPage() {
             <span style={{
               fontSize: '20px',
               fontWeight: '700',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>Spark AI</span>
@@ -68,7 +68,7 @@ export default function ContactPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>

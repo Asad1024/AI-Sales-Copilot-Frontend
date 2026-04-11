@@ -91,12 +91,12 @@ function VerifyRequiredContent() {
               width: "56px",
               height: "56px",
               borderRadius: "16px",
-              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              boxShadow: "0 8px 24px rgba(76, 103, 255, 0.3)",
+              boxShadow: "0 8px 24px rgba(124, 58, 237, 0.3)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -112,7 +112,7 @@ function VerifyRequiredContent() {
             height="28"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#4C67FF"
+            stroke="#7C3AED"
             strokeWidth="2"
             style={{ animation: "verifySpin 1s linear infinite", margin: "0 auto", display: "block" }}
           >
@@ -137,7 +137,7 @@ function VerifyRequiredContent() {
     <div
       style={{
         flex: 1,
-        background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+        background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -296,12 +296,12 @@ function VerifyRequiredContent() {
               width: "56px",
               height: "56px",
               borderRadius: "14px",
-              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: "20px",
-              boxShadow: "0 10px 40px rgba(76, 103, 255, 0.3)",
+              boxShadow: "0 10px 40px rgba(124, 58, 237, 0.3)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -405,12 +405,12 @@ function VerifyRequiredContent() {
                 padding: "12px 20px",
                 borderRadius: "10px",
                 border: "none",
-                background: canClickResend ? "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)" : "#cbd5e1",
+                background: canClickResend ? "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)" : "#cbd5e1",
                 color: "#fff",
                 fontSize: "14px",
                 fontWeight: "600",
                 cursor: canClickResend ? "pointer" : "not-allowed",
-                boxShadow: canClickResend ? "0 4px 14px rgba(76, 103, 255, 0.4)" : "none",
+                boxShadow: canClickResend ? "0 4px 14px rgba(124, 58, 237, 0.4)" : "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -118,12 +118,12 @@ export function UploadStep({ onFileUpload, onClose }: UploadStepProps) {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         style={{
-          border: `2px dashed ${dragging ? "#4C67FF" : "var(--elev-border)"}`,
+          border: `2px dashed ${dragging ? "#7C3AED" : "var(--elev-border)"}`,
           borderRadius: "12px",
           padding: "60px 20px",
           textAlign: "center",
           cursor: "pointer",
-          background: dragging ? "rgba(76, 103, 255, 0.05)" : "var(--color-surface-secondary)",
+          background: dragging ? "rgba(124, 58, 237, 0.05)" : "var(--color-surface-secondary)",
           transition: "all 0.2s",
         }}
       >
@@ -136,7 +136,7 @@ export function UploadStep({ onFileUpload, onClose }: UploadStepProps) {
         />
         {parsing ? (
           <>
-            <Icons.Loader size={48} className="animate-spin" style={{ marginBottom: "16px", color: "#4C67FF" }} />
+            <Icons.Loader size={48} className="animate-spin" style={{ marginBottom: "16px", color: "#7C3AED" }} />
             <div style={{ fontSize: "16px", fontWeight: "500", marginBottom: "8px" }}>Parsing CSV file...</div>
             <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>Please wait</div>
           </>

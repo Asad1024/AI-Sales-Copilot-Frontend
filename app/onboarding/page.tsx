@@ -40,6 +40,10 @@ export default function OnboardingPage() {
   useLayoutEffect(() => {
     const u = getUser();
     if (!u) return;
+    if (u.role === "admin") {
+      router.replace("/admin");
+      return;
+    }
     if (u.onboarding_completed === true) {
       router.replace("/dashboard");
       return;
@@ -100,7 +104,8 @@ export default function OnboardingPage() {
         });
       }
 
-      router.push("/dashboard");
+      const refreshedUser = getUser();
+      router.push(refreshedUser?.role === "admin" ? "/admin" : "/dashboard");
     } catch (e: any) {
       setError(e?.message || "Failed to save profile");
     } finally {
@@ -129,12 +134,12 @@ export default function OnboardingPage() {
             width: "56px",
             height: "56px",
             borderRadius: "16px",
-            background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 16px",
-            boxShadow: "0 8px 24px rgba(76, 103, 255, 0.3)"
+            boxShadow: "0 8px 24px rgba(124, 58, 237, 0.3)"
           }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -169,7 +174,7 @@ export default function OnboardingPage() {
                 width: "168px",
                 height: "4px",
                 borderRadius: "2px",
-                background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+                background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
               }}
             />
           ) : (
@@ -181,7 +186,7 @@ export default function OnboardingPage() {
                   height: "4px",
                   borderRadius: "2px",
                   background: s <= step
-                    ? "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)"
+                    ? "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)"
                     : "#e2e8f0",
                   transition: "background 0.3s ease"
                 }}
@@ -257,7 +262,7 @@ export default function OnboardingPage() {
                       outline: "none",
                       transition: "all 0.2s ease"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   />
                 </div>
@@ -282,7 +287,7 @@ export default function OnboardingPage() {
                       outline: "none",
                       transition: "all 0.2s ease"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   />
                 </div>
@@ -297,13 +302,13 @@ export default function OnboardingPage() {
                     border: "none",
                     background: !canProceed
                       ? "#cbd5e1"
-                      : "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+                      : "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
                     color: "#fff",
                     fontSize: "14px",
                     fontWeight: "600",
                     cursor: !canProceed ? "not-allowed" : "pointer",
                     transition: "all 0.2s ease",
-                    boxShadow: !canProceed ? "none" : "0 4px 14px rgba(76, 103, 255, 0.4)",
+                    boxShadow: !canProceed ? "none" : "0 4px 14px rgba(124, 58, 237, 0.4)",
                     marginTop: "8px"
                   }}
                 >
@@ -350,7 +355,7 @@ export default function OnboardingPage() {
                       backgroundRepeat: "no-repeat",
                       backgroundPosition: "right 12px center"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   >
                     <option value="" disabled>Select your role</option>
@@ -382,7 +387,7 @@ export default function OnboardingPage() {
                       backgroundRepeat: "no-repeat",
                       backgroundPosition: "right 12px center"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   >
                     {timezones.map((tz) => (
@@ -421,13 +426,13 @@ export default function OnboardingPage() {
                       border: "none",
                       background: saving || !canProceed
                         ? "#cbd5e1"
-                        : "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+                        : "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
                       color: "#fff",
                       fontSize: "14px",
                       fontWeight: "600",
                       cursor: saving || !canProceed ? "not-allowed" : "pointer",
                       transition: "all 0.2s ease",
-                      boxShadow: saving || !canProceed ? "none" : "0 4px 14px rgba(76, 103, 255, 0.4)"
+                      boxShadow: saving || !canProceed ? "none" : "0 4px 14px rgba(124, 58, 237, 0.4)"
                     }}
                   >
                     {saving ? (

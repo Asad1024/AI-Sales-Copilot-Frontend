@@ -117,8 +117,8 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
               width: `${targetRect.width}px`,
               height: `${targetRect.height}px`,
               borderRadius: "12px",
-              border: "3px solid #4C67FF",
-              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.75), 0 0 20px rgba(76, 103, 255, 0.5)",
+              border: "3px solid #7C3AED",
+              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.75), 0 0 20px rgba(124, 58, 237, 0.5)",
               pointerEvents: "none",
               animation: "pulse 2s ease-in-out infinite",
             }}
@@ -176,7 +176,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
             background: "var(--color-surface)",
             borderRadius: "16px",
             padding: "24px",
-            border: "2px solid #4C67FF",
+            border: "2px solid #7C3AED",
             boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
             position: "relative",
           }}
@@ -189,7 +189,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
             <div
               style={{
                 height: "4px",
-                background: "rgba(76, 103, 255, 0.2)",
+                background: "rgba(124, 58, 237, 0.2)",
                 borderRadius: "2px",
                 overflow: "hidden",
               }}
@@ -198,7 +198,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
                 style={{
                   height: "100%",
                   width: `${((currentStep + 1) / steps.length) * 100}%`,
-                  background: "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
+                  background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
                   transition: "width 0.3s ease",
                 }}
               />
@@ -269,7 +269,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
                 padding: "8px 16px",
                 borderRadius: "8px",
                 border: "none",
-                background: "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
+                background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
                 color: "#000",
                 fontSize: "14px",
                 fontWeight: "600",

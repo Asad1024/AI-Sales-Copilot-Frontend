@@ -36,7 +36,7 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
   const getPhaseColor = () => {
     switch (phase) {
       case 'validation':
-        return '#4C67FF';
+        return '#7C3AED';
       case 'enrichment':
         return '#A94CFF';
       case 'phone_enrichment':
@@ -109,10 +109,10 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
           style={{ 
             width:'min(600px, 90vw)', 
             background:'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', 
-            border:'2px solid rgba(76, 103, 255, 0.4)', 
+            border:'2px solid rgba(124, 58, 237, 0.4)', 
             borderRadius:24, 
             padding:0,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(76, 103, 255, 0.2)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(124, 58, 237, 0.2)',
             animation: 'slideUp 0.4s ease-out',
             overflow: 'hidden',
             position: 'relative'
@@ -122,7 +122,7 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: `radial-gradient(circle at 20% 30%, rgba(76, 103, 255, 0.15) 0%, transparent 50%),
+            background: `radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
                          radial-gradient(circle at 80% 70%, rgba(169, 76, 255, 0.15) 0%, transparent 50%)`,
             animation: 'pulse 3s ease-in-out infinite',
             pointerEvents: 'none'
@@ -130,7 +130,7 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
           
           {/* Header */}
           <div style={{
-            background: `linear-gradient(135deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#A94CFF' : phase === 'complete' ? '#4CAF50' : '#4C67FF'} 100%)`,
+            background: `linear-gradient(135deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#A94CFF' : phase === 'complete' ? '#4CAF50' : '#7C3AED'} 100%)`,
             padding: '32px 40px',
             borderBottom: '1px solid rgba(255,255,255,0.1)',
             position: 'relative',
@@ -363,7 +363,7 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
                 <div style={{
                   width: `${progress}%`,
                   height: '100%',
-                  background: `linear-gradient(90deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#A94CFF' : phase === 'complete' ? '#4CAF50' : '#4C67FF'} 100%)`,
+                  background: `linear-gradient(90deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#A94CFF' : phase === 'complete' ? '#4CAF50' : '#7C3AED'} 100%)`,
                   borderRadius: 4,
                   transition: 'width 0.5s ease-out',
                   position: 'relative',
@@ -394,8 +394,8 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
             {/* Status Message */}
             <div style={{
               padding: '20px 24px',
-              background: `rgba(${phase === 'complete' ? '76, 175, 80' : phase === 'enrichment' ? '169, 76, 255' : '76, 103, 255'}, 0.1)`,
-              border: `1px solid rgba(${phase === 'complete' ? '76, 175, 80' : phase === 'enrichment' ? '169, 76, 255' : '76, 103, 255'}, 0.3)`,
+              background: `rgba(${phase === 'complete' ? '76, 175, 80' : phase === 'enrichment' ? '169, 76, 255' : '124, 58, 237'}, 0.1)`,
+              border: `1px solid rgba(${phase === 'complete' ? '76, 175, 80' : phase === 'enrichment' ? '169, 76, 255' : '124, 58, 237'}, 0.3)`,
               borderRadius: 16,
               textAlign: 'center'
             }}>

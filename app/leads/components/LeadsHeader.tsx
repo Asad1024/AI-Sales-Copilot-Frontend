@@ -15,10 +15,10 @@ export function LeadsHeader({ onShowAllBases, showAllBases }: LeadsHeaderProps) 
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+      background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
       borderRadius: '20px',
       padding: '32px',
-      border: '1px solid rgba(76, 103, 255, 0.2)'
+      border: '1px solid rgba(124, 58, 237, 0.2)'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ flex: 1 }}>
@@ -44,7 +44,7 @@ export function LeadsHeader({ onShowAllBases, showAllBases }: LeadsHeaderProps) 
           <button
             onClick={onShowAllBases}
             style={{
-              background: showAllBases ? 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)' : 'var(--color-surface-secondary)',
+              background: showAllBases ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)' : 'var(--color-surface-secondary)',
               border: showAllBases ? 'none' : '1px solid var(--color-border)',
               borderRadius: '8px',
               padding: '8px 16px',
@@ -78,7 +78,7 @@ export function LeadsHeader({ onShowAllBases, showAllBases }: LeadsHeaderProps) 
               aiFilters: { ...filters.aiFilters, [key]: !value }
             })}
             style={{
-              background: value ? 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)' : 'var(--color-surface-secondary)',
+              background: value ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)' : 'var(--color-surface-secondary)',
               border: value ? 'none' : '1px solid var(--color-border)',
               borderRadius: '12px',
               padding: '8px 16px',

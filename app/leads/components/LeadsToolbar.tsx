@@ -2,6 +2,13 @@
 import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { MoreVertical } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
+import {
+  AirtableBrandIcon,
+  GenerateLeadAIIcon,
+  GoogleSheetsBrandIcon,
+  MenuBrandIconSlot,
+  MicrosoftExcelBrandIcon,
+} from "@/app/leads/components/LeadSourceBrandIcons";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { ViewSwitcher } from "./ViewSwitcher";
@@ -15,6 +22,9 @@ interface LeadsToolbarProps {
   variant?: "default" | "embedded";
   onEnrich: () => void;
   onScore: () => void;
+  /** Add → Import Sheets when Google Sheets is configured (Settings → Connectors). */
+  onImportSheets?: () => void;
+  /** Add → Import Airtable when Airtable integration is connected. */
   onImportAirtable?: () => void;
   onGenerateAI: () => void;
   onSchemaClick: () => void;
@@ -27,6 +37,7 @@ export function LeadsToolbar({
   variant = "default",
   onEnrich,
   onScore,
+  onImportSheets,
   onImportAirtable,
   onGenerateAI,
   onSchemaClick,
@@ -268,7 +279,11 @@ export function LeadsToolbar({
                 <div style={morePanelStyle}>
                   {onImportCSV && (
                     <MenuButton
-                      icon={<Icons.Upload size={14} strokeWidth={1.5} />}
+                      icon={
+                        <MenuBrandIconSlot>
+                          <MicrosoftExcelBrandIcon size={17} />
+                        </MenuBrandIconSlot>
+                      }
                       label="Import CSV"
                       onClick={() => {
                         onImportCSV();
@@ -276,17 +291,27 @@ export function LeadsToolbar({
                       }}
                     />
                   )}
-                  <MenuButton
-                    icon={<Icons.Sparkles size={14} strokeWidth={1.5} />}
-                    label="Generate Leads with AI"
-                    onClick={() => {
-                      onGenerateAI();
-                      setShowAddMenu(false);
-                    }}
-                  />
+                  {onImportSheets && (
+                    <MenuButton
+                      icon={
+                        <MenuBrandIconSlot>
+                          <GoogleSheetsBrandIcon size={18} />
+                        </MenuBrandIconSlot>
+                      }
+                      label="Import Sheets"
+                      onClick={() => {
+                        onImportSheets();
+                        setShowAddMenu(false);
+                      }}
+                    />
+                  )}
                   {onImportAirtable && (
                     <MenuButton
-                      icon={<Icons.List size={14} strokeWidth={1.5} />}
+                      icon={
+                        <MenuBrandIconSlot>
+                          <AirtableBrandIcon size={17} />
+                        </MenuBrandIconSlot>
+                      }
                       label="Import Airtable"
                       onClick={() => {
                         onImportAirtable();
@@ -294,6 +319,18 @@ export function LeadsToolbar({
                       }}
                     />
                   )}
+                  <MenuButton
+                    icon={
+                      <MenuBrandIconSlot>
+                        <GenerateLeadAIIcon size={20} sparklesSize={11} />
+                      </MenuBrandIconSlot>
+                    }
+                    label="Generate Leads with AI"
+                    onClick={() => {
+                      onGenerateAI();
+                      setShowAddMenu(false);
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -589,7 +626,7 @@ function DropdownMenu({
               alignItems: "center",
               justifyContent: "space-between",
               gap: "8px",
-              background: selected === option.value ? "rgba(76, 103, 255, 0.12)" : "transparent",
+              background: selected === option.value ? "rgba(124, 58, 237, 0.12)" : "transparent",
               border: "none",
               borderRadius: "6px",
               color: selected === option.value ? "var(--color-primary)" : "var(--color-text)",

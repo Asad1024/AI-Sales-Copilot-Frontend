@@ -4,51 +4,34 @@ import type { CSSProperties } from "react";
 import { Pencil, Eye } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
 
-const TEMPLATE_CARD_ACCENTS = [
-  { icon: "#f97316" },
-  { icon: "#0ea5e9" },
-  { icon: "#22c55e" },
-  { icon: "#a855f7" },
-  { icon: "#ec4899" },
-  { icon: "#eab308" },
-  { icon: "#6366f1" },
-  { icon: "#14b8a6" },
-] as const;
-
-/** Official LinkedIn brand blue (logo on light backgrounds) */
-const LINKEDIN_BRAND_BLUE = "#0077B5";
-
-/** WhatsApp brand green (glyph on light backgrounds) */
-const WHATSAPP_BRAND_GREEN = "#25D366";
-
-/** Distinct mail glyph color on light surfaces (matches edit modals / channel affordance) */
-const EMAIL_BRAND_BLUE = "#2563eb";
-
-/** Lucide default-style stroke on light surfaces (slate-500) — same for preview + edit */
-const ACTION_ICON_STYLE: CSSProperties = {
-  color: "#64748b",
-};
-
-/** Subject + body preview: same small, smooth treatment */
-const PREVIEW_PARAGRAPH_STYLE: CSSProperties = {
-  margin: "4px 0 0",
+/** Same snippet styling as `/templates` `TemplateWorkspaceCard` */
+const DRAFT_SNIPPET_TEXT: CSSProperties = {
+  marginTop: 2,
   fontSize: 12,
-  fontWeight: 400,
-  lineHeight: 1.55,
-  letterSpacing: "0.01em",
-  color: "#64748b",
-  wordBreak: "break-word",
+  lineHeight: 1.45,
+  fontWeight: 500,
+  color: "var(--color-text)",
   overflow: "hidden",
   display: "-webkit-box",
   WebkitBoxOrient: "vertical",
-  textOverflow: "ellipsis",
+  wordBreak: "break-word",
 };
+
+/** Channel row: same glyphs & colors as template page / campaign wizard */
+function channelMetaFromLayout(layout: "email" | "linkedin_note" | "whatsapp") {
+  if (layout === "linkedin_note") {
+    return { Icon: Icons.Linkedin, color: "#0077B5", label: "LinkedIn", useStroke: true as const };
+  }
+  if (layout === "whatsapp") {
+    return { Icon: Icons.WhatsApp, color: "#25D366", label: "WhatsApp", useStroke: false as const };
+  }
+  return { Icon: Icons.Mail, color: "#2563eb", label: "Email", useStroke: true as const };
+}
 
 export type WizardEmailDraftCardProps = {
   variant: "library" | "ai";
   /** When variant is "ai", whether this slot came from AI or was filled from a saved template (usually slot 0). */
   draftSource?: "ai" | "library";
-  accentHash: number;
   title: string;
   category: string;
   workspaceShared?: boolean;
@@ -65,7 +48,6 @@ export type WizardEmailDraftCardProps = {
 export function WizardEmailDraftCard({
   variant,
   draftSource = "ai",
-  accentHash,
   title,
   category,
   workspaceShared = false,
@@ -80,12 +62,19 @@ export function WizardEmailDraftCard({
   const isLinkedIn = layout === "linkedin_note";
   const isWhatsApp = layout === "whatsapp";
   const isSingleBody = isLinkedIn || isWhatsApp;
-  const accentIcon = TEMPLATE_CARD_ACCENTS[Math.abs(accentHash) % TEMPLATE_CARD_ACCENTS.length].icon;
-  const channelTitle = isLinkedIn ? "LinkedIn" : isWhatsApp ? "WhatsApp" : "Email";
   const subjectRaw =
     isSingleBody ? null : subjectDisplay.trim() !== "" ? subjectDisplay : null;
 
   const aiUsesLibrary = variant === "ai" && draftSource === "library";
+  const channelMeta = channelMetaFromLayout(layout);
+  const ChannelGlyph = channelMeta.Icon;
+
+  const typeLabel =
+    variant === "library"
+      ? "Template"
+      : aiUsesLibrary
+        ? "From template"
+        : channelMeta.label;
 
   return (
     <div
@@ -96,69 +85,30 @@ export function WizardEmailDraftCard({
         ...(isSelected ? { border: "2px solid #818cf8" } : {}),
       }}
     >
-      <div style={{ padding: "14px 16px" }}>
+      <div style={{ padding: "16px 18px" }}>
         <div
           style={{
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            gap: 10,
-            marginBottom: 12,
+            gap: 12,
+            marginBottom: 16,
           }}
         >
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 4,
-                color: "#94a3b8",
-              }}
-            >
-              {variant === "library" ? (
-                <>
-                  <Icons.FileText size={13} strokeWidth={1.5} style={{ color: accentIcon }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Template
-                  </span>
-                </>
-              ) : aiUsesLibrary ? (
-                <>
-                  <Icons.FileText size={13} strokeWidth={1.5} style={{ color: "#64748b" }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    From template
-                  </span>
-                </>
-              ) : (
-                <>
-                  {isWhatsApp ? (
-                    <Icons.WhatsApp size={14} style={{ color: WHATSAPP_BRAND_GREEN, flexShrink: 0 }} />
-                  ) : isLinkedIn ? (
-                    <Icons.Linkedin size={14} style={{ color: LINKEDIN_BRAND_BLUE, flexShrink: 0 }} />
-                  ) : (
-                    <Icons.Mail size={14} strokeWidth={1.75} style={{ color: EMAIL_BRAND_BLUE, flexShrink: 0 }} />
-                  )}
-                  <span
-                    className="text-[10px] font-semibold text-slate-500 dark:text-slate-400"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
-                    {channelTitle}
-                  </span>
-                </>
-              )}
+            <div style={{ marginBottom: 6 }}>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {typeLabel}
+              </span>
             </div>
             <h3
               className="bases-workspace-card-title"
               style={{
                 margin: 0,
-                fontSize: "1rem",
-                fontWeight: 650,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
                 letterSpacing: "-0.02em",
-                lineHeight: 1.3,
               }}
               title={title}
             >
@@ -166,17 +116,25 @@ export function WizardEmailDraftCard({
             </h3>
             <div
               style={{
-                marginTop: 4,
-                fontSize: 11,
+                marginTop: 6,
+                fontSize: 12,
                 color: "var(--color-text-muted)",
                 display: "flex",
                 alignItems: "center",
                 gap: 5,
                 flexWrap: "wrap",
-                lineHeight: 1.35,
               }}
             >
               <span>{category}</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                {channelMeta.useStroke ? (
+                  <ChannelGlyph size={12} strokeWidth={1.75} style={{ color: channelMeta.color, flexShrink: 0 }} aria-hidden />
+                ) : (
+                  <ChannelGlyph size={12} style={{ color: channelMeta.color, flexShrink: 0 }} aria-hidden />
+                )}
+                <span>{channelMeta.label}</span>
+              </span>
               {workspaceShared ? (
                 <>
                   <span style={{ opacity: 0.4 }}>·</span>
@@ -211,8 +169,8 @@ export function WizardEmailDraftCard({
                 onPreview();
               }}
               style={{
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 borderRadius: 10,
                 display: "inline-flex",
                 alignItems: "center",
@@ -221,7 +179,7 @@ export function WizardEmailDraftCard({
                 transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
               }}
             >
-              <Eye size={16} strokeWidth={2} style={ACTION_ICON_STYLE} />
+              <Eye size={18} strokeWidth={2} />
             </button>
             <button
               type="button"
@@ -245,8 +203,8 @@ export function WizardEmailDraftCard({
                 onEdit();
               }}
               style={{
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 borderRadius: 10,
                 display: "inline-flex",
                 alignItems: "center",
@@ -255,7 +213,7 @@ export function WizardEmailDraftCard({
                 transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
               }}
             >
-              <Pencil size={16} strokeWidth={2} style={ACTION_ICON_STYLE} />
+              <Pencil size={18} strokeWidth={2} />
             </button>
             <button
               type="button"
@@ -268,8 +226,8 @@ export function WizardEmailDraftCard({
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                border: isSelected ? "2px solid #7c3aed" : "2px solid var(--color-border)",
-                background: isSelected ? "#7c3aed" : "transparent",
+                border: isSelected ? "2px solid var(--color-primary, #7C3AED)" : "2px solid var(--color-border)",
+                background: isSelected ? "var(--color-primary, #7C3AED)" : "transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -282,29 +240,33 @@ export function WizardEmailDraftCard({
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", rowGap: 14 }}>
           {!isSingleBody ? (
             <div>
               <div className="bases-workspace-card-metric-label">Subject</div>
-              <p
-                style={{ ...PREVIEW_PARAGRAPH_STYLE, WebkitLineClamp: 3 }}
-                className="dark:text-slate-400"
+              <div
+                style={{
+                  ...DRAFT_SNIPPET_TEXT,
+                  WebkitLineClamp: 2,
+                }}
                 title={subjectRaw ?? undefined}
               >
                 {subjectRaw ?? "—"}
-              </p>
+              </div>
             </div>
           ) : null}
           <div>
             <div className="bases-workspace-card-metric-label">
               {isLinkedIn ? "Connection note" : isWhatsApp ? "Message" : "Body"}
             </div>
-            <p
-              style={{ ...PREVIEW_PARAGRAPH_STYLE, WebkitLineClamp: isSingleBody ? 4 : 3 }}
-              className="dark:text-slate-400"
+            <div
+              style={{
+                ...DRAFT_SNIPPET_TEXT,
+                WebkitLineClamp: 3,
+              }}
             >
               {bodyPreview.trim() ? bodyPreview : "—"}
-            </p>
+            </div>
           </div>
         </div>
       </div>

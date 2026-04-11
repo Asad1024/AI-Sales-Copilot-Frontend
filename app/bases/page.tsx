@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
-import { WorkspacePageSkeleton } from "@/components/ui/PageRouteSkeletons";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import { BaseCard } from "./components/BaseCard";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
@@ -132,8 +132,15 @@ export default function BasesPage() {
       return s !== undefined && s.leads === 0 && s.campaigns === 0;
     });
 
+  /** True until quick-stats exist for each visible workspace (avoids empty cards before the fetch runs). */
+  const statsLoadingAny =
+    filtered.length > 0 &&
+    filtered.some(
+      (b: { id: number }) => loadingStats[b.id] === true || baseQuickStats[b.id] === undefined
+    );
+
   if (basesLoading && bases.length === 0) {
-    return <WorkspacePageSkeleton />;
+    return <GlobalPageLoader layout="page" ariaLabel="Loading workspaces" />;
   }
 
   return (
@@ -211,7 +218,7 @@ export default function BasesPage() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         border: "none",
-                        background: filter === item.id ? "rgba(76,103,255,0.12)" : "transparent",
+                        background: filter === item.id ? "rgba(124, 58, 237,0.12)" : "transparent",
                         color: "var(--color-text)",
                         padding: "9px 10px",
                         borderRadius: 8,
@@ -275,29 +282,33 @@ export default function BasesPage() {
           </div>
         )}
 
-        {/* Grid */}
-        {filtered.length > 0 && (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(288px, 1fr))', 
-            gap: 14,
-          }}>
-            {/* Base cards */}
-            {filtered.map((b: any) => (
-              <BaseCard
-                key={b.id}
-                base={b}
-                stats={baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 }}
-                isLoading={loadingStats[b.id] === true}
-                onRename={renameBase}
-                onDelete={deleteBase}
-                onSetActive={(id) => {
-                  setActiveBaseId(id);
-                }}
-              />
-            ))}
-          </div>
-        )}
+        {/* Grid — single central loader while workspace stats load (same pattern as Dashboard) */}
+        {filtered.length > 0 &&
+          (statsLoadingAny ? (
+            <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading workspaces" />
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(288px, 1fr))",
+                gap: 14,
+              }}
+            >
+              {filtered.map((b: any) => (
+                <BaseCard
+                  key={b.id}
+                  base={b}
+                  stats={baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 }}
+                  isLoading={false}
+                  onRename={renameBase}
+                  onDelete={deleteBase}
+                  onSetActive={(id) => {
+                    setActiveBaseId(id);
+                  }}
+                />
+              ))}
+            </div>
+          ))}
       </div>
 
       {/* Create modal */}
@@ -384,7 +395,7 @@ export default function BasesPage() {
                 style={{ 
                   padding: '8px 20px', 
                   fontSize: '14px', 
-                  background: loadingCreate || !name.trim() ? 'rgba(76,103,255,0.45)' : 'var(--color-primary)', 
+                  background: loadingCreate || !name.trim() ? 'rgba(124, 58, 237,0.45)' : 'var(--color-primary)', 
                   color: 'var(--color-text-inverse)', 
                   border: 'none', 
                   borderRadius: '6px', 

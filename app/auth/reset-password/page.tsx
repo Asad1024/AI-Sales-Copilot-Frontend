@@ -52,12 +52,12 @@ function ResetPasswordContent() {
             width: "56px",
             height: "56px",
             borderRadius: "16px",
-            background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 16px",
-            boxShadow: "0 8px 24px rgba(76, 103, 255, 0.3)"
+            boxShadow: "0 8px 24px rgba(124, 58, 237, 0.3)"
           }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -126,13 +126,13 @@ function ResetPasswordContent() {
                   padding: "12px 20px",
                   borderRadius: "10px",
                   border: "none",
-                  background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+                  background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
                   color: "#fff",
                   fontSize: "14px",
                   fontWeight: "600",
                   textAlign: "center",
                   textDecoration: "none",
-                  boxShadow: "0 4px 14px rgba(76, 103, 255, 0.4)"
+                  boxShadow: "0 4px 14px rgba(124, 58, 237, 0.4)"
                 }}
               >
                 Request new link
@@ -230,7 +230,7 @@ function ResetPasswordContent() {
                         outline: "none",
                         transition: "all 0.2s ease"
                       }}
-                      onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                      onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                       onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                     />
                     <button
@@ -291,7 +291,7 @@ function ResetPasswordContent() {
                         outline: "none",
                         transition: "all 0.2s ease"
                       }}
-                      onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                      onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                       onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                     />
                     <button
@@ -339,13 +339,13 @@ function ResetPasswordContent() {
                     border: "none",
                     background: loading || !canSubmit
                       ? "#cbd5e1"
-                      : "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+                      : "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
                     color: "#fff",
                     fontSize: "14px",
                     fontWeight: "600",
                     cursor: loading || !canSubmit ? "not-allowed" : "pointer",
                     transition: "all 0.2s ease",
-                    boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(76, 103, 255, 0.4)"
+                    boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(124, 58, 237, 0.4)"
                   }}
                 >
                   {loading ? (
@@ -420,7 +420,7 @@ export default function ResetPasswordPage() {
             width: "56px",
             height: "56px",
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

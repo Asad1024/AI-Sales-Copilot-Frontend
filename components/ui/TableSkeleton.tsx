@@ -57,8 +57,8 @@ export function TableSkeleton({
               <th style={{ padding: "12px 6px", width: 36, minWidth: 36 }}>
                 <CellBar style={{ height: 7, width: 14, borderRadius: 3, margin: "0 auto" }} />
               </th>
-              <th style={{ padding: "12px 6px", width: 44, minWidth: 44 }}>
-                <CellBar style={{ height: 10, width: 10, borderRadius: 4, margin: "0 auto" }} />
+              <th style={{ padding: "12px 6px", width: 50, minWidth: 50 }}>
+                <CellBar style={{ height: 12, width: 12, borderRadius: 4, margin: "0 auto" }} />
               </th>
             </>
           )}
@@ -94,8 +94,8 @@ export function TableSkeleton({
                 <td style={{ padding: "12px 6px", textAlign: "center" }}>
                   <CellBar style={{ height: 7, width: 14, borderRadius: 3, margin: "0 auto" }} />
                 </td>
-                <td style={{ padding: "12px 6px", textAlign: "center" }}>
-                  <CellBar style={{ height: 10, width: 10, borderRadius: 3, margin: "0 auto" }} />
+                <td style={{ padding: "12px 6px", textAlign: "center", width: 50, minWidth: 50 }}>
+                  <CellBar style={{ height: 12, width: 12, borderRadius: 3, margin: "0 auto" }} />
                 </td>
               </>
             )}
@@ -166,49 +166,68 @@ export function TableSkeleton({
   );
 }
 
-/** Matches DynamicLeadsTable: #, checkbox, then data columns. */
+/** Matches DynamicLeadsTable layout: scroll shell + wizard-style card + # / checkbox + data columns. */
 export function LeadsTableSkeleton({ rows = 12, dataColumns = 8 }: { rows?: number; dataColumns?: number }) {
+  const card: CSSProperties = {
+    borderRadius: 12,
+    border: "1px solid var(--color-border)",
+    overflow: "visible",
+    background: "var(--color-surface)",
+  };
   return (
     <div
-      className="leads-table-scroll"
       style={{
-        flex: 1,
-        minHeight: 400,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        width: "100%",
+        minHeight: 0,
         maxHeight: "100%",
-        overflow: "auto",
         position: "relative",
-        display: "block",
       }}
       aria-busy="true"
       aria-label="Loading leads"
     >
-      <style>{`
-        .leads-table-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
-        }
-        .leads-table-scroll::-webkit-scrollbar {
-          height: 4px;
-          width: 4px;
-        }
-        .leads-table-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .leads-table-scroll::-webkit-scrollbar-thumb {
-          background: rgba(148, 163, 184, 0.45);
-          border-radius: 999px;
-        }
-      `}</style>
-      <TableSkeleton
-        columns={dataColumns}
-        rows={rows}
-        withCard={false}
-        bareTable
-        leadingIndexCheckbox
-        trailingActions={false}
-        tableMinWidth={Math.max(720, 36 + 44 + dataColumns * 132)}
-        ariaLabel="Loading leads"
-      />
+      <div
+        className="leads-table-scroll"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "auto",
+        }}
+      >
+        <style>{`
+          .leads-table-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+          }
+          .leads-table-scroll::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+          }
+          .leads-table-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .leads-table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.45);
+            border-radius: 999px;
+          }
+        `}</style>
+        <div style={card}>
+          <div style={{ overflowX: "auto" }}>
+            <TableSkeleton
+              columns={dataColumns}
+              rows={rows}
+              withCard={false}
+              bareTable
+              leadingIndexCheckbox
+              trailingActions={false}
+              tableMinWidth={Math.max(720, 36 + 50 + dataColumns * 132)}
+              ariaLabel="Loading leads"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

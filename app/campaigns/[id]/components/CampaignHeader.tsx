@@ -42,9 +42,9 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
     switch (status) {
       case "running":
         return {
-          bg: "rgba(76, 103, 255, 0.12)",
+          bg: "rgba(124, 58, 237, 0.12)",
           color: "var(--color-primary)",
-          border: "1px solid rgba(76, 103, 255, 0.28)",
+          border: "1px solid rgba(124, 58, 237, 0.28)",
         };
       case "paused":
         return {
@@ -136,9 +136,9 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
                   fontWeight: 600,
                   padding: "3px 8px",
                   borderRadius: 8,
-                  background: "rgba(76, 103, 255, 0.08)",
+                  background: "rgba(124, 58, 237, 0.08)",
                   color: "var(--color-primary)",
-                  border: "1px solid rgba(76, 103, 255, 0.2)",
+                  border: "1px solid rgba(124, 58, 237, 0.2)",
                 }}
               >
                 +{campaign.channels.length - 1} more
@@ -223,7 +223,7 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
               </>
             ) : campaign.status === "draft" ? (
               <>
-                <Icons.Rocket size={16} strokeWidth={1.5} />
+                <Icons.Rocket size={18} strokeWidth={2} aria-hidden />
                 Launch
               </>
             ) : (

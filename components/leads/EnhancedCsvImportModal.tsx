@@ -1,6 +1,7 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
-import { Icons } from "@/components/ui/Icons";
+import { useState, useEffect } from "react";
+import { MicrosoftExcelBrandIcon } from "@/app/leads/components/LeadSourceBrandIcons";
+import { ImportModalFrame, ImportModalStepper } from "@/components/leads/ImportModalChrome";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useColumnStore, BaseColumn, ColumnType } from "@/stores/useColumnStore";
 import { useLeadStore } from "@/stores/useLeadStore";
@@ -13,6 +14,13 @@ import { ValidationStep } from "./import/ValidationStep";
 import { ImportProgressStep } from "./import/ImportProgressStep";
 
 type ImportStep = "upload" | "mapping" | "validation" | "importing";
+
+const CSV_STEPS = [
+  { key: "upload", label: "Upload" },
+  { key: "mapping", label: "Map" },
+  { key: "validation", label: "Review" },
+  { key: "importing", label: "Import" },
+];
 
 interface CsvRow {
   [key: string]: string;
@@ -248,111 +256,54 @@ export function EnhancedCsvImportModal({ open, onClose, onImported }: { open: bo
     }
   };
 
-  if (!open) return null;
+  const csvHeaderTint =
+    "linear-gradient(165deg, rgba(33, 115, 70, 0.1) 0%, rgba(124, 58, 237, 0.06) 45%, transparent 72%)";
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        padding: "20px",
-      }}
-      onClick={onClose}
+    <ImportModalFrame
+      open={open}
+      onClose={onClose}
+      title="Import CSV"
+      subtitle="Upload a file, map columns to your schema, review, then import into this workspace."
+      headerTint={csvHeaderTint}
+      icon={<MicrosoftExcelBrandIcon size={34} />}
+      maxWidth={900}
+      maxModalHeight="min(92vh, 920px)"
+      wide
+      stepper={<ImportModalStepper steps={CSV_STEPS} activeKey={step} />}
     >
-      <div
-        className="card-enhanced"
-        style={{
-          background: "var(--color-surface)",
-          borderRadius: "16px",
-          padding: "24px",
-          maxWidth: "900px",
-          width: "100%",
-          maxHeight: "90vh",
-          overflowY: "auto",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <div>
-            <h2 style={{ fontSize: "20px", fontWeight: "600", margin: 0 }}>Import CSV</h2>
-            <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginTop: "4px" }}>
-              Step {step === "upload" ? 1 : step === "mapping" ? 2 : step === "validation" ? 3 : 4} of 4
-            </p>
-          </div>
-          <button onClick={onClose} className="icon-btn" style={{ width: "32px", height: "32px", padding: 0 }}>
-            <Icons.X size={20} />
-          </button>
-        </div>
+      {step === "upload" && <UploadStep onFileUpload={handleFileUpload} onClose={onClose} />}
 
-        {/* Progress Indicator */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-          {["upload", "mapping", "validation", "importing"].map((s, i) => {
-            const stepIndex = ["upload", "mapping", "validation", "importing"].indexOf(step);
-            const isActive = s === step;
-            const isCompleted = stepIndex > i;
-            return (
-              <div
-                key={s}
-                style={{
-                  flex: 1,
-                  height: "4px",
-                  background: isActive || isCompleted ? "#4C67FF" : "var(--elev-border)",
-                  borderRadius: "2px",
-                  transition: "all 0.3s",
-                }}
-              />
-            );
-          })}
-        </div>
+      {step === "mapping" && csvHeaders.length > 0 && (
+        <MappingStep
+          csvHeaders={csvHeaders}
+          csvRows={csvRows.slice(0, 10)}
+          baseColumns={columns}
+          onMappingComplete={handleMappingComplete}
+          onBack={() => setStep("upload")}
+        />
+      )}
 
-        {/* Step Content */}
-        {step === "upload" && (
-          <UploadStep
-            onFileUpload={handleFileUpload}
-            onClose={onClose}
-          />
-        )}
+      {step === "validation" && mappings.length > 0 && (
+        <ValidationStep
+          csvRows={csvRows}
+          mappings={mappings}
+          baseColumns={columns}
+          onValidationComplete={handleValidationComplete}
+          onBack={() => setStep("mapping")}
+        />
+      )}
 
-        {step === "mapping" && csvHeaders.length > 0 && (
-          <MappingStep
-            csvHeaders={csvHeaders}
-            csvRows={csvRows.slice(0, 10)} // Preview first 10 rows
-            baseColumns={columns}
-            onMappingComplete={handleMappingComplete}
-            onBack={() => setStep("upload")}
-          />
-        )}
-
-        {step === "validation" && mappings.length > 0 && (
-          <ValidationStep
-            csvRows={csvRows}
-            mappings={mappings}
-            baseColumns={columns}
-            onValidationComplete={handleValidationComplete}
-            onBack={() => setStep("mapping")}
-          />
-        )}
-
-        {step === "importing" && (
-          <ImportProgressStep
-            progress={importProgress}
-            onCancel={() => {
-              setImportProgress({ current: 0, total: 0, isImporting: false });
-              onClose();
-            }}
-          />
-        )}
-      </div>
-    </div>
+      {step === "importing" && (
+        <ImportProgressStep
+          progress={importProgress}
+          onCancel={() => {
+            setImportProgress({ current: 0, total: 0, isImporting: false });
+            onClose();
+          }}
+        />
+      )}
+    </ImportModalFrame>
   );
 }
 

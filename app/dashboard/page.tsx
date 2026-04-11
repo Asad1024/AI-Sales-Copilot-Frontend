@@ -7,7 +7,7 @@ import { apiRequest, getUser } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import CampaignCard from "@/app/campaigns/components/CampaignCard";
-import { DashboardPageSkeleton } from "@/components/ui/PageRouteSkeletons";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import DashboardOnboardingSteppers from "@/components/ui/DashboardOnboardingSteppers";
 import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
 import { ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
@@ -307,10 +307,10 @@ export default function Dashboard() {
     if (!aTime && bTime) return 1;
     return (b.id || 0) - (a.id || 0);
   });
-  const recentCampaigns = filteredCampaigns.slice(0, 4);
+  const recentCampaigns = filteredCampaigns.slice(0, 3);
 
   const dashboardBody = analyticsLoading && activeBaseId ? (
-    <DashboardPageSkeleton />
+    <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading dashboard" />
   ) : (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
@@ -637,7 +637,7 @@ export default function Dashboard() {
               <div style={{ fontSize: 12, lineHeight: 1.45, maxWidth: 260 }}>Runs, opens, and replies will appear here once you launch.</div>
             </div>
           ) : (
-            <div className="dashboard-recent-campaigns-grid">
+            <div className="campaigns-page-grid">
               {recentCampaigns.map((c) => (
                 <CampaignCard
                   key={c.id}
@@ -645,7 +645,7 @@ export default function Dashboard() {
                   baseName={bases.find((b) => b.id === c.base_id)?.name || "Workspace"}
                   onView={() => router.push(`/campaigns/${c.id}`)}
                   showDeleteAction={false}
-                  compact
+                  workspaceStyle
                 />
               ))}
             </div>

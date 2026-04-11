@@ -11,7 +11,7 @@ export default function HeroBanner() {
         padding: "28px",
         border: "1px solid var(--elev-border)",
         background:
-          "linear-gradient(180deg, rgba(76,103,255,0.08) 0%, rgba(169,76,255,0.08) 100%)",
+          "linear-gradient(180deg, rgba(124, 58, 237,0.08) 0%, rgba(169,76,255,0.08) 100%)",
         overflow: "hidden",
       }}
     >
@@ -21,7 +21,7 @@ export default function HeroBanner() {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(600px 220px at 20% -10%, rgba(76,103,255,0.20) 0%, transparent 60%), radial-gradient(600px 220px at 90% 0%, rgba(169,76,255,0.20) 0%, transparent 60%)",
+            "radial-gradient(600px 220px at 20% -10%, rgba(124, 58, 237,0.20) 0%, transparent 60%), radial-gradient(600px 220px at 90% 0%, rgba(169,76,255,0.20) 0%, transparent 60%)",
           filter: "blur(30px)",
           opacity: 0.65,
         }}
@@ -29,7 +29,7 @@ export default function HeroBanner() {
       <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "20px", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
         <div style={{ minWidth: 280 }}>
           <div style={{ display: "inline-flex", gap: 8, alignItems: "center", padding: "6px 10px", borderRadius: 999, border: "1px solid var(--elev-border)", background: "var(--elev-bg)", fontSize: 12 }}>
-            <span style={{ color: "#4C67FF", fontWeight: 600 }}>New</span>
+            <span style={{ color: "#7C3AED", fontWeight: 600 }}>New</span>
             <span>Editable AI Plan is live</span>
           </div>
           <h1 style={{ margin: "10px 0 6px 0", fontSize: 24, fontWeight: 700, lineHeight: 1.25 }}>
@@ -43,7 +43,7 @@ export default function HeroBanner() {
               href="/flow/new-goal" 
               className="start-flow-btn"
               style={{ 
-                background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                 border: 'none',
                 borderRadius: '12px',
                 padding: '12px 24px',
@@ -56,21 +56,21 @@ export default function HeroBanner() {
                 gap: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 4px 20px rgba(76, 103, 255, 0.4), 0 0 0 0 rgba(76, 103, 255, 0.5)',
+                boxShadow: '0 4px 20px rgba(124, 58, 237, 0.4), 0 0 0 0 rgba(124, 58, 237, 0.5)',
                 position: 'relative',
                 overflow: 'hidden'
               }}
               onMouseEnter={(e) => {
                 const btn = e.currentTarget;
                 btn.style.transform = 'translateY(-2px) scale(1.02)';
-                btn.style.boxShadow = '0 8px 32px rgba(76, 103, 255, 0.6), 0 0 0 4px rgba(76, 103, 255, 0.3)';
+                btn.style.boxShadow = '0 8px 32px rgba(124, 58, 237, 0.6), 0 0 0 4px rgba(124, 58, 237, 0.3)';
                 const arrow = btn.querySelector('.flow-arrow') as HTMLElement;
                 if (arrow) arrow.style.transform = 'translateX(4px)';
               }}
               onMouseLeave={(e) => {
                 const btn = e.currentTarget;
                 btn.style.transform = 'translateY(0) scale(1)';
-                btn.style.boxShadow = '0 4px 20px rgba(76, 103, 255, 0.4), 0 0 0 0 rgba(76, 103, 255, 0.5)';
+                btn.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.4), 0 0 0 0 rgba(124, 58, 237, 0.5)';
                 const arrow = btn.querySelector('.flow-arrow') as HTMLElement;
                 if (arrow) arrow.style.transform = 'translateX(0)';
               }}
@@ -102,7 +102,7 @@ export default function HeroBanner() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(110px, 1fr))", gap: 12, minWidth: 330, flex: 1, justifyContent: "flex-end" }}>
           <StatChip label="Leads optimized" value="12.4K" />
-          <StatChip label="Reply rate" value="11.4%" accent="#4C67FF" />
+          <StatChip label="Reply rate" value="11.4%" accent="#7C3AED" />
           <StatChip label="AI score" value="92%" accent="#A94CFF" />
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function HeroBanner() {
   );
 }
 
-function StatChip({ label, value, accent = "rgba(76,103,255,0.18)" }: { label: string; value: string; accent?: string }) {
+function StatChip({ label, value, accent = "rgba(124, 58, 237,0.18)" }: { label: string; value: string; accent?: string }) {
   return (
     <div
       className="chip-card"

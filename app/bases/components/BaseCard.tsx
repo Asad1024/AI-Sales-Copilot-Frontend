@@ -5,6 +5,7 @@ import { MoreVertical, Pencil, Share2, Trash2 } from "lucide-react";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
 interface BaseCardProps {
   base: any;
@@ -130,41 +131,18 @@ export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActi
   if (isLoading && !isRenaming) {
     return (
       <div
-        className="skeleton-page-card bases-workspace-card"
+        className="bases-workspace-card"
         style={{
           minHeight: 200,
-          padding: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
           boxSizing: "border-box",
           pointerEvents: "none",
           cursor: "default",
+          overflow: "hidden",
         }}
         aria-busy="true"
         aria-label="Loading workspace"
       >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-            <div className="ui-skeleton" style={{ height: 10, width: 80, borderRadius: 4 }} />
-            <div className="ui-skeleton" style={{ height: 22, width: "72%", borderRadius: 8 }} />
-          </div>
-          <div className="ui-skeleton" style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: "18px 20px",
-          }}
-        >
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div className="ui-skeleton" style={{ height: 10, width: "58%", borderRadius: 4 }} />
-              <div className="ui-skeleton" style={{ height: 16, width: "42%", borderRadius: 4 }} />
-            </div>
-          ))}
-        </div>
+        <GlobalPageLoader layout="embedded" minHeight={200} ariaLabel="Loading workspace" />
       </div>
     );
   }

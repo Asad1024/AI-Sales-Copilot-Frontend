@@ -20,6 +20,10 @@ export async function routeAfterSuccessfulSession(
     router.push("/auth/verify-required");
     return;
   }
+  if (me?.role === "admin") {
+    router.push("/admin");
+    return;
+  }
   if (userNeedsOnboarding(me)) {
     router.push("/onboarding");
     return;

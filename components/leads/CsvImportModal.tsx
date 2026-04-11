@@ -350,7 +350,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
               width: 40,
               height: 40,
               borderRadius: 12,
-              background: 'rgba(76, 103, 255, 0.14)',
+              background: 'rgba(124, 58, 237, 0.14)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -458,7 +458,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
           {parsing && (
             <div style={{ 
               padding: 16, 
-              background: 'rgba(76, 103, 255, 0.1)', 
+              background: 'rgba(124, 58, 237, 0.1)', 
               borderRadius: 12, 
               textAlign: 'center',
               marginBottom: 16
@@ -616,7 +616,7 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
                           flexDirection: 'column',
                           gap: 8,
                           padding: '12px', 
-                          background: detectedField ? 'rgba(76, 103, 255, 0.08)' : 'var(--color-surface)', 
+                          background: detectedField ? 'rgba(124, 58, 237, 0.08)' : 'var(--color-surface)', 
                           borderRadius: 8,
                           border: detectedField ? '1px solid var(--color-primary)' : '1px solid var(--color-border)'
                         }}
@@ -796,9 +796,9 @@ export default function CsvImportModal({ open, onClose, onImported, importProgre
               alignItems: 'center', 
               gap: 12,
               padding: '12px',
-              background: 'rgba(76, 103, 255, 0.05)',
+              background: 'rgba(124, 58, 237, 0.05)',
               borderRadius: 8,
-              border: '1px solid rgba(76, 103, 255, 0.2)'
+              border: '1px solid rgba(124, 58, 237, 0.2)'
             }}>
               <div style={{ flex: 1 }}>
                 <label style={{ 

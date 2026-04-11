@@ -35,6 +35,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Platform admins only use /admin (never the end-user shell)
+    if (isAuthenticated() && u?.role === "admin") {
+      const onAdmin = pathname?.startsWith("/admin");
+      if (!onAdmin) {
+        router.replace("/admin");
+        setChecked(false);
+        return;
+      }
+      setChecked(true);
+      return;
+    }
+
     // Onboarding page handles its own logic
     if (isOnboarding) {
       setChecked(true);

@@ -32,12 +32,12 @@ function AuthShell({
               width: "56px",
               height: "56px",
               borderRadius: "16px",
-              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
-              boxShadow: "0 8px 24px rgba(76, 103, 255, 0.3)",
+              boxShadow: "0 8px 24px rgba(124, 58, 237, 0.3)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -73,7 +73,7 @@ function AuthShell({
         <div style={{ textAlign: "center", marginTop: "24px" }}>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
             Need help?{" "}
-            <a href="mailto:support@salescopilot.com" style={{ color: "#4C67FF", fontWeight: 600, textDecoration: "none" }}>
+            <a href="mailto:support@salescopilot.com" style={{ color: "#7C3AED", fontWeight: 600, textDecoration: "none" }}>
               Contact support
             </a>
           </p>
@@ -173,7 +173,7 @@ function VerifyEmailContent() {
               width: "100%",
               padding: "12px 20px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
               color: "#fff",
               fontSize: "14px",
               fontWeight: "600",
@@ -214,7 +214,7 @@ function VerifyEmailContent() {
           width: "56px",
           height: "56px",
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+          background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

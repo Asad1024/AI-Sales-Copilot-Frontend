@@ -106,7 +106,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   📤 Sending & Delivery
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                  <MetricCard title="Sent" value={campaign.sent || 0} gradient="linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(76, 103, 255, 0.05) 100%)" color="#4C67FF" />
+                  <MetricCard title="Sent" value={campaign.sent || 0} gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
                   <MetricCard title="Delivered" value={campaign.delivered || 0} subtitle={campaign.deliveryRate ? `${campaign.deliveryRate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
                   {(campaign.bounced || 0) > 0 && (
                     <MetricCard title="Bounced" value={campaign.bounced || 0} subtitle={campaign.bounceRate ? `${campaign.bounceRate}% bounce rate` : undefined} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
@@ -249,7 +249,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 </h3>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Calls Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(76, 103, 255, 0.05) 100%)" color="#4C67FF" />
+                <MetricCard title="Calls Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
                 <MetricCard title="Answered" value={campaign.call_answered || 0} subtitle={`${campaign.call_answer_rate || '0'}% answer rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
                 <MetricCard title="Completed" value={campaign.call_completed || 0} subtitle={`${campaign.call_completion_rate || '0'}% completion rate`} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
                 <MetricCard title="Not Answered" value={campaign.call_not_answered || 0} gradient="linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)" color="#ffc107" />
@@ -295,7 +295,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 return (
                   <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 150, width: '100%' }}>
-                      <div style={{ width: '33%', height: `${sentHeight}%`, background: 'linear-gradient(to top, #4C67FF, rgba(76, 103, 255, 0.3))', borderRadius: '4px 4px 0 0', minHeight: sentHeight > 0 ? 4 : 0 }} />
+                      <div style={{ width: '33%', height: `${sentHeight}%`, background: 'linear-gradient(to top, #7C3AED, rgba(124, 58, 237, 0.3))', borderRadius: '4px 4px 0 0', minHeight: sentHeight > 0 ? 4 : 0 }} />
                       <div style={{ width: '33%', height: `${openedHeight}%`, background: 'linear-gradient(to top, #A94CFF, rgba(169, 76, 255, 0.3))', borderRadius: '4px 4px 0 0', minHeight: openedHeight > 0 ? 4 : 0 }} />
                       <div style={{ width: '33%', height: `${repliedHeight}%`, background: 'linear-gradient(to top, #ff6b6b, rgba(255, 107, 107, 0.3))', borderRadius: '4px 4px 0 0', minHeight: repliedHeight > 0 ? 4 : 0 }} />
                     </div>
@@ -306,7 +306,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
             </div>
             <div style={{ display: 'flex', gap: 16, marginTop: 16, justifyContent: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 12, height: 12, background: '#4C67FF', borderRadius: 2 }} />
+                <div style={{ width: 12, height: 12, background: '#7C3AED', borderRadius: 2 }} />
                 <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Sent</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -323,13 +323,13 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
           {/* AI Insights */}
           {campaign.ai_insight && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
               borderRadius: 12,
               padding: 20,
-              border: '1px solid rgba(76, 103, 255, 0.3)'
+              border: '1px solid rgba(124, 58, 237, 0.3)'
             }}>
               <h4 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Robot size={18} style={{ color: '#4C67FF' }} />
+                <Icons.Robot size={18} style={{ color: '#7C3AED' }} />
                 AI Insights
               </h4>
               <p style={{ fontSize: 14, color: 'var(--color-text)', lineHeight: 1.6 }}>

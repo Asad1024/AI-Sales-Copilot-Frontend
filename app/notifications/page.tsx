@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import BaseCard from "@/components/ui/BaseCard";
+import AdminPageToolbar from "@/components/admin/AdminPageToolbar";
 import { useNotificationStore, type Notification } from "@/stores/useNotificationStore";
 import { useNotification as useToast } from "@/context/NotificationContext";
 import { Search, Check, CheckCheck, Trash2, RefreshCw, Filter } from "lucide-react";
@@ -34,6 +36,8 @@ function typeLabel(t: Notification["type"]) {
 }
 
 export default function NotificationsPage() {
+  const pathname = usePathname();
+  const isAdminNotifications = Boolean(pathname?.startsWith("/admin/notifications"));
   const { showError, showSuccess } = useToast();
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const notifications = useNotificationStore((s) => s.notifications);
@@ -113,8 +117,50 @@ export default function NotificationsPage() {
   );
 
   return (
-    <div style={{ padding: "20px 24px 48px", maxWidth: 920, margin: "0 auto" }}>
+    <div style={{ padding: isAdminNotifications ? "0 0 48px" : "20px 24px 48px", maxWidth: 920, margin: "0 auto" }}>
+      {isAdminNotifications && (
+        <AdminPageToolbar
+          maxWidth={920}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
+          searchPlaceholder="Search title or message…"
+          resultHint={unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+          filters={
+            <>
+              <Filter size={16} style={{ color: "var(--color-text-muted)" }} aria-hidden />
+              <select
+                className="input"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                style={{ minWidth: 160, fontSize: 13 }}
+                aria-label="Notification type"
+              >
+                {TYPE_FILTER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                  color: "var(--color-text-muted)",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
+                Unread only
+              </label>
+            </>
+          }
+        />
+      )}
       <BaseCard style={{ padding: 20, marginBottom: 16 }}>
+        {!isAdminNotifications && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 16 }}>
           <div style={{ flex: "1 1 220px", minWidth: 0, position: "relative" }}>
             <Search
@@ -182,6 +228,7 @@ export default function NotificationsPage() {
             </label>
           </div>
         </div>
+        )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <button
             type="button"

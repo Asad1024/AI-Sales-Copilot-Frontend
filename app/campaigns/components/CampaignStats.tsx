@@ -126,29 +126,7 @@ export function CampaignStats() {
 
   if (activeBaseId == null) return null;
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: "grid",
-          /* Always one row of six — auto-fit + 200px min wrapped the 6th tile on common widths */
-          gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-          gap: 12,
-          width: "100%",
-          minWidth: 0,
-        }}
-        aria-busy="true"
-        aria-label="Loading campaign stats"
-      >
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="dashboard-stat-card" style={{ padding: "12px 14px 14px", minWidth: 0 }}>
-            <div className="ui-skeleton" style={{ height: 10, width: "45%", borderRadius: 4, marginBottom: 8 }} />
-            <div className="ui-skeleton" style={{ height: 32, width: "55%", borderRadius: 8 }} />
-          </div>
-        ))}
-      </div>
-    );
-  }
+  if (loading) return null;
 
   const b = baseline;
   const trendTotal = b ? trendFromBaseline(b.total, stats.total) : { show: false, trendPositive: true, trendValue: "0" };

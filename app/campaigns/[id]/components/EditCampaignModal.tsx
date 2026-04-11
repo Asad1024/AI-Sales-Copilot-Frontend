@@ -89,7 +89,7 @@ export function EditCampaignModal({ campaign, editData, updating, totalLeads, on
           {campaign.tier_filter && (
             <div style={{
               padding: 12,
-              background: 'rgba(76, 103, 255, 0.1)',
+              background: 'rgba(124, 58, 237, 0.1)',
               borderRadius: 8,
               fontSize: 13,
               color: 'var(--color-text-muted)'

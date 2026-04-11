@@ -95,15 +95,15 @@ export default function HeaderTopRightPills() {
             padding: "0 2px",
             fontSize: 13,
             fontWeight: 600,
-            color: "#6366f1",
+            color: "var(--color-primary, #7C3AED)",
             fontFamily: "inherit",
             lineHeight: 1,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#4f46e5";
+            e.currentTarget.style.color = "#6D28D9";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#6366f1";
+            e.currentTarget.style.color = "var(--color-primary, #7C3AED)";
           }}
         >
           Upgrade

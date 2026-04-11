@@ -24,12 +24,12 @@ export default function GoogleSignInRedirecting() {
             width: "56px",
             height: "56px",
             borderRadius: "16px",
-            background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 24px",
-            boxShadow: "0 12px 40px rgba(76, 103, 255, 0.25)",
+            boxShadow: "0 12px 40px rgba(124, 58, 237, 0.25)",
           }}
         >
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -64,7 +64,7 @@ export default function GoogleSignInRedirecting() {
             margin: "0 auto",
             borderRadius: "50%",
             border: "3px solid #e2e8f0",
-            borderTopColor: "#4C67FF",
+            borderTopColor: "#7C3AED",
             animation: "googleSignInSpin 0.75s linear infinite",
           }}
         />

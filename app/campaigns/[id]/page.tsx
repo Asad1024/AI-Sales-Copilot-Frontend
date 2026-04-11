@@ -15,6 +15,7 @@ import { CallTranscriptsTab } from "./components/CallTranscriptsTab";
 import { EditCampaignModal } from "./components/EditCampaignModal";
 import { LeadActivityModal } from "./components/LeadActivityModal";
 import { useNotification } from "@/context/NotificationContext";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
 interface Campaign {
   id: number;
@@ -35,6 +36,8 @@ interface Campaign {
   conversionRate?: any;
   created_at?: string;
   updated_at?: string;
+  /** Wizard / API payload (schedule, launch_now, etc.) */
+  config?: Record<string, unknown>;
   ai_insight?: string;
   tier_filter?: string;
   channels?: string[];
@@ -318,37 +321,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div style={pageShellStyle} aria-busy="true" aria-label="Loading campaign">
-        <div
-          style={{
-            ...surfaceCardStyle,
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <div className="ui-skeleton" style={{ width: 48, height: 48, borderRadius: 12 }} />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className="ui-skeleton" style={{ height: 22, width: "40%", borderRadius: 6 }} />
-              <div className="ui-skeleton" style={{ height: 14, width: "28%", borderRadius: 6 }} />
-            </div>
-            <div className="ui-skeleton" style={{ height: 40, width: 120, borderRadius: 10 }} />
-          </div>
-          <div className="ui-skeleton" style={{ height: 14, width: "100%", borderRadius: 6 }} />
-        </div>
-        <div
-          style={{
-            ...surfaceCardStyle,
-            padding: 24,
-            minHeight: 280,
-          }}
-        >
-          <div className="ui-skeleton" style={{ height: 44, width: "100%", borderRadius: 10, marginBottom: 16 }} />
-          <div className="ui-skeleton" style={{ height: 180, width: "100%", borderRadius: 12 }} />
-        </div>
-      </div>
+      <GlobalPageLoader layout="page" ariaLabel="Loading campaign" message="Loading campaign…" />
     );
   }
 

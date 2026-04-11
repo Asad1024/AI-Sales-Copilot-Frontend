@@ -64,7 +64,7 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
               : 'All leads in this campaign'}
           </p>
         </div>
-        <div style={{ fontSize: '14px', fontWeight: '600', color: '#4C67FF' }}>
+        <div style={{ fontSize: '14px', fontWeight: '600', color: '#7C3AED' }}>
           {displayLeads.length} lead{displayLeads.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -87,12 +87,12 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
             width: 64, 
             height: 64, 
             borderRadius: '50%', 
-            background: 'rgba(76, 103, 255, 0.1)',
+            background: 'rgba(124, 58, 237, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Icons.Mail size={32} style={{ color: '#4C67FF' }} />
+            <Icons.Mail size={32} style={{ color: '#7C3AED' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No leads found</div>
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -195,8 +195,8 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
                   <td style={{ padding: '12px' }}>
                     {lead.score ? (
                       <span style={{ 
-                        background: 'rgba(76, 103, 255, 0.1)', 
-                        color: '#4C67FF', 
+                        background: 'rgba(124, 58, 237, 0.1)', 
+                        color: '#7C3AED', 
                         padding: '4px 8px', 
                         borderRadius: 4, 
                         fontSize: 11, 

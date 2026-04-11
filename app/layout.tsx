@@ -44,6 +44,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const getPageMeta = () => {
     if (!pathname) return { title: "Dashboard", description: "Track performance and run your sales engine." };
     if (pathname.startsWith("/dashboard")) return { title: "Dashboard", description: "Track performance and run your sales engine." };
+    // Admin routes first so paths like /admin/leads are not caught by generic /leads rules below
+    if (pathname.startsWith("/admin/analytics")) return { title: "Analytics", description: "Platform charts, trends, and detailed breakdowns." };
+    if (pathname.startsWith("/admin/users")) return { title: "Users", description: "Create, edit roles, and remove accounts." };
+    if (pathname.startsWith("/admin/bases")) return { title: "Workspaces", description: "All bases · owner shown." };
+    if (pathname.startsWith("/admin/campaigns")) return { title: "Campaigns", description: "Inspect and delete campaigns · search and status filters." };
+    if (pathname.startsWith("/admin/leads")) return { title: "Leads", description: "Inspect and delete leads · latest batch loaded." };
+    if (pathname.startsWith("/admin/subscriptions")) return { title: "Subscriptions", description: "Billing roadmap · filter topics below." };
+    if (pathname.startsWith("/admin/notifications")) return { title: "Notifications", description: "Account and system alerts." };
+    if (pathname.startsWith("/admin/logs")) return { title: "Activity", description: "Audit log roadmap · filter checklist items." };
+    if (pathname.startsWith("/admin/settings")) return { title: "Admin settings", description: "Your platform operator profile and password." };
+    if (pathname.startsWith("/admin")) return { title: "Overview", description: "Platform metrics and quick navigation." };
     if (pathname.includes("/leads")) return { title: "Leads", description: "Import, enrich, score, and manage your lead pipeline." };
     if (pathname.startsWith("/campaigns")) return { title: "Campaigns", description: "Launch and monitor multi-channel outreach." };
     if (pathname.startsWith("/bases")) return { title: "Workspaces", description: "Organize leads and campaigns by workspace." };
@@ -52,15 +63,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (pathname.startsWith("/team")) return { title: "Team", description: "Manage collaborators and permissions." };
     if (pathname.startsWith("/notifications"))
       return { title: "Notifications", description: "Account activity, workspace changes, security, and system alerts." };
-    if (pathname.startsWith("/settings")) return { title: "Settings", description: "Configure your Spark AI workspace." };
-    if (pathname.startsWith("/admin")) return { title: "Admin", description: "Control platform-wide settings and users." };
+    if (pathname.startsWith("/settings"))
+      return { title: "Settings", description: "Profile, integrations, and workspace tools." };
     return { title: "Spark AI", description: "Premium AI-native sales workspace." };
   };
   const pageMeta = getPageMeta();
 
-  const mainSidebarWidthPx = isAdminPage
-    ? 256
-    : getSidebarWidthPx(sidebarCollapsed, isMobile);
+  const mainSidebarWidthPx = getSidebarWidthPx(sidebarCollapsed, isMobile);
+  const mainContentPadding =
+    pathname?.startsWith("/settings") ? "8px 10px 20px" : "8px 20px 20px";
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -84,12 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   <div className="main-layout">
                     {isAdminPage ? (
-                      <AdminSidebar
-                        isOpen={sidebarOpen}
-                        onClose={() => setSidebarOpen(false)}
-                        collapsed={false}
-                        onToggle={() => {}}
-                      />
+                      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
                     ) : (
                       <Sidebar
                         isOpen={sidebarOpen}
@@ -125,7 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       <div
                         style={{
                           flex: 1,
-                          padding: "8px 20px 20px",
+                          padding: mainContentPadding,
                         }}
                       >
                         {children}

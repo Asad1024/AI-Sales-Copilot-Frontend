@@ -25,10 +25,10 @@ type ApolloFilterChip = {
 const leadTagStyle: CSSProperties = {
   padding: "4px 10px",
   borderRadius: "999px",
-  background: "rgba(76, 103, 255, 0.12)",
-  border: "1px solid rgba(76, 103, 255, 0.2)",
+  background: "rgba(124, 58, 237, 0.12)",
+  border: "1px solid rgba(124, 58, 237, 0.2)",
   fontSize: "11px",
-  color: "#4C67FF",
+  color: "#7C3AED",
   fontWeight: 600,
   display: "inline-flex",
   alignItems: "center",
@@ -177,7 +177,7 @@ export default function PlanPage() {
           fontSize: '32px', 
           fontWeight: '700', 
           margin: '0 0 8px 0',
-          background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
@@ -223,9 +223,9 @@ export default function PlanPage() {
                 height: '48px',
                 borderRadius: '50%',
                 background: index === currentCardIndex
-                  ? 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)'
+                  ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)'
                   : index < currentCardIndex
-                  ? 'rgba(76, 103, 255, 0.2)'
+                  ? 'rgba(124, 58, 237, 0.2)'
                   : 'var(--color-surface-secondary)',
                 border: index === currentCardIndex
                   ? '2px solid transparent'
@@ -262,7 +262,7 @@ export default function PlanPage() {
                 width: '40px',
                 height: '2px',
                 background: index < currentCardIndex
-                  ? 'linear-gradient(90deg, #4C67FF 0%, #A94CFF 100%)'
+                  ? 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)'
                   : 'var(--elev-border)',
                 transition: 'all 0.3s ease'
               }} />
@@ -289,7 +289,7 @@ export default function PlanPage() {
           left: 0,
           right: 0,
           height: '4px',
-          background: 'linear-gradient(90deg, #4C67FF 0%, #A94CFF 100%)'
+          background: 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)'
         }} />
 
         {/* Card Header */}
@@ -306,11 +306,11 @@ export default function PlanPage() {
               width: '56px',
               height: '56px',
               borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
+              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#4C67FF'
+              color: '#7C3AED'
             }}>
               {currentCardData.icon === 'target' ? (
                 <Icons.Target size={28} />
@@ -332,15 +332,15 @@ export default function PlanPage() {
                 {currentCardData.title}
               </h2>
               <span style={{
-                background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
-                color: '#4C67FF',
+                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
+                color: '#7C3AED',
                 padding: '4px 12px',
                 borderRadius: '20px',
                 fontSize: '11px',
                 fontWeight: '700',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                border: '1px solid rgba(76, 103, 255, 0.2)'
+                border: '1px solid rgba(124, 58, 237, 0.2)'
               }}>
                 {currentCardData.badge}
               </span>
@@ -402,8 +402,8 @@ export default function PlanPage() {
               <div style={{
                 padding: '20px',
                 borderRadius: '16px',
-                border: '1px solid rgba(76, 103, 255, 0.2)',
-                background: 'rgba(76, 103, 255, 0.05)'
+                border: '1px solid rgba(124, 58, 237, 0.2)',
+                background: 'rgba(124, 58, 237, 0.05)'
               }}>
                 <h3 style={{
                   fontSize: '15px',
@@ -438,10 +438,10 @@ export default function PlanPage() {
                               style={{
                                 padding: '6px 12px',
                                 borderRadius: '999px',
-                                background: 'rgba(76, 103, 255, 0.12)',
-                                border: '1px solid rgba(76, 103, 255, 0.25)',
+                                background: 'rgba(124, 58, 237, 0.12)',
+                                border: '1px solid rgba(124, 58, 237, 0.25)',
                                 fontSize: '12px',
-                                color: '#4C67FF',
+                                color: '#7C3AED',
                                 fontWeight: 600
                               }}
                             >
@@ -600,8 +600,8 @@ export default function PlanPage() {
           }}
           onMouseEnter={(e) => {
             if (currentCardIndex !== 0) {
-              e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.4)';
-              e.currentTarget.style.background = 'rgba(76, 103, 255, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)';
+              e.currentTarget.style.background = 'rgba(124, 58, 237, 0.08)';
               e.currentTarget.style.transform = 'translateY(-2px)';
             }
           }}
@@ -640,9 +640,9 @@ export default function PlanPage() {
               gap: '10px',
               borderRadius: '14px',
               border: 'none',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               color: '#000',
-              boxShadow: '0 8px 24px rgba(76, 103, 255, 0.3)',
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative',
               overflow: 'hidden'
@@ -650,12 +650,12 @@ export default function PlanPage() {
             onMouseEnter={(e) => {
               if (!loading && !saving) {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(76, 103, 255, 0.4)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.4)';
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 103, 255, 0.3)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.3)';
             }}
           >
             {loading ? "Starting..." : saving ? "Saving..." : "Approve & Start"}
@@ -678,9 +678,9 @@ export default function PlanPage() {
               gap: '10px',
               borderRadius: '14px',
               border: 'none',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               color: '#000',
-              boxShadow: '0 8px 24px rgba(76, 103, 255, 0.3)',
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative',
               overflow: 'hidden'
@@ -688,12 +688,12 @@ export default function PlanPage() {
             onMouseEnter={(e) => {
               if (!isEditing) {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(76, 103, 255, 0.4)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.4)';
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 103, 255, 0.3)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.3)';
             }}
           >
             Next
@@ -793,10 +793,10 @@ function CardContent({
                   alignItems: 'flex-start',
                   gap: '16px',
                   padding: '16px 20px',
-                  background: isEditing ? 'rgba(76, 103, 255, 0.05)' : 'var(--color-surface-secondary)',
+                  background: isEditing ? 'rgba(124, 58, 237, 0.05)' : 'var(--color-surface-secondary)',
                   borderRadius: '12px',
                   border: isEditing 
-                    ? '2px solid rgba(76, 103, 255, 0.3)' 
+                    ? '2px solid rgba(124, 58, 237, 0.3)' 
                     : '1px solid var(--elev-border)',
                   transition: 'all 0.2s ease',
                   position: 'relative'
@@ -806,7 +806,7 @@ function CardContent({
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                   marginTop: '8px',
                   flexShrink: 0
                 }} />
@@ -839,7 +839,7 @@ function CardContent({
                             padding: '10px 14px',
                             fontSize: '15px',
                             fontWeight: '500',
-                            border: '1px solid rgba(76, 103, 255, 0.3)',
+                            border: '1px solid rgba(124, 58, 237, 0.3)',
                             background: 'var(--elev-bg)'
                           }}
                           placeholder="Enter value..."
@@ -858,7 +858,7 @@ function CardContent({
                           padding: '10px 14px',
                           fontSize: '14px',
                           fontWeight: '500',
-                          border: '1px solid rgba(76, 103, 255, 0.3)',
+                          border: '1px solid rgba(124, 58, 237, 0.3)',
                           background: 'var(--elev-bg)'
                         }}
                         placeholder={placeholder || "Enter item..."}
@@ -932,9 +932,9 @@ function CardContent({
                   padding: '12px 20px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  color: '#4C67FF',
-                  background: 'rgba(76, 103, 255, 0.1)',
-                  border: '1px dashed rgba(76, 103, 255, 0.4)',
+                  color: '#7C3AED',
+                  background: 'rgba(124, 58, 237, 0.1)',
+                  border: '1px dashed rgba(124, 58, 237, 0.4)',
                   borderRadius: '12px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -944,12 +944,12 @@ function CardContent({
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(76, 103, 255, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.6)';
+                  e.currentTarget.style.background = 'rgba(124, 58, 237, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.6)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(76, 103, 255, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.4)';
+                  e.currentTarget.style.background = 'rgba(124, 58, 237, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)';
                 }}
               >
                 <span>+</span>
@@ -1078,13 +1078,13 @@ function SequenceCardContent({
                   width: '36px',
                   height: '36px',
                   borderRadius: '8px',
-                  background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)',
+                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '14px',
                   fontWeight: '700',
-                  color: '#4C67FF',
+                  color: '#7C3AED',
                   flexShrink: 0
                 }}>
                   {idx + 1}
@@ -1162,13 +1162,13 @@ function SequenceCardContent({
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)',
+                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '14px',
                 fontWeight: '700',
-                color: '#4C67FF',
+                color: '#7C3AED',
                 flexShrink: 0
               }}>
                 {idx + 1}

@@ -137,14 +137,14 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
       padding: '20px 22px',
       borderRadius: '14px',
       border: '1px solid rgba(255, 255, 255, 0.12)',
-      background: 'radial-gradient(circle at center, rgba(76, 103, 255, 0.10), rgba(255, 255, 255, 0.02) 70%)'
+      background: 'radial-gradient(circle at center, rgba(124, 58, 237, 0.10), rgba(255, 255, 255, 0.02) 70%)'
     }}>
       <div style={{ marginBottom: '16px' }}>
         <h2 style={{
           fontSize: '24px',
           fontWeight: '700',
           margin: '0 0 8px 0',
-          background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
@@ -184,9 +184,9 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   width: '36px',
                   height: '36px',
                   borderRadius: '999px',
-                  border: isActive ? '1.5px solid #4C67FF' : isCompleted ? '1.5px solid #10b981' : '1.5px solid var(--color-border)',
-                  background: isActive ? 'rgba(76, 103, 255, 0.14)' : isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.03)',
-                  color: isActive ? '#4C67FF' : isCompleted ? '#10b981' : 'var(--color-text-muted)',
+                  border: isActive ? '1.5px solid #7C3AED' : isCompleted ? '1.5px solid #10b981' : '1.5px solid var(--color-border)',
+                  background: isActive ? 'rgba(124, 58, 237, 0.14)' : isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.03)',
+                  color: isActive ? '#7C3AED' : isCompleted ? '#10b981' : 'var(--color-text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -196,7 +196,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                 <div style={{
                   fontSize: '11px',
                   fontWeight: 500,
-                  color: isActive ? '#4C67FF' : isCompleted ? '#10b981' : 'var(--color-text-muted)',
+                  color: isActive ? '#7C3AED' : isCompleted ? '#10b981' : 'var(--color-text-muted)',
                   textAlign: 'center',
                   whiteSpace: 'nowrap'
                 }}>
@@ -208,7 +208,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   width: '42px',
                   height: '2px',
                   borderRadius: '999px',
-                  background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #4C67FF 100%)' : 'rgba(255,255,255,0.16)',
+                  background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.16)',
                   marginTop: '-14px'
                 }} />
               )}

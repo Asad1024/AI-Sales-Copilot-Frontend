@@ -140,8 +140,8 @@ export function ColumnList({ columns, baseId, onEdit, onDelete, onAddColumn }: C
                 <td style={{ padding: "16px 12px" }}>
                   <span
                     style={{
-                      background: "rgba(76, 103, 255, 0.1)",
-                      color: "#4C67FF",
+                      background: "rgba(124, 58, 237, 0.1)",
+                      color: "#7C3AED",
                       padding: "4px 10px",
                       borderRadius: "6px",
                       fontSize: "12px",

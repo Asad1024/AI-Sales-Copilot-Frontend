@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { CSSProperties, ComponentType } from "react";
+import type { CSSProperties } from "react";
 import { MoreVertical, Pencil, Copy, Trash2, Eye } from "lucide-react";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
@@ -10,18 +10,39 @@ import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
 import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
-import { TemplatesCardsSkeleton } from "@/components/ui/PageRouteSkeletons";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
-const TEMPLATE_CARD_ACCENTS = [
-  { icon: "#f97316" },
-  { icon: "#0ea5e9" },
-  { icon: "#22c55e" },
-  { icon: "#a855f7" },
-  { icon: "#ec4899" },
-  { icon: "#eab308" },
-  { icon: "#6366f1" },
-  { icon: "#14b8a6" },
-] as const;
+/** Same glyphs & colors as campaign wizard / `CampaignCard` (`WIZ_REVIEW_*`), plus SMS for templates */
+const TEMPLATE_CHANNEL_ROW_META: Record<
+  string,
+  { Icon: typeof Icons.Mail; color: string; label: string; useStroke: boolean }
+> = {
+  email: { Icon: Icons.Mail, color: "#2563eb", label: "Email", useStroke: true },
+  linkedin: { Icon: Icons.Linkedin, color: "#0077B5", label: "LinkedIn", useStroke: true },
+  whatsapp: { Icon: Icons.WhatsApp, color: "#25D366", label: "WhatsApp", useStroke: false },
+  call: { Icon: Icons.Phone, color: "#0d9488", label: "Call", useStroke: false },
+  sms: { Icon: Icons.MessageCircle, color: "#7c3aed", label: "SMS", useStroke: true },
+};
+
+function getTemplateChannelRowMeta(channelOrType: string) {
+  const key = String(channelOrType || "email").toLowerCase();
+  const meta = TEMPLATE_CHANNEL_ROW_META[key];
+  if (meta) return meta;
+  const cap = key ? `${key.charAt(0).toUpperCase()}${key.slice(1)}` : "Channel";
+  return { Icon: Icons.Mail, color: "#64748b", label: cap, useStroke: true };
+}
+
+const templateCardSnippetText: CSSProperties = {
+  marginTop: 2,
+  fontSize: 12,
+  lineHeight: 1.45,
+  fontWeight: 500,
+  color: "var(--color-text)",
+  overflow: "hidden",
+  display: "-webkit-box",
+  WebkitBoxOrient: "vertical",
+  wordBreak: "break-word",
+};
 
 const templateMenuItemBase: CSSProperties = {
   width: "100%",
@@ -43,8 +64,6 @@ const templateMenuItemBase: CSSProperties = {
 
 function TemplateWorkspaceCard({
   template,
-  ChannelIcon,
-  accentIcon,
   onEdit,
   onPreview,
   onDuplicate,
@@ -53,8 +72,6 @@ function TemplateWorkspaceCard({
   deleting,
 }: {
   template: any;
-  ChannelIcon: ComponentType<{ size?: number; strokeWidth?: number | string; style?: CSSProperties }>;
-  accentIcon: string;
   onEdit: () => void;
   onPreview: () => void;
   onDuplicate: () => void;
@@ -89,23 +106,15 @@ function TemplateWorkspaceCard({
   const title = String(vars.name ?? "Untitled template");
   const category = String(vars.category ?? "Outreach");
   const subjectRaw = vars.subject != null && String(vars.subject).trim() !== "" ? String(vars.subject) : null;
-  const chLabel = String(template.channel || template.type || "email");
+  const channelMeta = getTemplateChannelRowMeta(String(template.channel || template.type || "email"));
+  const ChannelGlyph = channelMeta.Icon;
 
   return (
     <div className="bases-workspace-card" style={{ position: "relative" }}>
       <div style={{ padding: "16px 18px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 6,
-                color: "#94a3b8",
-              }}
-            >
-              <Icons.FileText size={14} strokeWidth={1.5} style={{ color: accentIcon }} />
+            <div style={{ marginBottom: 6 }}>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Template
               </span>
@@ -136,8 +145,14 @@ function TemplateWorkspaceCard({
             >
               <span>{category}</span>
               <span style={{ opacity: 0.4 }}>·</span>
-              <ChannelIcon size={12} strokeWidth={1.5} style={{ color: accentIcon, flexShrink: 0 }} />
-              <span style={{ textTransform: "capitalize" }}>{chLabel}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                {channelMeta.useStroke ? (
+                  <ChannelGlyph size={12} strokeWidth={1.75} style={{ color: channelMeta.color, flexShrink: 0 }} aria-hidden />
+                ) : (
+                  <ChannelGlyph size={12} style={{ color: channelMeta.color, flexShrink: 0 }} aria-hidden />
+                )}
+                <span>{channelMeta.label}</span>
+              </span>
               {template.visibility === "workspace" && (
                 <>
                   <span style={{ opacity: 0.4 }}>·</span>
@@ -281,15 +296,9 @@ function TemplateWorkspaceCard({
           <div>
             <div className="bases-workspace-card-metric-label">Subject</div>
             <div
-              className="bases-workspace-card-metric-value"
               style={{
-                marginTop: 2,
-                fontWeight: 600,
-                overflow: "hidden",
-                display: "-webkit-box",
+                ...templateCardSnippetText,
                 WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                wordBreak: "break-word",
               }}
               title={subjectRaw ?? undefined}
             >
@@ -298,12 +307,14 @@ function TemplateWorkspaceCard({
           </div>
           <div>
             <div className="bases-workspace-card-metric-label">Body</div>
-            <p
-              className="line-clamp-3 text-sm font-medium leading-snug text-slate-600 dark:text-slate-400"
-              style={{ margin: "2px 0 0", wordBreak: "break-word" }}
+            <div
+              style={{
+                ...templateCardSnippetText,
+                WebkitLineClamp: 3,
+              }}
             >
               {template.content?.trim() ? template.content : "—"}
-            </p>
+            </div>
           </div>
         </div>
       </div>
@@ -389,21 +400,35 @@ export default function TemplatesPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'email': return Icons.Mail;
-      case 'linkedin': return Icons.Linkedin;
-      case 'whatsapp': return Icons.MessageCircle;
-      case 'sms': return Icons.MessageCircle;
-      default: return Icons.FileText;
+      case "email":
+        return Icons.Mail;
+      case "linkedin":
+        return Icons.Linkedin;
+      case "whatsapp":
+        return Icons.WhatsApp;
+      case "call":
+        return Icons.Phone;
+      case "sms":
+        return Icons.MessageCircle;
+      default:
+        return Icons.FileText;
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'email': return '#4C67FF';
-      case 'linkedin': return '#0077B5';
-      case 'whatsapp': return '#25D366';
-      case 'sms': return '#A94CFF';
-      default: return '#888';
+      case "email":
+        return "#2563eb";
+      case "linkedin":
+        return "#0077B5";
+      case "whatsapp":
+        return "#25D366";
+      case "call":
+        return "#0d9488";
+      case "sms":
+        return "#7c3aed";
+      default:
+        return "#888";
     }
   };
 
@@ -567,15 +592,20 @@ export default function TemplatesPage() {
       <p
         style={{
           margin: 0,
-          fontSize: 13,
-          lineHeight: 1.5,
+          width: "100%",
+          minWidth: 0,
+          fontSize: 11,
+          lineHeight: 1.35,
           color: "var(--color-text-muted)",
-          maxWidth: 800,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
+        title="Reusable messages for your workspace. When you create a campaign, open My saved templates on the email, LinkedIn, or WhatsApp steps to pull from this library—or use AI drafts there instead."
       >
         Reusable messages for your workspace. When you create a campaign, open{" "}
-        <strong style={{ color: "var(--color-text)" }}>My saved templates</strong> on the email, LinkedIn, or
-        WhatsApp steps to pull from this library—or use AI drafts there instead.
+        <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>My saved templates</strong> on the email,
+        LinkedIn, or WhatsApp steps to pull from this library—or use AI drafts there instead.
       </p>
       <div
         style={{
@@ -636,7 +666,7 @@ export default function TemplatesPage() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "none",
-                      background: selectedCategory === category ? "rgba(76,103,255,0.12)" : "transparent",
+                      background: selectedCategory === category ? "rgba(124, 58, 237,0.12)" : "transparent",
                       color: "var(--color-text)",
                       padding: "9px 10px",
                       borderRadius: 8,
@@ -668,7 +698,7 @@ export default function TemplatesPage() {
         </button>
       </div>
 
-      {loading && <TemplatesCardsSkeleton />}
+      {loading && <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading templates" />}
 
       {/* Empty State */}
       {!loading && templates.length === 0 && (
@@ -703,15 +733,10 @@ export default function TemplatesPage() {
           }}
         >
           {filteredTemplates.map((template) => {
-            const ChannelIcon = getTypeIcon(template.channel || template.type);
-            const accentIcon =
-              TEMPLATE_CARD_ACCENTS[Math.abs(Number(template.id)) % TEMPLATE_CARD_ACCENTS.length].icon;
             return (
               <div key={template.id} style={{ position: "relative" }}>
                 <TemplateWorkspaceCard
                   template={template}
-                  ChannelIcon={ChannelIcon}
-                  accentIcon={accentIcon}
                   onEdit={() => handleEditTemplate(template)}
                   onPreview={() => setPreviewTemplate(template)}
                   onDuplicate={() => handleDuplicateTemplate(template)}
@@ -799,7 +824,7 @@ export default function TemplatesPage() {
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -810,7 +835,7 @@ export default function TemplatesPage() {
                 fontSize: '24px', 
                 fontWeight: '700', 
                 margin: 0,
-                background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -941,12 +966,12 @@ export default function TemplatesPage() {
               />
 
               <div style={{ 
-                background: 'rgba(76, 103, 255, 0.1)', 
+                background: 'rgba(124, 58, 237, 0.1)', 
                 borderRadius: '8px', 
                 padding: '12px', 
                 fontSize: '12px', 
                 color: 'var(--color-text-muted)',
-                border: '1px solid rgba(76, 103, 255, 0.3)'
+                border: '1px solid rgba(124, 58, 237, 0.3)'
               }}>
                 <strong>Tip:</strong> Use variables like {`{{first_name}}`}, {`{{company_name}}`}, {`{{industry}}`} to personalize your messages. AI will automatically fill these in based on lead data.
               </div>
@@ -957,7 +982,7 @@ export default function TemplatesPage() {
                 onClick={handleSaveTemplate}
                 disabled={saving || !formData.name.trim() || !formData.content.trim()}
                 style={{
-                  background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                   border: 'none',
                   borderRadius: '10px',
                   padding: '12px 24px',

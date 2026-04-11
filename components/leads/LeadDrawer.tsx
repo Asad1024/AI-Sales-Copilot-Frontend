@@ -633,7 +633,7 @@ export default function LeadDrawer({
                 style={{
                   padding: '9px 16px',
                   background: enriching || contactEnrichmentPending
-                    ? 'rgba(76, 103, 255, 0.35)' 
+                    ? 'rgba(124, 58, 237, 0.35)' 
                     : 'var(--color-primary)',
                   color: '#fff',
                   border: 'none',
@@ -720,12 +720,12 @@ export default function LeadDrawer({
               ? 'rgba(34, 197, 94, 0.1)'
               : isError
               ? 'rgba(239, 68, 68, 0.1)'
-              : 'rgba(76, 103, 255, 0.08)',
+              : 'rgba(124, 58, 237, 0.08)',
             border: `1px solid ${isSuccess
               ? 'rgba(34, 197, 94, 0.35)'
               : isError
               ? 'rgba(239, 68, 68, 0.35)'
-              : 'rgba(76, 103, 255, 0.25)'}`,
+              : 'rgba(124, 58, 237, 0.25)'}`,
             borderRadius: 12,
             fontSize: 13,
             color: 'var(--color-text)',
@@ -990,7 +990,7 @@ export default function LeadDrawer({
                   disabled={saving}
                   style={{
                     padding: '8px 14px',
-                    background: saving ? 'rgba(76, 103, 255, 0.45)' : 'var(--color-primary)',
+                    background: saving ? 'rgba(124, 58, 237, 0.45)' : 'var(--color-primary)',
                     border: 'none',
                     borderRadius: 10,
                     color: saving ? 'rgba(255,255,255,0.7)' : '#fff',
@@ -1042,8 +1042,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1079,8 +1079,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1116,8 +1116,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1154,8 +1154,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1172,13 +1172,13 @@ export default function LeadDrawer({
                       return (
                         <>
                           <Icons.Phone size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-                          <a href={`tel:${phoneInfo.normalized}`} style={{ color: '#4C67FF', textDecoration: 'none', fontWeight: 500 }}>
+                          <a href={`tel:${phoneInfo.normalized}`} style={{ color: '#7C3AED', textDecoration: 'none', fontWeight: 500 }}>
                             {phoneInfo.normalized}
                           </a>
                           {sourceBadge && (
                             <span style={{
-                              background: 'rgba(76, 103, 255, 0.1)',
-                              color: '#4C67FF',
+                              background: 'rgba(124, 58, 237, 0.1)',
+                              color: '#7C3AED',
                               padding: '2px 6px',
                               borderRadius: '4px',
                               fontSize: '10px',
@@ -1219,8 +1219,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1256,8 +1256,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1293,8 +1293,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1332,8 +1332,8 @@ export default function LeadDrawer({
                     boxSizing: 'border-box'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1405,8 +1405,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1445,8 +1445,8 @@ export default function LeadDrawer({
                     transition: 'all 0.2s'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1482,8 +1482,8 @@ export default function LeadDrawer({
                     cursor: 'pointer'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1541,8 +1541,8 @@ export default function LeadDrawer({
                     fontFamily: 'inherit'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#4C67FF';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(76, 103, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#7C3AED';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.border = '1px solid var(--elev-border, var(--color-border))';
@@ -1592,7 +1592,7 @@ export default function LeadDrawer({
               style={{
                 padding: '12px 20px',
                 background: enriching || contactEnrichmentPending
-                  ? 'rgba(76, 103, 255, 0.35)' 
+                  ? 'rgba(124, 58, 237, 0.35)' 
                   : 'var(--color-primary)',
                 color: 'white',
                 border: 'none',
@@ -1686,7 +1686,7 @@ export default function LeadDrawer({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
-                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.35)';
+                        e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.35)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'var(--color-surface-secondary)';
@@ -1818,7 +1818,7 @@ export default function LeadDrawer({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
-                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.35)';
+                        e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.35)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'var(--color-surface-secondary)';
@@ -1954,7 +1954,7 @@ export default function LeadDrawer({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'var(--elev-bg, var(--color-surface))';
-                        e.currentTarget.style.borderColor = 'rgba(76, 103, 255, 0.3)';
+                        e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.3)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'var(--color-surface-secondary)';
@@ -2231,7 +2231,7 @@ export default function LeadDrawer({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Icons.ExternalLink size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
                   <strong style={{ color: 'var(--color-text-muted)', minWidth: 100 }}>Website:</strong>
-                  <a href={companyData.website || enrichment.apollo_data?.organization?.website_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4C67FF', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <a href={companyData.website || enrichment.apollo_data?.organization?.website_url} target="_blank" rel="noopener noreferrer" style={{ color: '#7C3AED', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {companyData.website || enrichment.apollo_data?.organization?.website_url}
                     </span>
@@ -2300,7 +2300,7 @@ export default function LeadDrawer({
                   style={{ 
                     fontSize: 12, 
                     padding: '6px 12px',
-                    background: 'rgba(76, 103, 255, 0.15)',
+                    background: 'rgba(124, 58, 237, 0.15)',
                     border: '1px solid var(--elev-border, var(--color-border))'
                   }}
                 >

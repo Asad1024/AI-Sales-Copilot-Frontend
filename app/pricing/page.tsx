@@ -82,7 +82,7 @@ export default function PricingPage() {
               height: '40px',
               width: '40px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -94,7 +94,7 @@ export default function PricingPage() {
             <span style={{
               fontSize: '20px',
               fontWeight: '700',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>Spark AI</span>
@@ -111,7 +111,7 @@ export default function PricingPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
@@ -136,10 +136,10 @@ export default function PricingPage() {
               style={{
                 padding: '40px 32px',
                 borderRadius: '24px',
-                border: plan.popular ? '2px solid #4C67FF' : '1px solid var(--color-border)',
+                border: plan.popular ? '2px solid #7C3AED' : '1px solid var(--color-border)',
                 position: 'relative',
                 background: plan.popular 
-                  ? 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)'
+                  ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)'
                   : 'var(--color-surface)',
                 transform: plan.popular ? 'scale(1.05)' : 'scale(1)',
                 transition: 'all 0.3s ease'
@@ -151,7 +151,7 @@ export default function PricingPage() {
                   top: '-12px',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                   color: '#000',
                   padding: '6px 20px',
                   borderRadius: '20px',
@@ -170,7 +170,7 @@ export default function PricingPage() {
                   {plan.description}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '48px', fontWeight: '800', color: '#4C67FF' }}>
+                  <span style={{ fontSize: '48px', fontWeight: '800', color: '#7C3AED' }}>
                     {plan.price}
                   </span>
                   {plan.period && (
@@ -190,7 +190,7 @@ export default function PricingPage() {
                     marginBottom: '12px',
                     fontSize: '15px'
                   }}>
-                    <span style={{ color: '#4C67FF', fontSize: '20px' }}>✓</span>
+                    <span style={{ color: '#7C3AED', fontSize: '20px' }}>✓</span>
                     <span>{feature}</span>
                   </li>
                 ))}

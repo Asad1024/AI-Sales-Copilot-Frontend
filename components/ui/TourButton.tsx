@@ -13,7 +13,7 @@ export default function TourButton({ onStart }: TourButtonProps) {
         padding: '8px 16px',
         borderRadius: '8px',
         border: '1px solid var(--color-border)',
-        background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+        background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
         color: 'var(--color-text)',
         fontSize: '14px',
         fontWeight: '600',
@@ -24,11 +24,11 @@ export default function TourButton({ onStart }: TourButtonProps) {
         transition: 'all 0.3s ease'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)';
+        e.currentTarget.style.background = 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)';
         e.currentTarget.style.color = '#000';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)';
+        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)';
         e.currentTarget.style.color = 'var(--color-text)';
       }}
     >

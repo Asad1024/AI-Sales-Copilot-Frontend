@@ -14,7 +14,7 @@ export function ImportProgressStep({ progress, onCancel }: ImportProgressStepPro
       <Icons.Loader
         size={48}
         className="animate-spin"
-        style={{ marginBottom: "24px", color: "#4C67FF" }}
+        style={{ marginBottom: "24px", color: "#7C3AED" }}
       />
       <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>
         Importing Leads...
@@ -38,7 +38,7 @@ export function ImportProgressStep({ progress, onCancel }: ImportProgressStepPro
           style={{
             width: `${percentage}%`,
             height: "100%",
-            background: "linear-gradient(90deg, #4C67FF 0%, #A94CFF 100%)",
+            background: "linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)",
             transition: "width 0.3s ease",
           }}
         />

@@ -24,6 +24,8 @@ export interface Lead {
     id: number;
     name: string;
     email: string;
+    /** Profile photo when backend includes it (workspace members / lead owner). */
+    avatar_url?: string | null;
   };
 }
 

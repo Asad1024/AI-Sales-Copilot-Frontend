@@ -5,6 +5,7 @@ import { useBaseStore } from "@/stores/useBaseStore";
 import { apiRequest } from "@/lib/apiClient";
 import { getEmailInfo, getEmailDisplayText } from "@/utils/emailNormalization";
 import { TierCampaignModal } from "./TierCampaignModal";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
 const HOT = "#e11d48";
 const WARM = "#ea580c";
@@ -84,23 +85,7 @@ export function TierBreakdown() {
   if (loadingLeads) {
     return (
       <div style={cardShell} aria-busy="true" aria-label="Loading engagement insights">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 14px",
-            background: "var(--color-surface-secondary, rgba(148,163,184,0.06))",
-          }}
-        >
-          <Icons.ChevronDown size={18} strokeWidth={2} style={{ color: "var(--color-text-muted)", opacity: 0.45, flexShrink: 0 }} />
-          <span className="campaigns-engagement-disclosure__trigger-label" style={{ fontSize: 13.5, lineHeight: 1.35 }}>
-            View Engagement Insights
-          </span>
-          <div style={{ marginLeft: "auto", flexShrink: 0 }}>
-            <div className="ui-skeleton" style={{ width: 112, height: 14, borderRadius: 4 }} />
-          </div>
-        </div>
+        <GlobalPageLoader layout="embedded" minHeight={140} ariaLabel="Loading engagement insights" />
       </div>
     );
   }

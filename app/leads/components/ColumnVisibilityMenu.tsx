@@ -74,7 +74,7 @@ export function ColumnVisibilityMenu({ onClose }: ColumnVisibilityMenuProps) {
             cursor: "pointer",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
+            e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";

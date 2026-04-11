@@ -2,6 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
+import {
+  AirtableBrandIcon,
+  GenerateLeadAIIcon,
+  GoogleSheetsBrandIcon,
+  MicrosoftExcelBrandIcon,
+} from "@/app/leads/components/LeadSourceBrandIcons";
 
 type LeadsEmptyWorkspaceBannerProps = {
   workspaceName: string;
@@ -11,6 +17,10 @@ type LeadsEmptyWorkspaceBannerProps = {
   canCreateLeads: boolean;
   onGenerateAI: () => void;
   onImportCSV: () => void;
+  /** Settings → Connectors Google Sheets vault configured */
+  onImportSheets?: () => void;
+  /** Airtable integration connected */
+  onImportAirtable?: () => void;
 };
 
 /**
@@ -23,9 +33,20 @@ export function LeadsEmptyWorkspaceBanner({
   canCreateLeads,
   onGenerateAI,
   onImportCSV,
+  onImportSheets,
+  onImportAirtable,
 }: LeadsEmptyWorkspaceBannerProps) {
   const router = useRouter();
   const name = workspaceName || "this workspace";
+  const importExtras: string[] = [];
+  if (onImportSheets) importExtras.push("Google Sheets");
+  if (onImportAirtable) importExtras.push("Airtable");
+  const importExtrasPhrase =
+    importExtras.length === 2
+      ? "Google Sheets or Airtable"
+      : importExtras.length === 1
+        ? importExtras[0]
+        : "";
 
   return (
     <div
@@ -52,25 +73,59 @@ export function LeadsEmptyWorkspaceBanner({
         {showWelcomeHint ? (
           <p className="bases-onboarding-hint-body">
             <strong>Welcome</strong> — <strong>{name}</strong> is ready. Use <strong>Generate with AI</strong> or{" "}
-            <strong>Import CSV</strong> below to add contacts, then start a campaign when you&apos;re set. The dashboard
-            checklist also tracks these steps.
+            <strong>Import CSV</strong>
+            {importExtrasPhrase ? (
+              <>
+                , or import from <strong>{importExtrasPhrase}</strong>
+              </>
+            ) : null}{" "}
+            below to add contacts, then start a campaign when you&apos;re set. The dashboard checklist also tracks these
+            steps.
           </p>
         ) : (
           <p className="bases-onboarding-hint-body">
             You&apos;re on <strong>Leads</strong> for <strong>{name}</strong>. Use <strong>Generate with AI</strong> or{" "}
-            <strong>Import CSV</strong> to add contacts — you&apos;ll use them for campaigns and enrichment.
+            <strong>Import CSV</strong>
+            {importExtrasPhrase ? (
+              <>
+                , or import from <strong>{importExtrasPhrase}</strong>
+              </>
+            ) : null}{" "}
+            to add contacts — you&apos;ll use them for campaigns and enrichment.
           </p>
         )}
 
         {canCreateLeads ? (
           <>
             <div className="leads-empty-workspace-banner-actions">
-              <button type="button" className="leads-empty-hint-btn leads-empty-hint-btn--primary" onClick={onGenerateAI}>
+              <button type="button" className="leads-empty-hint-btn leads-empty-hint-btn--secondary" onClick={onGenerateAI}>
+                <GenerateLeadAIIcon size={20} sparklesSize={11} />
                 Generate with AI
               </button>
               <button type="button" className="leads-empty-hint-btn leads-empty-hint-btn--secondary" onClick={onImportCSV}>
+                <MicrosoftExcelBrandIcon size={17} />
                 Import CSV
               </button>
+              {onImportSheets ? (
+                <button
+                  type="button"
+                  className="leads-empty-hint-btn leads-empty-hint-btn--secondary"
+                  onClick={onImportSheets}
+                >
+                  <GoogleSheetsBrandIcon size={18} />
+                  Import Sheets
+                </button>
+              ) : null}
+              {onImportAirtable ? (
+                <button
+                  type="button"
+                  className="leads-empty-hint-btn leads-empty-hint-btn--secondary"
+                  onClick={onImportAirtable}
+                >
+                  <AirtableBrandIcon size={17} />
+                  Import Airtable
+                </button>
+              ) : null}
             </div>
             <button type="button" className="bases-onboarding-hint-link" onClick={() => router.push("/dashboard")}>
               Go to dashboard

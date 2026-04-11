@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect, useCallback, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useBaseStore } from "@/stores/useBaseStore";
@@ -8,21 +8,25 @@ import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
 import { onNotification, offNotification } from "@/lib/websocketClient";
 import { API_BASE } from "@/lib/api";
-import { getToken } from "@/lib/apiClient";
+import { getToken, apiRequest } from "@/lib/apiClient";
 import { LeadsToolbar } from "@/app/leads/components/LeadsToolbar";
 import { BulkActionsMenu } from "@/app/leads/components/BulkActionsMenu";
 import { DynamicLeadsTable } from "@/app/leads/components/DynamicLeadsTable";
 import { useViewStore } from "@/stores/useViewStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
-import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
+import { LeadsImportEmptyGrid } from "@/app/leads/components/LeadsImportEmptyGrid";
 import { LeadsEmptyWorkspaceBanner } from "@/app/leads/components/LeadsEmptyWorkspaceBanner";
-import { LeadsTableSkeleton } from "@/components/ui/TableSkeleton";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
 const EnhancedCsvImportModal = dynamic(() => import("@/components/leads/EnhancedCsvImportModal").then(m => ({ default: m.EnhancedCsvImportModal })), { ssr: false });
 const AIGenerateModal = dynamic(() => import("@/components/leads/AIGenerateModal"), { ssr: false });
 const CRMImportModal = dynamic(() => import("@/components/leads/CRMImportModal"), { ssr: false });
 const AirtableImportModal = dynamic(() => import("@/components/leads/AirtableImportModal").then(m => ({ default: m.AirtableImportModal })), { ssr: false });
+const GoogleSheetsImportModal = dynamic(
+  () => import("@/components/leads/GoogleSheetsImportModal").then((m) => ({ default: m.GoogleSheetsImportModal })),
+  { ssr: false },
+);
 const LeadDrawer = dynamic(() => import("@/components/leads/LeadDrawer"), { ssr: false });
 const SchemaSidebar = dynamic(() => import("@/app/leads/components/SchemaSidebar").then(m => ({ default: m.SchemaSidebar })), { ssr: false });
 const EnrichModal = dynamic(() => import("@/components/leads/EnrichModal").then(m => ({ default: m.EnrichModal })), { ssr: false });
@@ -59,6 +63,11 @@ export default function BaseLeadsPage() {
   const [genOpen, setGenOpen] = useState(false);
   const [crmOpen, setCrmOpen] = useState(false);
   const [airtableImportOpen, setAirtableImportOpen] = useState(false);
+  const [sheetsImportOpen, setSheetsImportOpen] = useState(false);
+  const [connectorImportMeta, setConnectorImportMeta] = useState<{ airtable: boolean; sheets: boolean }>({
+    airtable: false,
+    sheets: false,
+  });
   const [showEnrichModal, setShowEnrichModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [showSchemaSidebar, setShowSchemaSidebar] = useState(false);
@@ -114,6 +123,41 @@ export default function BaseLeadsPage() {
       fetchViews(currentBaseId);
     }
   }, [currentBaseId, pagination.currentPage, pagination.leadsPerPage, fetchLeads, fetchViews]);
+
+  /** After connector imports, read fresh pagination from the store (avoids stale closure) and force-fetch page 1 when the table was empty. */
+  const refreshLeadsAfterImport = useCallback(async () => {
+    if (!currentBaseId) return;
+    clearCache(currentBaseId);
+    const { pagination: pag, setPagination: setPag, fetchLeads: fetchL } = useLeadStore.getState();
+    const targetPage = pag.totalLeads === 0 ? 1 : pag.currentPage;
+    if (pag.totalLeads === 0) setPag({ currentPage: 1 });
+    await fetchL(currentBaseId, targetPage, pag.leadsPerPage, true);
+  }, [currentBaseId, clearCache]);
+
+  const loadImportConnectors = useCallback(async () => {
+    try {
+      const [intRes, vaultRes] = await Promise.all([apiRequest("/integrations"), apiRequest("/me/connector-vault")]);
+      const integrations = intRes?.integrations || [];
+      const airtable = integrations.some(
+        (i: { provider?: string; config?: { api_key?: string } }) =>
+          i.provider === "airtable" && Boolean(i.config?.api_key),
+      );
+      const gs = vaultRes?.vault?.googleSheets;
+      const sheets = Boolean(
+        (gs?.spreadsheetId || "").trim() &&
+          (gs?.sheetName || "").trim() &&
+          (gs?.apiKey || "").includes("***"),
+      );
+      setConnectorImportMeta({ airtable, sheets });
+    } catch {
+      setConnectorImportMeta({ airtable: false, sheets: false });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentBaseId) return;
+    void loadImportConnectors();
+  }, [currentBaseId, loadImportConnectors]);
 
   useEffect(() => {
     if (!currentBaseId) return;
@@ -350,6 +394,12 @@ export default function BaseLeadsPage() {
           canCreateLeads={permissions.canCreateLeads}
           onGenerateAI={() => setGenOpen(true)}
           onImportCSV={() => setImportOpen(true)}
+          onImportSheets={
+            permissions.canCreateLeads && connectorImportMeta.sheets ? () => setSheetsImportOpen(true) : undefined
+          }
+          onImportAirtable={
+            permissions.canCreateLeads && connectorImportMeta.airtable ? () => setAirtableImportOpen(true) : undefined
+          }
         />
       )}
 
@@ -399,7 +449,7 @@ export default function BaseLeadsPage() {
                 width: 40,
                 height: 40,
                 borderRadius: 12,
-                background: "rgba(76, 103, 255, 0.12)",
+                background: "rgba(124, 58, 237, 0.12)",
                 color: "var(--color-primary)",
                 display: "flex",
                 alignItems: "center",
@@ -430,12 +480,12 @@ export default function BaseLeadsPage() {
           style={{
             borderRadius: 14,
             padding: "14px 18px",
-            border: "1px solid rgba(76, 103, 255, 0.35)",
-            background: "linear-gradient(135deg, rgba(76, 103, 255, 0.14) 0%, rgba(169, 76, 255, 0.08) 100%)",
+            border: "1px solid rgba(124, 58, 237, 0.35)",
+            background: "linear-gradient(135deg, rgba(124, 58, 237, 0.14) 0%, rgba(169, 76, 255, 0.08) 100%)",
             display: "flex",
             alignItems: "flex-start",
             gap: 14,
-            boxShadow: "0 8px 30px rgba(76, 103, 255, 0.12)",
+            boxShadow: "0 8px 30px rgba(124, 58, 237, 0.12)",
           }}
         >
           <div
@@ -477,7 +527,7 @@ export default function BaseLeadsPage() {
               style={{
                 width: 10,
                 height: 10,
-                border: "2px solid rgba(76, 103, 255, 0.3)",
+                border: "2px solid rgba(124, 58, 237, 0.3)",
                 borderTopColor: "var(--color-primary)",
                 borderRadius: "50%",
                 display: "inline-block",
@@ -497,7 +547,12 @@ export default function BaseLeadsPage() {
         variant="embedded"
         onEnrich={handleEnrich}
         onScore={handleScore}
-        onImportAirtable={() => setAirtableImportOpen(true)}
+        onImportSheets={
+          permissions.canCreateLeads && connectorImportMeta.sheets ? () => setSheetsImportOpen(true) : undefined
+        }
+        onImportAirtable={
+          permissions.canCreateLeads && connectorImportMeta.airtable ? () => setAirtableImportOpen(true) : undefined
+        }
         onGenerateAI={() => setGenOpen(true)}
         onSchemaClick={() => setShowSchemaSidebar(true)}
         onExportCSV={handleExportCSV}
@@ -517,37 +572,22 @@ export default function BaseLeadsPage() {
           }}
         >
           {loading || permissionsLoading ? (
-            <div style={{ flex: 1, minHeight: 0, padding: "0 4px" }}>
-              <LeadsTableSkeleton />
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 4px" }}>
+              <GlobalPageLoader layout="embedded" fill ariaLabel="Loading leads" />
             </div>
           ) : leads.length === 0 ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
-              <EmptyStateBanner
-                style={{ width: "100%", maxWidth: 560, margin: "0 auto" }}
-                icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
-                title="No leads in this table yet"
-                description="Use the buttons above or here to generate with AI, import CSV, or connect your CRM."
-                actions={
-                  permissions.canCreateLeads ? (
-                    <>
-                      <button
-                        type="button"
-                        className="btn-primary"
-                        style={{ borderRadius: 10, padding: "10px 18px", fontWeight: 600 }}
-                        onClick={() => setGenOpen(true)}
-                      >
-                        Generate with AI
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        style={{ borderRadius: 10, padding: "10px 18px", border: "1px solid var(--color-border)" }}
-                        onClick={() => setImportOpen(true)}
-                      >
-                        Import CSV
-                      </button>
-                    </>
-                  ) : undefined
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 16px" }}>
+              <LeadsImportEmptyGrid
+                canCreateLeads={permissions.canCreateLeads}
+                sheetsConnected={connectorImportMeta.sheets}
+                airtableConnected={connectorImportMeta.airtable}
+                onGenerateAI={() => setGenOpen(true)}
+                onImportCSV={() => setImportOpen(true)}
+                onImportSheets={
+                  permissions.canCreateLeads && connectorImportMeta.sheets ? () => setSheetsImportOpen(true) : undefined
+                }
+                onImportAirtable={
+                  permissions.canCreateLeads && connectorImportMeta.airtable ? () => setAirtableImportOpen(true) : undefined
                 }
               />
             </div>
@@ -571,6 +611,7 @@ export default function BaseLeadsPage() {
 
       {selectedLeads.length > 0 && (
         <BulkActionsMenu
+          baseId={currentBaseId}
           selectedCount={selectedLeads.length}
           onBulkDelete={handleBulkDelete}
           onBulkUpdate={handleBulkUpdate}
@@ -583,9 +624,7 @@ export default function BaseLeadsPage() {
         onClose={() => setImportOpen(false)}
         onImported={() => {
           setImportOpen(false);
-          if (currentBaseId) {
-            fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
-          }
+          void refreshLeadsAfterImport();
         }}
       />
       <AIGenerateModal 
@@ -593,10 +632,7 @@ export default function BaseLeadsPage() {
         onClose={() => setGenOpen(false)}
         onGenerated={() => {
           setGenOpen(false);
-          if (currentBaseId) {
-            clearCache(currentBaseId);
-            fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
-          }
+          void refreshLeadsAfterImport();
         }}
       />
       <CRMImportModal 
@@ -604,9 +640,7 @@ export default function BaseLeadsPage() {
         onClose={() => setCrmOpen(false)}
         onImported={() => {
           setCrmOpen(false);
-          if (currentBaseId) {
-            fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
-          }
+          void refreshLeadsAfterImport();
         }}
         onOpenAirtableImport={() => setAirtableImportOpen(true)}
         targetBaseId={currentBaseId || undefined}
@@ -617,7 +651,20 @@ export default function BaseLeadsPage() {
           onClose={() => setAirtableImportOpen(false)}
           onImported={() => {
             setAirtableImportOpen(false);
-              fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
+            void loadImportConnectors();
+            void refreshLeadsAfterImport();
+          }}
+          targetBaseId={currentBaseId}
+        />
+      )}
+      {currentBaseId && (
+        <GoogleSheetsImportModal
+          open={sheetsImportOpen}
+          onClose={() => setSheetsImportOpen(false)}
+          onImported={() => {
+            setSheetsImportOpen(false);
+            void loadImportConnectors();
+            void refreshLeadsAfterImport();
           }}
           targetBaseId={currentBaseId}
         />

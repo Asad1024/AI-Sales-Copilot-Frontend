@@ -179,6 +179,23 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
 }
 
 /**
+ * When jumping forward from `fromStep` to `toStep`, each step in
+ * `[fromStep, toStep)` must allow Next — same gates as pressing Next repeatedly.
+ * Returns the first blocking step number, or `null` if the jump is allowed.
+ */
+export function getFirstBlockingStepForForwardJump(
+  fromStep: number,
+  toStep: number,
+  base: ValidationContext
+): number | null {
+  if (toStep <= fromStep) return null;
+  for (let s = fromStep; s < toStep; s++) {
+    if (!canProceedToNextStep({ ...base, step: s })) return s;
+  }
+  return null;
+}
+
+/**
  * Get validation error message for the current step
  */
 export function getValidationError(context: ValidationContext): string | null {

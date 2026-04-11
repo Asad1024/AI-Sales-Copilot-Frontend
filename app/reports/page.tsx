@@ -10,7 +10,7 @@ import BaseCard from "@/components/ui/BaseCard";
 const LineChart = ({ 
   data, 
   dataKey,
-  color = "#4C67FF",
+  color = "#7C3AED",
   height = 220
 }: {
   data: { date: string; [key: string]: any }[];
@@ -179,7 +179,7 @@ const BarChart = ({
   if (!data || data.length === 0) return null;
   
   const max = Math.max(...data.map(d => d.value), 1);
-  const defaultColors = ['#4C67FF', '#A94CFF', '#ff6b6b', '#4ecdc4', '#ffa726', '#888'];
+  const defaultColors = ['#7C3AED', '#A94CFF', '#ff6b6b', '#4ecdc4', '#ffa726', '#888'];
   
   return (
     <div style={{ display: 'flex', alignItems: 'end', gap: 8, height, padding: '0 4px' }}>
@@ -369,7 +369,7 @@ export default function ReportsPage() {
   })) || [];
 
   const funnelData = reportsData?.funnel ? [
-    { label: 'Total Leads', value: reportsData.funnel.totalLeads || 0, color: '#4C67FF' },
+    { label: 'Total Leads', value: reportsData.funnel.totalLeads || 0, color: '#7C3AED' },
     { label: 'Contacted', value: reportsData.funnel.contacted || 0, color: '#A94CFF' },
     { label: 'Replied', value: reportsData.funnel.replied || 0, color: '#ffa726' },
     { label: 'Converted', value: reportsData.funnel.converted || 0, color: '#4ecdc4' }
@@ -399,7 +399,7 @@ export default function ReportsPage() {
               onClick={() => setSelectedPeriod(period.value)}
               style={{
                 background: selectedPeriod === period.value 
-                  ? 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)' 
+                  ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)' 
                   : 'var(--color-surface-secondary)',
                 border: selectedPeriod === period.value 
                   ? 'none' 
@@ -468,7 +468,7 @@ export default function ReportsPage() {
               change={`${leadChange >= 0 ? '+' : ''}${leadChange.toFixed(1)}%`}
               trend={leadChange > 0 ? 'up' : leadChange < 0 ? 'down' : 'stable'}
               icon={<Icons.Users size={20} />}
-              color="#4C67FF"
+              color="#7C3AED"
             />
             <StatCard
               title="Reply Rate"
@@ -501,7 +501,7 @@ export default function ReportsPage() {
             {/* Lead Trends */}
             <BaseCard style={{ padding: 24 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.TrendingUp size={18} style={{ color: '#4C67FF' }} />
+                <Icons.TrendingUp size={18} style={{ color: '#7C3AED' }} />
                 Lead Acquisition Trend
               </h3>
               <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
@@ -511,7 +511,7 @@ export default function ReportsPage() {
                 <LineChart 
                   data={reportsData.dailyTrends} 
                   dataKey="leads" 
-                  color="#4C67FF"
+                  color="#7C3AED"
                   height={240}
                 />
               ) : (
@@ -584,7 +584,7 @@ export default function ReportsPage() {
                 <BarChart 
                   data={scoreData} 
                   height={160}
-                  colors={['#ef4444', '#f97316', '#eab308', '#22c55e', '#4C67FF', '#888']}
+                  colors={['#ef4444', '#f97316', '#eab308', '#22c55e', '#7C3AED', '#888']}
                 />
               ) : (
                 <div style={{ color: 'var(--color-text-muted)', fontSize: 14, textAlign: 'center', padding: 40 }}>
@@ -622,11 +622,11 @@ export default function ReportsPage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 14, color: 'var(--color-text)' }}>Phone Numbers</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#4C67FF' }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#7C3AED' }}>
                     {reportsData.phoneRate?.toFixed(1) || 0}%
                   </span>
                 </div>
-                <ProgressBar value={reportsData.phoneRate || 0} max={100} color="#4C67FF" showPercentage={false} />
+                <ProgressBar value={reportsData.phoneRate || 0} max={100} color="#7C3AED" showPercentage={false} />
                 <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
                   {reportsData.leadsWithPhone || 0} leads with phone numbers
                 </div>
@@ -716,7 +716,7 @@ export default function ReportsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {reportsData.topLeads.slice(0, 5).map((lead: any, i: number) => {
                     const score = typeof lead.score === 'number' ? lead.score : 0;
-                    const scoreColor = score >= 80 ? '#4C67FF' : score >= 60 ? '#ffa726' : '#ff6b6b';
+                    const scoreColor = score >= 80 ? '#7C3AED' : score >= 60 ? '#ffa726' : '#ff6b6b';
                     const scoreLabel = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Low';
                     
                     return (

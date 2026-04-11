@@ -17,13 +17,12 @@ import {
   FileText,
   BarChart2,
   UserCircle2,
-  Shield,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
-  Bolt,
 } from "lucide-react";
+import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
 
 function CollapsedHoverTip({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -93,10 +92,10 @@ interface NavItem {
 
 const iconStroke = 1.5;
 const iconSize = 16;
-/** Active nav: soft blue-50/50 bg, blue-600 label + icon (Tailwind palette) */
-const ACTIVE_NAV_BG = "rgba(239, 246, 255, 0.5)";
-const ACTIVE_NAV_TEXT = "#2563EB";
-const ACTIVE_NAV_ACCENT = "#2563EB";
+/** Active nav: soft violet tint, primary label + icon */
+const ACTIVE_NAV_BG = "rgba(124, 58, 237, 0.09)";
+const ACTIVE_NAV_TEXT = "#7C3AED";
+const ACTIVE_NAV_ACCENT = "#7C3AED";
 
 function SidebarUserAvatar({ avatarUrl, initials }: { avatarUrl?: string | null; initials: string }) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -110,7 +109,7 @@ function SidebarUserAvatar({ avatarUrl, initials }: { avatarUrl?: string | null;
         borderRadius: 999,
         overflow: "hidden",
         flexShrink: 0,
-        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 55%, #6D28D9 100%)",
       }}
     >
       {showImg ? (
@@ -209,9 +208,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const secondaryNav: NavItem[] = [
     { href: "/reports", label: "Reports", icon: <BarChart2 size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/team", label: "Team", icon: <UserCircle2 size={iconSize} strokeWidth={iconStroke} /> },
-    ...(mounted && user?.role === "admin"
-      ? [{ href: "/admin", label: "Admin", icon: <Shield size={iconSize} strokeWidth={iconStroke} /> }]
-      : []),
   ];
 
   const userInitials = (user?.name || user?.email || "U")
@@ -275,7 +271,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             boxSizing: "border-box",
             borderLeft: active ? `3px solid ${ACTIVE_NAV_ACCENT}` : "3px solid transparent",
             boxShadow: "none",
-            borderRadius: active ? 10 : 8,
+            borderRadius: active ? 0 : 8,
             textDecoration: "none",
             fontSize: 14,
             fontWeight: active ? 600 : 500,
@@ -373,21 +369,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               overflow: "hidden",
             }}
           >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)",
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Bolt size={17} strokeWidth={1.5} />
-            </div>
+            <AppBrandLogoMark size={collapsed && !isMobile ? 30 : 40} />
             {!(collapsed && !isMobile) && (
               <span
                 style={{
@@ -395,9 +377,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   fontWeight: 800,
                   letterSpacing: "-0.03em",
                   fontFamily: "Inter, sans-serif",
+                  color: "#111827",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
+                  minWidth: 0,
                 }}
               >
                 Sales Co-Pilot
@@ -425,7 +409,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 transition: "color 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#4F46E5";
+                e.currentTarget.style.color = "#7C3AED";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = "#9CA3AF";
@@ -606,7 +590,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   transition: "color 150ms ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#4F46E5";
+                  e.currentTarget.style.color = "#7C3AED";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.color = "#6B7280";

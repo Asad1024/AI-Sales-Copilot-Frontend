@@ -77,8 +77,8 @@ export function EmailActivityTimeline({ campaignId, leadId, leadEmail }: EmailAc
       sent: {
         icon: <Icons.Send size={16} />,
         label: "Email Sent",
-        color: "#4C67FF",
-        bgColor: "rgba(76, 103, 255, 0.1)",
+        color: "#7C3AED",
+        bgColor: "rgba(124, 58, 237, 0.1)",
       },
       processed: {
         icon: <Icons.Loader size={16} />,
@@ -95,8 +95,8 @@ export function EmailActivityTimeline({ campaignId, leadId, leadEmail }: EmailAc
       opened: {
         icon: <Icons.Mail size={16} />,
         label: "Opened",
-        color: "#4C67FF",
-        bgColor: "rgba(76, 103, 255, 0.1)",
+        color: "#7C3AED",
+        bgColor: "rgba(124, 58, 237, 0.1)",
       },
       clicked: {
         icon: <Icons.ExternalLink size={16} />,

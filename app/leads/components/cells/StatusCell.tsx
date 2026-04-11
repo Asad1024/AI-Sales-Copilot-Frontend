@@ -1,5 +1,6 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Icons } from "@/components/ui/Icons";
 
 type AppIcon = typeof Icons.Circle;
@@ -27,6 +28,28 @@ function LeadStatusIcon({
   return <Ic size={size} strokeWidth={2} style={{ color, flexShrink: 0 }} aria-hidden />;
 }
 
+type StatusMenuPosition = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+};
+
+function computeStatusMenuPosition(trigger: DOMRect, optionCount: number): StatusMenuPosition {
+  const minW = 200;
+  const width = Math.max(minW, trigger.width);
+  const rowH = 40;
+  const pad = 16;
+  const naturalH = optionCount * rowH + pad;
+  const margin = 8;
+  const spaceBelow = window.innerHeight - trigger.bottom - margin;
+  const spaceAbove = trigger.top - margin;
+  const openUp = spaceBelow < 120 && spaceAbove > spaceBelow;
+  const maxHeight = Math.min(280, Math.max(80, openUp ? spaceAbove - 4 : spaceBelow - 4));
+  const top = openUp ? Math.max(margin, trigger.top - Math.min(naturalH, maxHeight) - 4) : trigger.bottom + 4;
+  return { top, left: trigger.left, width, maxHeight };
+}
+
 interface StatusCellProps {
   value: any;
   onUpdate: (value: any) => void | Promise<void>;
@@ -37,20 +60,38 @@ interface StatusCellProps {
 export function StatusCell({ value, onUpdate, editable = true, options }: StatusCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const selectRef = useRef<HTMLSelectElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<StatusMenuPosition | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isEditing && selectRef.current) {
-      selectRef.current.focus();
+  const updateMenuPosition = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setMenuPos(computeStatusMenuPosition(r, options.length));
+  }, [options.length]);
+
+  useLayoutEffect(() => {
+    if (!isEditing) {
+      setMenuPos(null);
+      return;
     }
-  }, [isEditing]);
+    updateMenuPosition();
+    const onReposition = () => updateMenuPosition();
+    window.addEventListener("scroll", onReposition, true);
+    window.addEventListener("resize", onReposition);
+    return () => {
+      window.removeEventListener("scroll", onReposition, true);
+      window.removeEventListener("resize", onReposition);
+    };
+  }, [isEditing, updateMenuPosition]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsEditing(false);
-      }
+      const t = event.target as Node;
+      if (triggerRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) return;
+      setIsEditing(false);
     };
 
     if (isEditing) {
@@ -120,39 +161,54 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
     );
   }
 
-  if (isEditing) {
-    return (
-      <div
-        ref={dropdownRef}
-        style={{ position: "relative" }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-      >
+  const menuPortal =
+    isEditing &&
+    menuPos &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <>
         <div
+          role="presentation"
           style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
+            position: "fixed",
+            inset: 0,
+            zIndex: 999,
+            background: "transparent",
+          }}
+          onClick={() => setIsEditing(false)}
+        />
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-label="Lead status"
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
             zIndex: 1000,
+            minWidth: menuPos.width,
+            maxHeight: menuPos.maxHeight,
+            overflowY: "auto",
             background: "var(--color-surface)",
             border: "1px solid var(--elev-border)",
-            borderRadius: "8px",
+            borderRadius: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            padding: "4px",
-            minWidth: "200px",
-            marginTop: "4px",
+            padding: 4,
+            boxSizing: "border-box",
           }}
         >
           {options.map((opt) => (
             <div
               key={opt.value}
+              role="option"
+              aria-selected={value === opt.value}
               onClick={(e) => {
                 e.stopPropagation();
-                handleSelect(opt.value);
+                void handleSelect(opt.value);
               }}
               style={{
                 padding: "8px 12px",
-                borderRadius: "6px",
+                borderRadius: 6,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -168,7 +224,7 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
               }}
             >
               <LeadStatusIcon statusValue={opt.value} color={opt.color} size={14} />
-              <span style={{ fontSize: "12px", fontWeight: value === opt.value ? "600" : "500" }}>
+              <span style={{ fontSize: 12, fontWeight: value === opt.value ? 600 : 500 }}>
                 {opt.label}
               </span>
               {value === opt.value && (
@@ -177,24 +233,9 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
             </div>
           ))}
         </div>
-        {/* Click overlay to close */}
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999,
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsEditing(false);
-          }}
-        />
-      </div>
+      </>,
+      document.body
     );
-  }
 
   return (
     <div
@@ -204,14 +245,17 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
         gap: 6,
         minHeight: 24,
       }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       {selectedOption ? (
         <button
+          ref={triggerRef}
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            setIsEditing(true);
+            setIsEditing((v) => !v);
           }}
           style={{
             background: `${selectedOption.color}18`,
@@ -227,6 +271,8 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
             cursor: "pointer",
             fontFamily: "inherit",
           }}
+          aria-expanded={isEditing}
+          aria-haspopup="listbox"
           aria-label={`Status: ${selectedOption.label}. Change status`}
         >
           <LeadStatusIcon statusValue={selectedOption.value} color={selectedOption.color} size={13} />
@@ -235,13 +281,16 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
         </button>
       ) : (
         <button
+          ref={triggerRef}
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            setIsEditing(true);
+            setIsEditing((v) => !v);
           }}
           className="focus-ring"
+          aria-expanded={isEditing}
+          aria-haspopup="listbox"
           aria-label="Set lead status"
           title="Set status"
           style={{
@@ -265,7 +314,7 @@ export function StatusCell({ value, onUpdate, editable = true, options }: Status
           <span>Set status</span>
         </button>
       )}
+      {menuPortal}
     </div>
   );
 }
-

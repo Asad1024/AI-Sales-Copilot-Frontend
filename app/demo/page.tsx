@@ -115,7 +115,7 @@ export default function DemoPage() {
       description: 'Generating and importing leads from multiple sources',
       icon: 'users',
       details: '200 leads generated and imported',
-      color: '#4C67FF'
+      color: '#7C3AED'
     },
     {
       id: 'enriched',
@@ -346,7 +346,7 @@ export default function DemoPage() {
         <div style={{
           width: `${((currentSlide + 1) / slides.length) * 100}%`,
           height: '100%',
-          background: 'linear-gradient(90deg, #4C67FF 0%, #A94CFF 100%)',
+          background: 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)',
           transition: 'width 0.8s ease'
         }} />
       </div>
@@ -392,11 +392,11 @@ export default function DemoPage() {
               width: '12px',
               height: '12px',
               borderRadius: '50%',
-              background: currentSlide === index ? '#4C67FF' : 'rgba(255, 255, 255, 0.3)',
+              background: currentSlide === index ? '#7C3AED' : 'rgba(255, 255, 255, 0.3)',
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              boxShadow: currentSlide === index ? '0 0 8px rgba(76, 103, 255, 0.5)' : 'none'
+              boxShadow: currentSlide === index ? '0 0 8px rgba(124, 58, 237, 0.5)' : 'none'
             }}
           />
         ))}
@@ -525,7 +525,7 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
       fontSize: '48px', 
       fontWeight: '700', 
       margin: '0 0 16px 0',
-      background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+      background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent'
     }}>
@@ -540,10 +540,10 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
     </p>
 
     <div style={{
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+      background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
       borderRadius: '24px',
       padding: '48px',
-      border: '1px solid rgba(76, 103, 255, 0.2)',
+      border: '1px solid rgba(124, 58, 237, 0.2)',
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -553,7 +553,7 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
         right: '-100px',
         width: '200px',
         height: '200px',
-        background: 'radial-gradient(circle, rgba(76, 103, 255, 0.1) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
         borderRadius: '50%'
       }} />
       
@@ -577,7 +577,7 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
               minHeight: '120px',
               padding: '20px',
               borderRadius: '16px',
-              border: '2px solid rgba(76, 103, 255, 0.3)',
+              border: '2px solid rgba(124, 58, 237, 0.3)',
               background: 'rgba(255, 255, 255, 0.05)',
               color: 'var(--color-text)',
               fontSize: '18px',
@@ -624,7 +624,7 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
           style={{
             background: !goal.trim() 
               ? 'rgba(255, 255, 255, 0.2)' 
-              : 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              : 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             border: 'none',
             borderRadius: '16px',
             padding: '16px 32px',
@@ -636,7 +636,7 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
             alignItems: 'center',
             gap: '12px',
             margin: '0 auto',
-            boxShadow: '0 8px 24px rgba(76, 103, 255, 0.3)',
+            boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
             transition: 'all 0.3s ease'
           }}
         >
@@ -654,10 +654,10 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
 const AnalyzingSlide = () => (
   <div style={{ textAlign: 'center' }}>
     <div style={{
-      background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+      background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
       borderRadius: '24px',
       padding: '80px 48px',
-      border: '1px solid rgba(76, 103, 255, 0.2)',
+      border: '1px solid rgba(124, 58, 237, 0.2)',
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -667,7 +667,7 @@ const AnalyzingSlide = () => (
         right: '-100px',
         width: '200px',
         height: '200px',
-        background: 'radial-gradient(circle, rgba(76, 103, 255, 0.1) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
         borderRadius: '50%'
       }} />
       
@@ -676,7 +676,7 @@ const AnalyzingSlide = () => (
           width: '120px',
           height: '120px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -714,7 +714,7 @@ const AnalyzingSlide = () => (
           background: 'rgba(0, 0, 0, 0.3)',
           borderRadius: '12px',
           padding: '16px',
-          border: '1px solid rgba(76, 103, 255, 0.3)',
+          border: '1px solid rgba(124, 58, 237, 0.3)',
           display: 'inline-block'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -722,7 +722,7 @@ const AnalyzingSlide = () => (
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: '#4C67FF',
+              background: '#7C3AED',
               animation: 'pulse 2s infinite'
             }} />
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text)' }}>
@@ -749,7 +749,7 @@ const PlanSlide = ({ aiPlan, onApprove }: {
         fontWeight: '700', 
         margin: '0 0 16px 0',
         textAlign: 'center',
-        background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+        background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent'
       }}>
@@ -764,10 +764,10 @@ const PlanSlide = ({ aiPlan, onApprove }: {
       }}>
         {/* Audience Card */}
         <div style={{
-          background: 'rgba(76, 103, 255, 0.1)',
+          background: 'rgba(124, 58, 237, 0.1)',
           borderRadius: '16px',
           padding: '24px',
-          border: '1px solid rgba(76, 103, 255, 0.3)',
+          border: '1px solid rgba(124, 58, 237, 0.3)',
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden'
@@ -778,7 +778,7 @@ const PlanSlide = ({ aiPlan, onApprove }: {
             right: '-20px',
             width: '80px',
             height: '80px',
-            background: 'radial-gradient(circle, rgba(76, 103, 255, 0.2) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(124, 58, 237, 0.2) 0%, transparent 70%)',
             borderRadius: '50%'
           }} />
           <div style={{ 
@@ -786,11 +786,11 @@ const PlanSlide = ({ aiPlan, onApprove }: {
             height: '56px', 
             margin: '0 auto 16px auto',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #6B7FFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #6B7FFF 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(76, 103, 255, 0.3)'
+            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
           }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -802,7 +802,7 @@ const PlanSlide = ({ aiPlan, onApprove }: {
             fontSize: '18px', 
             fontWeight: '600', 
             margin: '0 0 12px 0',
-            color: '#4C67FF'
+            color: '#7C3AED'
           }}>
             Audience
           </h3>
@@ -816,11 +816,11 @@ const PlanSlide = ({ aiPlan, onApprove }: {
             {aiPlan?.audience}
           </p>
           <div style={{
-            background: 'rgba(76, 103, 255, 0.2)',
+            background: 'rgba(124, 58, 237, 0.2)',
             borderRadius: '8px',
             padding: '10px 14px',
             fontSize: '13px',
-            color: '#4C67FF',
+            color: '#7C3AED',
             fontWeight: '600',
             display: 'inline-block'
           }}>
@@ -1052,7 +1052,7 @@ const PlanSlide = ({ aiPlan, onApprove }: {
         <button
           onClick={onApprove}
           style={{
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             border: 'none',
             borderRadius: '16px',
             padding: '20px 40px',
@@ -1064,16 +1064,16 @@ const PlanSlide = ({ aiPlan, onApprove }: {
             alignItems: 'center',
             gap: '12px',
             margin: '0 auto',
-            boxShadow: '0 8px 24px rgba(76, 103, 255, 0.3)',
+            boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
             transition: 'all 0.3s ease'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(76, 103, 255, 0.4)';
+            e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.4)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 103, 255, 0.3)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.3)';
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1098,7 +1098,7 @@ const DataPrepSlide = ({ steps, progress, currentStep, isComplete }: {
       fontWeight: '700', 
       margin: '0 0 16px 0',
       textAlign: 'center',
-      background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+      background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent'
     }}>
@@ -1134,12 +1134,12 @@ const DataPrepSlide = ({ steps, progress, currentStep, isComplete }: {
             padding: '20px',
             borderRadius: '16px',
             background: isActive 
-              ? 'rgba(76, 103, 255, 0.1)' 
+              ? 'rgba(124, 58, 237, 0.1)' 
               : isCompleted 
                 ? 'rgba(78, 205, 196, 0.1)'
                 : 'rgba(255, 255, 255, 0.02)',
             border: isActive 
-              ? '1px solid rgba(76, 103, 255, 0.3)' 
+              ? '1px solid rgba(124, 58, 237, 0.3)' 
               : isCompleted 
                 ? '1px solid rgba(78, 205, 196, 0.3)'
                 : '1px solid rgba(255, 255, 255, 0.1)',
@@ -1266,7 +1266,7 @@ const LaunchSlide = ({ onLaunch }: {
       icon: 'send', 
       label: 'Send to 200/day', 
       description: 'Daily sending limit',
-      color: '#4C67FF'
+      color: '#7C3AED'
     },
     { 
       icon: 'clock', 
@@ -1291,10 +1291,10 @@ const LaunchSlide = ({ onLaunch }: {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{
-        background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+        background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
         borderRadius: '24px',
         padding: '60px 48px',
-        border: '1px solid rgba(76, 103, 255, 0.2)',
+        border: '1px solid rgba(124, 58, 237, 0.2)',
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -1304,7 +1304,7 @@ const LaunchSlide = ({ onLaunch }: {
           right: '-100px',
           width: '200px',
           height: '200px',
-          background: 'radial-gradient(circle, rgba(76, 103, 255, 0.1) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
           borderRadius: '50%'
         }} />
         
@@ -1314,12 +1314,12 @@ const LaunchSlide = ({ onLaunch }: {
             height: '100px',
             margin: '0 auto 24px auto',
             borderRadius: '20px',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '48px',
-            boxShadow: '0 8px 24px rgba(76, 103, 255, 0.4)'
+            boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)'
           }}>
             🚀
           </div>
@@ -1327,7 +1327,7 @@ const LaunchSlide = ({ onLaunch }: {
             fontSize: '48px', 
             fontWeight: '700', 
             margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
@@ -1342,15 +1342,15 @@ const LaunchSlide = ({ onLaunch }: {
           </p>
 
           <div style={{
-            background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
+            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
             borderRadius: '24px',
             padding: '40px',
             marginBottom: '40px',
             textAlign: 'left',
             maxWidth: '700px',
             margin: '0 auto 40px auto',
-            border: '1px solid rgba(76, 103, 255, 0.3)',
-            boxShadow: '0 8px 32px rgba(76, 103, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(124, 58, 237, 0.3)',
+            boxShadow: '0 8px 32px rgba(124, 58, 237, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(10px)',
             position: 'relative',
             overflow: 'hidden'
@@ -1361,7 +1361,7 @@ const LaunchSlide = ({ onLaunch }: {
               right: '-50%',
               width: '200%',
               height: '200%',
-              background: 'radial-gradient(circle, rgba(76, 103, 255, 0.1) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
               borderRadius: '50%',
               pointerEvents: 'none'
             }} />
@@ -1382,12 +1382,12 @@ const LaunchSlide = ({ onLaunch }: {
                 width: '40px',
                 height: '40px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '20px',
-                boxShadow: '0 4px 12px rgba(76, 103, 255, 0.4)'
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)'
               }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="3"/>
@@ -1406,24 +1406,24 @@ const LaunchSlide = ({ onLaunch }: {
             }}>
               {launchSettings.map((setting, index) => (
                 <div key={index} style={{
-                  background: `linear-gradient(135deg, rgba(${setting.color === '#4C67FF' ? '76, 103, 255' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.15) 0%, rgba(${setting.color === '#4C67FF' ? '76, 103, 255' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.08) 100%)`,
+                  background: `linear-gradient(135deg, rgba(${setting.color === '#7C3AED' ? '124, 58, 237' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.15) 0%, rgba(${setting.color === '#7C3AED' ? '124, 58, 237' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.08) 100%)`,
                   borderRadius: '16px',
                   padding: '18px',
-                  border: `1px solid rgba(${setting.color === '#4C67FF' ? '76, 103, 255' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.4)`,
+                  border: `1px solid rgba(${setting.color === '#7C3AED' ? '124, 58, 237' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.4)`,
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '12px',
                   transition: 'all 0.3s ease',
-                  boxShadow: `0 4px 12px rgba(${setting.color === '#4C67FF' ? '76, 103, 255' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.15)`,
+                  boxShadow: `0 4px 12px rgba(${setting.color === '#7C3AED' ? '124, 58, 237' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.15)`,
                   backdropFilter: 'blur(8px)'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = `0 8px 20px rgba(${setting.color === '#4C67FF' ? '76, 103, 255' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.25)`;
+                  e.currentTarget.style.boxShadow = `0 8px 20px rgba(${setting.color === '#7C3AED' ? '124, 58, 237' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.25)`;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = `0 4px 12px rgba(${setting.color === '#4C67FF' ? '76, 103, 255' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.15)`;
+                  e.currentTarget.style.boxShadow = `0 4px 12px rgba(${setting.color === '#7C3AED' ? '124, 58, 237' : setting.color === '#A94CFF' ? '169, 76, 255' : setting.color === '#4ecdc4' ? '78, 205, 196' : '255, 167, 38'}, 0.15)`;
                 }}>
                   <div style={{
                     width: '24px',
@@ -1496,7 +1496,7 @@ const LaunchSlide = ({ onLaunch }: {
           <button
             onClick={onLaunch}
             style={{
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               border: 'none',
               borderRadius: '20px',
               padding: '20px 40px',
@@ -1508,16 +1508,16 @@ const LaunchSlide = ({ onLaunch }: {
               alignItems: 'center',
               gap: '12px',
               margin: '0 auto',
-              boxShadow: '0 8px 24px rgba(76, 103, 255, 0.3)',
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
               transition: 'all 0.3s ease'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(76, 103, 255, 0.4)';
+              e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.4)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 103, 255, 0.3)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.3)';
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1541,7 +1541,7 @@ const InboxSlide = () => {
       label: 'Sent',
       value: '1,247',
       description: 'Total messages sent',
-      color: '#4C67FF',
+      color: '#7C3AED',
       trend: '+12%'
     },
     {
@@ -1593,7 +1593,7 @@ const InboxSlide = () => {
         fontWeight: '700', 
         margin: '0 0 16px 0',
         textAlign: 'center',
-        background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+        background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent'
       }}>
@@ -1623,10 +1623,10 @@ const InboxSlide = () => {
         }}>
           {metrics.map((metric, index) => (
             <div key={index} style={{
-              background: `rgba(${metric.color === '#4C67FF' ? '76, 103, 255' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.1)`,
+              background: `rgba(${metric.color === '#7C3AED' ? '124, 58, 237' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.1)`,
               borderRadius: '16px',
               padding: '24px',
-              border: `1px solid rgba(${metric.color === '#4C67FF' ? '76, 103, 255' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.3)`,
+              border: `1px solid rgba(${metric.color === '#7C3AED' ? '124, 58, 237' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.3)`,
               textAlign: 'center',
               position: 'relative',
               overflow: 'hidden',
@@ -1638,7 +1638,7 @@ const InboxSlide = () => {
                 right: '-20px',
                 width: '60px',
                 height: '60px',
-                background: `radial-gradient(circle, rgba(${metric.color === '#4C67FF' ? '76, 103, 255' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.2) 0%, transparent 70%)`,
+                background: `radial-gradient(circle, rgba(${metric.color === '#7C3AED' ? '124, 58, 237' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.2) 0%, transparent 70%)`,
                 borderRadius: '50%'
               }} />
               <div style={{ 
@@ -1718,7 +1718,7 @@ const InboxSlide = () => {
                 {metric.description}
               </div>
               <div style={{
-                background: `rgba(${metric.color === '#4C67FF' ? '76, 103, 255' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.2)`,
+                background: `rgba(${metric.color === '#7C3AED' ? '124, 58, 237' : metric.color === '#A94CFF' ? '169, 76, 255' : metric.color === '#4ecdc4' ? '78, 205, 196' : metric.color === '#ffa726' ? '255, 167, 38' : metric.color === '#ef5350' ? '239, 83, 80' : '171, 71, 188'}, 0.2)`,
                 borderRadius: '6px',
                 padding: '4px 8px',
                 fontSize: '11px',
@@ -1746,7 +1746,7 @@ const PerformanceSummarySlide = () => {
         fontWeight: '700', 
         margin: '0 0 16px 0',
         textAlign: 'center',
-        background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+        background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent'
       }}>
@@ -1769,12 +1769,12 @@ const PerformanceSummarySlide = () => {
       }}>
         {/* Summary Section */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.12) 0%, rgba(169, 76, 255, 0.12) 100%)',
+          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(169, 76, 255, 0.12) 100%)',
           borderRadius: '24px',
           padding: '32px',
-          border: '1px solid rgba(76, 103, 255, 0.3)',
+          border: '1px solid rgba(124, 58, 237, 0.3)',
           marginBottom: '32px',
-          boxShadow: '0 8px 32px rgba(76, 103, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 8px 32px rgba(124, 58, 237, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(10px)',
           position: 'relative',
           overflow: 'hidden'
@@ -1802,12 +1802,12 @@ const PerformanceSummarySlide = () => {
               width: '44px',
               height: '44px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '22px',
-              boxShadow: '0 4px 16px rgba(76, 103, 255, 0.4)'
+              boxShadow: '0 4px 16px rgba(124, 58, 237, 0.4)'
             }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="20" x2="18" y2="10"/>
@@ -1820,7 +1820,7 @@ const PerformanceSummarySlide = () => {
               fontWeight: '700', 
               margin: 0,
               color: 'var(--color-text)',
-              background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>
@@ -1836,27 +1836,27 @@ const PerformanceSummarySlide = () => {
             zIndex: 1
           }}>
             {[
-              { value: '1,247', label: 'Messages Sent', color: '#4C67FF', icon: 'send' },
+              { value: '1,247', label: 'Messages Sent', color: '#7C3AED', icon: 'send' },
               { value: '28.5%', label: 'Open Rate', color: '#4ecdc4', icon: 'eye' },
               { value: '11.4%', label: 'Reply Rate', color: '#ef5350', icon: 'message' },
               { value: '7.4%', label: 'Click Rate', color: '#ffa726', icon: 'link' }
             ].map((item, index) => (
               <div key={index} style={{
-                background: `linear-gradient(135deg, rgba(${item.color === '#4C67FF' ? '76, 103, 255' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.15) 0%, rgba(${item.color === '#4C67FF' ? '76, 103, 255' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.08) 100%)`,
+                background: `linear-gradient(135deg, rgba(${item.color === '#7C3AED' ? '124, 58, 237' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.15) 0%, rgba(${item.color === '#7C3AED' ? '124, 58, 237' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.08) 100%)`,
                 borderRadius: '16px',
                 padding: '20px',
-                border: `1px solid rgba(${item.color === '#4C67FF' ? '76, 103, 255' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.3)`,
-                boxShadow: `0 4px 12px rgba(${item.color === '#4C67FF' ? '76, 103, 255' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.15)`,
+                border: `1px solid rgba(${item.color === '#7C3AED' ? '124, 58, 237' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.3)`,
+                boxShadow: `0 4px 12px rgba(${item.color === '#7C3AED' ? '124, 58, 237' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.15)`,
                 backdropFilter: 'blur(8px)',
                 transition: 'all 0.3s ease'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = `0 8px 20px rgba(${item.color === '#4C67FF' ? '76, 103, 255' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.25)`;
+                e.currentTarget.style.boxShadow = `0 8px 20px rgba(${item.color === '#7C3AED' ? '124, 58, 237' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.25)`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = `0 4px 12px rgba(${item.color === '#4C67FF' ? '76, 103, 255' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.15)`;
+                e.currentTarget.style.boxShadow = `0 4px 12px rgba(${item.color === '#7C3AED' ? '124, 58, 237' : item.color === '#4ecdc4' ? '78, 205, 196' : item.color === '#ef5350' ? '239, 83, 80' : '255, 167, 38'}, 0.15)`;
               }}>
                 <div style={{ 
                   width: '40px',
@@ -1916,12 +1916,12 @@ const PerformanceSummarySlide = () => {
 
         {/* Demo Complete Message */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
           borderRadius: '20px',
           padding: '32px',
-          border: '1px solid rgba(76, 103, 255, 0.3)',
+          border: '1px solid rgba(124, 58, 237, 0.3)',
           textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(76, 103, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 8px 32px rgba(124, 58, 237, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(10px)',
           position: 'relative',
           overflow: 'hidden'
@@ -1941,12 +1941,12 @@ const PerformanceSummarySlide = () => {
             height: '64px',
             margin: '0 auto 16px auto',
             borderRadius: '16px',
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '32px',
-            boxShadow: '0 8px 24px rgba(76, 103, 255, 0.4)',
+            boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
             position: 'relative',
             zIndex: 1
           }}>
@@ -1962,7 +1962,7 @@ const PerformanceSummarySlide = () => {
             fontWeight: '700',
             position: 'relative',
             zIndex: 1,
-            background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>

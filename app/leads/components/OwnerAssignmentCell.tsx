@@ -1,5 +1,6 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Icons } from "@/components/ui/Icons";
 import { apiRequest } from "@/lib/apiClient";
 import { useBaseStore } from "@/stores/useBaseStore";
@@ -10,9 +11,61 @@ interface OwnerAssignmentCellProps {
   lead: {
     id: number;
     owner_id?: number | null;
-    owner?: { id: number; name: string; email: string } | null;
+    owner?: { id: number; name: string; email: string; avatar_url?: string | null } | null;
   };
   editable?: boolean;
+}
+
+type TeamMemberRow = { id: number; name: string; email: string; avatar_url?: string | null };
+
+function OwnerAvatar({
+  name,
+  avatarUrl,
+  size = 28,
+}: {
+  name?: string | null;
+  avatarUrl?: string | null;
+  size?: number;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const url = typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : "";
+  const initial = (name || "U").trim().charAt(0).toUpperCase() || "U";
+  const showImg = Boolean(url) && !imgFailed;
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [url]);
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        flexShrink: 0,
+        overflow: "hidden",
+        background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxSizing: "border-box",
+      }}
+      aria-hidden
+    >
+      {showImg ? (
+        <img
+          src={url}
+          alt=""
+          onError={() => setImgFailed(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      ) : (
+        <span style={{ color: "#0f172a", fontSize: size >= 28 ? 12 : 10, fontWeight: 700, lineHeight: 1 }}>
+          {initial}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCellProps) {
@@ -20,10 +73,27 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
   const { updateLead, fetchLeads, pagination } = useLeadStore();
   const { showSuccess, showError } = useNotification();
   const [isOpen, setIsOpen] = useState(false);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const menuPortalRef = useRef<HTMLDivElement>(null);
+
+  const updateMenuPosition = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const minW = 220;
+    const width = Math.max(minW, r.width);
+    const margin = 8;
+    const spaceBelow = window.innerHeight - r.bottom - margin;
+    const spaceAbove = r.top - margin;
+    const maxHeight = Math.min(300, Math.max(120, spaceBelow > 160 ? spaceBelow - 4 : spaceAbove - 4));
+    const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+    const top = openUp ? Math.max(margin, r.top - maxHeight - 4) : r.bottom + 4;
+    setMenuPos({ top, left: r.left, width, maxHeight });
+  }, []);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -32,11 +102,16 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
       try {
         const data = await apiRequest(`/bases/${activeBaseId}/members`);
         const members = Array.isArray(data?.members) ? data.members : [];
-        setTeamMembers(members.map((m: any) => ({
-          id: m.user?.id || m.User?.id,
-          name: m.user?.name || m.User?.name || m.user?.email || m.User?.email,
-          email: m.user?.email || m.User?.email
-        })).filter((m: any) => m.id));
+        setTeamMembers(
+          members
+            .map((m: any) => ({
+              id: m.user?.id || m.User?.id,
+              name: m.user?.name || m.User?.name || m.user?.email || m.User?.email,
+              email: m.user?.email || m.User?.email,
+              avatar_url: m.user?.avatar_url ?? m.User?.avatar_url ?? null,
+            }))
+            .filter((m: TeamMemberRow) => m.id)
+        );
       } catch (error) {
         console.error('Failed to fetch team members:', error);
       } finally {
@@ -46,11 +121,27 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
     fetchMembers();
   }, [activeBaseId]);
 
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setMenuPos(null);
+      return;
+    }
+    updateMenuPosition();
+    const onReposition = () => updateMenuPosition();
+    window.addEventListener("scroll", onReposition, true);
+    window.addEventListener("resize", onReposition);
+    return () => {
+      window.removeEventListener("scroll", onReposition, true);
+      window.removeEventListener("resize", onReposition);
+    };
+  }, [isOpen, updateMenuPosition]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const t = event.target as Node;
+      if (triggerRef.current?.contains(t)) return;
+      if (menuPortalRef.current?.contains(t)) return;
+      setIsOpen(false);
     };
 
     if (isOpen) {
@@ -79,22 +170,30 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
 
   if (!editable) {
     return lead.owner ? (
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <div style={{
-          width: "24px",
-          height: "24px",
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
+      <div
+        style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          color: "#000000",
-          fontSize: "10px",
-          fontWeight: "600"
-        }}>
-          {lead.owner.name?.charAt(0)?.toUpperCase() || "U"}
-        </div>
-        <span style={{ fontSize: "11px", fontWeight: "500" }}>{lead.owner.name}</span>
+          gap: 10,
+          minWidth: 0,
+          maxWidth: "100%",
+        }}
+      >
+        <OwnerAvatar name={lead.owner.name} avatarUrl={lead.owner.avatar_url} size={28} />
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            minWidth: 0,
+            color: "var(--color-text)",
+            lineHeight: 1.3,
+          }}
+        >
+          {lead.owner.name}
+        </span>
       </div>
     ) : (
       <span className="text-xs italic text-slate-400 dark:text-slate-500">Unassigned</span>
@@ -131,76 +230,36 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
     );
   }
 
-  return (
-    <div
-      ref={dropdownRef}
-      style={{ position: "relative" }}
-      onClick={stopRowClick}
-      onMouseDown={stopRowClick}
-      onPointerDown={stopRowClick}
-    >
-      <div
-        onClick={() => !assigning && setIsOpen(!isOpen)}
-        style={{
-          cursor: "pointer",
-          padding: "4px 8px",
-          borderRadius: "4px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          minHeight: "32px",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-        }}
-      >
-        {lead.owner ? (
-          <>
-            <div style={{
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#000000",
-              fontSize: "10px",
-              fontWeight: "600"
-            }}>
-              {lead.owner.name?.charAt(0)?.toUpperCase() || "U"}
-            </div>
-            <span style={{ fontSize: "11px", fontWeight: "500" }}>{lead.owner.name}</span>
-            <Icons.ChevronDown size={12} className="owner-cell-chevron" style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
-          </>
-        ) : (
-          <>
-            <span className="text-xs italic text-slate-400 dark:text-slate-500">Unassigned</span>
-            <Icons.ChevronDown size={12} className="owner-cell-chevron" style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
-          </>
-        )}
-      </div>
-
-      {isOpen && (
+  const menuPortal =
+    isOpen &&
+    menuPos &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <>
         <div
+          role="presentation"
+          style={{ position: "fixed", inset: 0, zIndex: 998, background: "transparent" }}
+          onClick={() => setIsOpen(false)}
+        />
+        <div
+          ref={menuPortalRef}
           style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
             zIndex: 1000,
+            minWidth: menuPos.width,
+            maxHeight: menuPos.maxHeight,
+            overflowY: "auto",
             background: "var(--color-surface)",
             border: "1px solid var(--elev-border)",
-            borderRadius: "8px",
+            borderRadius: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            padding: "4px",
-            minWidth: "220px",
-            maxHeight: "300px",
-            overflowY: "auto",
-            marginTop: "4px",
+            padding: 4,
+            boxSizing: "border-box",
           }}
+          onClick={stopRowClick}
+          onMouseDown={stopRowClick}
         >
           {loading ? (
             <div style={{ padding: "12px", textAlign: "center", fontSize: "13px", color: "var(--color-text-muted)" }}>
@@ -218,13 +277,13 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
                   alignItems: "center",
                   gap: "8px",
                   opacity: assigning ? 0.6 : 1,
-                  background: !lead.owner_id ? "rgba(76, 103, 255, 0.1)" : "transparent",
+                  background: !lead.owner_id ? "rgba(124, 58, 237, 0.1)" : "transparent",
                 }}
                 onMouseEnter={(e) => {
-                  if (!assigning) e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
+                  if (!assigning) e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = !lead.owner_id ? "rgba(76, 103, 255, 0.1)" : "transparent";
+                  e.currentTarget.style.background = !lead.owner_id ? "rgba(124, 58, 237, 0.1)" : "transparent";
                 }}
               >
                 <Icons.X size={14} style={{ color: "var(--color-text-muted)" }} />
@@ -240,48 +299,96 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
                     cursor: assigning ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
-                    gap: "8px",
+                    gap: 10,
                     opacity: assigning ? 0.6 : 1,
-                    background: lead.owner_id === member.id ? "rgba(76, 103, 255, 0.1)" : "transparent",
+                    background: lead.owner_id === member.id ? "rgba(124, 58, 237, 0.1)" : "transparent",
                   }}
                   onMouseEnter={(e) => {
-                    if (!assigning) e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
+                    if (!assigning) e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = lead.owner_id === member.id ? "rgba(76, 103, 255, 0.1)" : "transparent";
+                    e.currentTarget.style.background = lead.owner_id === member.id ? "rgba(124, 58, 237, 0.1)" : "transparent";
                   }}
                 >
-                  <div style={{
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#000000",
-                    fontSize: "10px",
-                    fontWeight: "600"
-                  }}>
-                    {member.name?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
-                  <div style={{ flex: 1 }}>
+                  <OwnerAvatar name={member.name} avatarUrl={member.avatar_url} size={28} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: "13px", fontWeight: lead.owner_id === member.id ? "600" : "500" }}>
                       {member.name}
                     </div>
-                    <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
-                      {member.email}
-                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>{member.email}</div>
                   </div>
-                  {lead.owner_id === member.id && (
-                    <Icons.Check size={14} style={{ color: "#4C67FF" }} />
-                  )}
+                  {lead.owner_id === member.id && <Icons.Check size={14} style={{ color: "#7C3AED" }} />}
                 </div>
               ))}
             </>
           )}
         </div>
-      )}
+      </>,
+      document.body
+    );
+
+  return (
+    <div
+      style={{ position: "relative" }}
+      onClick={stopRowClick}
+      onMouseDown={stopRowClick}
+      onPointerDown={stopRowClick}
+    >
+      <div
+        ref={triggerRef}
+        onClick={() => !assigning && setIsOpen(!isOpen)}
+        style={{
+          cursor: "pointer",
+          padding: "6px 10px",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          minHeight: 36,
+          minWidth: 0,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+        }}
+      >
+        {lead.owner ? (
+          <>
+            <OwnerAvatar name={lead.owner.name} avatarUrl={lead.owner.avatar_url} size={28} />
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                minWidth: 0,
+                flex: 1,
+                color: "var(--color-text)",
+                lineHeight: 1.3,
+              }}
+            >
+              {lead.owner.name}
+            </span>
+            <Icons.ChevronDown
+              size={12}
+              className="owner-cell-chevron"
+              style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+              aria-hidden
+            />
+          </>
+        ) : (
+          <>
+            <span className="text-xs italic text-slate-400 dark:text-slate-500">Unassigned</span>
+            <Icons.ChevronDown size={12} className="owner-cell-chevron" style={{ color: "var(--color-text-muted)", marginLeft: "auto" }} />
+          </>
+        )}
+      </div>
+      {menuPortal}
     </div>
   );
 }

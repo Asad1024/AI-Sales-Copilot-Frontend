@@ -102,6 +102,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               cursor: "pointer",
               transition: "background 150ms ease, border-color 150ms ease",
               fontFamily: "Inter, sans-serif",
+              boxShadow: "none",
             }}
             onMouseEnter={(e) => {
               if (!collapsed) e.currentTarget.style.background = "#F3F4F6";
@@ -194,8 +195,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                           padding: "8px 10px",
                           borderRadius: 8,
                           border: "none",
-                          background: base.id === activeBaseId ? "#EEF2FF" : "transparent",
-                          color: base.id === activeBaseId ? "#4F46E5" : "#111827",
+                          background: base.id === activeBaseId ? "rgba(124, 58, 237, 0.1)" : "transparent",
+                          color: base.id === activeBaseId ? "#7C3AED" : "#111827",
                           fontSize: 13,
                           fontWeight: 500,
                           cursor: "pointer",
@@ -213,7 +214,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                           {base.name}
                         </span>
-                        {base.id === activeBaseId && <Check size={16} strokeWidth={1.5} style={{ flexShrink: 0, color: "#4F46E5" }} />}
+                        {base.id === activeBaseId && <Check size={16} strokeWidth={1.5} style={{ flexShrink: 0, color: "#7C3AED" }} />}
                       </button>
                     ))
                   )}
@@ -234,14 +235,14 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                       borderRadius: 8,
                       border: "none",
                       background: "transparent",
-                      color: "#4F46E5",
+                      color: "#7C3AED",
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: "pointer",
                       textAlign: "left",
                       transition: "background 150ms ease",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#EEF2FF")}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 58, 237, 0.08)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <Plus size={16} strokeWidth={1.5} />
@@ -330,7 +331,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                     fontSize: 13,
                     border: "none",
                     borderRadius: 8,
-                    background: loading || !baseName.trim() ? "#A5B4FC" : "#4F46E5",
+                    background: loading || !baseName.trim() ? "#C4B5FD" : "#7C3AED",
                     color: "#fff",
                     cursor: loading || !baseName.trim() ? "not-allowed" : "pointer",
                     fontWeight: 600,
@@ -435,7 +436,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                       padding: "8px 10px",
                       borderRadius: 4,
                       border: "none",
-                      background: base.id === activeBaseId ? "rgba(76,103,255,0.08)" : "transparent",
+                      background: base.id === activeBaseId ? "rgba(124, 58, 237,0.08)" : "transparent",
                       color: "var(--color-text)",
                       fontSize: 13,
                       cursor: "pointer",

@@ -28,11 +28,11 @@ export function Kpi({ title, value, icon }: KpiProps) {
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: "rgba(76, 103, 255, 0.1)",
+              background: "rgba(124, 58, 237, 0.1)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "1px solid rgba(76, 103, 255, 0.18)",
+              border: "1px solid rgba(124, 58, 237, 0.18)",
             }}
           >
             <IconComponent size={22} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />

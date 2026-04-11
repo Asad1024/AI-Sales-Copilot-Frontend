@@ -1,34 +1,89 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
-import AdminGuard from "@/components/auth/AdminGuard";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
+import AdminActionsMenu from "@/components/admin/AdminActionsMenu";
+import AdminPageToolbar from "@/components/admin/AdminPageToolbar";
+import AdminUserAvatar from "@/components/admin/AdminUserAvatar";
+import { adminMatchesSearch } from "@/lib/adminFilters";
 
-interface User {
+interface UserRow {
   id: number;
   email: string;
   name: string;
   role: "admin" | "user";
   company?: string;
   createdAt: string;
+  avatar_url?: string | null;
 }
 
+type CredKey =
+  | "apolloApiKey"
+  | "openaiApiKey"
+  | "geminiApiKey"
+  | "tavilyApiKey"
+  | "anymailFinderApiKey"
+  | "fullEnrichApiKey"
+  | "unipileApiUrl"
+  | "unipileApiKey"
+  | "elevenlabsApiKey"
+  | "elevenlabsAgentId"
+  | "elevenlabsPhoneNumberId"
+  | "elevenlabsWebhookSecret";
+
+const CRED_FIELDS: { key: CredKey; label: string; hint: string; inputType?: "text" | "password" }[] = [
+  { key: "apolloApiKey", label: "Apollo API key", hint: "Lead search / enrichment" },
+  { key: "openaiApiKey", label: "OpenAI API key", hint: "AI scoring & generation" },
+  { key: "geminiApiKey", label: "Gemini API key", hint: "Optional alternate LLM" },
+  { key: "tavilyApiKey", label: "Tavily API key", hint: "Research" },
+  { key: "anymailFinderApiKey", label: "Anymail finder API key", hint: "Email discovery" },
+  { key: "fullEnrichApiKey", label: "FullEnrich API key", hint: "Deep enrichment" },
+  { key: "unipileApiUrl", label: "Unipile API URL", hint: "e.g. https://api13.unipile.com:14348", inputType: "text" },
+  { key: "unipileApiKey", label: "Unipile API key", hint: "LinkedIn & WhatsApp messaging (Unipile)" },
+  { key: "elevenlabsApiKey", label: "ElevenLabs API key", hint: "Voice / conversational API" },
+  { key: "elevenlabsAgentId", label: "ElevenLabs agent ID", hint: "e.g. agent_…", inputType: "text" },
+  { key: "elevenlabsPhoneNumberId", label: "ElevenLabs phone number ID", hint: "e.g. phnum_…", inputType: "text" },
+  { key: "elevenlabsWebhookSecret", label: "ElevenLabs webhook secret", hint: "Webhook signature verification" },
+];
+
 export default function AdminUsersPage() {
+  const router = useRouter();
   const { showError, showSuccess } = useNotification();
   const confirm = useConfirm();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "user" as "admin" | "user",
-    company: ""
+    company: "",
   });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    company: "",
+    password: "",
+  });
+  const [search, setSearch] = useState("");
+  const [companyFilter, setCompanyFilter] = useState<"all" | "with" | "without">("all");
+  const [credUser, setCredUser] = useState<UserRow | null>(null);
+  const [credConfigured, setCredConfigured] = useState<Record<string, boolean>>({});
+  const [credValues, setCredValues] = useState<Partial<Record<CredKey, string>>>({});
+  const [credTouched, setCredTouched] = useState<Partial<Record<CredKey, boolean>>>({});
+  const [credSaving, setCredSaving] = useState(false);
+  const [credShowAll, setCredShowAll] = useState(false);
+
+  const closeCredModal = () => {
+    setCredShowAll(false);
+    setCredUser(null);
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -37,7 +92,7 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       const data = await apiRequest("/admin/users");
-      const usersList = Array.isArray(data) ? data : (data?.users || []);
+      const usersList = Array.isArray(data) ? data : (data as { users?: UserRow[] })?.users || [];
       setUsers(usersList);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -52,26 +107,27 @@ export default function AdminUsersPage() {
     try {
       await apiRequest("/admin/users", {
         method: "POST",
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
       setShowAddModal(false);
       setFormData({ name: "", email: "", password: "", role: "user", company: "" });
       fetchUsers();
-    } catch (error: any) {
-      showError("Create failed", error.message || "Failed to create user");
+      showSuccess("User created", "The account is ready.");
+    } catch (error: unknown) {
+      showError("Create failed", error instanceof Error ? error.message : "Failed to create user");
     }
   };
 
-  const handleUpdateUser = async (user: User) => {
+  const handleUpdateRole = async (user: UserRow) => {
     try {
       await apiRequest(`/admin/users/${user.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ role: user.role === "admin" ? "user" : "admin" })
+        body: JSON.stringify({ role: user.role === "admin" ? "user" : "admin" }),
       });
       fetchUsers();
       showSuccess("User updated", "Role was changed.");
-    } catch (error: any) {
-      showError("Update failed", error.message || "Failed to update user");
+    } catch (error: unknown) {
+      showError("Update failed", error instanceof Error ? error.message : "Failed to update user");
     }
   };
 
@@ -87,178 +143,414 @@ export default function AdminUsersPage() {
       await apiRequest(`/admin/users/${id}`, { method: "DELETE" });
       fetchUsers();
       showSuccess("User deleted", "The user was removed.");
-    } catch (error: any) {
-      showError("Delete failed", error.message || "Failed to delete user");
+    } catch (error: unknown) {
+      showError("Delete failed", error instanceof Error ? error.message : "Failed to delete user");
     }
   };
 
-  return (
-    <AdminGuard>
-      <div style={{ padding: "12px 20px 24px", maxWidth: "1400px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <div>
-            <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>User Management</h1>
-            <p style={{ color: "var(--color-text-muted)", fontSize: "16px" }}>
-              Manage all users and their permissions
-            </p>
-          </div>
-          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-            + Add User
-          </button>
-        </div>
+  const openCredentials = async (u: UserRow) => {
+    setCredUser(u);
+    setCredShowAll(false);
+    setCredTouched({});
+    try {
+      const data = (await apiRequest(`/admin/users/${u.id}/api-credentials`)) as {
+        configured?: Record<string, boolean>;
+        values?: Partial<Record<CredKey, string>>;
+      };
+      setCredConfigured(data?.configured || {});
+      const next: Partial<Record<CredKey, string>> = {};
+      for (const { key } of CRED_FIELDS) {
+        next[key] = data.values?.[key] ?? "";
+      }
+      setCredValues(next);
+    } catch {
+      setCredConfigured({});
+      setCredValues({});
+      showError("Load failed", "Could not load credentials.");
+    }
+  };
 
-        {loading ? (
-          <div style={{
-            background: "var(--color-surface)",
-            borderRadius: "16px",
-            border: "1px solid var(--color-border)",
-            overflow: "hidden"
-          }}>
-            <TableSkeleton columns={6} rows={10} withCard={false} trailingActions ariaLabel="Loading users" />
-          </div>
-        ) : (
-          <div style={{
-            background: "var(--color-surface)",
-            borderRadius: "16px",
-            border: "1px solid var(--color-border)",
-            overflow: "hidden"
-          }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "var(--color-surface-secondary)", borderBottom: "1px solid var(--color-border)" }}>
-                  <th style={{ padding: "16px", textAlign: "left", fontSize: "14px", fontWeight: "600" }}>Name</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontSize: "14px", fontWeight: "600" }}>Email</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontSize: "14px", fontWeight: "600" }}>Role</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontSize: "14px", fontWeight: "600" }}>Company</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontSize: "14px", fontWeight: "600" }}>Created</th>
-                  <th style={{ padding: "16px", textAlign: "right", fontSize: "14px", fontWeight: "600" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>{user.name}</td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>{user.email}</td>
-                    <td style={{ padding: "16px", fontSize: "14px" }}>
-                      <span style={{
-                        padding: "4px 12px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        background: user.role === "admin" ? "rgba(169, 76, 255, 0.2)" : "rgba(76, 103, 255, 0.2)",
-                        color: user.role === "admin" ? "#A94CFF" : "#4C67FF"
-                      }}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td style={{ padding: "16px", fontSize: "14px", color: "var(--color-text-muted)" }}>
-                      {user.company || "-"}
-                    </td>
-                    <td style={{ padding: "16px", fontSize: "14px", color: "var(--color-text-muted)" }}>
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td style={{ padding: "16px", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button
-                          className="btn-ghost"
-                          onClick={() => handleUpdateUser(user)}
-                          style={{ fontSize: "12px" }}
-                        >
-                          {user.role === "admin" ? "Make User" : "Make Admin"}
-                        </button>
-                        <button
-                          className="btn-ghost"
-                          onClick={() => handleDeleteUser(user.id)}
-                          style={{ fontSize: "12px", color: "#ff6b6b" }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+  const saveCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!credUser) return;
+    setCredSaving(true);
+    try {
+      const body: Partial<Record<CredKey, string>> = {};
+      for (const { key } of CRED_FIELDS) {
+        if (credTouched[key]) {
+          body[key] = (credValues[key] ?? "").trim();
+        }
+      }
+      await apiRequest(`/admin/users/${credUser.id}/api-credentials`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      showSuccess("Saved", "API credentials updated for this user.");
+      closeCredModal();
+    } catch (error: unknown) {
+      showError("Save failed", error instanceof Error ? error.message : "Failed to save credentials");
+    } finally {
+      setCredSaving(false);
+    }
+  };
 
-        {showAddModal && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100
-          }}>
-            <div style={{
-              background: "var(--color-surface)",
-              borderRadius: "16px",
-              padding: "24px",
-              width: "90%",
-              maxWidth: "500px",
-              border: "1px solid var(--color-border)"
-            }}>
-              <h2 style={{ fontSize: "20px", fontWeight: "600", marginBottom: "16px" }}>Add New User</h2>
-              <form onSubmit={handleCreateUser}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>
-                  <input
-                    className="input"
-                    placeholder="Name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                  <input
-                    className="input"
-                    type="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                  <input
-                    className="input"
-                    type="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    minLength={6}
-                  />
-                  <select
-                    className="input"
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as "admin" | "user" })}
-                  >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <input
-                    className="input"
-                    placeholder="Company (optional)"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  />
-                </div>
-                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                  <button type="button" className="btn-ghost" onClick={() => setShowAddModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Create User
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+  const openEdit = (u: UserRow) => {
+    setEditUser(u);
+    setEditForm({
+      name: u.name,
+      email: u.email,
+      company: u.company || "",
+      password: "",
+    });
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser) return;
+    try {
+      const body: Record<string, string> = {
+        name: editForm.name,
+        email: editForm.email,
+        company: editForm.company,
+      };
+      if (editForm.password.trim().length >= 6) {
+        body.password = editForm.password;
+      }
+      await apiRequest(`/admin/users/${editUser.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      setEditUser(null);
+      fetchUsers();
+      showSuccess("Saved", "User profile was updated.");
+    } catch (error: unknown) {
+      showError("Save failed", error instanceof Error ? error.message : "Failed to save");
+    }
+  };
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((row) => {
+      if (companyFilter === "with" && !(row.company && row.company.trim())) return false;
+      if (companyFilter === "without" && row.company && row.company.trim()) return false;
+      return adminMatchesSearch(search, [row.name, row.email, row.company, row.role, String(row.id)]);
+    });
+  }, [users, search, companyFilter]);
+
+  const modalShell = (title: string, onClose: () => void, children: React.ReactNode, maxWidthPx = 500) => (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 100,
+      }}
+      role="presentation"
+      onMouseDown={(ev) => {
+        if (ev.target === ev.currentTarget) onClose();
+      }}
+    >
+      <div
+        style={{
+          background: "var(--color-surface)",
+          borderRadius: 16,
+          padding: 24,
+          width: "90%",
+          maxWidth: maxWidthPx,
+          border: "1px solid var(--color-border)",
+        }}
+      >
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{title}</h2>
+        {children}
       </div>
-    </AdminGuard>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <AdminPageToolbar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search name, email, company, ID…"
+        resultHint={!loading ? `${filteredUsers.length} of ${users.length} users` : undefined}
+        filters={
+          <select
+            className="input"
+            value={companyFilter}
+            onChange={(e) => setCompanyFilter(e.target.value as "all" | "with" | "without")}
+            aria-label="Company filter"
+            style={{ minWidth: 160, fontSize: 13 }}
+          >
+            <option value="all">All companies</option>
+            <option value="with">With company</option>
+            <option value="without">No company</option>
+          </select>
+        }
+        right={
+          <>
+            <button type="button" className="btn-primary" onClick={() => setShowAddModal(true)}>
+              Add user
+            </button>
+            <button type="button" className="btn-ghost" onClick={() => router.push("/admin")}>
+              Overview
+            </button>
+          </>
+        }
+      />
+
+      {loading ? (
+        <div
+          style={{
+            background: "var(--color-surface)",
+            borderRadius: 16,
+            border: "1px solid var(--color-border)",
+            overflow: "hidden",
+          }}
+        >
+          <TableSkeleton columns={6} rows={10} withCard={false} trailingActions ariaLabel="Loading users" />
+        </div>
+      ) : (
+        <div
+          style={{
+            background: "var(--color-surface)",
+            borderRadius: 16,
+            border: "1px solid var(--color-border)",
+            overflow: "hidden",
+          }}
+        >
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "var(--color-surface-secondary)", borderBottom: "1px solid var(--color-border)" }}>
+                <th style={{ padding: 16, textAlign: "left", fontSize: 14, fontWeight: 600 }}>Name</th>
+                <th style={{ padding: 16, textAlign: "left", fontSize: 14, fontWeight: 600 }}>Email</th>
+                <th style={{ padding: 16, textAlign: "left", fontSize: 14, fontWeight: 600 }}>Role</th>
+                <th style={{ padding: 16, textAlign: "left", fontSize: 14, fontWeight: 600 }}>Company</th>
+                <th style={{ padding: 16, textAlign: "left", fontSize: 14, fontWeight: 600 }}>Created</th>
+                <th style={{ padding: 16, textAlign: "right", fontSize: 14, fontWeight: 600, width: 56 }}> </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map((row) => (
+                <tr key={row.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                  <td style={{ padding: 16, fontSize: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <AdminUserAvatar avatarUrl={row.avatar_url} name={row.name} email={row.email} size={32} />
+                      <span style={{ fontWeight: 600 }}>{row.name}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: 16, fontSize: 14 }}>{row.email}</td>
+                  <td style={{ padding: 16, fontSize: 14 }}>
+                    <span
+                      style={{
+                        padding: "4px 12px",
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: row.role === "admin" ? "rgba(169, 76, 255, 0.2)" : "rgba(124, 58, 237, 0.2)",
+                        color: row.role === "admin" ? "#A94CFF" : "#7C3AED",
+                      }}
+                    >
+                      {row.role}
+                    </span>
+                  </td>
+                  <td style={{ padding: 16, fontSize: 14, color: "var(--color-text-muted)" }}>{row.company || "—"}</td>
+                  <td style={{ padding: 16, fontSize: 14, color: "var(--color-text-muted)" }}>
+                    {new Date(row.createdAt).toLocaleDateString()}
+                  </td>
+                  <td style={{ padding: 16, textAlign: "right" }}>
+                    <AdminActionsMenu
+                      ariaLabel={`Actions for ${row.name}`}
+                      items={[
+                        { key: "edit", label: "Edit profile", onClick: () => openEdit(row) },
+                        {
+                          key: "creds",
+                          label: "API credentials",
+                          onClick: () => {
+                            void openCredentials(row);
+                          },
+                        },
+                        { key: "role", label: row.role === "admin" ? "Make user" : "Make admin", onClick: () => handleUpdateRole(row) },
+                        { key: "del", label: "Delete", danger: true, onClick: () => handleDeleteUser(row.id) },
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showAddModal &&
+        modalShell(
+          "Add user",
+          () => setShowAddModal(false),
+          <form onSubmit={handleCreateUser}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
+              <input
+                className="input"
+                placeholder="Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+              <input
+                className="input"
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+              <input
+                className="input"
+                type="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                minLength={6}
+              />
+              <select
+                className="input"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as "admin" | "user" })}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+              <input
+                className="input"
+                placeholder="Company (optional)"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button type="button" className="btn-ghost" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary">
+                Create
+              </button>
+            </div>
+          </form>
+        )}
+
+      {credUser &&
+        modalShell(
+          `API credentials — ${credUser.name}`,
+          closeCredModal,
+          <form onSubmit={saveCredentials} key={credUser.id}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                marginBottom: 12,
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              <input type="checkbox" checked={credShowAll} onChange={(e) => setCredShowAll(e.target.checked)} />
+              Show all values (reveals secrets on screen)
+            </label>
+            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
+              Values are encrypted at rest. Saved values load when you reopen this dialog. Only fields you edit are sent on
+              save — untouched fields keep their stored value. Clear a key by editing it to empty and saving.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
+              {CRED_FIELDS.map(({ key, label, hint, inputType }) => {
+                const useText = inputType === "text" || credShowAll;
+                return (
+                  <div key={key}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
+                      {credConfigured[key] ? (
+                        <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 600 }}>On file</span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Not set</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 6px" }}>{hint}</p>
+                    <input
+                      className="input"
+                      type={useText ? "text" : "password"}
+                      autoComplete="off"
+                      placeholder={credConfigured[key] ? "Leave as-is or replace" : "Paste value"}
+                      value={credValues[key] ?? ""}
+                      onChange={(e) => {
+                        setCredValues((prev) => ({ ...prev, [key]: e.target.value }));
+                        setCredTouched((prev) => ({ ...prev, [key]: true }));
+                      }}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20 }}>
+              <button type="button" className="btn-ghost" onClick={closeCredModal}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary" disabled={credSaving}>
+                {credSaving ? "Saving…" : "Save credentials"}
+              </button>
+            </div>
+          </form>,
+          620
+        )}
+
+      {editUser &&
+        modalShell(
+          "Edit user",
+          () => setEditUser(null),
+          <form onSubmit={saveEdit}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
+              <input
+                className="input"
+                placeholder="Name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                required
+              />
+              <input
+                className="input"
+                type="email"
+                placeholder="Email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                required
+              />
+              <input
+                className="input"
+                placeholder="Company"
+                value={editForm.company}
+                onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+              />
+              <input
+                className="input"
+                type="password"
+                placeholder="New password (optional, min 6)"
+                value={editForm.password}
+                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                minLength={6}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button type="button" className="btn-ghost" onClick={() => setEditUser(null)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary">
+                Save
+              </button>
+            </div>
+          </form>
+        )}
+    </div>
   );
 }
-

@@ -32,8 +32,8 @@ const membershipRoleOptions: Array<{ value: MembershipRole; label: string; descr
 
 const roleBadgeColor: Partial<Record<MembershipRole, string>> = {
   owner: "#ff6b6b",
-  member: "#4C67FF",
-  admin: "#4C67FF",
+  member: "#7C3AED",
+  admin: "#7C3AED",
   editor: "#4ecdc4",
   viewer: "#888"
 };
@@ -397,7 +397,7 @@ export default function TeamPage() {
                 style={{
                   padding: "10px 14px",
                   borderRadius: "10px",
-                  border: "1px solid rgba(76, 103, 255, 0.4)",
+                  border: "1px solid rgba(124, 58, 237, 0.4)",
                   background: "rgba(255,255,255,0.05)",
                   color: "var(--color-text)",
                   minWidth: "200px"
@@ -415,8 +415,8 @@ export default function TeamPage() {
                 disabled={!canManage || !activeBaseId}
                 style={{
                   background: canManage && activeBaseId
-                    ? "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)"
-                    : "rgba(76,103,255,0.2)",
+                    ? "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)"
+                    : "rgba(124, 58, 237,0.2)",
                   border: "none",
                   borderRadius: "12px",
                   padding: "12px 24px",
@@ -424,7 +424,7 @@ export default function TeamPage() {
                   fontSize: "14px",
                   fontWeight: 600,
                   cursor: canManage && activeBaseId ? "pointer" : "not-allowed",
-                  boxShadow: canManage && activeBaseId ? "0 4px 12px rgba(76, 103, 255, 0.3)" : "none",
+                  boxShadow: canManage && activeBaseId ? "0 4px 12px rgba(124, 58, 237, 0.3)" : "none",
                   display: "flex",
                   alignItems: "center",
                   gap: "8px"
@@ -533,7 +533,7 @@ export default function TeamPage() {
               label="Total Members"
               value={totalMembers}
               description="People with access to this base"
-              accent="#4C67FF"
+              accent="#7C3AED"
             />
             <StatCard
               icon={<Icons.Key size={24} />}
@@ -602,7 +602,7 @@ export default function TeamPage() {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ borderBottom: "2px solid rgba(76, 103, 255, 0.2)" }}>
+                    <tr style={{ borderBottom: "2px solid rgba(124, 58, 237, 0.2)" }}>
                       <HeaderCell>Member</HeaderCell>
                       <HeaderCell>Workspace Role</HeaderCell>
                       <HeaderCell>Platform Role</HeaderCell>
@@ -627,7 +627,7 @@ export default function TeamPage() {
                             transition: "all 0.2s ease"
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
+                            e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = "transparent";
@@ -639,7 +639,7 @@ export default function TeamPage() {
                                 width: "40px",
                                 height: "40px",
                                 borderRadius: "50%",
-                                background: "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
+                                background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -687,8 +687,8 @@ export default function TeamPage() {
                                 style={{
                                   padding: "8px 12px",
                                   borderRadius: "8px",
-                                  border: "1px solid rgba(76,103,255,0.3)",
-                                  background: "rgba(76,103,255,0.08)",
+                                  border: "1px solid rgba(124, 58, 237,0.3)",
+                                  background: "rgba(124, 58, 237,0.08)",
                                   color: "var(--color-text)",
                                   cursor: roleChangeDisabled ? "not-allowed" : "pointer"
                                 }}
@@ -1024,8 +1024,8 @@ function InviteModal({
         {directoryLoading && (
           <div
             style={{
-              background: "rgba(76,103,255,0.12)",
-              border: "1px solid rgba(76,103,255,0.2)",
+              background: "rgba(124, 58, 237,0.12)",
+              border: "1px solid rgba(124, 58, 237,0.2)",
               padding: "10px 14px",
               borderRadius: "10px",
               color: "var(--color-text)"
@@ -1041,8 +1041,8 @@ function InviteModal({
             disabled={disabled}
             style={{
               background: disabled
-                ? "rgba(76,103,255,0.3)"
-                : "linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)",
+                ? "rgba(124, 58, 237,0.3)"
+                : "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
               border: "none",
               borderRadius: "12px",
               padding: "12px 24px",

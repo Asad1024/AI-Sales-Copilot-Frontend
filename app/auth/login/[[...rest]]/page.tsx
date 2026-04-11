@@ -75,7 +75,7 @@ export default function LoginPage() {
       {/* Left Panel - Branding */}
       <div style={{
         flex: 1,
-        background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+        background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -236,12 +236,12 @@ export default function LoginPage() {
               width: "56px",
               height: "56px",
               borderRadius: "14px",
-              background: "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: "20px",
-              boxShadow: "0 10px 40px rgba(76, 103, 255, 0.3)"
+              boxShadow: "0 10px 40px rgba(124, 58, 237, 0.3)"
             }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -366,7 +366,7 @@ export default function LoginPage() {
                   outline: "none",
                   transition: "all 0.2s ease"
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                 onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
               />
             </div>
@@ -394,7 +394,7 @@ export default function LoginPage() {
                     outline: "none",
                     transition: "all 0.2s ease"
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = "#4C67FF"; e.target.style.boxShadow = "0 0 0 3px rgba(76,103,255,0.1)"; }}
+                  onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
                   onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                 />
                 <button
@@ -432,7 +432,7 @@ export default function LoginPage() {
                 href="/auth/forgot-password"
                 style={{
                   fontSize: "13px",
-                  color: "#4C67FF",
+                  color: "#7C3AED",
                   textDecoration: "none",
                   fontWeight: "500"
                 }}
@@ -451,26 +451,26 @@ export default function LoginPage() {
                 border: "none",
                 background: loading || !email || !password
                   ? "#cbd5e1"
-                  : "linear-gradient(135deg, #4C67FF 0%, #7C3AED 100%)",
+                  : "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
                 color: "#fff",
                 fontSize: "14px",
                 fontWeight: "600",
                 cursor: loading || !email || !password ? "not-allowed" : "pointer",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                boxShadow: loading || !email || !password ? "none" : "0 4px 14px rgba(76, 103, 255, 0.4)",
+                boxShadow: loading || !email || !password ? "none" : "0 4px 14px rgba(124, 58, 237, 0.4)",
                 position: "relative",
                 overflow: "hidden"
               }}
               onMouseOver={(e) => {
                 if (!loading && email && password) {
                   e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(76, 103, 255, 0.5)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(124, 58, 237, 0.5)";
                 }
               }}
               onMouseOut={(e) => {
                 if (!loading && email && password) {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(76, 103, 255, 0.4)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(124, 58, 237, 0.4)";
                 }
               }}
             >
@@ -504,7 +504,7 @@ export default function LoginPage() {
             <Link
               href="/auth/signup"
               style={{
-                color: "#4C67FF",
+                color: "#7C3AED",
                 textDecoration: "none",
                 fontWeight: "600"
               }}

@@ -27,9 +27,9 @@ export default function ThemeToggle({ compact }: { compact?: boolean }) {
     root.style.setProperty('--color-border', isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1');
     root.style.setProperty('--color-border-light', isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0');
     root.style.setProperty('--color-shadow', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
-    root.style.setProperty('--color-primary', '#4C67FF');
+    root.style.setProperty('--color-primary', '#7C3AED');
     root.style.setProperty('--color-accent', '#A94CFF');
-    root.style.setProperty('--color-success', '#4C67FF');
+    root.style.setProperty('--color-success', '#7C3AED');
     root.style.setProperty('--color-info', '#A94CFF');
   };
 

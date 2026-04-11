@@ -8,6 +8,8 @@ import { apiRequest } from "@/lib/apiClient";
 import { useNotification } from "@/context/NotificationContext";
 
 interface BulkActionsMenuProps {
+  /** Workspace base being viewed (e.g. from URL). Prefer over store `activeBaseId` so permissions load immediately. */
+  baseId?: number | null;
   selectedCount: number;
   onBulkDelete: (ids: number[]) => Promise<void>;
   onBulkUpdate: (ids: number[], updates: any) => Promise<void>;
@@ -15,6 +17,7 @@ interface BulkActionsMenuProps {
 }
 
 export function BulkActionsMenu({
+  baseId: baseIdProp,
   selectedCount,
   onBulkDelete,
   onBulkUpdate,
@@ -22,7 +25,8 @@ export function BulkActionsMenu({
 }: BulkActionsMenuProps) {
   const { selectedLeads, setSelectedLeads } = useLeadStore();
   const { activeBaseId } = useBaseStore();
-  const { permissions } = useBasePermissions(activeBaseId);
+  const contextBaseId = baseIdProp ?? activeBaseId;
+  const { permissions } = useBasePermissions(contextBaseId);
   const { showSuccess, showError, showWarning } = useNotification();
   const [actionType, setActionType] = useState<'assign' | 'update' | 'tag' | 'delete' | null>(null);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -35,9 +39,9 @@ export function BulkActionsMenu({
 
   useEffect(() => {
     const fetchMembers = async () => {
-      if (!activeBaseId) return;
+      if (!contextBaseId) return;
       try {
-        const data = await apiRequest(`/bases/${activeBaseId}/members`);
+        const data = await apiRequest(`/bases/${contextBaseId}/members`);
         const members = Array.isArray(data?.members) ? data.members : [];
         setTeamMembers(members.map((m: any) => ({
           id: m.user?.id || m.User?.id,
@@ -49,7 +53,7 @@ export function BulkActionsMenu({
       }
     };
     fetchMembers();
-  }, [activeBaseId]);
+  }, [contextBaseId]);
 
   const handleBulkAssign = async () => {
     if (selectedLeads.length === 0) return;

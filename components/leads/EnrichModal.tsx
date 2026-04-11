@@ -150,7 +150,7 @@ export function EnrichModal({
       padding: "11px 14px",
       borderRadius: 10,
       border: on ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-      background: on ? "rgba(76, 103, 255, 0.1)" : "var(--color-surface-secondary)",
+      background: on ? "rgba(124, 58, 237, 0.1)" : "var(--color-surface-secondary)",
       color: "var(--color-text)",
       fontSize: 13,
       fontWeight: 500,
@@ -222,7 +222,7 @@ export function EnrichModal({
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: "rgba(76, 103, 255, 0.14)",
+                  background: "rgba(124, 58, 237, 0.14)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -453,7 +453,7 @@ export function EnrichModal({
                       border: "none",
                       opacity: !canSubmit ? 0.45 : 1,
                       cursor: !canSubmit ? "not-allowed" : "pointer",
-                      boxShadow: !canSubmit ? "none" : "0 8px 22px rgba(76, 103, 255, 0.28)",
+                      boxShadow: !canSubmit ? "none" : "0 8px 22px rgba(124, 58, 237, 0.28)",
                     }}
                   >
                     {enriching

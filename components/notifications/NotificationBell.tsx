@@ -202,10 +202,10 @@ function NotificationDropdown({
             onClick={onMarkAllAsRead}
             style={{
               padding: '4px 12px',
-              background: 'rgba(76, 103, 255, 0.1)',
-              border: '1px solid rgba(76, 103, 255, 0.3)',
+              background: 'rgba(124, 58, 237, 0.1)',
+              border: '1px solid rgba(124, 58, 237, 0.3)',
               borderRadius: '6px',
-              color: '#4C67FF',
+              color: '#7C3AED',
               fontSize: '12px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -270,7 +270,7 @@ function NotificationItem({
         padding: '16px',
         borderBottom: '1px solid var(--color-border)',
         cursor: 'pointer',
-        background: isUnread ? 'rgba(76, 103, 255, 0.05)' : 'transparent',
+        background: isUnread ? 'rgba(124, 58, 237, 0.05)' : 'transparent',
         transition: 'all 0.2s',
         display: 'flex',
         gap: '12px',
@@ -278,12 +278,12 @@ function NotificationItem({
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = isUnread
-          ? 'rgba(76, 103, 255, 0.1)'
+          ? 'rgba(124, 58, 237, 0.1)'
           : 'rgba(255, 255, 255, 0.05)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = isUnread
-          ? 'rgba(76, 103, 255, 0.05)'
+          ? 'rgba(124, 58, 237, 0.05)'
           : 'transparent';
       }}
     >
@@ -292,7 +292,7 @@ function NotificationItem({
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -338,7 +338,7 @@ function NotificationItem({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: '#4C67FF',
+            background: '#7C3AED',
             flexShrink: 0,
             marginTop: '4px',
           }}

@@ -39,11 +39,14 @@ import {
   AlertTriangle,
   ShieldCheck,
   ChevronRight,
+  Rocket,
+  Sparkles,
 } from "lucide-react";
 import { ChannelType, CHANNEL_CONFIGS, getAvailableChannels, type StepType } from "./channelConfig";
 import { calculateStepFlow, getStepInfo, getTotalSteps, getStepNumberForType } from "./stepFlowCalculator";
 import {
   canProceedToNextStep,
+  getFirstBlockingStepForForwardJump,
   getValidationError,
   CAMPAIGN_NAME_MAX_LENGTH,
   getBasicSetupCampaignNameError,
@@ -54,6 +57,7 @@ import { buildCampaignDraftPayload } from "./buildCampaignDraftPayload";
 import { getWizardPhaseBanner } from "./wizardStepUi";
 import { WizardCircularStepper } from "./WizardCircularStepper";
 import { WizardEmailDraftCard } from "@/components/campaigns/WizardEmailDraftCard";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
 const LeadDrawer = dynamic(() => import("@/components/leads/LeadDrawer"), { ssr: false });
 
@@ -308,6 +312,17 @@ type LeadTableFilterKey =
 
 const LEAD_TABLE_PAGE_SIZE = 10;
 
+/** Lead step table + filter — match workspace leads table checkbox sizing */
+const WIZARD_LEAD_STEP_CHECKBOX_COL_W = 50;
+const WIZARD_LEAD_STEP_CHECKBOX_STYLE: CSSProperties = {
+  width: 18,
+  height: 18,
+  cursor: "pointer",
+  margin: 0,
+  flexShrink: 0,
+  accentColor: "var(--color-primary, #7C3AED)",
+};
+
 function filterLeadsByLeadTableKey(list: Lead[], key: LeadTableFilterKey): Lead[] {
   if (key === "all") return list;
   const sc = (l: Lead) => l.score ?? 0;
@@ -373,6 +388,50 @@ const CALL_STARTER_SCRIPTS = [
     text: "Hello {{first_name}}! My name is [Your Name] and I work with {{role}}s at companies like {{company_name}}. We've helped similar organizations {{value_proposition}} through {{product_service}}. Could we explore {{call_to_action}} together?",
   },
 ] as const;
+
+/** Assistant style (call system persona) — one-click briefs sent to AI to draft the full system prompt. */
+const CALL_SYSTEM_PERSONA_SUGGESTIONS: ReadonlyArray<{
+  id: string;
+  label: string;
+  brief: string;
+}> = [
+  {
+    id: "consultative",
+    label: "Consultative B2B seller",
+    brief:
+      "Generate a system prompt for a consultative B2B sales voice assistant: build rapport, ask discovery questions, explain value clearly, handle objections calmly, and move toward a demo or qualified next step. Professional, never pushy.",
+  },
+  {
+    id: "friendly_sdr",
+    label: "Friendly SDR — book meetings",
+    brief:
+      "Generate a system prompt for an energetic but respectful SDR: short sentences, warm tone, qualify quickly, handle brush-offs, and aim to book a short follow-up or meeting. Sound natural on the phone.",
+  },
+  {
+    id: "enterprise_formal",
+    label: "Formal enterprise AE",
+    brief:
+      "Generate a system prompt for a formal enterprise account executive: measured pace, precise language, respect for time, senior stakeholders, and careful handling of objections and compliance.",
+  },
+  {
+    id: "discovery_first",
+    label: "Discovery-first, no hard pitch",
+    brief:
+      "Generate a system prompt for a discovery-first call: prioritize understanding pain, budget, timing, and stakeholders before pitching; summarize back what you heard; avoid aggressive closing.",
+  },
+  {
+    id: "support_style",
+    label: "Patient, support-style helper",
+    brief:
+      "Generate a system prompt for a patient, support-oriented voice assistant: clarify confusion, answer questions simply, escalate when needed, and keep the prospect comfortable even if they are skeptical.",
+  },
+  {
+    id: "reactivation",
+    label: "Win-back / reactivation",
+    brief:
+      "Generate a system prompt for a win-back or reactivation call: acknowledge time passed, reference value gently, invite an honest conversation, handle 'not interested' gracefully, and offer a low-friction next step.",
+  },
+];
 
 function countWordsForCallOpening(s: string): number {
   const t = s.trim();
@@ -485,13 +544,13 @@ const isPremadeLibraryVoice = (v: VoiceOption) => {
   return true;
 };
 
-/** Deep indigo / purple accent — minimalist wizard (Linear / Vercel–inspired) */
-const WIZ_ACCENT = "#5b4fc9";
-const WIZ_ACCENT_LINE = "#4338ca";
-const WIZ_ROW_SELECTED = "rgba(67, 56, 202, 0.07)";
+/** Wizard chrome — aligned with app primary (`--color-primary` / #7C3AED) */
+const WIZ_ACCENT = "#7C3AED";
+const WIZ_ACCENT_LINE = "#6D28D9";
+const WIZ_ROW_SELECTED = "rgba(124, 58, 237, 0.07)";
 
-const VOICE_LOAD_MORE_BORDER = "rgba(91, 79, 201, 0.42)";
-const VOICE_LOAD_MORE_BG = "rgba(91, 79, 201, 0.08)";
+const VOICE_LOAD_MORE_BORDER = "rgba(124, 58, 237, 0.42)";
+const VOICE_LOAD_MORE_BG = "rgba(124, 58, 237, 0.08)";
 const VOICE_LOAD_MORE_SHADOW = "0 1px 3px rgba(15, 23, 42, 0.08)";
 
 function voiceLoadMoreButtonSx(marginTop: number): CSSProperties {
@@ -521,9 +580,9 @@ function voiceLoadMoreButtonSx(marginTop: number): CSSProperties {
 
 function voiceLoadMoreHover(el: HTMLButtonElement, on: boolean) {
   if (on) {
-    el.style.background = "rgba(91, 79, 201, 0.16)";
+    el.style.background = "rgba(124, 58, 237, 0.16)";
     el.style.borderColor = WIZ_ACCENT;
-    el.style.boxShadow = "0 6px 22px rgba(91, 79, 201, 0.22)";
+    el.style.boxShadow = "0 6px 22px rgba(124, 58, 237, 0.22)";
     el.style.transform = "translateY(-1px)";
   } else {
     el.style.background = VOICE_LOAD_MORE_BG;
@@ -606,7 +665,7 @@ const VOICE_LIBRARY_FILTER_CHIPS: { id: VoiceLibraryFilterChip; label: string }[
 function inferVoiceWaveColor(v: VoiceOption): string {
   const t = `${v.name} ${v.description || ""}`.toLowerCase();
   if (/\b(energetic|upbeat|excited|dynamic|high[\s-]?energy)\b/.test(t)) return "#ea580c";
-  if (/\b(warm|gentle|soft|soothing|kind)\b/.test(t)) return "#7c3aed";
+  if (/\b(warm|gentle|soft|soothing|kind)\b/.test(t)) return "#d97706";
   if (/\b(casual|laid[\s-]?back|relaxed|conversational|chill)\b/.test(t)) return "#16a34a";
   if (/\b(professional|formal|corporate|authoritative|news|documentary)\b/.test(t)) return "#2563eb";
   return "#64748b";
@@ -714,6 +773,19 @@ const REVIEW_OVERVIEW_CHANNEL_META: Record<
   whatsapp: { Icon: Icons.WhatsApp, iconColor: WIZ_CHANNEL_WHATSAPP },
   call: { Icon: Icons.Phone, iconColor: WIZ_CHANNEL_CALL },
 };
+
+/** Same glyph + colors for Campaign Overview chips and Schedule & Settings review rows. */
+function ReviewChannelGlyph({ channel, size = 14 }: { channel: ChannelType; size?: number }) {
+  const meta = REVIEW_OVERVIEW_CHANNEL_META[channel];
+  const ChIcon = meta?.Icon ?? Icons.Mail;
+  const iconColor = meta?.iconColor ?? "var(--color-text)";
+  if (channel === "email" || channel === "linkedin") {
+    return (
+      <ChIcon size={size} strokeWidth={1.75} style={{ flexShrink: 0, color: iconColor }} aria-hidden />
+    );
+  }
+  return <ChIcon size={size} style={{ flexShrink: 0, color: iconColor }} aria-hidden />;
+}
 
 function ReviewCardEditLabel() {
   return (
@@ -844,7 +916,7 @@ function WizardScheduleThrottleRow({
                 verticalAlign: "middle",
                 cursor: "pointer",
                 boxSizing: "border-box",
-                accentColor: "var(--color-primary, #4C67FF)",
+                accentColor: "var(--color-primary, #7C3AED)",
               }}
             />
           </div>
@@ -1028,6 +1100,10 @@ export default function CampaignNew() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   /** Wizard footer: show loading while draft persists on Next/Back */
   const [wizardNavBusy, setWizardNavBusy] = useState<"next" | "back" | null>(null);
+  /** Stepper click: show inline loader on target step (do not use footer "Back" saving state). */
+  const [wizardStepperLoadingStep, setWizardStepperLoadingStep] = useState<number | null>(null);
+  /** Latest validation context for jump guards (callbacks sit above the useMemo that builds it). */
+  const stepValidationContextRef = useRef<ValidationContext | null>(null);
   const [launching, setLaunching] = useState(false);
   
   // Throttle recommendation state
@@ -1145,6 +1221,9 @@ export default function CampaignNew() {
   const [kbAiPhase, setKbAiPhase] = useState<"idle" | "loading" | "questions" | "generating">("idle");
   const [kbAiError, setKbAiError] = useState<string | null>(null);
   const [kbAiHighlightIdx, setKbAiHighlightIdx] = useState(0);
+  const [kbAiGeneratorExpanded, setKbAiGeneratorExpanded] = useState(false);
+  const [kbAiGeneratorCustomBrief, setKbAiGeneratorCustomBrief] = useState("");
+  const [kbAiUserTopic, setKbAiUserTopic] = useState<string | null>(null);
   const [kbDeleteTarget, setKbDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [kbDeleteLoading, setKbDeleteLoading] = useState(false);
 
@@ -1167,6 +1246,15 @@ export default function CampaignNew() {
   const [previewLoadingVoiceId, setPreviewLoadingVoiceId] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
+  /** Review step: full email / WhatsApp / LinkedIn message in a modal (eye icon). */
+  const [reviewChannelPreview, setReviewChannelPreview] = useState<
+    | null
+    | { kind: "email"; title: string; subject: string; body: string }
+    | { kind: "whatsapp"; title: string; text: string }
+    | { kind: "linkedin"; title: string; text: string }
+  >(null);
+  /** Review → Call config: which KB PDF action is in flight (icon shows spinner). */
+  const [reviewKbLoading, setReviewKbLoading] = useState<null | { fileId: string; action: "view" | "download" }>(null);
   const [voiceCloneOpen, setVoiceCloneOpen] = useState(false);
   const [voiceCloneName, setVoiceCloneName] = useState("");
   const [voiceCloneDescription, setVoiceCloneDescription] = useState("");
@@ -1189,7 +1277,11 @@ export default function CampaignNew() {
   /** One-time ElevenLabs system-prompt prefill for Step 12. */
   const callSystemPersonaElFetchFinishedRef = useRef(false);
   const systemPersonaRef = useRef(systemPersona);
-  
+  const [systemPersonaGenerating, setSystemPersonaGenerating] = useState(false);
+  const [systemPersonaCustomBrief, setSystemPersonaCustomBrief] = useState("");
+  /** Collapsed “Generate with AI” trigger until the user opens the generator panel. */
+  const [systemPersonaAiExpanded, setSystemPersonaAiExpanded] = useState(false);
+
   // Test call state
   const [testCallPhoneNumber, setTestCallPhoneNumber] = useState("");
   const [testCallFirstName, setTestCallFirstName] = useState("");
@@ -1298,6 +1390,19 @@ export default function CampaignNew() {
       linkedin_step: linkedInStepConfig,
     });
   }, [step, channels, linkedInStepConfig]);
+
+  useEffect(() => {
+    if (currentStepInfo?.stepType !== "call_knowledge_base") {
+      setKbAiGeneratorExpanded(false);
+      setKbAiGeneratorCustomBrief("");
+    }
+  }, [currentStepInfo?.stepType]);
+
+  useEffect(() => {
+    if (currentStepInfo?.stepType !== "review") {
+      setReviewChannelPreview(null);
+    }
+  }, [currentStepInfo?.stepType]);
 
   const basicSetupNameValidationError =
     currentStepInfo?.stepType === "basic_setup"
@@ -1615,6 +1720,12 @@ export default function CampaignNew() {
     };
   }, [currentStepInfo?.stepType, draftHydrated]);
 
+  useEffect(() => {
+    if (currentStepInfo?.stepType !== "call_system_persona") {
+      setSystemPersonaAiExpanded(false);
+    }
+  }, [currentStepInfo?.stepType]);
+
   wizardPersistCtxRef.current = {
     draftHydrated,
     name,
@@ -1757,12 +1868,15 @@ export default function CampaignNew() {
     setStep(Math.max(1, totalSteps) as Step);
   }, [step, totalSteps]);
 
-  // Fetch leads for segment calculation
+  // Fetch leads for segment calculation (step 3+) and whenever the UI needs counts (e.g. Review after refresh).
   useEffect(() => {
     const fetchLeads = async () => {
-      // Step 3 is always segments now
+      if (!activeBaseId) return;
       const segmentStep = 3;
-      if (!activeBaseId || step !== segmentStep) return;
+      const onReview = currentStepInfo?.stepType === "review";
+      const pastSegmentStep = step >= segmentStep;
+      const hasSavedSegments = segments.length > 0;
+      if (!pastSegmentStep && !onReview && !hasSavedSegments) return;
       setLoadingLeads(true);
       try {
         // Fetch with high limit to get all leads
@@ -1778,7 +1892,7 @@ export default function CampaignNew() {
       }
     };
     fetchLeads();
-  }, [activeBaseId, step, channels]);
+  }, [activeBaseId, step, channels, currentStepInfo?.stepType, segments.length]);
 
   // Fetch email integration when email channel is selected
   useEffect(() => {
@@ -1823,9 +1937,14 @@ export default function CampaignNew() {
     fetchIntegration();
   }, [activeBaseId, channels]);
 
-  // Fetch voices each time the voice step is shown (keeps list fresh after cloning)
+  // Fetch voices on voice step and on review (so Call card shows friendly names + preview)
   useEffect(() => {
-    if (currentStepInfo?.stepType !== "call_voice_selection") return;
+    const needVoices =
+      currentStepInfo?.stepType === "call_voice_selection" ||
+      (currentStepInfo?.stepType === "review" &&
+        channels.includes("call") &&
+        Boolean(selectedVoiceId?.trim()));
+    if (!needVoices) return;
     let cancelled = false;
     const fetchVoices = async () => {
       setLoadingVoices(true);
@@ -1889,7 +2008,7 @@ export default function CampaignNew() {
     return () => {
       cancelled = true;
     };
-  }, [currentStepInfo?.stepType]);
+  }, [currentStepInfo?.stepType, channels, selectedVoiceId]);
 
   // Load draft campaign when editing (?edit=:id)
   useEffect(() => {
@@ -1908,7 +2027,7 @@ export default function CampaignNew() {
 
     const loadDraftCampaign = async () => {
       try {
-        const data = await apiRequest(`/campaigns/${editCampaignId}`);
+        const data = await apiRequest(`/campaigns/${editCampaignId}?forDraftEdit=1`);
         if (cancelled) return;
         const campaignData = data?.campaign || data;
 
@@ -2370,7 +2489,7 @@ export default function CampaignNew() {
       { name: 'Hot leads', color: '#ff6b6b' },
       { name: 'Warm leads', color: '#ffa726' },
       { name: 'Cold leads', color: '#38bdf8' },
-      { name: 'Engaged not converted', color: '#4C67FF' },
+      { name: 'Engaged not converted', color: '#7C3AED' },
       { name: 'Never opened', color: '#888' },
       { name: 'High-score low-engagement', color: '#A94CFF' }
     ].map(s => ({
@@ -2715,8 +2834,10 @@ export default function CampaignNew() {
     return campaignId;
   };
 
-  const openKbAiSuggestion = async (suggestionId: string, label: string) => {
+  const openKbAiSuggestion = async (suggestionId: string, label: string, userTopic?: string) => {
     setKbAiError(null);
+    const focusRaw = userTopic?.trim().slice(0, 500) || "";
+    setKbAiUserTopic(focusRaw || null);
     setKbAiSuggestionId(suggestionId);
     setKbAiSuggestionLabel(label);
     setKbAiOpen(true);
@@ -2727,7 +2848,10 @@ export default function CampaignNew() {
       const campaignId = await resolveKbCampaignId();
       const res = await apiRequest(`/campaigns/${campaignId}/knowledge-base/ai-questions`, {
         method: "POST",
-        body: JSON.stringify({ suggestionId }),
+        body: JSON.stringify({
+          suggestionId,
+          ...(focusRaw ? { userTopic: focusRaw } : {}),
+        }),
       });
       const qs = Array.isArray(res.questions) ? res.questions.map((q: string) => String(q)) : [];
       setKbAiQuestions(qs.length ? qs : ["What should the agent emphasize?"]);
@@ -2735,6 +2859,7 @@ export default function CampaignNew() {
       setKbAiPhase("questions");
     } catch (e: any) {
       const msg = e?.message || "Could not load questions";
+      setKbAiUserTopic(null);
       setKbAiError(msg);
       setKbAiPhase("idle");
       showError("Knowledge base", msg);
@@ -2756,6 +2881,7 @@ export default function CampaignNew() {
           suggestionId: kbAiSuggestionId,
           questions: cleanedQuestions,
           answers: kbAiAnswers.map((a, i) => a || `(No answer for: ${cleanedQuestions[i]?.slice(0, 40)}…)`),
+          ...(kbAiUserTopic ? { userTopic: kbAiUserTopic } : {}),
         }),
       });
       const f = res.file;
@@ -2769,6 +2895,7 @@ export default function CampaignNew() {
           },
         ]);
       }
+      setKbAiUserTopic(null);
       setKbAiOpen(false);
       setKbAiPhase("idle");
       setKbAiSuggestionId(null);
@@ -3060,8 +3187,58 @@ export default function CampaignNew() {
     ]
   );
 
+  const generateCallSystemPersonaWithBrief = useCallback(
+    async (userBrief: string) => {
+      const trimmed = userBrief.trim();
+      if (!trimmed) {
+        showWarning("Describe your style", "Pick a suggestion above or type what you want, then generate.");
+        return;
+      }
+      setSystemPersonaGenerating(true);
+      try {
+        const response = (await apiRequest("/campaigns/generate-call-system-persona", {
+          method: "POST",
+          body: JSON.stringify({
+            userBrief: trimmed,
+            campaignName: name || undefined,
+            baseId: activeBaseId ?? undefined,
+            segments: segments.length > 0 ? segments : undefined,
+            productService: productService || undefined,
+            valueProposition: valueProposition || undefined,
+            callToAction: callToAction || undefined,
+          }),
+        })) as { systemPersona?: string };
+
+        const text =
+          typeof response?.systemPersona === "string" ? response.systemPersona.trim() : "";
+        if (!text) {
+          showError("Generation failed", "No behavior text was returned. Try again.");
+          return;
+        }
+        setSystemPersona(text);
+        showSuccess("Assistant behavior ready", "Review and edit the system prompt below if you want.");
+      } catch (error) {
+        console.error("Failed to generate system persona:", error);
+        showError("Generation failed", "Could not generate assistant behavior. Try again.");
+      } finally {
+        setSystemPersonaGenerating(false);
+      }
+    },
+    [
+      name,
+      activeBaseId,
+      segments,
+      productService,
+      valueProposition,
+      callToAction,
+      showSuccess,
+      showWarning,
+      showError,
+    ]
+  );
+
   const back = async () => {
-    if (wizardNavBusy) return;
+    if (wizardNavBusy || wizardStepperLoadingStep !== null) return;
     setWizardNavBusy("back");
     try {
     if (step === 1) {
@@ -3084,38 +3261,58 @@ export default function CampaignNew() {
   };
 
   const goToWizardStepByType = async (stepType: StepType) => {
-    if (wizardNavBusy) return;
+    if (wizardNavBusy || wizardStepperLoadingStep !== null) return;
     const n = getStepNumberForType(stepType, channels as ChannelType[], {
       linkedin_step: linkedInStepConfig,
     });
     if (n == null) return;
-    setWizardNavBusy("back");
+    const ctx = stepValidationContextRef.current;
+    if (ctx && n > step) {
+      const block = getFirstBlockingStepForForwardJump(step, n, ctx);
+      if (block != null) {
+        const hint =
+          getValidationError({ ...ctx, step: block }) ?? "Complete this step before skipping ahead.";
+        showWarning("Can't skip ahead", hint);
+        return;
+      }
+    }
+    setWizardStepperLoadingStep(n);
     try {
       await persistCampaignDraft(n as Step, { channels });
       setStep(n as Step);
     } catch (e) {
       console.error(e);
     } finally {
-      setWizardNavBusy(null);
+      setWizardStepperLoadingStep(null);
     }
   };
 
   const jumpToWizardStep = useCallback(
     async (targetStep: number) => {
-      if (wizardNavBusy) return;
+      if (wizardNavBusy || wizardStepperLoadingStep !== null) return;
       if (targetStep === step) return;
       if (targetStep < 1 || targetStep > totalSteps) return;
-      setWizardNavBusy("back");
+      const ctx = stepValidationContextRef.current;
+      if (ctx && targetStep > step) {
+        const block = getFirstBlockingStepForForwardJump(step, targetStep, ctx);
+        if (block != null) {
+          const hint =
+            getValidationError({ ...ctx, step: block }) ?? "Complete this step before skipping ahead.";
+          showWarning("Can't skip ahead", hint);
+          return;
+        }
+      }
+      setWizardStepperLoadingStep(targetStep);
       try {
         await persistCampaignDraft(targetStep as Step, { channels });
         setStep(targetStep as Step);
       } catch (e) {
         console.error(e);
       } finally {
-        setWizardNavBusy(null);
+        setWizardStepperLoadingStep(null);
       }
     },
-    [wizardNavBusy, step, totalSteps, channels]
+    [wizardNavBusy, wizardStepperLoadingStep, step, totalSteps, channels, showWarning]
   );
 
   const reviewThrottleInvalid = useMemo(() => {
@@ -3449,15 +3646,17 @@ export default function CampaignNew() {
       selectedMessageIndices,
     ]
   );
+  stepValidationContextRef.current = stepValidationContext;
   const nextStepValidationError = getValidationError(stepValidationContext);
 
   const isCallKnowledgeStep = currentStepInfo?.stepType === "call_knowledge_base";
   const isCallVoiceStep = currentStepInfo?.stepType === "call_voice_selection";
+  const wizardAnyNavBusy = wizardNavBusy !== null || wizardStepperLoadingStep !== null;
   const nextButtonDisabled =
-    wizardNavBusy !== null || !canProceedToNextStep(stepValidationContext);
+    wizardAnyNavBusy || !canProceedToNextStep(stepValidationContext);
 
   const next = async () => {
-    if (wizardNavBusy) return;
+    if (wizardNavBusy || wizardStepperLoadingStep !== null) return;
     if (!canProceedToNextStep(stepValidationContext)) {
       return;
     }
@@ -3476,32 +3675,11 @@ export default function CampaignNew() {
 
   if (editParam && !draftHydrated) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "420px",
-          gap: 12,
-          color: "var(--color-text-muted)",
-        }}
-      >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            border: "2px solid var(--color-border)",
-            borderTopColor: "var(--color-accent, #6366f1)",
-            borderRadius: "50%",
-            animation: "spin 0.8s linear infinite",
-          }}
-        />
-        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)" }}>
-          Loading campaign…
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      <GlobalPageLoader
+        layout="page"
+        ariaLabel="Loading campaign"
+        message="Loading campaign…"
+      />
     );
   }
 
@@ -3510,8 +3688,8 @@ export default function CampaignNew() {
     <style>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes voiceRowPlayingPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.12); }
-        50% { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18); }
+        0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.12); }
+        50% { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2); }
       }
       .campaign-wizard-root .voice-row-playing-pulse {
         animation: voiceRowPlayingPulse 1.25s ease-in-out infinite;
@@ -3539,17 +3717,101 @@ export default function CampaignNew() {
         color: var(--color-text);
       }
       .campaign-wizard-root .voice-preview-btn-playing {
-        border: 1px solid #8b5cf6;
-        color: #7c3aeb;
-        background: rgba(139, 92, 246, 0.08);
+        border: 1px solid var(--color-primary, #7C3AED);
+        color: var(--color-primary, #7C3AED);
+        background: rgba(124, 58, 237, 0.08);
       }
       .campaign-wizard-root .voice-preview-btn-playing:hover:not(:disabled) {
-        border-color: #7c3aeb;
-        background: rgba(139, 92, 246, 0.12);
+        border-color: #6D28D9;
+        background: rgba(124, 58, 237, 0.12);
       }
       .campaign-wizard-root .voice-preview-btn:disabled {
         opacity: 0.55;
         cursor: not-allowed;
+      }
+      .campaign-wizard-root .wizard-footer-back {
+        font-family: inherit;
+        margin: 0;
+        box-sizing: border-box;
+        border-radius: 10px;
+        padding: 12px 22px;
+        font-size: 14px;
+        font-weight: 600;
+        min-height: 44px;
+        min-width: 108px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--color-surface);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      }
+      .campaign-wizard-root .wizard-footer-back:hover:not(:disabled):not(.wizard-footer-back--saving) {
+        background: var(--color-surface-secondary);
+        border-color: rgba(124, 58, 237, 0.35);
+      }
+      .campaign-wizard-root .wizard-footer-back:disabled:not(.wizard-footer-back--saving) {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .campaign-wizard-root .wizard-footer-back.wizard-footer-back--saving {
+        opacity: 1 !important;
+        cursor: wait !important;
+        pointer-events: none;
+        border-color: rgba(124, 58, 237, 0.45);
+        background: rgba(124, 58, 237, 0.08);
+      }
+      .campaign-wizard-root .wizard-footer-btn-spinner {
+        animation: spin 0.75s linear infinite;
+        flex-shrink: 0;
+      }
+      .campaign-wizard-root .wizard-footer-next {
+        font-family: inherit;
+        margin: 0;
+        box-sizing: border-box;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 28px;
+        font-size: 14px;
+        font-weight: 600;
+        min-height: 44px;
+        min-width: 132px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--color-primary, #7C3AED);
+        color: #ffffff;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+      }
+      .campaign-wizard-root .wizard-footer-next:hover:not(:disabled):not(.wizard-footer-next--saving) {
+        background: #6D28D9;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.22);
+        transform: translateY(-1px);
+      }
+      .campaign-wizard-root .wizard-footer-next:active:not(:disabled):not(.wizard-footer-next--saving) {
+        transform: translateY(0);
+      }
+      .campaign-wizard-root .wizard-footer-next[disabled]:not(.wizard-footer-next--saving) {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+        background: rgba(124, 58, 237, 0.38);
+        color: rgba(255, 255, 255, 0.92);
+      }
+      .campaign-wizard-root .wizard-footer-next[disabled].wizard-footer-next--saving,
+      .campaign-wizard-root .wizard-footer-next.wizard-footer-next--saving {
+        opacity: 1 !important;
+        cursor: wait !important;
+        pointer-events: none;
+        background: var(--color-primary, #7C3AED) !important;
+        color: #fff !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
       }
     `}</style>
     <div className="campaign-wizard-root" style={{ maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
@@ -3580,7 +3842,7 @@ export default function CampaignNew() {
                 color: "var(--color-text)",
               }}
             >
-              <span style={{ fontWeight: 700 }}>Step {step} of {totalSteps}</span>
+              <span style={{ fontWeight: 700, color: "var(--color-primary, #7C3AED)" }}>Step {step} of {totalSteps}</span>
               <span
                 style={{
                   color: "var(--color-text-muted)",
@@ -3600,7 +3862,8 @@ export default function CampaignNew() {
               steps={stepFlow}
               currentStepNumber={step}
               onStepClick={(n) => void jumpToWizardStep(n)}
-              navigationDisabled={wizardNavBusy !== null}
+              navigationDisabled={wizardAnyNavBusy}
+              loadingStepNumber={wizardStepperLoadingStep}
             />
           </div>
           <div style={{ height: 2, background: "var(--color-border)", position: "relative" }}>
@@ -3611,7 +3874,7 @@ export default function CampaignNew() {
                 top: 0,
                 bottom: 0,
                 width: `${(step / totalSteps) * 100}%`,
-                background: `linear-gradient(90deg, ${WIZ_ACCENT_LINE} 0%, ${WIZ_ACCENT} 55%, #7c6bb8 100%)`,
+                background: `linear-gradient(90deg, ${WIZ_ACCENT_LINE} 0%, ${WIZ_ACCENT} 55%, #A78BFA 100%)`,
                 transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             />
@@ -3728,12 +3991,15 @@ export default function CampaignNew() {
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                gap: 12,
+                gap: 10,
               }}
             >
               {getAvailableChannels().map((channelConfig) => {
-                const Icon = channelConfig.icon;
+                const ch = channelConfig.id as ChannelType;
+                const meta = REVIEW_OVERVIEW_CHANNEL_META[ch];
+                const ChIcon = meta?.Icon ?? channelConfig.icon;
                 const selected = channels.includes(channelConfig.id);
+                const iconColor = meta?.iconColor ?? WIZ_ACCENT;
                 return (
                   <button
                     type="button"
@@ -3746,70 +4012,72 @@ export default function CampaignNew() {
                       )
                     }
                     style={{
-                      width: 120,
-                      minHeight: 128,
-                      padding: "14px 12px",
-                      borderRadius: 12,
+                      width: 104,
+                      minHeight: 112,
+                      padding: "12px 10px",
+                      borderRadius: 10,
                       border: selected ? `2px solid ${WIZ_ACCENT}` : "1px solid var(--color-border)",
-                      background: selected ? WIZ_ACCENT : "var(--color-surface)",
-                      color: selected ? "#fff" : "var(--color-text)",
+                      background: "var(--color-surface)",
+                      color: "var(--color-text)",
                       cursor: "pointer",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "flex-start",
-                      gap: 8,
+                      justifyContent: "center",
+                      gap: 6,
                       textAlign: "center",
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
-                      boxShadow: selected ? "0 4px 14px rgba(91, 79, 201, 0.25)" : "none",
+                      boxShadow: selected ? "0 1px 4px rgba(124, 58, 237, 0.12)" : "none",
                       position: "relative",
                     }}
                     onMouseEnter={(e) => {
                       if (!selected) {
-                        e.currentTarget.style.background = "rgba(91, 79, 201, 0.06)";
-                        e.currentTarget.style.borderColor = "rgba(91, 79, 201, 0.35)";
+                        e.currentTarget.style.background = "rgba(124, 58, 237, 0.06)";
+                        e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.35)";
+                      } else {
+                        e.currentTarget.style.background = "rgba(124, 58, 237, 0.04)";
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!selected) {
-                        e.currentTarget.style.background = "var(--color-surface)";
-                        e.currentTarget.style.borderColor = "var(--color-border)";
-                      }
+                      e.currentTarget.style.background = "var(--color-surface)";
+                      e.currentTarget.style.borderColor = selected ? WIZ_ACCENT : "var(--color-border)";
                     }}
                   >
                     {selected ? (
                       <span
                         style={{
                           position: "absolute",
-                          top: 8,
-                          right: 8,
-                          width: 22,
-                          height: 22,
+                          top: 6,
+                          right: 6,
+                          width: 20,
+                          height: 20,
                           borderRadius: "50%",
-                          background: "rgba(255,255,255,0.25)",
+                          background: WIZ_ACCENT,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                         aria-hidden
                       >
-                        <Icons.Check size={14} strokeWidth={2.5} style={{ color: "#fff" }} />
+                        <Icons.Check size={12} strokeWidth={2.5} style={{ color: "#fff" }} />
                       </span>
                     ) : null}
-                    <Icon
-                      size={26}
-                      style={{
-                        color: selected ? "#fff" : WIZ_ACCENT,
-                        marginTop: 4,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{channelConfig.label}</span>
+                    {ch === "email" || ch === "linkedin" ? (
+                      <ChIcon
+                        size={22}
+                        strokeWidth={1.75}
+                        style={{ flexShrink: 0, color: iconColor }}
+                        aria-hidden
+                      />
+                    ) : (
+                      <ChIcon size={22} style={{ flexShrink: 0, color: iconColor }} aria-hidden />
+                    )}
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>{channelConfig.label}</span>
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: 10,
                         lineHeight: 1.35,
-                        color: selected ? "rgba(255,255,255,0.88)" : "var(--color-text-muted)",
+                        color: "var(--color-text-muted)",
                       }}
                     >
                       {channelConfig.wizardCardDescription}
@@ -3850,7 +4118,7 @@ export default function CampaignNew() {
                   textTransform: "uppercase",
                   color: WIZ_ACCENT_LINE,
                   background: WIZ_ROW_SELECTED,
-                  border: "1px solid rgba(67, 56, 202, 0.22)",
+                  border: "1px solid rgba(124, 58, 237, 0.22)",
                   padding: "4px 10px",
                   borderRadius: 999,
                 }}
@@ -3969,13 +4237,13 @@ export default function CampaignNew() {
                       fontSize: 13,
                       fontWeight: 500,
                       borderRadius: 999,
-                      border: active
-                        ? `2px solid ${WIZ_ACCENT}`
-                        : "1px solid var(--color-border)",
-                      background: active ? WIZ_ROW_SELECTED : "var(--color-surface)",
-                      color: active ? WIZ_ACCENT_LINE : "var(--color-text)",
+                      border: active ? `2px solid ${WIZ_ACCENT}` : "1px solid var(--color-border)",
+                      background: "var(--color-surface)",
+                      color: active ? WIZ_ACCENT : "var(--color-text)",
                       cursor: "pointer",
-                      transition: "border-color 0.15s, background 0.15s",
+                      transition: "border-color 0.15s, color 0.15s",
+                      boxShadow: "none",
+                      transform: "none",
                     }}
                   >
                     {opt}
@@ -4052,7 +4320,7 @@ export default function CampaignNew() {
               <div
                 style={{
                   background: "#F9F8FF",
-                  border: "1px solid rgba(91, 79, 201, 0.12)",
+                  border: "1px solid rgba(124, 58, 237, 0.12)",
                   borderRadius: 10,
                   padding: 16,
                   display: "flex",
@@ -4389,6 +4657,7 @@ export default function CampaignNew() {
                     >
                       <input
                         type="checkbox"
+                        style={WIZARD_LEAD_STEP_CHECKBOX_STYLE}
                         checked={
                           leadsMatchingFilterPreset.length > 0 &&
                           leadsMatchingFilterPreset.every((l) => selectedLeadIds.has(l.id))
@@ -4438,9 +4707,18 @@ export default function CampaignNew() {
                     >
                       <thead>
                         <tr style={{ background: "rgba(15, 23, 42, 0.04)", textAlign: "left" }}>
-                          <th style={{ padding: "12px 10px", width: 44 }}>
+                          <th
+                            style={{
+                              padding: "12px 10px",
+                              width: WIZARD_LEAD_STEP_CHECKBOX_COL_W,
+                              minWidth: WIZARD_LEAD_STEP_CHECKBOX_COL_W,
+                              textAlign: "center",
+                              verticalAlign: "middle",
+                            }}
+                          >
                             <input
                               type="checkbox"
+                              style={WIZARD_LEAD_STEP_CHECKBOX_STYLE}
                               disabled={paginatedTableLeads.length === 0}
                               checked={
                                 paginatedTableLeads.length > 0 &&
@@ -4651,15 +4929,24 @@ export default function CampaignNew() {
                               }}
                               onMouseEnter={(e) => {
                                 (e.currentTarget as HTMLTableRowElement).style.background =
-                                  "rgba(67, 56, 202, 0.04)";
+                                  "rgba(124, 58, 237, 0.04)";
                               }}
                               onMouseLeave={(e) => {
                                 (e.currentTarget as HTMLTableRowElement).style.background = "transparent";
                               }}
                             >
-                              <td style={{ padding: "10px" }}>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  textAlign: "center",
+                                  verticalAlign: "middle",
+                                  width: WIZARD_LEAD_STEP_CHECKBOX_COL_W,
+                                  minWidth: WIZARD_LEAD_STEP_CHECKBOX_COL_W,
+                                }}
+                              >
                                 <input
                                   type="checkbox"
+                                  style={WIZARD_LEAD_STEP_CHECKBOX_STYLE}
                                   checked={checked}
                                   onChange={(e) => {
                                     const next = new Set(selectedLeadIds);
@@ -4749,9 +5036,9 @@ export default function CampaignNew() {
                         justifyContent: "space-between",
                         gap: 12,
                         padding: "10px 14px 10px 12px",
-                        borderTop: "1px solid #ede9fe",
-                        borderLeft: "4px solid #8b5cf6",
-                        background: "#f5f3ff",
+                        borderTop: "1px solid rgba(124, 58, 237, 0.22)",
+                        borderLeft: "4px solid #7C3AED",
+                        background: "rgba(124, 58, 237, 0.09)",
                         boxShadow: "0 -2px 10px rgba(15, 23, 42, 0.05)",
                       }}
                     >
@@ -4759,7 +5046,7 @@ export default function CampaignNew() {
                         style={{
                           fontSize: 14,
                           fontWeight: 500,
-                          color: "#6d28d9",
+                          color: "#7C3AED",
                           lineHeight: "20px",
                         }}
                       >
@@ -4774,7 +5061,7 @@ export default function CampaignNew() {
                           fontSize: 14,
                           fontWeight: 500,
                           lineHeight: "20px",
-                          color: "#6d28d9",
+                          color: "#7C3AED",
                           border: "none",
                           background: "none",
                           cursor: "pointer",
@@ -4976,8 +5263,8 @@ export default function CampaignNew() {
                     minHeight: 96,
                     padding: "16px 14px",
                     borderRadius: 12,
-                    border: selected ? "2px solid #7c3aed" : "1px solid #e5e7eb",
-                    background: selected ? "#f5f3ff" : "#fff",
+                    border: selected ? "2px solid #7C3AED" : "1px solid #e5e7eb",
+                    background: selected ? "rgba(124, 58, 237, 0.09)" : "#fff",
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
@@ -4989,6 +5276,7 @@ export default function CampaignNew() {
                     transform: "none",
                     boxSizing: "border-box",
                     transition: "border-color 0.15s, background 0.15s",
+                    boxShadow: "none",
                   }}
                 >
                   {selected ? (
@@ -5000,7 +5288,7 @@ export default function CampaignNew() {
                         width: 20,
                         height: 20,
                         borderRadius: "50%",
-                        background: "#7c3aed",
+                        background: "#7C3AED",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -5010,12 +5298,12 @@ export default function CampaignNew() {
                       <Icons.Check size={12} style={{ color: "#fff" }} strokeWidth={3} />
                     </span>
                   ) : null}
-                  <CardIcon size={22} style={{ color: selected ? "#6d28d9" : "#6b7280" }} />
+                  <CardIcon size={22} style={{ color: selected ? "#7C3AED" : "#6b7280" }} />
                   <span
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: selected ? "#5b21b6" : "#374151",
+                      color: selected ? "#6D28D9" : "#374151",
                       lineHeight: 1.35,
                     }}
                   >
@@ -5061,7 +5349,7 @@ export default function CampaignNew() {
                         borderRadius: 9999,
                         border: active ? "none" : "1px solid #d1d5db",
                         background: active
-                          ? "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)"
+                          ? "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)"
                           : "#fff",
                         color: active ? "#fff" : "#4b5563",
                         fontSize: 14,
@@ -5098,7 +5386,7 @@ export default function CampaignNew() {
                     border: "1px solid #c7d2fe",
                     fontSize: 12,
                     fontWeight: 600,
-                    color: "#4338ca",
+                    color: WIZ_ACCENT_LINE,
                   }}
                 >
                   <span aria-hidden>📧</span> Email 1
@@ -5127,11 +5415,11 @@ export default function CampaignNew() {
                         gap: 6,
                         padding: "6px 12px",
                         borderRadius: 999,
-                        background: "#faf5ff",
-                        border: "1px solid #e9d5ff",
+                        background: "rgba(124, 58, 237, 0.07)",
+                        border: "1px solid rgba(124, 58, 237, 0.28)",
                         fontSize: 12,
                         fontWeight: 600,
-                        color: "#7e22ce",
+                        color: "#6D28D9",
                       }}
                     >
                       <span aria-hidden>📧</span> Follow-up {fu}
@@ -5212,7 +5500,7 @@ export default function CampaignNew() {
                   fontFamily: "inherit",
                   ...(emailTemplateTab === "library"
                     ? {
-                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)",
+                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
                         color: "#fff",
                         boxShadow:
                           "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
@@ -5244,7 +5532,7 @@ export default function CampaignNew() {
                   fontFamily: "inherit",
                   ...(emailTemplateTab === "ai"
                     ? {
-                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)",
+                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
                         color: "#fff",
                         boxShadow:
                           "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
@@ -5508,7 +5796,6 @@ export default function CampaignNew() {
                         <WizardEmailDraftCard
                           key={id}
                           variant="library"
-                          accentHash={id}
                           title={title}
                           category={category}
                           workspaceShared={shared}
@@ -5546,8 +5833,8 @@ export default function CampaignNew() {
                       style={{
                         marginTop: 4,
                         padding: "12px 14px",
-                        background: "#f5f3ff",
-                        borderLeft: "4px solid #8b5cf6",
+                        background: "rgba(124, 58, 237, 0.09)",
+                        borderLeft: "4px solid #7C3AED",
                         borderRadius: 8,
                         fontSize: 14,
                         color: "var(--color-text)",
@@ -5581,7 +5868,7 @@ export default function CampaignNew() {
                     gap: 16,
                   }}
                 >
-                  <Icons.Loader size={40} style={{ color: "#4C67FF", animation: "spin 1s linear infinite" }} />
+                  <Icons.Loader size={40} style={{ color: "#7C3AED", animation: "spin 1s linear infinite" }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Writing your email drafts…</div>
                   <div style={{ fontSize: 13 }}>
                     Using your campaign details, target segments, and ICP profile to create tailored messages
@@ -5604,17 +5891,27 @@ export default function CampaignNew() {
                       ? Array.from(
                           { length: Math.max(messages.length, 1 + (schedule.followups || 0)) },
                           (_, sk) => (
-                            <div key={`sk-${sk}`} className="bases-workspace-card" style={{ padding: "14px 16px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                                <div style={{ width: 120, height: 22, borderRadius: 6, background: "#e5e7eb" }} />
-                                <div style={{ flex: 1 }} />
-                                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#e5e7eb" }} />
-                                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#e5e7eb" }} />
+                            <div key={`sk-${sk}`} className="bases-workspace-card" style={{ padding: "16px 18px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                                  <div style={{ width: 72, height: 10, borderRadius: 4, background: "#e5e7eb" }} />
+                                  <div style={{ height: 18, width: "75%", borderRadius: 4, background: "#e5e7eb" }} />
+                                  <div style={{ height: 12, width: "55%", borderRadius: 4, background: "#e5e7eb" }} />
+                                </div>
+                                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#e5e7eb" }} />
+                                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#e5e7eb" }} />
                                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#e5e7eb" }} />
                               </div>
-                              <div style={{ height: 14, width: "70%", borderRadius: 4, background: "#e5e7eb", marginBottom: 8 }} />
-                              <div style={{ height: 12, width: "100%", borderRadius: 4, background: "#e5e7eb", marginBottom: 6 }} />
-                              <div style={{ height: 12, width: "85%", borderRadius: 4, background: "#e5e7eb" }} />
+                              <div style={{ display: "grid", rowGap: 14 }}>
+                                <div>
+                                  <div style={{ width: 48, height: 8, borderRadius: 4, background: "#e5e7eb", marginBottom: 4 }} />
+                                  <div style={{ height: 12, width: "100%", borderRadius: 4, background: "#e5e7eb" }} />
+                                </div>
+                                <div>
+                                  <div style={{ width: 36, height: 8, borderRadius: 4, background: "#e5e7eb", marginBottom: 4 }} />
+                                  <div style={{ height: 12, width: "92%", borderRadius: 4, background: "#e5e7eb" }} />
+                                </div>
+                              </div>
                             </div>
                           )
                         )
@@ -5628,7 +5925,6 @@ export default function CampaignNew() {
                               key={i}
                               variant="ai"
                               draftSource={i === 0 ? emailInitialContentSource : "ai"}
-                              accentHash={i}
                               title={draftTitle}
                               category="Campaign"
                               subjectDisplay={subject}
@@ -5661,10 +5957,10 @@ export default function CampaignNew() {
                         marginTop: 12,
                         padding: "12px 14px",
                         background:
-                          selectedMessageIndices.length > 0 ? "#f5f3ff" : "var(--color-surface-secondary)",
+                          selectedMessageIndices.length > 0 ? "rgba(124, 58, 237, 0.09)" : "var(--color-surface-secondary)",
                         borderLeft:
                           selectedMessageIndices.length > 0
-                            ? "4px solid #8b5cf6"
+                            ? "4px solid #7C3AED"
                             : "4px solid var(--color-border)",
                         borderRadius: 8,
                         fontSize: 14,
@@ -5721,7 +6017,7 @@ export default function CampaignNew() {
             ).map((opt) => {
               const selected = linkedInStepConfig?.action === opt.key;
               const iconColor =
-                opt.icon === "userplus" ? "#0A66C2" : "#4C67FF";
+                opt.icon === "userplus" ? "#0A66C2" : "#7C3AED";
               return (
                 <div
                   key={opt.key}
@@ -5769,7 +6065,7 @@ export default function CampaignNew() {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          background: "#4C67FF",
+                          background: "#7C3AED",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -5895,7 +6191,7 @@ export default function CampaignNew() {
                     fontFamily: "inherit",
                     ...(linkedInTemplateTab === "library"
                       ? {
-                          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)",
+                          background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
                           color: "#fff",
                           boxShadow:
                             "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
@@ -5927,7 +6223,7 @@ export default function CampaignNew() {
                     fontFamily: "inherit",
                     ...(linkedInTemplateTab === "ai"
                       ? {
-                          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)",
+                          background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
                           color: "#fff",
                           boxShadow:
                             "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
@@ -6080,7 +6376,6 @@ export default function CampaignNew() {
                           key={id}
                           variant="library"
                           layout="linkedin_note"
-                          accentHash={id}
                           title={title}
                           category={category}
                           workspaceShared={shared}
@@ -6136,7 +6431,7 @@ export default function CampaignNew() {
                       color: "var(--color-text-muted)",
                     }}
                   >
-                    <Icons.Loader size={18} style={{ animation: "spin 1s linear infinite", color: "#4C67FF" }} />
+                    <Icons.Loader size={18} style={{ animation: "spin 1s linear infinite", color: "#7C3AED" }} />
                     Suggesting connection notes…
                   </div>
                 ) : null}
@@ -6180,7 +6475,6 @@ export default function CampaignNew() {
                           key={idx}
                           variant="ai"
                           layout="linkedin_note"
-                          accentHash={idx}
                           title={`Suggestion ${idx + 1}`}
                           category="Connection note"
                           subjectDisplay=""
@@ -6242,81 +6536,238 @@ export default function CampaignNew() {
             </p>
           </div>
 
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--color-text)' }}>
-              Suggested topics (AI-assisted)
+          {!kbAiGeneratorExpanded ? (
+            <div style={{ justifySelf: "start", width: "fit-content", maxWidth: "100%" }}>
+              <button
+                type="button"
+                className="persona-ai-generate-btn"
+                disabled={uploadingFile}
+                onClick={() => setKbAiGeneratorExpanded(true)}
+              >
+                <Sparkles size={18} strokeWidth={2} aria-hidden />
+                Generate with AI
+              </button>
             </div>
-            <p className="text-hint" style={{ marginTop: 0, marginBottom: 10, fontSize: 13 }}>
-              Pick a topic. We will ask a few questions, then generate a knowledge base document and attach it like a normal upload.
-            </p>
+          ) : (
             <div
+              className="persona-ai-panel-reveal"
               style={{
+                border: "1px solid var(--color-border)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                background: "var(--color-surface-secondary)",
                 display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                alignItems: "center",
+                flexDirection: "column",
+                gap: 8,
               }}
             >
-              {KB_SUGGESTIONS.map((s) => {
-                const isSel = selectedKbTopicId === s.id;
-                const disabled = uploadingFile || kbAiPhase === "generating";
-                const baseChip: CSSProperties = {
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  padding: "5px 10px",
-                  borderRadius: 9999,
-                  fontSize: 12,
-                  fontWeight: isSel ? 600 : 500,
-                  fontFamily: "inherit",
-                  lineHeight: 1.2,
-                  boxSizing: "border-box",
-                  cursor: disabled ? "not-allowed" : "pointer",
-                  opacity: disabled ? 0.55 : 1,
-                  border: isSel ? "1px solid #8b5cf6" : "1px solid var(--color-border)",
-                  background: isSel ? "rgba(139, 92, 246, 0.14)" : "var(--color-surface-secondary)",
-                  color: isSel ? "#6d28d9" : "var(--color-text)",
-                  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
-                };
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    disabled={disabled}
-                    title={s.hint}
-                    onClick={() => {
-                      if (selectedKbTopicId === s.id) {
-                        setSelectedKbTopicId(null);
-                        return;
-                      }
-                      setSelectedKbTopicId(s.id);
-                      void openKbAiSuggestion(s.id, s.label);
-                    }}
-                    style={baseChip}
-                    onMouseEnter={(e) => {
-                      if (disabled || isSel) return;
-                      e.currentTarget.style.background = "var(--color-surface)";
-                      e.currentTarget.style.borderColor = "#c4b5fd";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (disabled || isSel) return;
-                      e.currentTarget.style.background = "var(--color-surface-secondary)";
-                      e.currentTarget.style.borderColor = "";
-                      e.currentTarget.style.border = "1px solid var(--color-border)";
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}
+              >
+                <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 2, lineHeight: 1.3 }}>
+                    AI knowledge document
+                  </div>
+                  <p
+                    className="text-hint"
+                    style={{
+                      margin: 0,
+                      fontSize: 11,
+                      lineHeight: 1.35,
+                      maxWidth: "100%",
+                      whiteSpace: "nowrap",
+                      overflowX: "auto",
                     }}
                   >
-                    {isSel ? (
-                      <span aria-hidden style={{ fontSize: 11 }}>
-                        ✓
-                      </span>
-                    ) : null}
-                    {s.label}
+                    Pick a topic or describe your own. We ask a few questions, then generate a PDF and attach it like a normal upload.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={uploadingFile || kbAiPhase === "loading" || kbAiPhase === "generating"}
+                  onClick={() => setKbAiGeneratorExpanded(false)}
+                  className="btn-ghost"
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--color-text-muted)",
+                    border: "none",
+                    background: "transparent",
+                    cursor:
+                      uploadingFile || kbAiPhase === "loading" || kbAiPhase === "generating"
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity: uploadingFile || kbAiPhase === "loading" || kbAiPhase === "generating" ? 0.5 : 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  Hide
+                </button>
+              </div>
+
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "#9ca3af",
+                    marginBottom: 6,
+                  }}
+                >
+                  Suggestions
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", paddingTop: 2 }}>
+                  {KB_SUGGESTIONS.map((s) => {
+                    const isSel = selectedKbTopicId === s.id;
+                    const disabled =
+                      uploadingFile || kbAiPhase === "generating" || kbAiPhase === "loading";
+                    const baseChip: CSSProperties = {
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      padding: "6px 11px",
+                      borderRadius: 9999,
+                      fontSize: 11,
+                      fontWeight: isSel ? 600 : 500,
+                      fontFamily: "inherit",
+                      lineHeight: 1.25,
+                      boxSizing: "border-box",
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      opacity: disabled ? 0.55 : 1,
+                      border: isSel ? "1px solid #7C3AED" : "1px solid var(--color-border)",
+                      background: isSel ? "rgba(139, 92, 246, 0.14)" : "var(--color-surface)",
+                      color: isSel ? "#7C3AED" : "var(--color-text)",
+                      transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                    };
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        disabled={disabled}
+                        title={s.hint}
+                        onClick={() => {
+                          if (selectedKbTopicId === s.id) {
+                            setSelectedKbTopicId(null);
+                            return;
+                          }
+                          setSelectedKbTopicId(s.id);
+                          void openKbAiSuggestion(s.id, s.label);
+                        }}
+                        style={baseChip}
+                        onMouseEnter={(e) => {
+                          if (disabled || isSel) return;
+                          e.currentTarget.style.background = "var(--color-surface-secondary)";
+                          e.currentTarget.style.borderColor = "#c4b5fd";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (disabled || isSel) return;
+                          e.currentTarget.style.background = "var(--color-surface)";
+                          e.currentTarget.style.borderColor = "";
+                          e.currentTarget.style.border = "1px solid var(--color-border)";
+                        }}
+                      >
+                        {isSel ? (
+                          <span aria-hidden style={{ fontSize: 10 }}>
+                            ✓
+                          </span>
+                        ) : null}
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="kb-ai-generator-custom-brief"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "#9ca3af",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  Your words
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  <input
+                    id="kb-ai-generator-custom-brief"
+                    type="text"
+                    className="input"
+                    value={kbAiGeneratorCustomBrief}
+                    onChange={(e) => setKbAiGeneratorCustomBrief(e.target.value)}
+                    onKeyDown={(e) => {
+                      const t = (e.currentTarget as HTMLInputElement).value.trim();
+                      if (
+                        e.key === "Enter" &&
+                        t &&
+                        !uploadingFile &&
+                        kbAiPhase !== "loading" &&
+                        kbAiPhase !== "generating"
+                      ) {
+                        e.preventDefault();
+                        setSelectedKbTopicId("custom_business");
+                        void openKbAiSuggestion("custom_business", t.length > 56 ? `${t.slice(0, 56)}…` : t, t);
+                      }
+                    }}
+                    disabled={uploadingFile || kbAiPhase === "loading" || kbAiPhase === "generating"}
+                    placeholder="e.g. dental practice scheduling & insurance FAQs"
+                    style={{ flex: "1 1 180px", minWidth: 0, fontSize: 12, padding: "6px 10px", minHeight: 32 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={
+                      uploadingFile ||
+                      kbAiPhase === "loading" ||
+                      kbAiPhase === "generating" ||
+                      !kbAiGeneratorCustomBrief.trim()
+                    }
+                    onClick={() => {
+                      const t = kbAiGeneratorCustomBrief.trim();
+                      if (!t) return;
+                      setSelectedKbTopicId("custom_business");
+                      void openKbAiSuggestion("custom_business", t.length > 56 ? `${t.slice(0, 56)}…` : t, t);
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flexShrink: 0,
+                      padding: "0 12px",
+                      minHeight: 32,
+                      fontSize: 12,
+                      opacity: kbAiPhase === "loading" || kbAiPhase === "generating" ? 0.55 : 1,
+                    }}
+                  >
+                    <Sparkles size={13} strokeWidth={2} aria-hidden />
+                    Generate
                   </button>
-                );
-              })}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Initial upload (hidden once at least one file exists) */}
           {knowledgeBaseFiles.length === 0 ? (
@@ -6335,8 +6786,8 @@ export default function CampaignNew() {
               onDragOver={(e) => {
                 e.preventDefault();
                 if (uploadingFile) return;
-                e.currentTarget.style.borderColor = "#4C67FF";
-                e.currentTarget.style.background = "rgba(76, 103, 255, 0.05)";
+                e.currentTarget.style.borderColor = "#7C3AED";
+                e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
               }}
               onDragLeave={(e) => {
                 e.currentTarget.style.borderColor = "var(--color-border)";
@@ -6383,7 +6834,7 @@ export default function CampaignNew() {
                       style={{
                         height: 4,
                         borderRadius: 9999,
-                        background: "#8b5cf6",
+                        background: "#7C3AED",
                         width: `${uploadProgress ?? 0}%`,
                         transition: "width 0.25s ease-out",
                       }}
@@ -6395,7 +6846,7 @@ export default function CampaignNew() {
                 </div>
               ) : (
                 <>
-                  <Icons.Upload size={48} style={{ color: "#4C67FF", marginBottom: 16 }} />
+                  <Icons.Upload size={48} style={{ color: "#7C3AED", marginBottom: 16 }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Click to upload or drag and drop</div>
                   <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Knowledge base files only (max 10MB)</div>
                 </>
@@ -6411,7 +6862,8 @@ export default function CampaignNew() {
                 lineHeight: 1.5,
               }}
             >
-              Add a knowledge base to continue: upload a PDF here, or choose a suggested topic above to generate one.
+              Add a knowledge base to continue: upload a PDF here, or use{" "}
+              <strong style={{ fontWeight: 600 }}>Generate with AI</strong> to create one from a topic.
             </p>
             </>
           ) : null}
@@ -6553,7 +7005,7 @@ export default function CampaignNew() {
                   fontFamily: "inherit",
                   ...(whatsAppTemplateTab === "library"
                     ? {
-                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)",
+                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
                         color: "#fff",
                         boxShadow:
                           "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
@@ -6585,7 +7037,7 @@ export default function CampaignNew() {
                   fontFamily: "inherit",
                   ...(whatsAppTemplateTab === "ai"
                     ? {
-                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 42%, #4338ca 100%)",
+                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
                         color: "#fff",
                         boxShadow:
                           "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
@@ -6787,7 +7239,6 @@ export default function CampaignNew() {
                           key={id}
                           variant="library"
                           layout="whatsapp"
-                          accentHash={id}
                           title={title}
                           category={category}
                           workspaceShared={shared}
@@ -6832,8 +7283,8 @@ export default function CampaignNew() {
                       style={{
                         marginTop: 4,
                         padding: "12px 14px",
-                        background: "#f5f3ff",
-                        borderLeft: "4px solid #8b5cf6",
+                        background: "rgba(124, 58, 237, 0.09)",
+                        borderLeft: "4px solid #7C3AED",
                         borderRadius: 8,
                         fontSize: 14,
                         color: "var(--color-text)",
@@ -6868,7 +7319,7 @@ export default function CampaignNew() {
                     gap: 16,
                   }}
                 >
-                  <Icons.Loader size={40} style={{ color: "#4C67FF", animation: "spin 1s linear infinite" }} />
+                  <Icons.Loader size={40} style={{ color: "#7C3AED", animation: "spin 1s linear infinite" }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Writing your WhatsApp drafts…</div>
                   <div style={{ fontSize: 13 }}>
                     Using your campaign details, target segments, and sample leads with phone numbers
@@ -6896,7 +7347,6 @@ export default function CampaignNew() {
                           key={i}
                           variant="ai"
                           layout="whatsapp"
-                          accentHash={i}
                           title={draftTitle}
                           category="Campaign"
                           subjectDisplay=""
@@ -6925,11 +7375,11 @@ export default function CampaignNew() {
                         padding: "12px 14px",
                         background:
                           selectedWhatsAppMessageIndices.length > 0
-                            ? "#f5f3ff"
+                            ? "rgba(124, 58, 237, 0.09)"
                             : "var(--color-surface-secondary)",
                         borderLeft:
                           selectedWhatsAppMessageIndices.length > 0
-                            ? "4px solid #8b5cf6"
+                            ? "4px solid #7C3AED"
                             : "4px solid var(--color-border)",
                         borderRadius: 8,
                         fontSize: 14,
@@ -7120,9 +7570,9 @@ export default function CampaignNew() {
                                   padding: "6px 12px",
                                   borderRadius: 999,
                                   fontSize: 12,
-                                  border: active ? "1px solid #8b5cf6" : "1px solid var(--color-border)",
+                                  border: active ? "1px solid #7C3AED" : "1px solid var(--color-border)",
                                   background: active ? "rgba(139, 92, 246, 0.12)" : "var(--color-surface-secondary)",
-                                  color: active ? "#6d28d9" : "var(--color-text-muted)",
+                                  color: active ? "#7C3AED" : "var(--color-text-muted)",
                                   cursor: "pointer",
                                 }}
                               >
@@ -7163,8 +7613,8 @@ export default function CampaignNew() {
                                   padding: "12px 14px",
                                   borderRadius: 8,
                                   border: "1px solid var(--color-border)",
-                                  borderLeft: sel ? "4px solid #8b5cf6" : "1px solid var(--color-border)",
-                                  background: sel ? "#f5f3ff" : "var(--color-surface)",
+                                  borderLeft: sel ? "4px solid #7C3AED" : "1px solid var(--color-border)",
+                                  background: sel ? "rgba(124, 58, 237, 0.09)" : "var(--color-surface)",
                                   cursor: "pointer",
                                   transition: "background 0.15s ease, border-color 0.15s ease",
                                   minWidth: 0,
@@ -7176,8 +7626,8 @@ export default function CampaignNew() {
                                     width: 18,
                                     height: 18,
                                     borderRadius: "50%",
-                                    border: sel ? "2px solid #8b5cf6" : "2px solid #d1d5db",
-                                    background: sel ? "#8b5cf6" : "transparent",
+                                    border: sel ? "2px solid #7C3AED" : "2px solid #d1d5db",
+                                    background: sel ? "#7C3AED" : "transparent",
                                     flexShrink: 0,
                                     display: "flex",
                                     alignItems: "center",
@@ -7324,8 +7774,8 @@ export default function CampaignNew() {
                                 padding: "12px 14px",
                                 borderRadius: 8,
                                 border: "1px solid var(--color-border)",
-                                borderLeft: sel ? "4px solid #8b5cf6" : "1px solid var(--color-border)",
-                                background: sel ? "#f5f3ff" : "var(--color-surface)",
+                                borderLeft: sel ? "4px solid #7C3AED" : "1px solid var(--color-border)",
+                                background: sel ? "rgba(124, 58, 237, 0.09)" : "var(--color-surface)",
                                 cursor: "pointer",
                                 transition: "background 0.15s ease, border-color 0.15s ease",
                                 minWidth: 0,
@@ -7337,8 +7787,8 @@ export default function CampaignNew() {
                                   width: 18,
                                   height: 18,
                                   borderRadius: "50%",
-                                  border: sel ? "2px solid #8b5cf6" : "2px solid #d1d5db",
-                                  background: sel ? "#8b5cf6" : "transparent",
+                                  border: sel ? "2px solid #7C3AED" : "2px solid #d1d5db",
+                                  background: sel ? "#7C3AED" : "transparent",
                                   flexShrink: 0,
                                   display: "flex",
                                   alignItems: "center",
@@ -7539,20 +7989,20 @@ export default function CampaignNew() {
                       fontWeight: 500,
                       fontFamily:
                         'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                      background: "#f5f3ff",
-                      color: "#6d28d9",
-                      border: "1px solid #ddd6fe",
+                      background: "rgba(124, 58, 237, 0.09)",
+                      color: "#7C3AED",
+                      border: "1px solid rgba(124, 58, 237, 0.22)",
                       cursor: "pointer",
                       boxSizing: "border-box",
                       transition: "background 0.15s ease, border-color 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#ede9fe";
-                      e.currentTarget.style.borderColor = "#c4b5fd";
+                      e.currentTarget.style.background = "rgba(124, 58, 237, 0.14)";
+                      e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.35)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#f5f3ff";
-                      e.currentTarget.style.borderColor = "#ddd6fe";
+                      e.currentTarget.style.background = "rgba(124, 58, 237, 0.09)";
+                      e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.22)";
                     }}
                   >
                     {`{{${variable.key}}}`}
@@ -7717,7 +8167,7 @@ export default function CampaignNew() {
                       boxSizing: "border-box",
                       minHeight: 0,
                       transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                      boxShadow: selected ? "0 1px 4px rgba(91, 79, 201, 0.12)" : "none",
+                      boxShadow: selected ? "0 1px 4px rgba(124, 58, 237, 0.12)" : "none",
                     }}
                   >
                     <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text)", marginBottom: 4 }}>
@@ -7746,7 +8196,7 @@ export default function CampaignNew() {
 
       {/* Call System Persona - rendered based on stepType */}
       {currentStepInfo?.stepType === 'call_system_persona' && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <h2 style={{ marginTop: 0, marginBottom: 6, fontSize: 20, fontWeight: 600 }}>Assistant behavior</h2>
             <p className="text-hint" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
@@ -7754,6 +8204,193 @@ export default function CampaignNew() {
               —how the agent thinks, speaks, and handles the rest of the call after the opening line.
             </p>
           </div>
+
+          {!systemPersonaAiExpanded ? (
+            <div style={{ alignSelf: "flex-start", width: "fit-content", maxWidth: "100%" }}>
+              <button
+                type="button"
+                className="persona-ai-generate-btn"
+                disabled={systemPersonaGenerating}
+                onClick={() => setSystemPersonaAiExpanded(true)}
+              >
+                <Sparkles size={18} strokeWidth={2} aria-hidden />
+                Generate with AI
+              </button>
+            </div>
+          ) : (
+            <div
+              className="persona-ai-panel-reveal"
+              style={{
+                border: "1px solid var(--color-border)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                background: "var(--color-surface-secondary)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                  gap: 8,
+                  justifyContent: "space-between",
+                }}
+              >
+                <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 2, lineHeight: 1.3 }}>
+                    Generate with AI
+                  </div>
+                  <p className="text-hint" style={{ margin: 0, fontSize: 11, lineHeight: 1.35, maxWidth: 520 }}>
+                    One-click suggestions or your own words + Generate. Campaign context is used when available.
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  {systemPersonaGenerating ? (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "var(--color-text-muted)",
+                      }}
+                    >
+                      <RefreshCw size={12} strokeWidth={2} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+                      Generating…
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={systemPersonaGenerating}
+                    onClick={() => setSystemPersonaAiExpanded(false)}
+                    className="btn-ghost"
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "var(--color-text-muted)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: systemPersonaGenerating ? "not-allowed" : "pointer",
+                      opacity: systemPersonaGenerating ? 0.5 : 1,
+                    }}
+                  >
+                    Hide
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "#9ca3af",
+                    marginBottom: 6,
+                  }}
+                >
+                  Suggestions
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", paddingTop: 2 }}>
+                  {CALL_SYSTEM_PERSONA_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={systemPersonaGenerating}
+                      onClick={() => void generateCallSystemPersonaWithBrief(s.brief)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "4px 9px",
+                        borderRadius: 9999,
+                        border: "1px solid var(--color-border)",
+                        background: "var(--color-surface)",
+                        color: "var(--color-text)",
+                        fontSize: 11,
+                        fontWeight: 500,
+                        lineHeight: 1.25,
+                        cursor: systemPersonaGenerating ? "not-allowed" : "pointer",
+                        opacity: systemPersonaGenerating ? 0.65 : 1,
+                        textAlign: "left",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      <Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#7C3AED" }} aria-hidden />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="system-persona-custom-brief"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "#9ca3af",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  Your words
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  <input
+                    id="system-persona-custom-brief"
+                    type="text"
+                    className="input"
+                    value={systemPersonaCustomBrief}
+                    onChange={(e) => setSystemPersonaCustomBrief(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !systemPersonaGenerating && systemPersonaCustomBrief.trim()) {
+                        e.preventDefault();
+                        void generateCallSystemPersonaWithBrief(systemPersonaCustomBrief);
+                      }
+                    }}
+                    disabled={systemPersonaGenerating}
+                    placeholder='e.g. calm doctor tone, UK English, short sentences'
+                    style={{ flex: "1 1 180px", minWidth: 0, fontSize: 12, padding: "6px 10px", minHeight: 32 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={systemPersonaGenerating || !systemPersonaCustomBrief.trim()}
+                    onClick={() => void generateCallSystemPersonaWithBrief(systemPersonaCustomBrief)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flexShrink: 0,
+                      padding: "0 12px",
+                      minHeight: 32,
+                      fontSize: 12,
+                      opacity: systemPersonaGenerating ? 0.55 : 1,
+                    }}
+                  >
+                    <Sparkles size={13} strokeWidth={2} aria-hidden />
+                    Generate
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div
             style={{
@@ -8186,54 +8823,6 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         setSchedule({ ...schedule, email: { throttle: clamped } });
                         setScheduleThrottleDraft((prev) => ({ ...prev, email: undefined }));
                       }}
-                      recommendation={
-                        scheduleHasWindowForRec &&
-                        totalLeads > 0 &&
-                        campaignDays > 0 &&
-                        recommendedEmailThrottle !== null ? (
-                          <div
-                            style={{
-                              borderRadius: 8,
-                              border: "1px solid rgba(76, 103, 255, 0.2)",
-                              padding: 12,
-                              fontSize: 12,
-                              background: "rgba(76, 103, 255, 0.08)",
-                            }}
-                          >
-                            <div
-                              style={{
-                                marginBottom: 6,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                fontWeight: 600,
-                                color: "var(--color-text)",
-                              }}
-                            >
-                              <Lightbulb size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#4C67FF" }} />
-                              Recommended: {recommendedEmailThrottle} / day
-                            </div>
-                            <div style={{ color: "var(--color-text-muted)" }}>
-                              Based on {totalLeads} lead{totalLeads !== 1 ? "s" : ""} over {campaignDays} day
-                              {campaignDays !== 1 ? "s" : ""}
-                              {recommendedEmailThrottle >= emailThrottleMax && (
-                                <span
-                                  style={{
-                                    marginTop: 6,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    color: "#dc2626",
-                                  }}
-                                >
-                                  <AlertCircle size={12} strokeWidth={2} style={{ flexShrink: 0 }} />
-                                  At daily cap ({emailThrottleMax})
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ) : null
-                      }
                     />
                   )}
 
@@ -8275,69 +8864,6 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                           setSchedule({ ...schedule, linkedin: { throttle: clamped } });
                           setScheduleThrottleDraft((prev) => ({ ...prev, linkedin: undefined }));
                         }}
-                        recommendation={
-                          scheduleHasWindowForRec &&
-                          totalLeads > 0 &&
-                          campaignDays > 0 &&
-                          recommendedLinkedInThrottle !== null &&
-                          linkedInAccountType ? (
-                            <div
-                              style={{
-                                borderRadius: 8,
-                                border: "1px solid rgba(76, 103, 255, 0.2)",
-                                padding: 12,
-                                fontSize: 12,
-                                background: "rgba(76, 103, 255, 0.08)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  marginBottom: 6,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                  fontWeight: 600,
-                                  color: "var(--color-text)",
-                                }}
-                              >
-                                <Lightbulb size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#4C67FF" }} />
-                                Recommended: {recommendedLinkedInThrottle} / day
-                              </div>
-                              <div style={{ color: "var(--color-text-muted)" }}>
-                                Based on {totalLeads} lead{totalLeads !== 1 ? "s" : ""} over {campaignDays} day
-                                {campaignDays !== 1 ? "s" : ""}
-                                <br />
-                                Account:{" "}
-                                {linkedInAccountType === "free_basic" ? "Free / Basic" : linkedInAccountType}
-                                {linkedInMonthlyLimit !== null ? (
-                                  <>
-                                    {" "}
-                                    · Monthly limit: {linkedInMonthlyLimit}
-                                    {linkedInStepConfig?.action === "invitation_with_message"
-                                      ? " (with message)"
-                                      : ""}
-                                    {linkedInStepConfig?.action === "invitation_with_message" && (
-                                      <span
-                                        style={{
-                                          marginTop: 6,
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: 6,
-                                          color: "#d97706",
-                                        }}
-                                      >
-                                        <AlertCircle size={12} strokeWidth={2} style={{ flexShrink: 0 }} />
-                                        Free tier cap applies per month
-                                      </span>
-                                    )}
-                                  </>
-                                ) : (
-                                  <> · Up to {SCHEDULE_DAILY_LIMIT_MAX}/day set here (LinkedIn may cap lower)</>
-                                )}
-                              </div>
-                            </div>
-                          ) : null
-                        }
                       />
                       {linkedInMonthlyLimit !== null && (
                         <div
@@ -8442,37 +8968,6 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         setSchedule({ ...schedule, whatsapp: { throttle: clamped } });
                         setScheduleThrottleDraft((prev) => ({ ...prev, whatsapp: undefined }));
                       }}
-                      recommendation={
-                        scheduleHasWindowForRec && totalLeads > 0 && campaignDays > 0 ? (
-                          <div
-                            style={{
-                              borderRadius: 8,
-                              border: "1px solid rgba(76, 103, 255, 0.2)",
-                              padding: 12,
-                              fontSize: 12,
-                              background: "rgba(76, 103, 255, 0.08)",
-                            }}
-                          >
-                            <div
-                              style={{
-                                marginBottom: 6,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                fontWeight: 600,
-                                color: "var(--color-text)",
-                              }}
-                            >
-                              <Lightbulb size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#4C67FF" }} />
-                              Recommended: {Math.ceil(totalLeads / campaignDays)} / day
-                            </div>
-                            <div style={{ color: "var(--color-text-muted)" }}>
-                              Based on {totalLeads} lead{totalLeads !== 1 ? "s" : ""} over {campaignDays} day
-                              {campaignDays !== 1 ? "s" : ""}
-                            </div>
-                          </div>
-                        ) : null
-                      }
                     />
                   )}
 
@@ -8514,7 +9009,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               </div>
             </div>
 
-            {channels.includes("email") && schedule.followups > 0 && (
+            {channels.includes("email") && (
               <div
                 style={{
                   display: "flex",
@@ -8619,46 +9114,53 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     1–30 days between each follow-up (default 3)
                   </span>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-                  {Array.from({ length: schedule.followups + 1 }, (_, i) => {
-                    const delayDays = schedule.followupDelay || 3;
-                    const day = i * delayDays;
-                    return (
-                      <span key={`fu-${i}-${day}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {i > 0 && (
-                          <ArrowRight
-                            size={16}
-                            strokeWidth={2}
-                            aria-hidden
-                            style={{ flexShrink: 0, opacity: 0.35 }}
-                          />
-                        )}
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            borderRadius: 9999,
-                            border: "1px solid var(--color-border)",
-                            padding: "4px 10px",
-                            fontSize: 12,
-                            fontWeight: 500,
-                            background: "var(--color-surface-secondary)",
-                            color: "var(--color-text)",
-                          }}
-                        >
-                          <Icons.Mail
-                            size={14}
-                            strokeWidth={1.75}
-                            style={{ opacity: 0.9, color: WIZ_CHANNEL_EMAIL }}
-                            aria-hidden
-                          />
-                          Day {day}
+                {schedule.followups > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                    {Array.from({ length: schedule.followups + 1 }, (_, i) => {
+                      const delayDays = schedule.followupDelay || 3;
+                      const day = i * delayDays;
+                      return (
+                        <span key={`fu-${i}-${day}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {i > 0 && (
+                            <ArrowRight
+                              size={16}
+                              strokeWidth={2}
+                              aria-hidden
+                              style={{ flexShrink: 0, opacity: 0.35 }}
+                            />
+                          )}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              borderRadius: 9999,
+                              border: "1px solid var(--color-border)",
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              fontWeight: 500,
+                              background: "var(--color-surface-secondary)",
+                              color: "var(--color-text)",
+                            }}
+                          >
+                            <Icons.Mail
+                              size={14}
+                              strokeWidth={1.75}
+                              style={{ opacity: 0.9, color: WIZ_CHANNEL_EMAIL }}
+                              aria-hidden
+                            />
+                            Day {day}
+                          </span>
                         </span>
-                      </span>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-hint" style={{ margin: 0, fontSize: 13, lineHeight: 1.45 }}>
+                    Turn on follow-up emails in the <strong>Email follow-ups</strong> step to send multiple
+                    touches. You can still set the delay here; it applies when follow-ups are enabled.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -8667,7 +9169,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
       {/* Review Step - rendered based on stepType */}
       {currentStepInfo?.stepType === "review" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {totalLeads === 0 ? (
+          {totalLeads === 0 && !loadingLeads ? (
             <div
               role="alert"
               style={{
@@ -8694,7 +9196,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: "none",
                     background: "none",
                     cursor: "pointer",
-                    color: "#7c3aed",
+                    color: "#6D28D9",
                     fontWeight: 600,
                     textDecoration: "underline",
                     fontSize: "inherit",
@@ -8750,7 +9252,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <Icons.Rocket size={20} style={{ color: "#4C67FF", flexShrink: 0 }} />
+                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#7C3AED", flexShrink: 0 }} />
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Campaign Overview</h4>
                   </div>
                   <button
@@ -8760,7 +9262,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       flexShrink: 0,
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#7c3aed",
+                      color: "#6D28D9",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -8782,9 +9284,6 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {channels.map((channel) => {
                         const ch = channel as ChannelType;
-                        const meta = REVIEW_OVERVIEW_CHANNEL_META[ch];
-                        const ChIcon = meta?.Icon ?? Icons.Mail;
-                        const iconColor = meta?.iconColor ?? "var(--color-text)";
                         return (
                           <span
                             key={ch}
@@ -8801,16 +9300,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                               border: "1px solid var(--color-border)",
                             }}
                           >
-                            {ch === "email" || ch === "linkedin" ? (
-                              <ChIcon
-                                size={14}
-                                strokeWidth={1.75}
-                                style={{ flexShrink: 0, color: iconColor }}
-                                aria-hidden
-                              />
-                            ) : (
-                              <ChIcon size={14} style={{ flexShrink: 0, color: iconColor }} aria-hidden />
-                            )}
+                            <ReviewChannelGlyph channel={ch} size={14} />
                             {CHANNEL_CONFIGS[ch]?.label || ch}
                           </span>
                         );
@@ -8843,7 +9333,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <Icons.Calendar size={20} style={{ color: "#4C67FF", flexShrink: 0 }} />
+                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#7C3AED", flexShrink: 0 }} />
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{"Schedule & Settings"}</h4>
                   </div>
                   <button
@@ -8853,7 +9343,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       flexShrink: 0,
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#7c3aed",
+                      color: "#6D28D9",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -8906,7 +9396,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <Icons.Mail size={16} />
+                          <ReviewChannelGlyph channel="email" size={16} />
                           <span style={{ fontSize: 13 }}>Email Throttle</span>
                         </div>
                         <div
@@ -8943,7 +9433,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <Icons.Linkedin size={16} />
+                          <ReviewChannelGlyph channel="linkedin" size={16} />
                           <span style={{ fontSize: 13 }}>LinkedIn Throttle</span>
                         </div>
                         <div
@@ -8980,7 +9470,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <Icons.WhatsApp size={16} />
+                          <ReviewChannelGlyph channel="whatsapp" size={16} />
                           <span style={{ fontSize: 13 }}>WhatsApp Throttle</span>
                         </div>
                         <div
@@ -9017,7 +9507,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <Icons.Phone size={16} />
+                          <ReviewChannelGlyph channel="call" size={16} />
                           <span style={{ fontSize: 13 }}>Calls/day</span>
                         </div>
                         <div
@@ -9075,7 +9565,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                      <Icons.Mail size={20} style={{ color: "#4C67FF", flexShrink: 0 }} />
+                      <Icons.Mail size={20} style={{ color: "#7C3AED", flexShrink: 0 }} />
                       <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Email Configuration</h4>
                     </div>
                     <button
@@ -9085,7 +9575,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#7c3aed",
+                        color: "#6D28D9",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -9127,15 +9617,53 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             >
                               <div
                                 style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  color: "var(--color-text-muted)",
+                                  display: "flex",
+                                  alignItems: "flex-start",
+                                  justifyContent: "space-between",
+                                  gap: 8,
                                   marginBottom: 8,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.02em",
                                 }}
                               >
-                                {label}
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: "var(--color-text-muted)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.02em",
+                                    flex: "1 1 auto",
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  {label}
+                                </div>
+                                <button
+                                  type="button"
+                                  aria-label={`View full ${label}`}
+                                  title="View full template"
+                                  onClick={() =>
+                                    setReviewChannelPreview({
+                                      kind: "email",
+                                      title: label,
+                                      subject: subject || "",
+                                      body: body || "",
+                                    })
+                                  }
+                                  style={{
+                                    flexShrink: 0,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: 6,
+                                    border: "1px solid var(--color-border)",
+                                    borderRadius: 8,
+                                    background: "var(--color-surface-secondary)",
+                                    cursor: "pointer",
+                                    color: "var(--color-text-muted)",
+                                  }}
+                                >
+                                  <Icons.Eye size={14} aria-hidden />
+                                </button>
                               </div>
                               {subject ? (
                                 <div
@@ -9200,7 +9728,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#7c3aed",
+                        color: "#6D28D9",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -9221,17 +9749,53 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     {linkedInStepConfig.action === "invitation_with_message" && linkedInStepConfig.message ? (
                       <div
                         style={{
-                          fontSize: 13,
-                          color: "var(--color-text-muted)",
-                          lineHeight: 1.5,
-                          maxHeight: "4.5em",
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: "vertical",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 8,
                         }}
                       >
-                        {linkedInStepConfig.message}
+                        <div
+                          style={{
+                            flex: "1 1 auto",
+                            minWidth: 0,
+                            fontSize: 13,
+                            color: "var(--color-text-muted)",
+                            lineHeight: 1.5,
+                            maxHeight: "4.5em",
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {linkedInStepConfig.message}
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="View full connection message"
+                          title="View full message"
+                          onClick={() =>
+                            setReviewChannelPreview({
+                              kind: "linkedin",
+                              title: "LinkedIn connection message",
+                              text: linkedInStepConfig.message || "",
+                            })
+                          }
+                          style={{
+                            flexShrink: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: 6,
+                            border: "1px solid var(--color-border)",
+                            borderRadius: 8,
+                            background: "var(--color-surface)",
+                            cursor: "pointer",
+                            color: "var(--color-text-muted)",
+                          }}
+                        >
+                          <Icons.Eye size={14} aria-hidden />
+                        </button>
                       </div>
                     ) : null}
                   </div>
@@ -9270,7 +9834,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#7c3aed",
+                        color: "#6D28D9",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -9300,20 +9864,59 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             background: "var(--color-surface)",
                           }}
                         >
-                          {selectedWhatsAppMessageIndices.length > 1 ? (
-                            <div
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              justifyContent: "space-between",
+                              gap: 8,
+                              marginBottom: selectedWhatsAppMessageIndices.length > 1 ? 8 : 0,
+                            }}
+                          >
+                            {selectedWhatsAppMessageIndices.length > 1 ? (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: "var(--color-text-muted)",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.02em",
+                                  flex: "1 1 auto",
+                                  minWidth: 0,
+                                }}
+                              >
+                                {label}
+                              </div>
+                            ) : (
+                              <span style={{ flex: 1 }} />
+                            )}
+                            <button
+                              type="button"
+                              aria-label={`View full ${label}`}
+                              title="View full message"
+                              onClick={() =>
+                                setReviewChannelPreview({
+                                  kind: "whatsapp",
+                                  title: label,
+                                  text: t || "",
+                                })
+                              }
                               style={{
-                                fontSize: 11,
-                                fontWeight: 600,
+                                flexShrink: 0,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: 6,
+                                border: "1px solid var(--color-border)",
+                                borderRadius: 8,
+                                background: "var(--color-surface-secondary)",
+                                cursor: "pointer",
                                 color: "var(--color-text-muted)",
-                                marginBottom: 8,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.02em",
                               }}
                             >
-                              {label}
-                            </div>
-                          ) : null}
+                              <Icons.Eye size={14} aria-hidden />
+                            </button>
+                          </div>
                           <div
                             style={{
                               fontSize: 13,
@@ -9323,7 +9926,11 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                               overflowWrap: "anywhere",
                             }}
                           >
-                            {t || "No message selected."}
+                            {t
+                              ? t.length > 160
+                                ? `${t.slice(0, 160)}…`
+                                : t
+                              : "No message selected."}
                           </div>
                         </div>
                       );
@@ -9361,7 +9968,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#7c3aed",
+                        color: "#6D28D9",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -9373,16 +9980,176 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       <ReviewCardEditLabel />
                     </button>
                   </div>
-                  <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
-                    <div>
-                      <span style={{ color: "var(--color-text-muted)" }}>Voice: </span>
-                      <span style={{ fontWeight: 600 }}>
-                        {availableVoices.find((v) => v.id === selectedVoiceId)?.name ||
-                          (selectedVoiceId ? selectedVoiceId : "—")}
-                      </span>
+                  <div style={{ display: "grid", gap: 12, fontSize: 13 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: 10,
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", marginBottom: 4, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                          Voice
+                        </div>
+                        <div style={{ fontWeight: 600, color: "var(--color-text)", lineHeight: 1.4 }}>
+                          {availableVoices.find((v) => v.id === selectedVoiceId)?.name ||
+                            (selectedVoiceId ? selectedVoiceId : "—")}
+                        </div>
+                      </div>
+                      {selectedVoiceId ? (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => void toggleVoicePreview(selectedVoiceId)}
+                          disabled={!!previewLoadingVoiceId}
+                          style={{
+                            flexShrink: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "#6D28D9",
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            border: "1px solid var(--color-border)",
+                          }}
+                        >
+                          {previewLoadingVoiceId === selectedVoiceId ? (
+                            <>
+                              <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                              Loading…
+                            </>
+                          ) : (
+                            <>
+                              {previewingVoiceId === selectedVoiceId ? (
+                                <Pause size={14} strokeWidth={2} aria-hidden fill="currentColor" />
+                              ) : (
+                                <Play size={14} strokeWidth={2} aria-hidden fill="currentColor" style={{ marginLeft: 1 }} />
+                              )}
+                              {previewingVoiceId === selectedVoiceId ? "Pause preview" : "Preview voice"}
+                            </>
+                          )}
+                        </button>
+                      ) : null}
                     </div>
-                    <div style={{ color: "var(--color-text-muted)" }}>
-                      Knowledge base: {knowledgeBaseFiles.length} file{knowledgeBaseFiles.length !== 1 ? "s" : ""}
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "#9ca3af",
+                          marginBottom: 6,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Knowledge base
+                      </div>
+                      {knowledgeBaseFiles.length === 0 ? (
+                        <span style={{ color: "var(--color-text-muted)" }}>No file attached yet.</span>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          {knowledgeBaseFiles.map((f) => (
+                            <div
+                              key={f.id}
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 10,
+                                padding: "10px 12px",
+                                borderRadius: 8,
+                                border: "1px solid var(--color-border)",
+                                background: "var(--color-surface)",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontWeight: 500,
+                                  color: "var(--color-text)",
+                                  fontSize: 13,
+                                  overflowWrap: "anywhere",
+                                  minWidth: 0,
+                                  flex: "1 1 160px",
+                                }}
+                              >
+                                {f.name}
+                              </span>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                                <button
+                                  type="button"
+                                  className="btn-ghost"
+                                  aria-label="View knowledge base PDF"
+                                  title="View PDF"
+                                  disabled={reviewKbLoading?.fileId === f.id}
+                                  onClick={() => {
+                                    setReviewKbLoading({ fileId: f.id, action: "view" });
+                                    void fetchKbPdfBlob(f.id, false)
+                                      .catch((err) => {
+                                        showError("Knowledge base", (err as Error)?.message || "Could not open file");
+                                      })
+                                      .finally(() => setReviewKbLoading(null));
+                                  }}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 34,
+                                    height: 34,
+                                    padding: 0,
+                                    borderRadius: 8,
+                                    border: "1px solid var(--color-border)",
+                                    color: "#6D28D9",
+                                  }}
+                                >
+                                  {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "view" ? (
+                                    <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                                  ) : (
+                                    <Icons.Eye size={14} aria-hidden />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-ghost"
+                                  aria-label="Download knowledge base PDF"
+                                  title="Download PDF"
+                                  disabled={reviewKbLoading?.fileId === f.id}
+                                  onClick={() => {
+                                    setReviewKbLoading({ fileId: f.id, action: "download" });
+                                    void fetchKbPdfBlob(f.id, true)
+                                      .catch((err) => {
+                                        showError("Knowledge base", (err as Error)?.message || "Could not download");
+                                      })
+                                      .finally(() => setReviewKbLoading(null));
+                                  }}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 34,
+                                    height: 34,
+                                    padding: 0,
+                                    borderRadius: 8,
+                                    border: "1px solid var(--color-border)",
+                                    color: "#6D28D9",
+                                  }}
+                                >
+                                  {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "download" ? (
+                                    <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                                  ) : (
+                                    <Icons.Download size={14} aria-hidden />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -9452,29 +10219,16 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             >
               {step > 1 ? (
                 <button
-                  className="btn-ghost"
                   type="button"
+                  className={`wizard-footer-back${wizardNavBusy === "back" ? " wizard-footer-back--saving" : ""}`}
                   onClick={() => void back()}
-                  disabled={wizardNavBusy !== null}
+                  disabled={wizardAnyNavBusy}
                   aria-busy={wizardNavBusy === "back"}
-                  style={{
-                    padding: "12px 24px",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    borderRadius: 8,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    minWidth: 108,
-                    opacity: wizardNavBusy !== null && wizardNavBusy !== "back" ? 0.55 : 1,
-                    cursor: wizardNavBusy !== null ? "not-allowed" : "pointer",
-                  }}
                 >
                   {wizardNavBusy === "back" ? (
                     <>
-                      <Icons.Loader size={16} style={{ animation: "spin 1s linear infinite" }} />
-                      Saving…
+                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #7C3AED)" }} aria-hidden />
+                      <span>Saving…</span>
                     </>
                   ) : (
                     "Back"
@@ -9501,31 +10255,14 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 title={reviewLaunchBlocked ? "Fix errors above first" : undefined}
               >
                 <button
-                  className="btn-primary"
                   type="button"
+                  className="wizard-footer-next"
                   onClick={() => setConfirmOpen(true)}
                   disabled={reviewLaunchBlocked}
-                  style={{
-                    padding: "12px 24px",
-                    fontSize: 15,
-                    fontWeight: 600,
-                    borderRadius: 8,
-                    minWidth: 160,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    background: reviewLaunchBlocked
-                      ? undefined
-                      : `linear-gradient(135deg, ${WIZ_ACCENT_LINE} 0%, ${WIZ_ACCENT} 100%)`,
-                    border: "none",
-                    boxShadow: reviewLaunchBlocked ? undefined : "0 2px 10px rgba(67, 56, 202, 0.22)",
-                    opacity: reviewLaunchBlocked ? 0.6 : 1,
-                    cursor: reviewLaunchBlocked ? "not-allowed" : "pointer",
-                  }}
+                  style={{ minWidth: 168, fontSize: 15, padding: "12px 26px", gap: 10 }}
                 >
-                  Launch Campaign →
-                  <Icons.Rocket size={16} />
+                  <Rocket size={18} strokeWidth={2} aria-hidden style={{ flexShrink: 0 }} />
+                  Launch Campaign
                 </button>
               </span>
             </div>
@@ -9540,29 +10277,16 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             >
               {step > 1 ? (
                 <button
-                  className="btn-ghost"
                   type="button"
+                  className={`wizard-footer-back${wizardNavBusy === "back" ? " wizard-footer-back--saving" : ""}`}
                   onClick={() => void back()}
-                  disabled={wizardNavBusy !== null}
+                  disabled={wizardAnyNavBusy}
                   aria-busy={wizardNavBusy === "back"}
-                  style={{
-                    padding: "12px 24px",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    borderRadius: 8,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    minWidth: 108,
-                    opacity: wizardNavBusy !== null && wizardNavBusy !== "back" ? 0.55 : 1,
-                    cursor: wizardNavBusy !== null ? "not-allowed" : "pointer",
-                  }}
                 >
                   {wizardNavBusy === "back" ? (
                     <>
-                      <Icons.Loader size={16} style={{ animation: "spin 1s linear infinite" }} />
-                      Saving…
+                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #7C3AED)" }} aria-hidden />
+                      <span>Saving…</span>
                     </>
                   ) : (
                     "Back"
@@ -9575,7 +10299,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 <span
                   style={{ display: "inline-block" }}
                   title={
-                    nextButtonDisabled && wizardNavBusy === null
+                    nextButtonDisabled && wizardNavBusy === null && wizardStepperLoadingStep === null
                       ? isCallVoiceStep && !selectedVoiceId
                         ? "Select a voice to continue"
                         : isCallKnowledgeStep && knowledgeBaseFiles.length === 0
@@ -9597,35 +10321,16 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <button
-                    className="btn-primary"
                     type="button"
+                    className={`wizard-footer-next${wizardNavBusy === "next" ? " wizard-footer-next--saving" : ""}`}
                     onClick={() => void next()}
                     disabled={nextButtonDisabled}
                     aria-busy={wizardNavBusy === "next"}
-                    style={{
-                      padding: "12px 32px",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      borderRadius: 8,
-                      minWidth: "120px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      opacity:
-                        wizardNavBusy !== null && wizardNavBusy !== "next"
-                          ? 0.55
-                          : nextButtonDisabled
-                            ? 0.45
-                            : 1,
-                      cursor: nextButtonDisabled ? "not-allowed" : "pointer",
-                      pointerEvents: nextButtonDisabled ? "none" : "auto",
-                    }}
                   >
                     {wizardNavBusy === "next" ? (
                       <>
-                        <Icons.Loader size={16} style={{ animation: "spin 1s linear infinite", color: "inherit" }} />
-                        Saving…
+                        <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "#fff" }} aria-hidden />
+                        <span>Saving…</span>
                       </>
                     ) : (
                       "Next"
@@ -11418,6 +12123,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
         }}
         onClick={() => {
           if (kbAiPhase !== 'generating' && kbAiPhase !== 'loading') {
+            setKbAiUserTopic(null);
             setKbAiOpen(false);
             setKbAiPhase('idle');
           }
@@ -11476,7 +12182,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 style={{
                   animation: "spin 1s linear infinite",
                   marginBottom: 10,
-                  color: "#8b5cf6",
+                  color: "#7C3AED",
                 }}
               />
               <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 6 }}>Preparing questions…</div>
@@ -11532,6 +12238,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   type="button"
                   className="btn-ghost"
                   onClick={() => {
+                    setKbAiUserTopic(null);
                     setKbAiOpen(false);
                     setKbAiPhase('idle');
                   }}
@@ -11551,7 +12258,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
 
           {kbAiPhase === 'generating' && (
             <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              <Icons.Sparkles size={32} style={{ color: '#4C67FF', marginBottom: 8 }} />
+              <Icons.Sparkles size={32} style={{ color: '#7C3AED', marginBottom: 8 }} />
               <div style={{ fontWeight: 600, marginBottom: 4 }}>Generating your knowledge base…</div>
               <div style={{ fontSize: 13 }}>This may take up to a minute.</div>
             </div>
@@ -11565,6 +12272,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   type="button"
                   className="btn-primary"
                   onClick={() => {
+                    setKbAiUserTopic(null);
                     setKbAiOpen(false);
                     setKbAiPhase('idle');
                     setKbAiError(null);
@@ -11820,10 +12528,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               setVoiceCloneFiles((prev) => mergeVoiceCloneFiles(dropped, prev));
             }}
             style={{
-              border: `2px dashed ${voiceCloneDragOver ? "#4C67FF" : "var(--color-border)"}`,
+              border: `2px dashed ${voiceCloneDragOver ? "#7C3AED" : "var(--color-border)"}`,
               borderRadius: 14,
               padding: "22px 18px",
-              background: voiceCloneDragOver ? "rgba(76, 103, 255, 0.08)" : "var(--color-surface-secondary)",
+              background: voiceCloneDragOver ? "rgba(124, 58, 237, 0.08)" : "var(--color-surface-secondary)",
               marginBottom: 10,
               textAlign: "center",
               transition: "border-color 0.15s, background 0.15s",
@@ -11836,12 +12544,12 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 height: 52,
                 margin: "0 auto 12px",
                 borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.12) 100%)",
-                border: "1px solid rgba(76, 103, 255, 0.25)",
+                background: "linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.12) 100%)",
+                border: "1px solid rgba(124, 58, 237, 0.25)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#4C67FF",
+                color: "#7C3AED",
               }}
             >
               <Icons.Upload size={26} />
@@ -11921,11 +12629,11 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         width: 36,
                         height: 36,
                         borderRadius: 8,
-                        background: "rgba(76, 103, 255, 0.12)",
+                        background: "rgba(124, 58, 237, 0.12)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#4C67FF",
+                        color: "#7C3AED",
                         flexShrink: 0,
                       }}
                     >
@@ -12162,13 +12870,13 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: 'rgba(76, 103, 255, 0.12)',
-                border: '1px solid rgba(76, 103, 255, 0.2)',
+                background: 'rgba(124, 58, 237, 0.12)',
+                border: '1px solid rgba(124, 58, 237, 0.2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Icons.Users size={16} style={{ color: '#4C67FF' }} />
+                <Icons.Users size={16} style={{ color: '#7C3AED' }} />
               </div>
               <div>
                 <h3 style={{ margin:0, fontSize: 18, fontWeight: 700 }}>
@@ -12211,7 +12919,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               padding: '0 24px 24px 24px',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(76, 103, 255, 0.4) rgba(0, 0, 0, 0.08)'
+              scrollbarColor: 'rgba(124, 58, 237, 0.4) rgba(0, 0, 0, 0.08)'
             }}
           >
               {viewingLeads.length === 0 ? (
@@ -12255,7 +12963,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         title={isDisabled ? 'This lead does not have a LinkedIn URL and cannot be used for LinkedIn campaigns' : ''}
                         onMouseEnter={(e) => {
                           if (!isDisabled) {
-                            e.currentTarget.style.background = 'rgba(76, 103, 255, 0.05)';
+                            e.currentTarget.style.background = 'rgba(124, 58, 237, 0.05)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -12301,10 +13009,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             <span style={{
                               padding: '4px 10px',
                               borderRadius: 6,
-                              background: (lead.score || 0) > 80 ? 'rgba(76, 103, 255, 0.2)' : 
+                              background: (lead.score || 0) > 80 ? 'rgba(124, 58, 237, 0.2)' : 
                                          (lead.score || 0) > 60 ? 'rgba(255, 167, 38, 0.2)' : 
                                          'rgba(128, 128, 128, 0.2)',
-                              color: (lead.score || 0) > 80 ? '#4C67FF' : 
+                              color: (lead.score || 0) > 80 ? '#7C3AED' : 
                                      (lead.score || 0) > 60 ? '#ffa726' : '#888',
                               fontWeight: 600,
                               fontSize: 12
@@ -12347,6 +13055,114 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
         </>
       )}
 
+      {reviewChannelPreview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="review-channel-preview-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10055,
+            background: "rgba(15, 23, 42, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setReviewChannelPreview(null)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 560,
+              maxHeight: "85vh",
+              overflow: "auto",
+              background: "var(--color-surface)",
+              borderRadius: 14,
+              padding: 22,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.2)",
+              border: "1px solid var(--color-border)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 14,
+              }}
+            >
+              <h4
+                id="review-channel-preview-title"
+                style={{
+                  margin: 0,
+                  fontSize: 17,
+                  fontWeight: 600,
+                  color: "var(--color-text)",
+                  flex: "1 1 auto",
+                  minWidth: 0,
+                }}
+              >
+                {reviewChannelPreview.title}
+              </h4>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setReviewChannelPreview(null)}
+                style={{
+                  flexShrink: 0,
+                  padding: 6,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  borderRadius: 8,
+                  color: "var(--color-text-muted)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                <Icons.X size={20} aria-hidden />
+              </button>
+            </div>
+            {reviewChannelPreview.kind === "email" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {reviewChannelPreview.subject ? (
+                  <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.45, color: "var(--color-text)" }}>
+                    {reviewChannelPreview.subject}
+                  </div>
+                ) : null}
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.55,
+                    color: "var(--color-text)",
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {reviewChannelPreview.body || "—"}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  color: "var(--color-text)",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {reviewChannelPreview.text || "—"}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {confirmOpen && (
         <div 
           style={{ 
@@ -12382,7 +13198,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             <div style={{
               padding: '24px 28px',
               borderBottom: '1px solid var(--elev-border)',
-              background: 'linear-gradient(135deg, rgba(76, 103, 255, 0.08) 0%, rgba(169, 76, 255, 0.08) 100%)',
+              background: 'rgba(124, 58, 237, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -12392,7 +13208,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: 'linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%)',
+                  background: 'var(--color-primary, #7C3AED)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -12456,7 +13272,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icons.Target size={16} style={{ color: '#4C67FF' }} />
+                      <Icons.Target size={16} style={{ color: '#7C3AED' }} />
                       <span style={{ fontWeight: 600, fontSize: 15 }}>{name}</span>
                     </div>
                     <div style={{ 
@@ -12506,7 +13322,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       border: '1px solid var(--elev-border)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <Icons.Mail size={18} style={{ color: '#4C67FF' }} />
+                        <Icons.Mail size={18} style={{ color: '#7C3AED' }} />
                         <span style={{ fontWeight: 600, fontSize: 14 }}>Email Configuration</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
@@ -12629,7 +13445,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: '1px solid var(--elev-border)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                      <Icons.Clock size={18} style={{ color: '#4C67FF' }} />
+                      <Icons.Clock size={18} style={{ color: '#7C3AED' }} />
                       <span style={{ fontWeight: 600, fontSize: 14 }}>Schedule</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
@@ -13021,7 +13837,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   </>
                 ) : (
                   <>
-                    <Icons.Rocket size={16} />
+                    <Rocket size={18} strokeWidth={2} aria-hidden style={{ flexShrink: 0 }} />
                     Launch Campaign
                   </>
                 )}
@@ -13033,9 +13849,9 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               <div style={{
                 marginTop: 24,
                 padding: 20,
-                background: 'rgba(76, 103, 255, 0.05)',
+                background: 'rgba(124, 58, 237, 0.05)',
                 borderRadius: 12,
-                border: '1px solid rgba(76, 103, 255, 0.2)'
+                border: '1px solid rgba(124, 58, 237, 0.2)'
               }}>
                 <div style={{ marginBottom: 16 }}>
                   <h4 style={{ margin: 0, marginBottom: 4, fontSize: 16, fontWeight: 600 }}>

@@ -8,7 +8,72 @@ import BaseCard from "@/components/ui/BaseCard";
 import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import { useNotification } from "@/context/NotificationContext";
 import type { Campaign } from "@/stores/useCampaignStore";
+import type { ChannelType } from "@/app/campaigns/new/channelConfig";
 import type { CSSProperties, ReactNode } from "react";
+
+/** Wizard review / step-14 overview — same colors & glyphs as `REVIEW_OVERVIEW_CHANNEL_META` in campaign wizard */
+const WIZ_REVIEW_CHANNEL_COLORS: Record<ChannelType, string> = {
+  email: "#2563eb",
+  linkedin: "#0077B5",
+  whatsapp: "#25D366",
+  call: "#0d9488",
+};
+
+const WIZ_REVIEW_CHANNEL_ICON: Record<ChannelType, typeof Icons.Mail> = {
+  email: Icons.Mail,
+  linkedin: Icons.Linkedin,
+  whatsapp: Icons.WhatsApp,
+  call: Icons.Phone,
+};
+
+const CHANNEL_DISPLAY_ORDER: ChannelType[] = ["email", "linkedin", "whatsapp", "call"];
+
+function orderedCampaignChannels(campaign: Campaign): ChannelType[] {
+  const raw: string[] =
+    Array.isArray(campaign.channels) && campaign.channels.length > 0
+      ? campaign.channels.map((c) => String(c))
+      : campaign.channel
+        ? [String(campaign.channel)]
+        : [];
+  const allowed = new Set<string>(CHANNEL_DISPLAY_ORDER);
+  const seen = new Set<ChannelType>();
+  for (const c of raw) {
+    const low = c.toLowerCase();
+    if (allowed.has(low)) seen.add(low as ChannelType);
+  }
+  return CHANNEL_DISPLAY_ORDER.filter((ch) => seen.has(ch));
+}
+
+function CampaignChannelGlyphs({
+  channels,
+  size = 16,
+}: {
+  channels: ChannelType[];
+  size?: number;
+}) {
+  if (!channels.length) return null;
+  return (
+    <div
+      style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}
+      aria-label={`Channels: ${channels.join(", ")}`}
+    >
+      {channels.map((ch) => {
+        const I = WIZ_REVIEW_CHANNEL_ICON[ch];
+        const color = WIZ_REVIEW_CHANNEL_COLORS[ch];
+        const useStroke = ch === "email" || ch === "linkedin";
+        return (
+          <span key={ch} title={ch} style={{ display: "inline-flex", alignItems: "center" }}>
+            {useStroke ? (
+              <I size={size} strokeWidth={1.75} style={{ color }} aria-hidden />
+            ) : (
+              <I size={size} style={{ color }} aria-hidden />
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 const getChannelIcon = (channel: string) => {
   switch (channel) {
@@ -30,26 +95,15 @@ const getStatusMeta = (status: string) => {
     case "running":
       return { dot: "#10b981", bg: "rgba(16,185,129,0.12)", fg: "#34d399" };
     case "paused":
-      return { dot: "#f59e0b", bg: "rgba(245,158,11,0.12)", fg: "#fbbf24" };
+      return { dot: "#ea580c", bg: "rgba(234,88,12,0.14)", fg: "#fb923c" };
     case "draft":
-      return { dot: "#94a3b8", bg: "rgba(148,163,184,0.12)", fg: "#cbd5e1" };
+      return { dot: "#ca8a04", bg: "rgba(250,204,21,0.28)", fg: "#a16207" };
     case "completed":
-      return { dot: "#6366f1", bg: "rgba(99,102,241,0.12)", fg: "#a5b4fc" };
+      return { dot: "#16a34a", bg: "rgba(34,197,94,0.14)", fg: "#22c55e" };
     default:
       return { dot: "#64748b", bg: "rgba(100,116,139,0.12)", fg: "#94a3b8" };
   }
 };
-
-const CAMPAIGN_ACCENT_COLORS = [
-  { bg: "#ffeee0", icon: "#f97316" },
-  { bg: "#e0f2fe", icon: "#0ea5e9" },
-  { bg: "#dcfce7", icon: "#22c55e" },
-  { bg: "#f3e8ff", icon: "#a855f7" },
-  { bg: "#fce7f3", icon: "#ec4899" },
-  { bg: "#fef3c7", icon: "#eab308" },
-  { bg: "#e0e7ff", icon: "#6366f1" },
-  { bg: "#ccfbf1", icon: "#14b8a6" },
-];
 
 const campaignWorkspaceMenuItemBase: CSSProperties = {
   width: "100%",
@@ -192,8 +246,7 @@ export default function CampaignCard({
           ? `${campaign.replyRate}%`
           : "—";
 
-  const accentIndex = Math.abs(Number(campaign.id)) % CAMPAIGN_ACCENT_COLORS.length;
-  const channelTint = CAMPAIGN_ACCENT_COLORS[accentIndex].icon;
+  const campaignChannelsOrdered = orderedCampaignChannels(campaign);
 
   if (workspaceStyle) {
     const metricItems = [
@@ -247,12 +300,10 @@ export default function CampaignCard({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
                   marginBottom: 6,
                   color: "#94a3b8",
                 }}
               >
-                <ChannelIcon size={14} strokeWidth={1.5} style={{ color: channelTint }} />
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Campaign</span>
               </div>
               <h3
@@ -274,17 +325,43 @@ export default function CampaignCard({
                   color: "var(--color-text-muted)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 10,
                   flexWrap: "wrap",
+                  minWidth: 0,
                 }}
               >
-                <Icons.Folder size={12} strokeWidth={1.5} />
-                {baseName}
-                <span style={{ opacity: 0.4 }}>·</span>
-                <span style={{ textTransform: "capitalize" }}>{campaign.channel}</span>
-                {campaign.channels && campaign.channels.length > 1 && (
-                  <span style={{ color: "#818cf8", fontWeight: 600 }}>+{campaign.channels.length - 1}</span>
-                )}
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0, flex: "0 1 auto" }}>
+                  <Icons.Folder size={12} strokeWidth={1.5} style={{ flexShrink: 0 }} aria-hidden />
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    {baseName}
+                  </span>
+                </div>
+                {campaignChannelsOrdered.length > 0 ? (
+                  <>
+                    <span
+                      aria-hidden
+                      style={{
+                        color: "var(--color-text-muted, #64748b)",
+                        fontSize: 16,
+                        fontWeight: 800,
+                        lineHeight: 1,
+                        flexShrink: 0,
+                        userSelect: "none",
+                        opacity: 0.95,
+                      }}
+                    >
+                      ·
+                    </span>
+                    <CampaignChannelGlyphs channels={campaignChannelsOrdered} size={16} />
+                  </>
+                ) : null}
               </div>
               {campaign.updated_at && (
                 <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4, opacity: 0.85 }}>
@@ -504,8 +581,9 @@ export default function CampaignCard({
         <div style={{ display: "flex", gap: sc.headerGap, minWidth: 0, flex: 1 }}>
           <div
             style={{
-              width: sc.avatar,
-              height: sc.avatar,
+              minWidth: sc.avatar,
+              minHeight: sc.avatar,
+              padding: "6px 8px",
               borderRadius: sc.avatarRadius,
               background: "rgba(99,102,241,0.08)",
               border: "0.5px solid rgba(99,102,241,0.15)",
@@ -513,9 +591,14 @@ export default function CampaignCard({
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              boxSizing: "border-box",
             }}
           >
-            <ChannelIcon size={sc.channelIcon} strokeWidth={1.5} style={{ color: "#a5b4fc" }} />
+            {campaignChannelsOrdered.length > 0 ? (
+              <CampaignChannelGlyphs channels={campaignChannelsOrdered} size={compact ? 13 : 14} />
+            ) : (
+              <ChannelIcon size={sc.channelIcon} strokeWidth={1.5} style={{ color: "#a5b4fc" }} />
+            )}
           </div>
           <div style={{ minWidth: 0 }}>
             <Link
@@ -541,17 +624,34 @@ export default function CampaignCard({
                 color: "var(--color-text-muted)",
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 8,
                 flexWrap: "wrap",
+                minWidth: 0,
               }}
             >
-              <Icons.Folder size={sc.metaIcon} strokeWidth={1.5} />
-              {baseName}
-              <span style={{ opacity: 0.4 }}>·</span>
-              <span style={{ textTransform: "capitalize" }}>{campaign.channel}</span>
-              {campaign.channels && campaign.channels.length > 1 && (
-                <span style={{ color: "#818cf8", fontWeight: 600 }}>+{campaign.channels.length - 1}</span>
-              )}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0, flex: "0 1 auto" }}>
+                <Icons.Folder size={sc.metaIcon} strokeWidth={1.5} style={{ flexShrink: 0 }} aria-hidden />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{baseName}</span>
+              </div>
+              {campaignChannelsOrdered.length > 0 ? (
+                <>
+                  <span
+                    aria-hidden
+                    style={{
+                      color: "var(--color-text-muted, #64748b)",
+                      fontSize: compact ? 15 : 16,
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      userSelect: "none",
+                      opacity: 0.95,
+                    }}
+                  >
+                    ·
+                  </span>
+                  <CampaignChannelGlyphs channels={campaignChannelsOrdered} size={compact ? 14 : 15} />
+                </>
+              ) : null}
             </div>
             {campaign.updated_at && (
               <div style={{ fontSize: sc.updatedSize, color: "var(--color-text-muted)", marginTop: 4, opacity: 0.85 }}>

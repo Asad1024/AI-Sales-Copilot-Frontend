@@ -7,6 +7,8 @@ export interface User {
   /** Profile photo URL (e.g. from Google sign-in). */
   avatar_url?: string;
   company?: string;
+  /** Saved from profile; may be absent in older cached `sparkai:user`. */
+  timezone?: string;
   dob?: string;
   role?: "admin" | "user";
   email_verified?: boolean;

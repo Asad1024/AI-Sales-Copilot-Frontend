@@ -128,7 +128,7 @@ export function TestConfigurationSection() {
     {
       Icon: Icons.Phone,
       label: "Call",
-      description: "Twilio test call",
+      description: "ElevenLabs batch test call",
       open: () => setShowTestCallModal(true),
     },
   ] as const;
@@ -422,7 +422,10 @@ export function TestConfigurationSection() {
           <div onClick={(e) => e.stopPropagation()}>
             <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test call</h3>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>Twilio test call to this number.</p>
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
+                Uses ElevenLabs conversational AI (batch calling). Configure API key, agent ID, and phone number ID in Admin →
+                Users → API credentials for your user, or set ELEVENLABS_* in the server environment.
+              </p>
               <input
                 type="text"
                 placeholder="+971501234567"

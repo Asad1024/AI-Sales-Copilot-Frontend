@@ -4,6 +4,8 @@ import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import EnrichmentLoader from "./EnrichmentLoader";
 import { Icons } from "@/components/ui/Icons";
+import { GenerateLeadAIIcon } from "@/app/leads/components/LeadSourceBrandIcons";
+import { ImportModalFrame } from "@/components/leads/ImportModalChrome";
 
 type Props = { open: boolean; onClose: () => void; onGenerated: (rows: any[]) => void };
 
@@ -18,7 +20,6 @@ const SUGGESTION_LOADING_PHASES = [
 export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   const { activeBaseId } = useBase();
   const [prompt, setPrompt] = useState("");
-  const [promptIdea, setPromptIdea] = useState("");
   const [count, setCount] = useState(10);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState("");
@@ -51,8 +52,6 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
     }, 1200);
     return () => window.clearInterval(id);
   }, [suggestionLoadingTopic]);
-
-  if (!open) return null;
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -133,7 +132,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   };
 
   const handleBuildPrompt = () => {
-    const idea = promptIdea.trim();
+    const idea = prompt.trim();
     if (!idea) {
       setError("Write a short idea first, then click AI Assist.");
       return;
@@ -199,349 +198,361 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
           50% { transform: scale(1.02); opacity: 1; }
         }
       `}} />
-      
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(2, 6, 23, 0.66)",
-          zIndex: 1000,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 20,
-          backdropFilter: "blur(10px)",
-          animation: "fadeIn 0.2s ease-out",
-        }}
-        onClick={onClose}
+
+      <ImportModalFrame
+        open={open}
+        onClose={onClose}
+        title="Generate leads with AI"
+        subtitle="Build a clean ICP prompt, then generate qualified contacts for this workspace."
+        headerTint="linear-gradient(165deg, rgba(99, 102, 241, 0.14) 0%, rgba(124, 58, 237, 0.08) 45%, transparent 72%)"
+        icon={<GenerateLeadAIIcon size={36} sparklesSize={18} />}
+        maxWidth={860}
+        maxModalHeight="min(92vh, 900px)"
+        closeDisabled={generating || Boolean(suggestionLoadingTopic)}
       >
         <div
+          className="persona-ai-panel-reveal"
           style={{
-            width: "min(860px, 96vw)",
-            maxHeight: "90vh",
-            background: "var(--elev-bg)",
-            border: "1px solid rgba(148, 163, 184, 0.22)",
-            borderRadius: 22,
-            boxShadow: "0 28px 70px rgba(2, 6, 23, 0.35), 0 10px 30px rgba(2, 6, 23, 0.18)",
-            animation: "slideUp 0.28s ease-out",
-            overflow: "hidden",
+            border: "1px solid var(--color-border)",
+            borderRadius: 10,
+            padding: "10px 12px",
+            background: "var(--color-surface-secondary)",
             display: "flex",
             flexDirection: "column",
+            gap: 8,
           }}
-          onClick={(e) => e.stopPropagation()}
         >
           <div
             style={{
-              padding: "20px 22px 12px",
-              borderBottom: "1px solid rgba(148, 163, 184, 0.18)",
-              background:
-                "linear-gradient(180deg, rgba(99, 102, 241, 0.10) 0%, rgba(99, 102, 241, 0.00) 100%)",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 8,
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
+            <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 2, lineHeight: 1.3 }}>
+                Generate with AI
+              </div>
+              <p className="text-hint" style={{ margin: 0, fontSize: 11, lineHeight: 1.35, maxWidth: 560 }}>
+                One-click suggestions, or type your ICP and use AI Assist to expand it. Same flow as campaign Knowledge
+                base / Assistant — always open here (no upload step).
+              </p>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              {generating ? (
+                <span
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    background: "linear-gradient(145deg, rgba(99,102,241,0.22), rgba(79,70,229,0.12))",
-                    display: "grid",
-                    placeItems: "center",
-                    border: "1px solid rgba(99, 102, 241, 0.22)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--color-text-muted)",
                   }}
                 >
-                  <Icons.Sparkles size={18} strokeWidth={1.7} style={{ color: "#4F46E5" }} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--color-text)" }}>
-                    Generate Leads with AI model
-                  </h3>
-                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
-                    Build a clean ICP prompt, then generate qualified contacts.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                disabled={generating}
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  border: "1px solid rgba(148, 163, 184, 0.28)",
-                  background: "transparent",
-                  cursor: generating ? "not-allowed" : "pointer",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                <Icons.X size={16} />
-              </button>
+                  <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
+                    <Icons.Loader size={12} strokeWidth={2} aria-hidden />
+                  </span>
+                  Generating…
+                </span>
+              ) : null}
+              {!generating && suggestionLoadingTopic ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
+                    <Icons.Loader size={12} strokeWidth={2} aria-hidden />
+                  </span>
+                  Crafting…
+                </span>
+              ) : null}
             </div>
           </div>
 
-          <div style={{ padding: 18, overflowY: "auto", flex: 1 }}>
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                color: "#9ca3af",
+                marginBottom: 6,
+              }}
+            >
+              Suggestions
+            </div>
             <div
               style={{
                 display: "grid",
-                gap: 12,
-                background: "#F8FAFC",
-                borderRadius: 16,
-                padding: 14,
-                border: "1px solid rgba(15, 23, 42, 0.06)",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gridTemplateRows: "auto auto",
+                gap: 8,
+                paddingTop: 2,
               }}
             >
-              <label
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "var(--color-text)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Icons.Target size={16} />
-                Describe your target leads
-              </label>
+              {suggestionPrompts.map((item) => {
+                const loadingChip = suggestionLoadingTopic === item;
+                const disabled = generating || Boolean(suggestionLoadingTopic);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => handleSuggestionTopic(item)}
+                    disabled={disabled}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      padding: loadingChip ? "6px 8px" : "4px 8px",
+                      borderRadius: 9999,
+                      border: loadingChip ? "1px solid var(--color-primary, #7C3AED)" : "1px solid var(--color-border)",
+                      background: loadingChip ? "rgba(124, 58, 237, 0.14)" : "var(--color-surface)",
+                      color: loadingChip ? "var(--color-primary, #7C3AED)" : "var(--color-text)",
+                      fontSize: 11,
+                      fontWeight: loadingChip ? 600 : 500,
+                      lineHeight: 1.25,
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      opacity: disabled ? 0.55 : 1,
+                      textAlign: "center",
+                      minWidth: 0,
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {loadingChip ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: 999,
+                            background:
+                              "linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(167,139,250,0.35) 50%, rgba(99,102,241,0.14) 100%)",
+                            backgroundSize: "200px 100%",
+                            animation: "shimmer 1.15s linear infinite",
+                          }}
+                        />
+                        <span style={{ fontWeight: 600 }}>Crafting…</span>
+                      </span>
+                    ) : (
+                      <>
+                        <Icons.Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#7C3AED" }} aria-hidden />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 8 }}>
-                {suggestionPrompts.map((item) => {
-                  const loadingChip = suggestionLoadingTopic === item;
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => handleSuggestionTopic(item)}
-                      disabled={generating || Boolean(suggestionLoadingTopic)}
-                      style={{
-                        border: loadingChip ? "1px solid rgba(99,102,241,0.42)" : "1px solid rgba(148,163,184,0.35)",
-                        background: loadingChip
-                          ? "linear-gradient(135deg, rgba(224,231,255,0.95), rgba(243,232,255,0.95))"
-                          : "rgba(255,255,255,0.9)",
-                        borderRadius: 10,
-                        minHeight: 36,
-                        padding: "8px 10px",
-                        fontSize: 12,
-                        lineHeight: 1.2,
-                        color: "var(--color-text)",
-                        textAlign: "left",
-                        cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
-                        boxShadow: loadingChip ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
-                      }}
-                    >
-                      {loadingChip ? (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                          <span
-                            style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: 999,
-                              background:
-                                "linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(167,139,250,0.35) 50%, rgba(99,102,241,0.14) 100%)",
-                              backgroundSize: "220px 100%",
-                              animation: "shimmer 1.15s linear infinite",
-                            }}
-                          />
-                          <span style={{ fontWeight: 600, animation: "aiPulse 1.3s ease-in-out infinite" }}>
-                            Crafting...
-                          </span>
-                        </span>
-                      ) : (
-                        item
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
+          <div>
+            <label
+              htmlFor="ai-lead-prompt"
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                color: "#9ca3af",
+                display: "block",
+                marginBottom: 4,
+              }}
+            >
+              Your words
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
               <textarea
-                className="input"
-                rows={6}
-                placeholder="Example: Find marketing directors at B2B SaaS companies with 50-200 employees in North America using HubSpot or Salesforce."
+                id="ai-lead-prompt"
                 value={prompt}
                 onChange={(e) => {
                   setPrompt(e.target.value);
                   setError("");
                 }}
-                disabled={generating}
+                rows={2}
+                placeholder="Short idea or full ICP — e.g. marketing directors, B2B SaaS, 50–200 employees, North America"
+                disabled={generating || Boolean(suggestionLoadingTopic)}
+                className="input"
                 style={{
+                  flex: "1 1 200px",
+                  minWidth: 0,
                   width: "100%",
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  padding: "14px 15px",
-                  borderRadius: 14,
-                  border: "1px solid transparent",
-                  background: "rgba(255,255,255,0.92)",
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  padding: "6px 10px",
+                  minHeight: 52,
+                  maxHeight: 112,
                   resize: "vertical",
-                  minHeight: 120,
+                  borderRadius: 8,
                   boxSizing: "border-box",
-                  boxShadow: "inset 0 0 0 1px rgba(15,23,42,0.08)",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.boxShadow =
-                    "0 0 0 3px rgba(99,102,241,0.15), inset 0 0 0 1px rgba(99,102,241,0.32)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.boxShadow = "inset 0 0 0 1px rgba(15,23,42,0.08)";
                 }}
               />
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  value={promptIdea}
-                  onChange={(e) => setPromptIdea(e.target.value)}
-                  placeholder="Need help? Write a short idea..."
-                  style={{
-                    flex: 1,
-                    borderRadius: 10,
-                    border: "1px solid rgba(148, 163, 184, 0.4)",
-                    background: "rgba(255,255,255,0.92)",
-                    color: "var(--color-text)",
-                    fontSize: 13,
-                    padding: "10px 11px",
-                  }}
-                />
-                <button type="button" className="btn-ghost" onClick={handleBuildPrompt} style={{ borderRadius: 10, minHeight: 36 }}>
-                  <Icons.Lightbulb size={15} />
-                  AI Assist
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: "12px 14px",
-                  background: "rgba(239, 68, 68, 0.09)",
-                  border: "1px solid rgba(239, 68, 68, 0.28)",
-                  borderRadius: 12,
-                  color: "#ef4444",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 10,
-                }}
-              >
-                <Icons.AlertCircle size={17} style={{ flexShrink: 0, marginTop: 1 }} />
-                <span style={{ whiteSpace: "pre-line", lineHeight: 1.5 }}>{error}</span>
-              </div>
-            )}
-
-            {progress && (
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: "12px 14px",
-                  background: generating ? "rgba(99, 102, 241, 0.08)" : "rgba(34, 197, 94, 0.10)",
-                  border: `1px solid ${generating ? "rgba(99,102,241,0.22)" : "rgba(34,197,94,0.25)"}`,
-                  borderRadius: 12,
-                  color: generating ? "#4F46E5" : "#16a34a",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                {generating ? (
-                  <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
-                    <Icons.Loader size={17} />
-                  </span>
-                ) : (
-                  <Icons.CheckCircle size={17} />
-                )}
-                <span>{progress}</span>
-              </div>
-            )}
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
-              <div
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleBuildPrompt}
+                disabled={generating || Boolean(suggestionLoadingTopic) || !prompt.trim()}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 8,
-                  background: "rgba(255,255,255,0.92)",
-                  border: "1px solid rgba(148,163,184,0.35)",
-                  borderRadius: 11,
-                  padding: "7px 10px",
+                  gap: 6,
+                  flexShrink: 0,
+                  padding: "0 12px",
+                  minHeight: 32,
+                  marginTop: 2,
+                  fontSize: 12,
                 }}
               >
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>Number of leads</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={count}
-                  onChange={(e) => setCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 10)))}
-                  className="input"
-                  style={{
-                    width: 66,
-                    padding: "6px 8px",
-                    borderRadius: 8,
-                    border: "1px solid rgba(148,163,184,0.45)",
-                    background: "#fff",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textAlign: "center",
-                  }}
-                  disabled={generating}
-                />
-              </div>
+                <Icons.Lightbulb size={13} aria-hidden />
+                AI Assist
+              </button>
+            </div>
+          </div>
 
-              <div style={{ display: "flex", gap: 9 }}>
-                <button
-                  className="btn-ghost"
-                  onClick={onClose}
-                  disabled={generating}
-                  style={{ padding: "11px 16px", borderRadius: 11, fontSize: 14, opacity: generating ? 0.55 : 1 }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating || !prompt.trim()}
-                  style={{
-                    padding: "11px 18px",
-                    background: generating || !prompt.trim()
-                      ? "var(--color-surface-secondary)"
-                      : "radial-gradient(120% 120% at 0% 0%, #6366F1 0%, #4F46E5 45%, #312E81 100%)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 11,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    cursor: generating || !prompt.trim() ? "not-allowed" : "pointer",
-                    opacity: generating || !prompt.trim() ? 0.65 : 1,
-                    boxShadow: generating || !prompt.trim() ? "none" : "0 10px 24px rgba(79, 70, 229, 0.3)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  {generating ? (
-                    <>
-                      <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
-                        <Icons.Loader size={16} style={{ color: "#fff" }} />
-                      </span>
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Icons.Sparkles size={15} style={{ color: "#fff" }} />
-                      <span>Generate {count} Lead{count !== 1 ? "s" : ""}</span>
-                    </>
-                  )}
-                </button>
-              </div>
+          {error ? (
+            <div
+              style={{
+                padding: "10px 12px",
+                background: "rgba(239, 68, 68, 0.09)",
+                border: "1px solid rgba(239, 68, 68, 0.28)",
+                borderRadius: 8,
+                color: "#ef4444",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+              }}
+            >
+              <Icons.AlertCircle size={17} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ whiteSpace: "pre-line", lineHeight: 1.5 }}>{error}</span>
+            </div>
+          ) : null}
+
+          {progress && !generating && !suggestionLoadingTopic ? (
+            <div
+              style={{
+                padding: "10px 12px",
+                background: "rgba(34, 197, 94, 0.10)",
+                border: "1px solid rgba(34,197,94,0.25)",
+                borderRadius: 8,
+                color: "#16a34a",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <Icons.CheckCircle size={17} />
+              <span>{progress}</span>
+            </div>
+          ) : null}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+              paddingTop: 4,
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 8,
+                padding: "6px 10px",
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>Number of leads</span>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={count}
+                onChange={(e) => setCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 10)))}
+                className="input"
+                style={{
+                  width: 56,
+                  padding: "4px 6px",
+                  borderRadius: 6,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface-secondary)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textAlign: "center",
+                }}
+                disabled={generating || Boolean(suggestionLoadingTopic)}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 9 }}>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={onClose}
+                disabled={generating || Boolean(suggestionLoadingTopic)}
+                style={{ padding: "10px 16px", borderRadius: 8, fontSize: 13 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => void handleGenerate()}
+                disabled={generating || Boolean(suggestionLoadingTopic) || !prompt.trim()}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                {generating ? (
+                  <>
+                    <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
+                      <Icons.Loader size={15} style={{ color: "inherit" }} />
+                    </span>
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <Icons.Sparkles size={15} />
+                    Generate {count} lead{count !== 1 ? "s" : ""}
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </ImportModalFrame>
 
       {/* Enrich & Score Popup */}
       {showEnrichPopup && (
@@ -590,7 +601,7 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: 'rgba(76, 103, 255, 0.14)',
+                  background: 'rgba(124, 58, 237, 0.14)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -756,18 +767,18 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
                     fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    boxShadow: '0 8px 22px rgba(76, 103, 255, 0.28)',
+                    boxShadow: '0 8px 22px rgba(124, 58, 237, 0.28)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 10px 28px rgba(76, 103, 255, 0.32)';
+                    e.currentTarget.style.boxShadow = '0 10px 28px rgba(124, 58, 237, 0.32)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 8px 22px rgba(76, 103, 255, 0.28)';
+                    e.currentTarget.style.boxShadow = '0 8px 22px rgba(124, 58, 237, 0.28)';
                   }}
                 >
                   <Icons.Target size={18} style={{ color: '#fff' }} />

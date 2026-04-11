@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { isAuthenticated } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
+import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
 
 // Animated counter component
 function AnimatedCounter({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
@@ -338,7 +339,7 @@ export default function LandingPage() {
       icon: <Icons.Robot size={28} />, 
       title: 'AI Lead Generation', 
       desc: 'Find perfect prospects with natural language queries. Simply describe your ideal customer, and our AI finds thousands of qualified leads automatically.',
-      color: '#4C67FF',
+      color: '#7C3AED',
       highlight: 'Generate 10K+ leads in minutes'
     },
     { 
@@ -431,7 +432,7 @@ export default function LandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
         .landing-page {
-          --gradient-primary: linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%);
+          --gradient-primary: linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%);
           --gradient-dark: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
           --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
           --glass-bg: rgba(255, 255, 255, 0.03);
@@ -453,7 +454,7 @@ export default function LandingPage() {
           position: absolute;
           width: 4px;
           height: 4px;
-          background: rgba(76, 103, 255, 0.3);
+          background: rgba(124, 58, 237, 0.3);
           border-radius: 50%;
           animation: float-particle 5s ease-in-out infinite;
         }
@@ -487,16 +488,7 @@ export default function LandingPage() {
           align-items: center;
           gap: 12px;
         }
-        .logo-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          background: var(--gradient-primary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 8px 24px rgba(76, 103, 255, 0.3);
-        }
+        /* Product mark: AppBrandLogoMark (keeps landing + app shell in sync) */
         .logo-text {
           font-size: 22px;
           font-weight: 800;
@@ -564,11 +556,11 @@ export default function LandingPage() {
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
-          box-shadow: 0 4px 20px rgba(76, 103, 255, 0.4);
+          box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
         }
         .btn-cta:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 30px rgba(76, 103, 255, 0.5);
+          box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
         }
 
         /* Hero Section */
@@ -586,7 +578,7 @@ export default function LandingPage() {
           position: absolute;
           width: 800px;
           height: 800px;
-          background: radial-gradient(circle, rgba(76, 103, 255, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
           top: -200px;
           left: 50%;
           transform: translateX(-50%);
@@ -606,19 +598,19 @@ export default function LandingPage() {
           align-items: center;
           gap: 8px;
           padding: 8px 16px;
-          background: rgba(76, 103, 255, 0.1);
-          border: 1px solid rgba(76, 103, 255, 0.2);
+          background: rgba(124, 58, 237, 0.1);
+          border: 1px solid rgba(124, 58, 237, 0.2);
           border-radius: 100px;
           font-size: 13px;
           font-weight: 600;
-          color: #4C67FF;
+          color: #7C3AED;
           margin-bottom: 24px;
           animation: fade-in-up 0.6s ease forwards;
         }
         .badge-dot {
           width: 8px;
           height: 8px;
-          background: #4C67FF;
+          background: #7C3AED;
           border-radius: 50%;
           animation: pulse-dot 2s ease-in-out infinite;
         }
@@ -671,11 +663,11 @@ export default function LandingPage() {
           align-items: center;
           gap: 10px;
           transition: all 0.3s ease;
-          box-shadow: 0 8px 32px rgba(76, 103, 255, 0.4);
+          box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
         }
         .btn-hero-primary:hover {
           transform: translateY(-3px) scale(1.02);
-          box-shadow: 0 12px 40px rgba(76, 103, 255, 0.5);
+          box-shadow: 0 12px 40px rgba(124, 58, 237, 0.5);
         }
         .btn-hero-secondary {
           padding: 18px 36px;
@@ -807,7 +799,7 @@ export default function LandingPage() {
         .video-gradient-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(45deg, rgba(76, 103, 255, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%);
+          background: linear-gradient(45deg, rgba(124, 58, 237, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%);
         }
         .video-play-btn {
           position: absolute;
@@ -823,7 +815,7 @@ export default function LandingPage() {
           justify-content: center;
           color: #000;
           transition: all 0.3s ease;
-          box-shadow: 0 8px 32px rgba(76, 103, 255, 0.5);
+          box-shadow: 0 8px 32px rgba(124, 58, 237, 0.5);
           z-index: 2;
         }
         .video-info {
@@ -880,8 +872,8 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .feature-item.active {
-          background: rgba(76, 103, 255, 0.08);
-          border-color: rgba(76, 103, 255, 0.3);
+          background: rgba(124, 58, 237, 0.08);
+          border-color: rgba(124, 58, 237, 0.3);
         }
         .feature-item:hover {
           border-color: rgba(255, 255, 255, 0.15);
@@ -907,11 +899,11 @@ export default function LandingPage() {
         .feature-highlight {
           display: inline-block;
           padding: 4px 10px;
-          background: rgba(76, 103, 255, 0.15);
+          background: rgba(124, 58, 237, 0.15);
           border-radius: 6px;
           font-size: 12px;
           font-weight: 600;
-          color: #4C67FF;
+          color: #7C3AED;
           margin-left: auto;
         }
         .feature-desc {
@@ -987,8 +979,8 @@ export default function LandingPage() {
           transition: all 0.2s ease;
         }
         .sidebar-item.active {
-          background: rgba(76, 103, 255, 0.2);
-          color: #4C67FF;
+          background: rgba(124, 58, 237, 0.2);
+          color: #7C3AED;
         }
         .mockup-main {
           flex: 1;
@@ -1016,7 +1008,7 @@ export default function LandingPage() {
           align-items: center;
           justify-content: center;
         }
-        .stat-icon.blue { background: rgba(76, 103, 255, 0.2); color: #4C67FF; }
+        .stat-icon.blue { background: rgba(124, 58, 237, 0.2); color: #7C3AED; }
         .stat-icon.purple { background: rgba(169, 76, 255, 0.2); color: #A94CFF; }
         .stat-icon.green { background: rgba(107, 207, 127, 0.2); color: #6BCF7F; }
         .stat-info {
@@ -1072,7 +1064,7 @@ export default function LandingPage() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #4C67FF 0%, #A94CFF 100%);
+          background: linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%);
         }
         .lead-info {
           flex: 1;
@@ -1102,7 +1094,7 @@ export default function LandingPage() {
         /* How It Works */
         .how-section {
           padding: 120px 24px;
-          background: linear-gradient(180deg, transparent 0%, rgba(76, 103, 255, 0.03) 50%, transparent 100%);
+          background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.03) 50%, transparent 100%);
         }
         .how-container {
           max-width: 1200px;
@@ -1125,8 +1117,8 @@ export default function LandingPage() {
         }
         .step-card:hover {
           transform: translateY(-8px);
-          border-color: rgba(76, 103, 255, 0.3);
-          box-shadow: 0 20px 40px rgba(76, 103, 255, 0.15);
+          border-color: rgba(124, 58, 237, 0.3);
+          box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
         }
         .step-number {
           position: absolute;
@@ -1143,18 +1135,18 @@ export default function LandingPage() {
           font-size: 20px;
           font-weight: 800;
           color: #000;
-          box-shadow: 0 8px 24px rgba(76, 103, 255, 0.4);
+          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
         }
         .step-icon {
           width: 80px;
           height: 80px;
           margin: 24px auto;
-          background: rgba(76, 103, 255, 0.1);
+          background: rgba(124, 58, 237, 0.1);
           border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #4C67FF;
+          color: #7C3AED;
         }
         .step-title {
           font-size: 22px;
@@ -1198,7 +1190,7 @@ export default function LandingPage() {
           position: absolute;
           top: -8px;
           left: -8px;
-          color: #4C67FF;
+          color: #7C3AED;
         }
         .testimonial-quote p {
           font-size: 15px;
@@ -1265,9 +1257,9 @@ export default function LandingPage() {
         }
         .integration-card:hover {
           transform: translateY(-4px);
-          border-color: rgba(76, 103, 255, 0.3);
-          box-shadow: 0 12px 32px rgba(76, 103, 255, 0.15);
-          background: rgba(76, 103, 255, 0.05);
+          border-color: rgba(124, 58, 237, 0.3);
+          box-shadow: 0 12px 32px rgba(124, 58, 237, 0.15);
+          background: rgba(124, 58, 237, 0.05);
         }
         .integration-icon {
           width: 48px;
@@ -1312,7 +1304,7 @@ export default function LandingPage() {
           transition: transform 0.3s ease;
         }
         .faq-item.open .faq-toggle {
-          color: #4C67FF;
+          color: #7C3AED;
         }
         .faq-answer {
           overflow: hidden;
@@ -1336,7 +1328,7 @@ export default function LandingPage() {
         .cta-bg {
           position: absolute;
           inset: 0;
-          background: linear-gradient(135deg, rgba(76, 103, 255, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%);
+          background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%);
           border-radius: 40px;
           margin: 0 24px;
         }
@@ -1406,9 +1398,9 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .social-link:hover {
-          background: rgba(76, 103, 255, 0.2);
-          border-color: rgba(76, 103, 255, 0.3);
-          color: #4C67FF;
+          background: rgba(124, 58, 237, 0.2);
+          border-color: rgba(124, 58, 237, 0.3);
+          color: #7C3AED;
         }
         .footer-column h4 {
           font-size: 14px;
@@ -1476,12 +1468,12 @@ export default function LandingPage() {
         }
         .pricing-card:hover {
           transform: translateY(-8px);
-          border-color: rgba(76, 103, 255, 0.3);
-          box-shadow: 0 20px 40px rgba(76, 103, 255, 0.15);
+          border-color: rgba(124, 58, 237, 0.3);
+          box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
         }
         .pricing-card.featured {
-          background: linear-gradient(145deg, rgba(76, 103, 255, 0.15) 0%, rgba(169, 76, 255, 0.1) 100%);
-          border-color: rgba(76, 103, 255, 0.4);
+          background: linear-gradient(145deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.1) 100%);
+          border-color: rgba(124, 58, 237, 0.4);
           transform: scale(1.02);
         }
         .pricing-card.featured:hover {
@@ -1546,8 +1538,8 @@ export default function LandingPage() {
           -webkit-text-fill-color: transparent;
         }
         .pricing-highlight {
-          background: rgba(76, 103, 255, 0.1);
-          border: 1px solid rgba(76, 103, 255, 0.2);
+          background: rgba(124, 58, 237, 0.1);
+          border: 1px solid rgba(124, 58, 237, 0.2);
           border-radius: 12px;
           padding: 16px;
           margin-bottom: 24px;
@@ -1556,7 +1548,7 @@ export default function LandingPage() {
         .pricing-highlight-text {
           font-size: 18px;
           font-weight: 700;
-          color: #4C67FF;
+          color: #7C3AED;
           margin: 0;
         }
         .pricing-highlight-sub {
@@ -1589,11 +1581,11 @@ export default function LandingPage() {
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: rgba(76, 103, 255, 0.2);
+          background: rgba(124, 58, 237, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #4C67FF;
+          color: #7C3AED;
         }
         .pricing-feature-text {
           line-height: 1.5;
@@ -1619,11 +1611,11 @@ export default function LandingPage() {
           background: var(--gradient-primary);
           border: none;
           color: #000;
-          box-shadow: 0 8px 24px rgba(76, 103, 255, 0.3);
+          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
         }
         .pricing-cta-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(76, 103, 255, 0.4);
+          box-shadow: 0 12px 32px rgba(124, 58, 237, 0.4);
         }
         .pricing-cta-secondary {
           background: transparent;
@@ -1632,7 +1624,7 @@ export default function LandingPage() {
         }
         .pricing-cta-secondary:hover {
           background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(76, 103, 255, 0.4);
+          border-color: rgba(124, 58, 237, 0.4);
         }
         .pricing-note {
           margin-top: 16px;
@@ -1720,11 +1712,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className={`landing-header ${scrollY > 50 ? 'header-scrolled' : ''}`}>
         <div className="logo-container">
-          <div className="logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#000">
-              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-            </svg>
-          </div>
+          <AppBrandLogoMark size={44} />
           <span className="logo-text">Sales Co-Pilot</span>
         </div>
         <nav className="nav-links">
@@ -1998,11 +1986,7 @@ export default function LandingPage() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="logo-container">
-              <div className="logo-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#000">
-                  <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-                </svg>
-              </div>
+              <AppBrandLogoMark size={44} />
               <span className="logo-text">Sales Co-Pilot</span>
             </div>
             <p>Your AI-powered sales co-pilot that helps you scale outreach and close more deals.</p>

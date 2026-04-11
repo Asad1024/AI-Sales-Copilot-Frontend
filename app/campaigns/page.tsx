@@ -13,6 +13,8 @@ import { CampaignStats } from "./components/CampaignStats";
 import { CampaignGrid } from "./components/CampaignGrid";
 import { TierBreakdown } from "./components/TierBreakdown";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+
 export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId, bases, refreshBases } = useBaseStore();
@@ -175,7 +177,7 @@ export default function CampaignsPage() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "none",
-                      background: filters.status === item.id ? "rgba(76,103,255,0.12)" : "transparent",
+                      background: filters.status === item.id ? "rgba(124, 58, 237,0.12)" : "transparent",
                       color: "var(--color-text)",
                       padding: "9px 10px",
                       borderRadius: 8,
@@ -219,9 +221,15 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
-      <CampaignStats />
-      <TierBreakdown />
-      <CampaignGrid campaigns={filteredCampaigns} loading={Boolean(activeBaseId && loading)} />
+      {activeBaseId && loading ? (
+        <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
+      ) : (
+        <>
+          <CampaignStats />
+          <TierBreakdown />
+          <CampaignGrid campaigns={filteredCampaigns} />
+        </>
+      )}
     </div>
   );
 }

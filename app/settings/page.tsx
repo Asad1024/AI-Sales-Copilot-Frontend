@@ -1,12 +1,14 @@
 "use client";
 
-import { Fragment, useState, useEffect, type ReactNode } from "react";
+import { Fragment, useState, useEffect, Suspense, type ReactNode } from "react";
 import { Icons } from "@/components/ui/Icons";
 import { useSearchParams, useRouter } from "next/navigation";
 import { TestConfigurationSection } from "./TestConfigurationSection";
 import { IntegrationsHub } from "./IntegrationsHub";
 import BaseCard from "@/components/ui/BaseCard";
 import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
+import { PaymentSettingsPanel } from "./PaymentSettingsPanel";
+import { CreditCard } from "lucide-react";
 
 const navIconBox = { width: 18, height: 18, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const };
 const UserIcon = () => (
@@ -24,11 +26,17 @@ const TestConfigTabIcon = () => (
     <Icons.Zap size={18} strokeWidth={1.75} />
   </span>
 );
+const PaymentsTabIcon = () => (
+  <span style={navIconBox}>
+    <CreditCard size={18} strokeWidth={1.75} />
+  </span>
+);
 
-type SettingsTabId = "profile" | "integrations" | "test-configuration";
+type SettingsTabId = "profile" | "integrations" | "payments" | "test-configuration";
 
 function parseSettingsTab(raw: string | null): SettingsTabId {
   if (raw === "integrations" || raw === "connectors") return "integrations";
+  if (raw === "payments" || raw === "billing") return "payments";
   if (raw === "safety") return "profile";
   if (raw === "test-configuration") return "test-configuration";
   return "profile";
@@ -48,12 +56,14 @@ export default function SettingsPage() {
     const p = new URLSearchParams(searchParams?.toString() || "");
     p.set("tab", id === "integrations" ? "integrations" : id);
     if (id !== "integrations") p.delete("connect");
+    if (id !== "payments") p.delete("session_id");
     router.replace(`/settings?${p.toString()}`);
   };
 
   const tabs: { id: SettingsTabId; label: string; hint: string; icon: () => ReactNode }[] = [
     { id: "profile", label: "Profile", hint: "Identity, password & account", icon: UserIcon },
     { id: "integrations", label: "Integrations", hint: "CRM & messaging", icon: PlugTabIcon },
+    { id: "payments", label: "Payments", hint: "Stripe receipts & plan", icon: PaymentsTabIcon },
     { id: "test-configuration", label: "Test configuration", hint: "Channels & SMTP", icon: TestConfigTabIcon },
   ];
 
@@ -87,7 +97,7 @@ export default function SettingsPage() {
             const active = tab === id;
             return (
               <Fragment key={id}>
-                {id === "test-configuration" ? (
+                {id === "payments" || id === "test-configuration" ? (
                   <div className="my-1.5 h-px w-full shrink-0 bg-[#F3F4F6]" role="separator" aria-hidden />
                 ) : null}
                 <button
@@ -124,7 +134,7 @@ export default function SettingsPage() {
         <BaseCard
           style={{
             borderRadius: 16,
-            padding: tab === "integrations" ? 18 : 22,
+            padding: tab === "integrations" ? 18 : tab === "payments" ? 20 : 22,
             minHeight: 400,
             border: "1px solid var(--color-border)",
             boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
@@ -132,6 +142,11 @@ export default function SettingsPage() {
         >
           {tab === "profile" && <ProfileSettingsPanel />}
           {tab === "integrations" && <IntegrationsHub />}
+          {tab === "payments" && (
+            <Suspense fallback={<p style={{ color: "var(--color-text-muted)" }}>Loading…</p>}>
+              <PaymentSettingsPanel />
+            </Suspense>
+          )}
           {tab === "test-configuration" && <TestConfigurationSection />}
         </BaseCard>
       </div>

@@ -14,6 +14,9 @@ export interface User {
   email_verified?: boolean;
   /** Server-owned; when false and email is verified, user must finish onboarding. */
   onboarding_completed?: boolean;
+  billing_plan_key?: string | null;
+  credits_balance?: number;
+  monthly_lead_credits?: number;
 }
 
 export interface AuthResponse {

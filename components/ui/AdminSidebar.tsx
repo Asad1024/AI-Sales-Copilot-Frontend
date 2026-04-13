@@ -9,6 +9,7 @@ import {
   Megaphone,
   FolderKanban,
   CreditCard,
+  Receipt,
   Bell,
   ScrollText,
   Settings,
@@ -196,6 +197,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const secondaryNav: NavItem[] = [
     { href: "/admin/subscriptions", label: "Subscriptions", icon: <CreditCard size={iconSize} strokeWidth={iconStroke} /> },
+    { href: "/admin/payments", label: "Payments", icon: <Receipt size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/admin/notifications", label: "Notifications", icon: <Bell size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/admin/logs", label: "Activity", icon: <ScrollText size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/admin/settings", label: "Settings", icon: <Settings size={iconSize} strokeWidth={iconStroke} /> },

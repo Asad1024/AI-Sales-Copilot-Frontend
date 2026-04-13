@@ -2622,5 +2622,33 @@ input.schedule-daily-range[type="range"]::-moz-range-thumb {
   height: 0;
 }
 
+/* Upgrade / pricing portal layout (global CSS avoids styled-jsx webpack/RSC edge cases). */
+.scp-portal-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 720px) {
+  .scp-portal-top-row {
+    grid-template-columns: 1fr;
+  }
+}
+.scp-portal-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 1100px) {
+  .scp-portal-tier-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .scp-portal-tier-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Tailwind JIT utilities — required for any `className` Tailwind usage in app/components/lib. */
 @tailwind utilities;

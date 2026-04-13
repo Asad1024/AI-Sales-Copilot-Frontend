@@ -51,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (pathname.startsWith("/admin/campaigns")) return { title: "Campaigns", description: "Inspect and delete campaigns · search and status filters." };
     if (pathname.startsWith("/admin/leads")) return { title: "Leads", description: "Inspect and delete leads · latest batch loaded." };
     if (pathname.startsWith("/admin/subscriptions")) return { title: "Subscriptions", description: "Billing roadmap · filter topics below." };
+    if (pathname.startsWith("/admin/payments")) return { title: "Payments", description: "Stripe transactions across all users." };
     if (pathname.startsWith("/admin/notifications")) return { title: "Notifications", description: "Account and system alerts." };
     if (pathname.startsWith("/admin/logs")) return { title: "Activity", description: "Audit log roadmap · filter checklist items." };
     if (pathname.startsWith("/admin/settings")) return { title: "Admin settings", description: "Your platform operator profile and password." };
@@ -61,10 +62,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (pathname.startsWith("/templates")) return { title: "Templates", description: "Manage reusable outreach content." };
     if (pathname.startsWith("/reports")) return { title: "Reports", description: "Review analytics, funnel, and trends." };
     if (pathname.startsWith("/team")) return { title: "Team", description: "Manage collaborators and permissions." };
+    if (pathname.startsWith("/upgrade")) return { title: "Plans & upgrade", description: "Sales Co-Pilot pricing and Stripe checkout (when configured)." };
+    if (pathname.startsWith("/pricing")) return { title: "Pricing", description: "Sales Co-Pilot plans in AED and Stripe-powered checkout when enabled." };
     if (pathname.startsWith("/notifications"))
       return { title: "Notifications", description: "Account activity, workspace changes, security, and system alerts." };
     if (pathname.startsWith("/settings"))
-      return { title: "Settings", description: "Profile, integrations, and workspace tools." };
+      return { title: "Settings", description: "Profile, integrations, payments, and workspace tools." };
     return { title: "Spark AI", description: "Premium AI-native sales workspace." };
   };
   const pageMeta = getPageMeta();

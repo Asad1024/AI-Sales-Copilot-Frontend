@@ -17,6 +17,7 @@ import {
   FileText,
   BarChart2,
   UserCircle2,
+  Sparkles,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
@@ -208,6 +209,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const secondaryNav: NavItem[] = [
     { href: "/reports", label: "Reports", icon: <BarChart2 size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/team", label: "Team", icon: <UserCircle2 size={iconSize} strokeWidth={iconStroke} /> },
+    { href: "/upgrade", label: "Upgrade", icon: <Sparkles size={iconSize} strokeWidth={iconStroke} /> },
   ];
 
   const userInitials = (user?.name || user?.email || "U")

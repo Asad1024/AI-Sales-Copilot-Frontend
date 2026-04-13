@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { isAuthenticated } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
+import SalesCopilotPricingSection from "@/components/pricing/SalesCopilotPricingSection";
 
 // Animated counter component
 function AnimatedCounter({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
@@ -1456,6 +1457,174 @@ export default function LandingPage() {
           gap: 24px;
           margin-top: 60px;
         }
+        .scp-pricing-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 28px;
+          margin-top: 48px;
+        }
+        .scp-top-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 20px;
+          align-items: stretch;
+        }
+        @media (max-width: 768px) {
+          .scp-top-row {
+            grid-template-columns: 1fr;
+          }
+        }
+        .pricing-card.scp-setup-top {
+          padding: 22px 24px 24px;
+          text-align: left;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        .pricing-card.scp-setup-top:hover {
+          transform: translateY(-4px);
+        }
+        .scp-setup-top-kicker {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #A94CFF;
+          margin-bottom: 10px;
+        }
+        .scp-setup-top-name {
+          font-size: 21px;
+          font-weight: 800;
+          margin: 0 0 8px;
+          letter-spacing: -0.02em;
+        }
+        .scp-setup-top-lead {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.52);
+          line-height: 1.55;
+          margin: 0 0 14px;
+        }
+        .scp-setup-top-price {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 14px;
+        }
+        .scp-setup-top-amount {
+          font-size: 32px;
+        }
+        .scp-setup-top-list {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .scp-setup-top-li {
+          margin-bottom: 0;
+          font-size: 13px;
+        }
+        .scp-setup-top-li .pricing-feature-text {
+          font-size: 13px;
+        }
+        .scp-setup-top-foot {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.42);
+          margin: 0 0 14px;
+          line-height: 1.45;
+        }
+        .scp-setup-top-cta {
+          width: 100%;
+          margin-top: auto;
+          padding: 13px 18px;
+          font-size: 15px;
+        }
+        .pricing-card.scp-custom-top {
+          padding: 22px 24px 24px;
+          text-align: left;
+          display: flex;
+          flex-direction: column;
+          border-style: dashed;
+          border-color: rgba(169, 76, 255, 0.38);
+          background: rgba(255, 255, 255, 0.025);
+          min-height: 0;
+        }
+        .pricing-card.scp-custom-top:hover {
+          transform: translateY(-4px);
+        }
+        .scp-custom-top-kicker {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.45);
+          margin-bottom: 10px;
+        }
+        .scp-custom-top-name {
+          font-size: 21px;
+          font-weight: 800;
+          margin: 0 0 8px;
+          letter-spacing: -0.02em;
+        }
+        .scp-custom-top-lead {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.52);
+          line-height: 1.55;
+          margin: 0 0 14px;
+        }
+        .scp-custom-top-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .scp-custom-top-foot {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.42);
+          margin: 0 0 14px;
+          line-height: 1.45;
+        }
+        .scp-custom-top-cta {
+          width: 100%;
+          margin-top: auto;
+          padding: 13px 18px;
+          font-size: 15px;
+        }
+        .scp-tier-section-label {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.42);
+          margin: 4px 0 0;
+        }
+        .scp-tier-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 20px;
+        }
+        .scp-tier-grid .pricing-card.featured {
+          transform: none;
+        }
+        .scp-tier-grid .pricing-card.featured:hover {
+          transform: translateY(-8px);
+        }
+        .scp-tier-header {
+          margin-bottom: 20px;
+          padding-bottom: 20px;
+        }
+        .scp-custom-chip {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 6px 11px;
+          border-radius: 999px;
+          background: rgba(124, 58, 237, 0.16);
+          border: 1px solid rgba(124, 58, 237, 0.28);
+          color: rgba(255, 255, 255, 0.88);
+          line-height: 1.35;
+        }
         .pricing-card {
           position: relative;
           padding: 40px 32px;
@@ -1645,6 +1814,16 @@ export default function LandingPage() {
         }
 
         /* Responsive */
+        @media (max-width: 1100px) {
+          .scp-tier-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 640px) {
+          .scp-tier-grid {
+            grid-template-columns: 1fr;
+          }
+        }
         @media (max-width: 1024px) {
           .pricing-grid {
             grid-template-columns: 1fr;
@@ -1938,6 +2117,9 @@ export default function LandingPage() {
           <IntegrationCard name="Outlook" icon={<PlatformIcons.Outlook />} />
         </div>
       </section>
+
+      {/* Pricing */}
+      <SalesCopilotPricingSection variant="landing" />
 
       {/* FAQ */}
       <section className="faq-section" id="faq">

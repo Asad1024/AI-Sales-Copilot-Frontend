@@ -177,12 +177,21 @@ export function IntegrationUniversalCard({ icon, name, subtitle, status, comingS
   );
 }
 
-export function RemoveIntegrationLink({ onClick, label = "Remove" }: { onClick: () => void | Promise<void>; label?: string }) {
+export function RemoveIntegrationLink({
+  onClick,
+  label = "Remove",
+  disabled,
+}: {
+  onClick: () => void | Promise<void>;
+  label?: string;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => void onClick()}
-      className="border-0 bg-transparent p-0 text-xs font-medium text-red-400 hover:text-red-500"
+      className="border-0 bg-transparent p-0 text-xs font-medium text-red-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-45"
     >
       {label}
     </button>
@@ -195,17 +204,13 @@ export function ConfigureLinkButton({ onClick, disabled }: { onClick: () => void
       type="button"
       disabled={disabled}
       onClick={onClick}
+      className="btn-secondary-outline"
       style={{
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
         fontSize: 13,
-        fontWeight: 500,
-        padding: "6px 12px",
-        borderRadius: 8,
-        border: "1px solid #E5E3F0",
-        color: "var(--color-primary)",
-        background: "#ffffff",
+        padding: "8px 14px",
         opacity: disabled ? 0.55 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
@@ -230,17 +235,13 @@ export function ConnectFilledButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      className="btn-primary"
       style={{
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: 13,
-        fontWeight: 500,
-        padding: "6px 14px",
-        borderRadius: 8,
-        border: "none",
-        color: "#ffffff",
-        background: "var(--color-primary)",
+        padding: "8px 16px",
         opacity: disabled ? 0.55 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
@@ -297,7 +298,7 @@ export function ConfigureModalShell({ open, onClose, icon, title, children, foot
             <div style={{ width: 40, height: 40, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</div>
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em" }}>{title}</h2>
           </div>
-          <button type="button" className="btn-ghost" onClick={onClose} aria-label="Close" style={{ padding: 6, borderRadius: 8, flexShrink: 0 }}>
+          <button type="button" className="icon-btn header-utility-btn" onClick={onClose} aria-label="Close" style={{ flexShrink: 0 }}>
             <Icons.X size={18} />
           </button>
         </div>

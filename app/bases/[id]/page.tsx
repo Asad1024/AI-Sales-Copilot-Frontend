@@ -30,7 +30,8 @@ export default function BaseOverviewPage() {
 
       // Update store if base ID changed
       if (baseId && baseId !== useBaseStore.getState().activeBaseId) {
-        setActiveBaseId(baseId);
+        const b = useBaseStore.getState().bases.find((x) => x.id === baseId);
+        setActiveBaseId(baseId, b ? { name: b.name } : undefined);
       }
 
       // Redirect to leads page by default

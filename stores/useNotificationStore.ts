@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { apiRequest } from '@/lib/apiClient';
+import { apiRequest, getUser } from '@/lib/apiClient';
 import { initializeWebSocket, onNotification, offNotification, disconnectWebSocket } from '@/lib/websocketClient';
 
 export interface Notification {
@@ -31,7 +31,48 @@ interface NotificationStore {
   cleanup: () => void;
 }
 
-export const useNotificationStore = create<NotificationStore>((set, get) => ({
+export const useNotificationStore = create<NotificationStore>((set, get) => {
+  const onRealtimeNotification = (notification: Notification) => {
+    console.log("[Notification Store] Received real-time notification:", notification);
+
+    if (typeof window !== "undefined" && notification.type === "enrichment_completed") {
+      window.dispatchEvent(new CustomEvent("sparkai:enrichment-completed", { detail: notification }));
+    }
+
+    const me = getUser();
+    const inboxOwnerId = notification.user_id != null ? Number(notification.user_id) : null;
+    const skipInboxMutationForTeammateEnrichment =
+      notification.type === "enrichment_completed" &&
+      inboxOwnerId != null &&
+      Number.isFinite(inboxOwnerId) &&
+      me?.id != null &&
+      inboxOwnerId !== Number(me.id);
+
+    if (skipInboxMutationForTeammateEnrichment) {
+      set({ websocketConnected: true });
+      return;
+    }
+
+    set((state) => {
+      const exists = state.notifications.some((n) => n.id === notification.id);
+      if (exists) {
+        return {
+          notifications: state.notifications.map((n) =>
+            n.id === notification.id ? notification : n
+          ),
+          unreadCount: notification.read_at ? state.unreadCount : state.unreadCount + 1,
+          websocketConnected: true,
+        };
+      }
+      return {
+        notifications: [notification, ...state.notifications],
+        unreadCount: notification.read_at ? state.unreadCount : state.unreadCount + 1,
+        websocketConnected: true,
+      };
+    });
+  };
+
+  return {
   notifications: [],
   unreadCount: 0,
   loading: false,
@@ -118,35 +159,8 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   initializeWebSocketConnection: async () => {
     try {
-      // Initialize WebSocket connection
       await initializeWebSocket();
-      
-      // Set up notification listener
-      await onNotification((notification: Notification) => {
-        console.log('[Notification Store] Received real-time notification:', notification);
-        
-        // Add notification to the list if not already present
-        set((state) => {
-          const exists = state.notifications.some((n) => n.id === notification.id);
-          if (exists) {
-            // Update existing notification
-            return {
-              notifications: state.notifications.map((n) =>
-                n.id === notification.id ? notification : n
-              ),
-              unreadCount: notification.read_at ? state.unreadCount : state.unreadCount + 1,
-              websocketConnected: true,
-            };
-          } else {
-            // Add new notification
-            return {
-              notifications: [notification, ...state.notifications],
-              unreadCount: notification.read_at ? state.unreadCount : state.unreadCount + 1,
-              websocketConnected: true,
-            };
-          }
-        });
-      });
+      await onNotification(onRealtimeNotification);
 
       set({ websocketConnected: true });
       console.log('[Notification Store] WebSocket connection initialized');
@@ -157,9 +171,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   },
 
   cleanup: () => {
-    offNotification();
+    offNotification(onRealtimeNotification);
     disconnectWebSocket();
     set({ websocketConnected: false });
   },
-}));
+};
+});
 

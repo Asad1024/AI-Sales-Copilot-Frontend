@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
+import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { AppBrandLogoMark, appBrandWordmarkStyle } from "@/components/ui/AppBrandLogo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import BaseCard from "@/components/ui/BaseCard";
+import { Icons } from "@/components/ui/Icons";
 
 interface InvitationDetails {
   base_name: string;
@@ -10,6 +16,84 @@ interface InvitationDetails {
   inviter_name: string;
   email: string;
   expires_at: string;
+}
+
+const NAV_HEIGHT = 56;
+
+const FIELD_LABEL: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "var(--color-text-muted)",
+  marginBottom: 4,
+};
+
+const FIELD_VALUE: CSSProperties = {
+  fontSize: 15,
+  fontWeight: 600,
+  color: "var(--color-text)",
+  wordBreak: "break-word",
+};
+
+function InvitePublicHeader() {
+  return (
+    <header
+      style={{
+        height: NAV_HEIGHT,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 clamp(16px, 4vw, 32px)",
+        borderBottom: "1px solid var(--elev-border, var(--color-border))",
+        background: "var(--elev-bg, var(--color-surface))",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+      }}
+    >
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <AppBrandLogoMark size={36} />
+        <span style={appBrandWordmarkStyle(18)}>Sales Co-Pilot</span>
+      </Link>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Link
+          href="/auth/login"
+          className="btn-dashboard-outline focus-ring"
+          style={{
+            borderRadius: 8,
+            fontSize: 14,
+            padding: "8px 16px",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            fontWeight: 600,
+          }}
+        >
+          Sign in
+        </Link>
+        <ThemeToggle compact />
+      </div>
+    </header>
+  );
+}
+
+function InvitePageShell({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--color-background)",
+        color: "var(--color-text)",
+      }}
+    >
+      <InvitePublicHeader />
+      {children}
+    </div>
+  );
 }
 
 export default function InvitePage() {
@@ -33,150 +117,215 @@ export default function InvitePage() {
       const data = await apiRequest(`/invitations/${token}`);
       setInvitation(data.invitation);
       setUserExists(data.user_exists);
-    } catch (err: any) {
-      setError(err.message || "Invalid or expired invitation");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invalid or expired invitation";
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAccept = async () => {
+    setAccepting(true);
+    setError("");
     try {
-      setAccepting(true);
-      setError("");
+      const data = await apiRequest(`/invitations/${token}`);
+      const exists = Boolean(data?.user_exists);
+      const inviteEmail = String(data?.invitation?.email || invitation?.email || "");
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-      // If user doesn't exist, redirect to signup with invitation token
-      if (!userExists) {
-        router.push(`/auth/signup?invitation=${token}`);
+      if (!exists) {
+        if (origin) {
+          window.location.assign(`${origin}/auth/signup?invitation=${encodeURIComponent(token)}`);
+        } else {
+          router.push(`/auth/signup?invitation=${encodeURIComponent(token)}`);
+        }
         return;
       }
 
-      // If user exists, they need to login first
-      // Store the invitation token in sessionStorage to accept after login
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('pendingInvitation', token);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pendingInvitation", token);
       }
-      router.push(`/auth/login?invitation=${token}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to process invitation");
+      if (origin) {
+        window.location.assign(
+          `${origin}/auth/login?invitation=${encodeURIComponent(token)}&email=${encodeURIComponent(inviteEmail)}`
+        );
+      } else {
+        router.push(`/auth/login?invitation=${encodeURIComponent(token)}&email=${encodeURIComponent(inviteEmail)}`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to process invitation";
+      setError(message);
+    } finally {
       setAccepting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-          <p className="text-center mt-4 text-gray-600 dark:text-gray-400">Loading invitation...</p>
-        </div>
-      </div>
+      <InvitePageShell>
+        <GlobalPageLoader layout="page" message="Loading invitation…" ariaLabel="Loading invitation" />
+      </InvitePageShell>
     );
   }
 
   if (error || !invitation) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 mb-4">
-              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+      <InvitePageShell>
+        <main
+          style={{
+            flex: 1,
+            minHeight: 0,
+            width: "100%",
+            background: "var(--color-canvas)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px clamp(16px, 4vw, 32px)",
+            boxSizing: "border-box",
+          }}
+        >
+          <BaseCard style={{ width: "100%", maxWidth: 440, padding: "clamp(24px, 4vw, 32px)" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16 }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "rgba(239, 68, 68, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Icons.AlertCircle size={28} strokeWidth={2} style={{ color: "#ef4444" }} aria-hidden />
+              </div>
+              <div>
+                <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px", color: "var(--color-text)" }}>
+                  Invalid invitation
+                </h1>
+                <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                  {error || "This link may be expired or was revoked."}
+                </p>
+              </div>
+              <button type="button" className="btn-primary focus-ring" style={{ marginTop: 8 }} onClick={() => router.push("/")}>
+                Go to home
+              </button>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid Invitation</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-            <button
-              onClick={() => router.push('/')}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-            >
-              Go to Home
-            </button>
-          </div>
-        </div>
-      </div>
+          </BaseCard>
+        </main>
+      </InvitePageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
-        {/* Icon */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 mb-4">
-            <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            You're Invited!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {invitation.inviter_name} has invited you to join their workspace
-          </p>
-        </div>
-
-        {/* Invitation Details */}
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 mb-6 space-y-3">
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Workspace</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">{invitation.base_name}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Role</p>
-            <p className="text-base font-medium text-gray-900 dark:text-white capitalize">{invitation.role}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-            <p className="text-base font-medium text-gray-900 dark:text-white">{invitation.email}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Expires</p>
-            <p className="text-base font-medium text-gray-900 dark:text-white">
-              {new Date(invitation.expires_at).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+    <InvitePageShell>
+      <main
+        style={{
+          flex: 1,
+          minHeight: 0,
+          width: "100%",
+          background: "var(--color-canvas)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "clamp(16px, 3vw, 32px) clamp(16px, 4vw, 32px) 32px",
+          boxSizing: "border-box",
+        }}
+      >
+        <BaseCard style={{ width: "100%", maxWidth: 520, padding: "clamp(24px, 4vw, 36px)" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 24 }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "rgba(124, 58, 237, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+              }}
+            >
+              <Icons.Mail size={28} strokeWidth={2} style={{ color: "var(--color-primary)" }} aria-hidden />
+            </div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 8px", color: "var(--color-text)" }}>You&apos;re invited</h1>
+            <p style={{ margin: 0, fontSize: 15, color: "var(--color-text-muted)", lineHeight: 1.5, maxWidth: 400 }}>
+              <strong style={{ color: "var(--color-text)" }}>{invitation.inviter_name}</strong> invited you to join their workspace.
             </p>
           </div>
-        </div>
 
-        {/* Action Button */}
-        <button
-          onClick={handleAccept}
-          disabled={accepting}
-          className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:cursor-not-allowed disabled:transform-none"
-        >
-          {accepting ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </span>
-          ) : userExists ? (
-            "Sign In to Accept"
-          ) : (
-            "Sign Up to Accept"
-          )}
-        </button>
+          <div
+            style={{
+              borderRadius: 10,
+              border: "1px solid var(--elev-border, var(--color-border))",
+              background: "var(--color-surface-secondary, rgba(0,0,0,0.04))",
+              padding: 20,
+              marginBottom: 24,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <div>
+              <div style={FIELD_LABEL}>Workspace</div>
+              <div style={FIELD_VALUE}>{invitation.base_name}</div>
+            </div>
+            <div>
+              <div style={FIELD_LABEL}>Role</div>
+              <div style={{ ...FIELD_VALUE, textTransform: "capitalize" }}>{invitation.role}</div>
+            </div>
+            <div>
+              <div style={FIELD_LABEL}>Email</div>
+              <div style={FIELD_VALUE}>{invitation.email}</div>
+            </div>
+            <div>
+              <div style={FIELD_LABEL}>Expires</div>
+              <div style={FIELD_VALUE}>
+                {new Date(invitation.expires_at).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+          </div>
 
-        {error && (
-          <p className="mt-4 text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
-        )}
+          <button
+            type="button"
+            className="btn-primary focus-ring"
+            style={{ width: "100%", padding: "14px 20px", fontSize: 16, fontWeight: 600 }}
+            onClick={handleAccept}
+            disabled={accepting}
+          >
+            {accepting ? (
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <span className="global-page-loader-spinner" style={{ display: "inline-flex" }} aria-hidden>
+                  <Icons.Loader size={22} strokeWidth={2} />
+                </span>
+                Processing…
+              </span>
+            ) : userExists ? (
+              "Sign in to accept"
+            ) : (
+              "Sign up to accept"
+            )}
+          </button>
 
-        <p className="mt-6 text-xs text-center text-gray-500 dark:text-gray-400">
-          {userExists 
-            ? "You'll be redirected to sign in, then automatically added to the workspace."
-            : "You'll be redirected to create your account, then automatically added to the workspace."}
-        </p>
-      </div>
-    </div>
+          {error ? (
+            <p style={{ margin: "12px 0 0", fontSize: 13, color: "#ef4444", textAlign: "center" }}>{error}</p>
+          ) : null}
+
+          <p style={{ margin: "20px 0 0", fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", lineHeight: 1.5 }}>
+            {userExists
+              ? "You’ll be redirected to sign in, then added to the workspace."
+              : "You’ll be redirected to create your account, then added to the workspace."}
+          </p>
+        </BaseCard>
+      </main>
+    </InvitePageShell>
   );
 }

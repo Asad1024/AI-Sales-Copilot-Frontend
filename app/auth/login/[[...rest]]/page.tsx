@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { authAPI, isAuthenticated } from "@/lib/apiClient";
+import { useBaseStore } from "@/stores/useBaseStore";
 import { API_BASE } from "@/lib/api";
 import { routeAfterSuccessfulSession } from "@/lib/authRouting";
 import GoogleSignInRedirecting from "@/components/auth/GoogleSignInRedirecting";
@@ -17,10 +18,19 @@ export default function LoginPage() {
   const [googleRedirecting, setGoogleRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const invitationTokenLogin = searchParams.get("invitation")?.trim() ?? "";
+  const inviteEmailFromQuery = searchParams.get("email")?.trim() ?? "";
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const em = searchParams.get("email")?.trim();
+    if (em) setEmail(em);
+  }, [searchParams]);
+
+  const isInviteLoginEmailLocked = Boolean(invitationTokenLogin && inviteEmailFromQuery);
 
   useEffect(() => {
     if (!mounted || !isAuthenticated()) return;
@@ -54,6 +64,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await authAPI.login(email, password);
+      await useBaseStore.getState().refreshBases();
       await routeAfterSuccessfulSession(router, searchParams);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Login failed");
@@ -354,13 +365,14 @@ export default function LoginPage() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly={isInviteLoginEmailLocked}
                 autoComplete="email"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: "10px",
                   border: "1px solid #e2e8f0",
-                  background: "#fff",
+                  background: isInviteLoginEmailLocked ? "#f1f5f9" : "#fff",
                   color: "#1e293b",
                   fontSize: "14px",
                   outline: "none",
@@ -500,9 +512,13 @@ export default function LoginPage() {
             color: "#64748b",
             marginTop: "28px"
           }}>
-            Don't have an account?{" "}
+            {"Don't have an account? "}
             <Link
-              href="/auth/signup"
+              href={
+                invitationTokenLogin
+                  ? `/auth/signup?invitation=${encodeURIComponent(invitationTokenLogin)}`
+                  : "/auth/signup"
+              }
               style={{
                 color: "#7C3AED",
                 textDecoration: "none",

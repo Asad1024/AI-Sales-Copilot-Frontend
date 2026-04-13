@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
@@ -113,7 +113,7 @@ function UnipileSuccessModal({ onClose }: { onClose: () => void }) {
         <p style={{ margin: "0 0 22px", fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
           Unipile finished linking your account. Messaging integrations are refreshed below — use them in campaigns with this workspace selected.
         </p>
-        <button type="button" className="btn-primary" onClick={onClose} style={{ width: "100%", padding: "12px 18px", borderRadius: 12, fontSize: 15, fontWeight: 600 }}>
+        <button type="button" className="btn-primary" onClick={onClose} style={{ width: "100%" }}>
           Continue
         </button>
       </div>
@@ -167,7 +167,7 @@ function GoogleSheetsConfigureModal({
       title="Google Sheets — Configure"
       footer={
         <>
-          <button type="button" className="btn-ghost" onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 600 }}>
+          <button type="button" className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
           <button
@@ -178,7 +178,6 @@ function GoogleSheetsConfigureModal({
               const ok = await saveGoogleSheets();
               if (ok) onClose();
             }}
-            style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 600 }}
           >
             {savingSheets ? "Saving…" : "Save changes"}
           </button>
@@ -255,7 +254,7 @@ function AirtableConfigureModal({ open, onClose, airtablePat, setAirtablePat, sa
       title="Airtable — Configure"
       footer={
         <>
-          <button type="button" className="btn-ghost" onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 600 }}>
+          <button type="button" className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
           <button
@@ -266,7 +265,6 @@ function AirtableConfigureModal({ open, onClose, airtablePat, setAirtablePat, sa
               const ok = await saveAirtable();
               if (ok) onClose();
             }}
-            style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 600 }}
           >
             {saving ? "Saving…" : "Save changes"}
           </button>
@@ -315,7 +313,7 @@ function HubspotConfigureModal({ open, onClose, hubspotToken, setHubspotToken, v
       title="HubSpot — Configure"
       footer={
         <>
-          <button type="button" className="btn-ghost" onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 600 }}>
+          <button type="button" className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
           <button
@@ -326,7 +324,6 @@ function HubspotConfigureModal({ open, onClose, hubspotToken, setHubspotToken, v
               const ok = await saveHubspot();
               if (ok) onClose();
             }}
-            style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 600 }}
           >
             {saving ? "Saving…" : "Save changes"}
           </button>
@@ -471,13 +468,37 @@ export function IntegrationsHub() {
   const [atConfigureOpen, setAtConfigureOpen] = useState(false);
   const [hsConfigureOpen, setHsConfigureOpen] = useState(false);
   const [savingAirtable, setSavingAirtable] = useState(false);
+  const [usingWorkspaceOwnerCredentials, setUsingWorkspaceOwnerCredentials] = useState(false);
+
+  const integrationContextQs = useMemo(() => {
+    const n = activeBaseId == null ? NaN : Number(activeBaseId);
+    return Number.isFinite(n) && n > 0 ? `?base_id=${encodeURIComponent(String(n))}` : "";
+  }, [activeBaseId]);
+
+  const assertCanMutateWorkspaceIntegrations = useCallback((): boolean => {
+    if (!usingWorkspaceOwnerCredentials) {
+      return true;
+    }
+    showWarning(
+      "Workspace owner only",
+      "Only the workspace owner can connect, configure, or remove integrations for this workspace.",
+    );
+    return false;
+  }, [usingWorkspaceOwnerCredentials, showWarning]);
 
   const loadAll = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
     if (!silent) setLoading(true);
     try {
-      const [intRes, vaultRes] = await Promise.all([apiRequest("/integrations"), apiRequest("/me/connector-vault")]);
+      const qs = integrationContextQs;
+      const [intRes, vaultRes] = await Promise.all([
+        apiRequest(`/integrations${qs}`),
+        apiRequest(`/me/connector-vault${qs}`),
+      ]);
       setIntegrations(intRes?.integrations || []);
+      setUsingWorkspaceOwnerCredentials(
+        Boolean(intRes?.using_workspace_owner_credentials || vaultRes?.using_workspace_owner_credentials),
+      );
       setVault(vaultRes?.vault || {});
       setAirtablePat("");
       const v = vaultRes?.vault || {};
@@ -491,7 +512,7 @@ export function IntegrationsHub() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [showError]);
+  }, [showError, integrationContextQs]);
 
   useEffect(() => {
     loadAll();
@@ -547,6 +568,9 @@ export function IntegrationsHub() {
   const hsOk = Boolean((vault.hubspot?.privateAppToken || "").includes("***"));
 
   const startUnipile = async (provider: "unipile_linkedin" | "unipile_whatsapp", linkedInAccountType?: string) => {
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return;
+    }
     const baseIdNum = typeof activeBaseId === "number" ? activeBaseId : Number(activeBaseId);
     if (!activeBaseId || !Number.isFinite(baseIdNum) || baseIdNum < 1) {
       showWarning("Workspace", "Select a workspace first (top bar).");
@@ -577,6 +601,9 @@ export function IntegrationsHub() {
   };
 
   const saveAirtable = async (): Promise<boolean> => {
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return false;
+    }
     const pat = airtablePat.trim();
     if (!pat) {
       showWarning("Token required", "Paste your Airtable personal access token.");
@@ -602,6 +629,9 @@ export function IntegrationsHub() {
 
   const removeMessagingIntegration = async (integration: { id: number } | undefined, label: string) => {
     if (!integration?.id) return;
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return;
+    }
     const ok = await confirm({
       title: `Remove ${label}?`,
       message: "This disconnects the integration for your account. You can add it again later.",
@@ -620,6 +650,9 @@ export function IntegrationsHub() {
 
   const removeGoogleSheetsIntegration = async () => {
     if (!gsOk) return;
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return;
+    }
     const ok = await confirm({
       title: "Remove Google Sheets?",
       message: "Clears spreadsheet, tab name, and API key from your encrypted vault.",
@@ -628,7 +661,7 @@ export function IntegrationsHub() {
     });
     if (!ok) return;
     try {
-      await apiRequest("/me/connector-vault", {
+      await apiRequest(`/me/connector-vault${integrationContextQs}`, {
         method: "PUT",
         body: JSON.stringify({
           googleSheets: { spreadsheetId: "", sheetName: "", apiKey: "" },
@@ -646,6 +679,9 @@ export function IntegrationsHub() {
 
   const removeHubspotIntegration = async () => {
     if (!hsOk) return;
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return;
+    }
     const ok = await confirm({
       title: "Remove HubSpot?",
       message: "Clears your private app token from your encrypted vault.",
@@ -654,7 +690,7 @@ export function IntegrationsHub() {
     });
     if (!ok) return;
     try {
-      await apiRequest("/me/connector-vault", {
+      await apiRequest(`/me/connector-vault${integrationContextQs}`, {
         method: "PUT",
         body: JSON.stringify({ hubspot: { privateAppToken: "" } }),
       });
@@ -668,6 +704,9 @@ export function IntegrationsHub() {
 
   const disconnectAirtable = async () => {
     if (!airtable) return;
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return;
+    }
     const ok = await confirm({
       title: "Remove Airtable?",
       message: "You can reconnect later with a new token.",
@@ -685,6 +724,9 @@ export function IntegrationsHub() {
   };
 
   const saveGoogleSheets = async (): Promise<boolean> => {
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return false;
+    }
     const apiKeyAlreadyStored = Boolean(vault.googleSheets?.apiKey?.includes("***"));
     const gsErr = validateGoogleSheetsVaultInput({
       spreadsheetId: gsSpreadsheetId,
@@ -708,7 +750,7 @@ export function IntegrationsHub() {
     }
     setSavingSheets(true);
     try {
-      await apiRequest("/me/connector-vault", {
+      await apiRequest(`/me/connector-vault${integrationContextQs}`, {
         method: "PUT",
         body: JSON.stringify({ googleSheets }),
       });
@@ -724,6 +766,9 @@ export function IntegrationsHub() {
   };
 
   const saveHubspot = async (): Promise<boolean> => {
+    if (!assertCanMutateWorkspaceIntegrations()) {
+      return false;
+    }
     const hasStored = Boolean(vault.hubspot?.privateAppToken?.includes("***"));
     const t = hubspotToken.trim();
     if (!t && !hasStored) {
@@ -736,7 +781,7 @@ export function IntegrationsHub() {
     }
     setSavingHubspot(true);
     try {
-      await apiRequest("/me/connector-vault", {
+      await apiRequest(`/me/connector-vault${integrationContextQs}`, {
         method: "PUT",
         body: JSON.stringify({ hubspot: { privateAppToken: t } }),
       });
@@ -752,12 +797,31 @@ export function IntegrationsHub() {
     }
   };
 
+  const ownerReadOnly = usingWorkspaceOwnerCredentials;
+
   if (loading) {
     return <GlobalPageLoader layout="embedded" minHeight={400} ariaLabel="Loading integrations" />;
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      {usingWorkspaceOwnerCredentials ? (
+        <div
+          role="status"
+          style={{
+            borderRadius: 12,
+            padding: "12px 14px",
+            border: "1px solid rgba(124, 58, 237, 0.35)",
+            background: "rgba(124, 58, 237, 0.08)",
+            fontSize: 13,
+            color: "var(--color-text)",
+            lineHeight: 1.45,
+          }}
+        >
+          You&apos;re viewing this workspace&apos;s owner integrations and connectors (same as API keys). Only the owner
+          can change them; your campaigns and imports here use these connections.
+        </div>
+      ) : null}
       {showUnipileSuccessModal ? <UnipileSuccessModal onClose={() => setShowUnipileSuccessModal(false)} /> : null}
       {liModal && (
         <LinkedInTypeModal
@@ -857,7 +921,7 @@ export function IntegrationsHub() {
               <>
                 {!liUserConnected ? (
                   <ConnectFilledButton
-                    disabled={unipileBusy === "linkedin"}
+                    disabled={unipileBusy === "linkedin" || ownerReadOnly}
                     onClick={() => {
                       setPendingLi("unipile_linkedin");
                       setLiModal(true);
@@ -868,7 +932,14 @@ export function IntegrationsHub() {
                 ) : (
                   <span aria-hidden className="inline-block min-w-0 shrink" />
                 )}
-                {liUserConnected ? <RemoveIntegrationLink onClick={() => void removeMessagingIntegration(linkedin, "LinkedIn")} /> : <span aria-hidden />}
+                {liUserConnected ? (
+                  <RemoveIntegrationLink
+                    disabled={ownerReadOnly}
+                    onClick={() => void removeMessagingIntegration(linkedin, "LinkedIn")}
+                  />
+                ) : (
+                  <span aria-hidden />
+                )}
               </>
             }
           />
@@ -884,13 +955,23 @@ export function IntegrationsHub() {
             actionRow={
               <>
                 {!waUserConnected ? (
-                  <ConnectFilledButton disabled={unipileBusy === "whatsapp"} onClick={() => setWaModal(true)}>
+                  <ConnectFilledButton
+                    disabled={unipileBusy === "whatsapp" || ownerReadOnly}
+                    onClick={() => setWaModal(true)}
+                  >
                     {unipileBusy === "whatsapp" ? "Opening…" : "Connect"}
                   </ConnectFilledButton>
                 ) : (
                   <span aria-hidden className="inline-block min-w-0 shrink" />
                 )}
-                {waUserConnected ? <RemoveIntegrationLink onClick={() => void removeMessagingIntegration(whatsapp, "WhatsApp")} /> : <span aria-hidden />}
+                {waUserConnected ? (
+                  <RemoveIntegrationLink
+                    disabled={ownerReadOnly}
+                    onClick={() => void removeMessagingIntegration(whatsapp, "WhatsApp")}
+                  />
+                ) : (
+                  <span aria-hidden />
+                )}
               </>
             }
           />
@@ -939,8 +1020,12 @@ export function IntegrationsHub() {
             status={gsOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton onClick={() => setGsConfigureOpen(true)} />
-                {gsOk ? <RemoveIntegrationLink onClick={() => void removeGoogleSheetsIntegration()} /> : <span aria-hidden />}
+                <ConfigureLinkButton disabled={ownerReadOnly} onClick={() => setGsConfigureOpen(true)} />
+                {gsOk ? (
+                  <RemoveIntegrationLink disabled={ownerReadOnly} onClick={() => void removeGoogleSheetsIntegration()} />
+                ) : (
+                  <span aria-hidden />
+                )}
               </>
             }
           />
@@ -955,8 +1040,12 @@ export function IntegrationsHub() {
             status={atOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton onClick={() => setAtConfigureOpen(true)} />
-                {atOk ? <RemoveIntegrationLink onClick={() => void disconnectAirtable()} /> : <span aria-hidden />}
+                <ConfigureLinkButton disabled={ownerReadOnly} onClick={() => setAtConfigureOpen(true)} />
+                {atOk ? (
+                  <RemoveIntegrationLink disabled={ownerReadOnly} onClick={() => void disconnectAirtable()} />
+                ) : (
+                  <span aria-hidden />
+                )}
               </>
             }
           />
@@ -971,8 +1060,12 @@ export function IntegrationsHub() {
             status={hsOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton onClick={() => setHsConfigureOpen(true)} />
-                {hsOk ? <RemoveIntegrationLink onClick={() => void removeHubspotIntegration()} /> : <span aria-hidden />}
+                <ConfigureLinkButton disabled={ownerReadOnly} onClick={() => setHsConfigureOpen(true)} />
+                {hsOk ? (
+                  <RemoveIntegrationLink disabled={ownerReadOnly} onClick={() => void removeHubspotIntegration()} />
+                ) : (
+                  <span aria-hidden />
+                )}
               </>
             }
           />

@@ -93,11 +93,11 @@ export function ChangePasswordModal({ open, onClose }: Props) {
           </div>
           <button
             type="button"
-            className="btn-ghost"
+            className="icon-btn header-utility-btn"
             onClick={handleClose}
             disabled={loading}
             aria-label="Close"
-            style={{ padding: 8, borderRadius: 10, flexShrink: 0 }}
+            style={{ flexShrink: 0 }}
           >
             <Icons.X size={18} />
           </button>
@@ -149,7 +149,7 @@ export function ChangePasswordModal({ open, onClose }: Props) {
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-          <button type="button" className="btn-ghost" onClick={handleClose} disabled={loading} style={{ padding: "10px 16px", borderRadius: 10 }}>
+          <button type="button" className="btn-ghost" onClick={handleClose} disabled={loading}>
             Cancel
           </button>
           <button
@@ -157,7 +157,7 @@ export function ChangePasswordModal({ open, onClose }: Props) {
             className="btn-primary"
             onClick={() => void handleSubmit()}
             disabled={loading || !currentPassword.trim() || !newPassword.trim()}
-            style={{ padding: "10px 18px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 8 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
           >
             {loading ? (
               <>

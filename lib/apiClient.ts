@@ -1,4 +1,5 @@
 import { API_BASE } from './api';
+import { clearActiveBaseSnapshot } from './activeBaseSnapshot';
 
 export interface User {
   id: number;
@@ -52,6 +53,8 @@ export const clearAuth = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('sparkai:token');
     localStorage.removeItem('sparkai:user');
+    localStorage.removeItem('sparkai:active_base_id');
+    clearActiveBaseSnapshot();
   }
 };
 
@@ -155,23 +158,24 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   /** Never cache GET /api/campaigns/:id — draft wizard must see fresh config after PUT. */
   const isSingleCampaignGet =
     isGetRequest && /^\/api\/campaigns\/\d+$/.test(normalizedEndpoint);
+  /** GET /api/invitations/:token is public; never send JWT (stale tokens cause 401 and break invite/signup). */
+  const isPublicInvitationDetailsGet =
+    isGetRequest && /^\/api\/invitations\/[^/]+$/.test(normalizedEndpoint);
   const cacheKey = `${endpoint}_${JSON.stringify(options.body || '')}`;
   
   if (!isGetRequest && requestCache.size > 0) {
     requestCache.clear();
   }
 
-  if (isGetRequest && !isSingleCampaignGet) {
+  if (isGetRequest && !isSingleCampaignGet && !isPublicInvitationDetailsGet) {
     const cached = requestCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data;
     }
   }
   
-  // Check if token is expiring soon and refresh it automatically
   let token = getToken();
-  if (token && isTokenExpiringSoon(token)) {
-    // Silently refresh token in the background
+  if (!isPublicInvitationDetailsGet && token && isTokenExpiringSoon(token)) {
     const newToken = await refreshToken();
     if (newToken) {
       token = newToken;
@@ -183,7 +187,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     ...(options.headers as Record<string, string> || {}),
   };
 
-  if (token) {
+  if (token && !isPublicInvitationDetailsGet) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -192,7 +196,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !isPublicInvitationDetailsGet) {
     // Try to refresh token once before giving up
     const refreshedToken = await refreshToken();
     if (refreshedToken) {
@@ -205,7 +209,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
       
       if (retryResponse.ok) {
         const data = await retryResponse.json();
-        if (isGetRequest && retryResponse.ok && !isSingleCampaignGet) {
+        if (isGetRequest && retryResponse.ok && !isSingleCampaignGet && !isPublicInvitationDetailsGet) {
           requestCache.set(cacheKey, { data, timestamp: Date.now() });
         }
         return data;
@@ -268,7 +272,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
   const data = await response.json();
   
-  if (isGetRequest && response.ok && !isSingleCampaignGet) {
+  if (isGetRequest && response.ok && !isSingleCampaignGet && !isPublicInvitationDetailsGet) {
     requestCache.set(cacheKey, { data, timestamp: Date.now() });
     // Clean old cache entries (keep only last 50)
     if (requestCache.size > 50) {
@@ -280,6 +284,106 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   }
   
   return data;
+};
+
+export type LeadGenStreamProgressEvent = {
+  type: "progress";
+  stage: string;
+  done: number;
+  total: number;
+  label?: string;
+};
+
+export type LeadGenStreamCompletePayload = {
+  type: "complete";
+  success: boolean;
+  leads: unknown[];
+  count: number;
+  message?: string;
+  icp_context?: unknown;
+  completion_credits?: unknown;
+};
+
+/**
+ * POST /api/leads/generate-stream — NDJSON lines until `complete` or `error`.
+ */
+export const streamGenerateLeads = async (
+  body: { prompt: string; base_id: number; count: number },
+  onProgress: (e: LeadGenStreamProgressEvent) => void
+): Promise<LeadGenStreamCompletePayload> => {
+  const token = getToken();
+  if (!token) {
+    throw new Error("Unauthorized");
+  }
+
+  const response = await fetch(`${API_BASE}/api/leads/generate-stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    let errorData: { message?: string; error?: string } = {};
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { error: `HTTP error! status: ${response.status}` };
+    }
+    throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let complete: LeadGenStreamCompletePayload | null = null;
+
+  const flushLines = (chunk: string) => {
+    buffer += chunk;
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      } catch {
+        continue;
+      }
+      if (parsed.type === "progress") {
+        onProgress({
+          type: "progress",
+          stage: String(parsed.stage ?? ""),
+          done: Number(parsed.done ?? 0),
+          total: Number(parsed.total ?? 0),
+          label: typeof parsed.label === "string" ? parsed.label : undefined,
+        });
+      } else if (parsed.type === "complete") {
+        complete = parsed as unknown as LeadGenStreamCompletePayload;
+      } else if (parsed.type === "error") {
+        throw new Error(String(parsed.message || "Generation failed"));
+      }
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    flushLines(decoder.decode(value, { stream: true }));
+  }
+  flushLines(decoder.decode());
+
+  if (!complete) {
+    throw new Error("Stream ended without a complete event");
+  }
+  return complete;
 };
 
 export const authAPI = {
@@ -301,7 +405,7 @@ export const authAPI = {
     return data;
   },
 
-  signup: async (email: string, password: string, name: string, company?: string, dob?: string): Promise<AuthResponse> => {
+  signup: async (email: string, password: string, name: string, company: string, dob?: string): Promise<AuthResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -381,7 +485,7 @@ export const authAPI = {
   googleCompleteSignup: async (payload: {
     pending_token: string;
     name: string;
-    company?: string;
+    company: string;
     dob?: string;
     password?: string;
   }): Promise<AuthResponse> => {

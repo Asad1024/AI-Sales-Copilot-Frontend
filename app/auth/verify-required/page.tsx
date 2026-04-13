@@ -3,7 +3,8 @@
 import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getToken, clearAuth, getUser } from "@/lib/apiClient";
+import { getToken, clearAuth, getUser, apiRequest } from "@/lib/apiClient";
+import { rememberTeamWorkspaceAfterInvite, readRememberedTeamWorkspaceId } from "@/lib/focusTeamWorkspace";
 import { userNeedsOnboarding } from "@/lib/authRouting";
 import { API_BASE } from "@/lib/api";
 
@@ -43,8 +44,49 @@ function VerifyRequiredContent() {
 
   useEffect(() => {
     if (!alreadyVerified) return;
-    router.replace(userNeedsOnboarding(getUser()) ? "/onboarding" : "/dashboard");
-  }, [alreadyVerified, router]);
+    const inv = params.get("invitation")?.trim();
+    let cancelled = false;
+    (async () => {
+      if (inv) {
+        try {
+          const acceptRes = await apiRequest(`/invitations/${inv}/accept`, { method: "POST" });
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem("pendingInvitation");
+            const baseId = acceptRes?.base?.id;
+            if (baseId) rememberTeamWorkspaceAfterInvite(baseId);
+            if (acceptRes?.base?.name) {
+              sessionStorage.setItem(
+                "invitationAccepted",
+                JSON.stringify({
+                  baseName: acceptRes.base.name,
+                  baseId: baseId ?? undefined,
+                  role: acceptRes.role,
+                  message: acceptRes.message,
+                })
+              );
+            }
+          }
+        } catch {
+          /* may already be a member or wrong session */
+        }
+      }
+      if (cancelled) return;
+      const needsOnboarding = userNeedsOnboarding(getUser());
+      const hasInviteBanner =
+        typeof window !== "undefined" &&
+        Boolean(sessionStorage.getItem("invitationAccepted") || readRememberedTeamWorkspaceId());
+      if (needsOnboarding) {
+        router.replace("/onboarding");
+      } else if (hasInviteBanner) {
+        router.replace("/dashboard?invited=true");
+      } else {
+        router.replace("/dashboard");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [alreadyVerified, router, params]);
 
   const sendAgain = async () => {
     const token = getToken();

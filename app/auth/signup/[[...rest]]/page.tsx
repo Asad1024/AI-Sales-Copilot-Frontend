@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { authAPI, apiRequest } from "@/lib/apiClient";
+import { rememberTeamWorkspaceAfterInvite } from "@/lib/focusTeamWorkspace";
 import { API_BASE } from "@/lib/api";
 import GoogleSignInRedirecting from "@/components/auth/GoogleSignInRedirecting";
 
@@ -30,8 +31,18 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [invitationDetails, setInvitationDetails] = useState<{
+    email: string;
+    base_name: string;
+    /** Workspace owner’s profile company (API `owner_company`). */
+    owner_company?: string;
+    role: string;
+  } | null>(null);
+  const [invitationLoading, setInvitationLoading] = useState(false);
+  const [invitationLoadError, setInvitationLoadError] = useState<string | null>(null);
   const pendingGoogleToken = searchParams.get("pending");
   const pendingTrim = pendingGoogleToken?.trim() ?? "";
+  const invitationToken = searchParams.get("invitation")?.trim() ?? "";
   const googlePendingPayload = pendingTrim ? decodeGooglePendingJwt(pendingTrim) : null;
   /** Derived on each render so Google button + “or” never flash before effects run. */
   const isGoogleFinishFlow = Boolean(
@@ -42,6 +53,58 @@ export default function SignupPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (pendingTrim) return;
+    if (!invitationToken) {
+      setInvitationDetails(null);
+      setInvitationLoadError(null);
+      setInvitationLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setInvitationLoading(true);
+    setInvitationLoadError(null);
+    (async () => {
+      try {
+        const data = await apiRequest(`/invitations/${invitationToken}`);
+        if (cancelled) return;
+        const inv = data?.invitation;
+        if (!inv?.email) {
+          setInvitationDetails(null);
+          setInvitationLoadError("Invalid invitation");
+          return;
+        }
+        const normalized = String(inv.email).toLowerCase();
+        const workspaceName = String(inv.base_name || "").trim();
+        const ownerCompany = String(inv.owner_company || "").trim();
+        setInvitationDetails({
+          email: normalized,
+          base_name: workspaceName,
+          owner_company: ownerCompany || undefined,
+          role: String(inv.role || ""),
+        });
+        setEmail(normalized);
+        if (ownerCompany) {
+          setCompany(ownerCompany);
+        }
+        setInvitationLoadError(null);
+      } catch (e: any) {
+        if (!cancelled) {
+          setInvitationDetails(null);
+          setInvitationLoadError(e?.message || "Invalid or expired invitation");
+        }
+      } finally {
+        if (!cancelled) setInvitationLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingTrim, invitationToken]);
+
+  const isInvitationEmailLocked = Boolean(invitationDetails) && !pendingTrim;
+  const suppressGoogleForWorkspaceInvite = Boolean(invitationToken) && !isGoogleFinishFlow;
 
   const startGoogleSignUp = () => {
     setError(null);
@@ -73,7 +136,7 @@ export default function SignupPage() {
         await authAPI.googleCompleteSignup({
           pending_token: pendingTrim,
           name: name.trim(),
-          company: company.trim() || undefined,
+          company: company.trim(),
           dob: dob.trim() || undefined,
           password: password.trim().length >= 6 ? password.trim() : undefined,
         });
@@ -81,11 +144,15 @@ export default function SignupPage() {
         return;
       }
 
-      await authAPI.signup(email, password, name, company || undefined, dob || undefined);
-      
-      // Check for pending invitation
-      const invitationToken = searchParams.get('invitation');
-      
+      if (
+        invitationDetails &&
+        email.trim().toLowerCase() !== invitationDetails.email.toLowerCase()
+      ) {
+        throw new Error("Email must match the invitation.");
+      }
+
+      await authAPI.signup(email, password, name, company.trim(), dob.trim() || undefined);
+
       if (invitationToken) {
         try {
           // Accept the invitation
@@ -94,12 +161,18 @@ export default function SignupPage() {
           });
           
           // Store invitation details for display
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('invitationAccepted', JSON.stringify({
-              baseName: inviteResponse.base?.name,
-              role: inviteResponse.role,
-              message: inviteResponse.message,
-            }));
+          if (typeof window !== "undefined") {
+            const baseId = inviteResponse?.base?.id;
+            if (baseId) rememberTeamWorkspaceAfterInvite(baseId);
+            sessionStorage.setItem(
+              "invitationAccepted",
+              JSON.stringify({
+                baseName: inviteResponse.base?.name,
+                baseId: baseId ?? undefined,
+                role: inviteResponse.role,
+                message: inviteResponse.message,
+              })
+            );
           }
           
           router.push("/auth/verify-required?invited=1");
@@ -120,7 +193,17 @@ export default function SignupPage() {
 
   const emailOk = Boolean(email.includes("@") && email.includes("."));
   const passwordOk = isGoogleFinishFlow ? password.length === 0 || password.length >= 6 : password.length >= 6;
-  const canSubmit = Boolean(name.trim() && emailOk && passwordOk);
+  const invitationBlocksSubmit =
+    Boolean(invitationToken) && (invitationLoading || Boolean(invitationLoadError) || !invitationDetails);
+  const canSubmit = Boolean(
+    name.trim() &&
+      company.trim() &&
+      emailOk &&
+      passwordOk &&
+      !invitationBlocksSubmit
+  );
+
+  const requiredMark = <span style={{ color: "#dc2626", fontWeight: 600 }} aria-hidden>*</span>;
 
   return (
     <div style={{
@@ -347,7 +430,11 @@ export default function SignupPage() {
               transform: mounted ? "translateY(0)" : "translateY(-10px)",
               transition: "all 0.6s ease-out 0.3s"
             }}>
-              {isGoogleFinishFlow ? "Finish your registration" : "Create your account"}
+              {isGoogleFinishFlow
+                ? "Finish your registration"
+                : isInvitationEmailLocked
+                  ? "Accept your invite"
+                  : "Create your account"}
             </h2>
             <p style={{ 
               fontSize: "14px", 
@@ -358,7 +445,9 @@ export default function SignupPage() {
             }}>
               {isGoogleFinishFlow
                 ? "Google verified your email. Add any extra details, then create your account."
-                : "Join thousands of sales teams • No credit card required"}
+                : isInvitationEmailLocked
+                  ? "Create your password below. The email on this invite cannot be changed."
+                  : "Join thousands of sales teams • No credit card required"}
             </p>
           </div>
 
@@ -379,8 +468,64 @@ export default function SignupPage() {
             </div>
           )}
 
+          {invitationToken && invitationLoading && (
+            <div
+              style={{
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                marginBottom: "20px",
+                fontSize: "13px",
+                color: "#475569",
+              }}
+            >
+              Loading your invitation…
+            </div>
+          )}
+
+          {invitationLoadError && (
+            <div
+              style={{
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                marginBottom: "20px",
+                fontSize: "13px",
+                color: "#b91c1c",
+              }}
+            >
+              {invitationLoadError}
+            </div>
+          )}
+
+          {isInvitationEmailLocked && invitationDetails && (
+            <div
+              style={{
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                marginBottom: "20px",
+                fontSize: "13px",
+                color: "#1e40af",
+                lineHeight: 1.5,
+              }}
+            >
+              You were invited to <strong>{invitationDetails.base_name || "a workspace"}</strong>
+              {invitationDetails.role ? (
+                <>
+                  {" "}
+                  as <strong style={{ textTransform: "capitalize" }}>{invitationDetails.role}</strong>
+                </>
+              ) : null}
+              . Sign up with the email below (locked to this invite).
+            </div>
+          )}
+
           {/* Google Sign Up */}
-          {!isGoogleFinishFlow && (
+          {!isGoogleFinishFlow && !suppressGoogleForWorkspaceInvite && (
           <button
             type="button"
             onClick={startGoogleSignUp}
@@ -429,7 +574,7 @@ export default function SignupPage() {
           )}
 
           {/* Divider */}
-          {!isGoogleFinishFlow && (
+          {!isGoogleFinishFlow && !suppressGoogleForWorkspaceInvite && (
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -469,7 +614,7 @@ export default function SignupPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div style={{ position: "relative" }}>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
-                Full name
+                Full name {requiredMark}
               </label>
               <input
                 type="text"
@@ -514,21 +659,21 @@ export default function SignupPage() {
 
             <div style={{ position: "relative" }}>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
-                Email
+                Email {requiredMark}
               </label>
               <input
                 type="email"
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                readOnly={isGoogleFinishFlow}
+                readOnly={isGoogleFinishFlow || isInvitationEmailLocked}
                 autoComplete="email"
                 style={{
                   width: "100%",
                   padding: "12px 40px 12px 14px",
                   borderRadius: "10px",
                   border: email.includes('@') && email.includes('.') ? "1px solid #10b981" : "1px solid #e2e8f0",
-                  background: isGoogleFinishFlow ? "#f1f5f9" : "#fff",
+                  background: isGoogleFinishFlow || isInvitationEmailLocked ? "#f1f5f9" : "#fff",
                   color: "#1e293b",
                   fontSize: "14px",
                   outline: "none",
@@ -560,8 +705,13 @@ export default function SignupPage() {
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
-                Company name <span style={{ color: "#94a3b8", fontWeight: "400" }}>(optional)</span>
+                Company name {requiredMark}
               </label>
+              {invitationDetails?.owner_company ? (
+                <p style={{ margin: "0 0 8px", fontSize: "12px", color: "#64748b", lineHeight: 1.45 }}>
+                  Prefilled from the workspace owner&apos;s company ({invitationDetails.owner_company}). You can edit if needed.
+                </p>
+              ) : null}
               <input
                 type="text"
                 placeholder="Acme Inc."
@@ -615,7 +765,9 @@ export default function SignupPage() {
                 Password{" "}
                 {isGoogleFinishFlow ? (
                   <span style={{ color: "#94a3b8", fontWeight: "400" }}>(optional — min 6 if you want email login)</span>
-                ) : null}
+                ) : (
+                  requiredMark
+                )}
               </label>
               <div style={{ position: "relative" }}>
                 <input
@@ -745,7 +897,13 @@ export default function SignupPage() {
           }}>
             Already have an account?{" "}
             <Link
-              href="/auth/login"
+              href={
+                invitationToken
+                  ? `/auth/login?invitation=${encodeURIComponent(invitationToken)}&email=${encodeURIComponent(
+                      invitationDetails?.email || email
+                    )}`
+                  : "/auth/login"
+              }
               style={{
                 color: "#7C3AED",
                 textDecoration: "none",

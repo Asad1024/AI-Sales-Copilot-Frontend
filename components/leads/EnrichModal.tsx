@@ -32,7 +32,6 @@ export function EnrichModal({
   const { showSuccess, showError } = useNotification();
 
   const [enrichmentType, setEnrichmentType] = useState<"contact" | "deep_research">("deep_research");
-  const [purpose, setPurpose] = useState("");
   const [enriching, setEnriching] = useState(false);
   const [progress, setProgress] = useState("");
   const [enrichScope, setEnrichScope] = useState<"selected" | "all">("selected");
@@ -118,7 +117,6 @@ export function EnrichModal({
         setTimeout(() => {
           setEnriching(false);
           setProgress("");
-          setPurpose("");
           onClose();
         }, 1800);
       } else if (response?.enriched && response.enriched.length > 0) {
@@ -128,7 +126,6 @@ export function EnrichModal({
         setTimeout(() => {
           setEnriching(false);
           setProgress("");
-          setPurpose("");
           onEnriched?.();
           onClose();
         }, 1400);
@@ -389,39 +386,6 @@ export function EnrichModal({
                       ? "Looks up email and phone when possible. New details appear in the table when we receive them."
                       : "Adds company and person context for smarter outreach."}
                   </p>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      marginBottom: 8,
-                      color: "var(--color-text-muted)",
-                    }}
-                  >
-                    Context (optional)
-                  </label>
-                  <textarea
-                    value={purpose}
-                    onChange={e => setPurpose(e.target.value)}
-                    placeholder="e.g. Focus on B2B SaaS buyers in healthcare"
-                    style={{
-                      width: "100%",
-                      minHeight: 76,
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-surface-secondary)",
-                      color: "var(--color-text)",
-                      fontSize: 13,
-                      fontFamily: "inherit",
-                      resize: "vertical",
-                    }}
-                  />
                 </div>
 
                 <div style={{ display: "flex", gap: 10 }}>

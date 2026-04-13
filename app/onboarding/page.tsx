@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useLayoutEffect, useState } from "react";
 import { apiRequest, authAPI, getUser, setUser, type User } from "@/lib/apiClient";
+import { readRememberedTeamWorkspaceId } from "@/lib/focusTeamWorkspace";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -105,7 +106,16 @@ export default function OnboardingPage() {
       }
 
       const refreshedUser = getUser();
-      router.push(refreshedUser?.role === "admin" ? "/admin" : "/dashboard");
+      const celebrateInvite =
+        (typeof window !== "undefined" && sessionStorage.getItem("invitationAccepted")) ||
+        readRememberedTeamWorkspaceId();
+      if (refreshedUser?.role === "admin") {
+        router.push("/admin");
+      } else if (celebrateInvite) {
+        router.push("/dashboard?invited=true");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (e: any) {
       setError(e?.message || "Failed to save profile");
     } finally {

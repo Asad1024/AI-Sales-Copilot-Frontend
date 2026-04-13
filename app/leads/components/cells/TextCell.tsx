@@ -42,11 +42,11 @@ export function TextCell({ value, onUpdate, editable = true, type = "text", mute
     }
   };
 
-  const displayClass = muted ? "text-[11px] text-slate-500 dark:text-slate-400" : "text-[11px] text-slate-900 dark:text-slate-100";
+  const displayClass = muted ? "text-[12px] text-slate-500 dark:text-slate-400" : "text-[12px] text-slate-900 dark:text-slate-100";
 
   if (!editable) {
     return (
-      <div className={muted && !value ? "text-[11px] text-slate-400 dark:text-slate-500" : displayClass}>
+      <div className={muted && !value ? "text-[12px] text-slate-400 dark:text-slate-500" : displayClass}>
         {value || "—"}
       </div>
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 
 type AdminPaymentRow = {
@@ -14,7 +14,10 @@ type AdminPaymentRow = {
   plan_key: string | null;
   description: string | null;
   stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
   stripe_invoice_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_dashboard_url: string | null;
   createdAt: string;
 };
 
@@ -32,6 +35,12 @@ export default function AdminPaymentsPage() {
   const [rows, setRows] = useState<AdminPaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<number | null>(null);
+
+  const loadRows = useCallback(async () => {
+    const data = (await apiRequest("/admin/payments")) as { transactions: AdminPaymentRow[] };
+    setRows(data.transactions || []);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,8 +48,7 @@ export default function AdminPaymentsPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = (await apiRequest("/admin/payments")) as { transactions: AdminPaymentRow[] };
-        if (!cancelled) setRows(data.transactions || []);
+        await loadRows();
       } catch (e: unknown) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
       } finally {
@@ -50,7 +58,20 @@ export default function AdminPaymentsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadRows]);
+
+  const syncFromStripe = async (id: number) => {
+    setSyncingId(id);
+    setError(null);
+    try {
+      await apiRequest(`/admin/payments/${id}/sync-from-stripe`, { method: "POST" });
+      await loadRows();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setSyncingId(null);
+    }
+  };
 
   return (
     <div style={{ padding: "8px 0 24px", maxWidth: 1400, margin: "0 auto" }}>
@@ -75,7 +96,8 @@ export default function AdminPaymentsPage() {
                 <th style={{ padding: "10px 12px", fontWeight: 600 }}>Plan</th>
                 <th style={{ padding: "10px 12px", fontWeight: 600 }}>Amount</th>
                 <th style={{ padding: "10px 12px", fontWeight: 600 }}>Status</th>
-                <th style={{ padding: "10px 12px", fontWeight: 600 }}>Stripe</th>
+                <th style={{ padding: "10px 12px", fontWeight: 600 }}>Stripe IDs</th>
+                <th style={{ padding: "10px 12px", fontWeight: 600 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -91,10 +113,57 @@ export default function AdminPaymentsPage() {
                   <td style={{ padding: "10px 12px" }}>{r.plan_key || "—"}</td>
                   <td style={{ padding: "10px 12px", fontWeight: 600 }}>{formatMoney(r.amount_cents, r.currency)}</td>
                   <td style={{ padding: "10px 12px" }}>{r.status}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 11, color: "var(--color-text-muted)", maxWidth: 200 }}>
+                  <td style={{ padding: "10px 12px", fontSize: 11, color: "var(--color-text-muted)", maxWidth: 220 }}>
                     {r.stripe_invoice_id && <div>inv: {r.stripe_invoice_id}</div>}
-                    {r.stripe_checkout_session_id && <div>cs: {r.stripe_checkout_session_id.slice(0, 24)}…</div>}
-                    {!r.stripe_invoice_id && !r.stripe_checkout_session_id ? "—" : null}
+                    {r.stripe_payment_intent_id && <div>pi: {r.stripe_payment_intent_id}</div>}
+                    {r.stripe_subscription_id && <div>sub: {r.stripe_subscription_id}</div>}
+                    {r.stripe_checkout_session_id && <div>cs: {r.stripe_checkout_session_id.slice(0, 28)}…</div>}
+                    {!r.stripe_invoice_id &&
+                    !r.stripe_payment_intent_id &&
+                    !r.stripe_subscription_id &&
+                    !r.stripe_checkout_session_id
+                      ? "—"
+                      : null}
+                  </td>
+                  <td style={{ padding: "10px 12px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      {r.stripe_dashboard_url ? (
+                        <a
+                          href={r.stripe_dashboard_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-block",
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            background: "#635BFF",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            textDecoration: "none",
+                          }}
+                        >
+                          Open in Stripe
+                        </a>
+                      ) : null}
+                      <button
+                        type="button"
+                        disabled={syncingId === r.id}
+                        onClick={() => void syncFromStripe(r.id)}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          border: "1px solid var(--color-border)",
+                          background: "var(--color-surface)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: syncingId === r.id ? "wait" : "pointer",
+                          color: "var(--color-text)",
+                        }}
+                      >
+                        {syncingId === r.id ? "Syncing…" : "Sync IDs"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

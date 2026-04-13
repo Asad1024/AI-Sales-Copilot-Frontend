@@ -1,10 +1,11 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { BookOpen, Coins } from "lucide-react";
-
-/** Hardcoded UI matching design reference; wire to real credits/tutorial later. */
-const HARDCODED_CREDITS = 498;
+import { getUser, apiRequest } from "@/lib/apiClient";
+import { useBase } from "@/context/BaseContext";
 
 /** Same outer height for tutorial pill and credits / upgrade pill */
 const HEADER_PILL_HEIGHT = 40;
@@ -19,6 +20,46 @@ const headerPillBox: CSSProperties = {
 };
 
 export default function HeaderTopRightPills() {
+  const { activeBaseId } = useBase();
+  const [credits, setCredits] = useState<number>(() => getUser()?.credits_balance ?? 0);
+
+  const syncCredits = useCallback(async () => {
+    const u = getUser();
+    if (!activeBaseId) {
+      setCredits(u?.credits_balance ?? 0);
+      return;
+    }
+    try {
+      const data = (await apiRequest(`/bases/${activeBaseId}/workspace-credits?page=1&limit=1`)) as {
+        credits_balance?: number;
+      };
+      setCredits(Number(data?.credits_balance ?? 0));
+    } catch {
+      setCredits(u?.credits_balance ?? 0);
+    }
+  }, [activeBaseId]);
+
+  useEffect(() => {
+    void syncCredits();
+  }, [syncCredits]);
+
+  useEffect(() => {
+    const onUser = () => void syncCredits();
+    const onBase = () => void syncCredits();
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") void syncCredits();
+    };
+    if (typeof window === "undefined") return;
+    window.addEventListener("sparkai:user-changed", onUser);
+    window.addEventListener("sparkai:active-base-changed", onBase);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("sparkai:user-changed", onUser);
+      window.removeEventListener("sparkai:active-base-changed", onBase);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [syncCredits]);
+
   return (
     <div
       className="header-top-right-pills"
@@ -60,6 +101,7 @@ export default function HeaderTopRightPills() {
           gap: 10,
           padding: "0 12px 0 8px",
         }}
+        title={activeBaseId ? "Credits for the active workspace (owner’s pool)" : "Your account credits"}
       >
         <div
           style={{
@@ -76,7 +118,7 @@ export default function HeaderTopRightPills() {
         >
           <Coins size={15} strokeWidth={1.75} color="#d97706" />
         </div>
-        <span style={{ fontWeight: 700, fontSize: 14, color: "#b45309", minWidth: 28, lineHeight: 1 }}>{HARDCODED_CREDITS}</span>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "#b45309", minWidth: 28, lineHeight: 1 }}>{credits}</span>
         <div
           style={{
             width: 1,
@@ -86,8 +128,8 @@ export default function HeaderTopRightPills() {
           }}
           aria-hidden
         />
-        <button
-          type="button"
+        <Link
+          href="/upgrade"
           style={{
             border: "none",
             background: "transparent",
@@ -98,6 +140,7 @@ export default function HeaderTopRightPills() {
             color: "var(--color-primary, #7C3AED)",
             fontFamily: "inherit",
             lineHeight: 1,
+            textDecoration: "none",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = "#6D28D9";
@@ -107,7 +150,7 @@ export default function HeaderTopRightPills() {
           }}
         >
           Upgrade
-        </button>
+        </Link>
       </div>
     </div>
   );

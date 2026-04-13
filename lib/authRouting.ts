@@ -1,5 +1,6 @@
 import type { ReadonlyURLSearchParams } from "next/navigation";
 import { apiRequest, getUser, type User } from "./apiClient";
+import { rememberTeamWorkspaceAfterInvite } from "./focusTeamWorkspace";
 
 type AppRouter = { push: (href: string) => void };
 
@@ -16,8 +17,45 @@ export async function routeAfterSuccessfulSession(
   searchParams: ReadonlyURLSearchParams | null
 ): Promise<void> {
   const me = getUser();
-  if (me && me.email_verified === false) {
-    router.push("/auth/verify-required");
+  if (!me) return;
+
+  const invitationToken =
+    searchParams?.get("invitation")?.trim() ||
+    (typeof window !== "undefined" ? sessionStorage.getItem("pendingInvitation")?.trim() : "") ||
+    "";
+
+  /** Accept workspace invite before verify-required / onboarding redirects (preserves invite in URL). */
+  let inviteAcceptedOk = false;
+  if (invitationToken) {
+    try {
+      const inviteResponse = await apiRequest(`/invitations/${invitationToken}/accept`, {
+        method: "POST",
+      });
+      inviteAcceptedOk = true;
+      if (typeof window !== "undefined") {
+        const baseId = inviteResponse?.base?.id;
+        if (baseId) rememberTeamWorkspaceAfterInvite(baseId);
+        sessionStorage.setItem(
+          "invitationAccepted",
+          JSON.stringify({
+            baseName: inviteResponse.base?.name,
+            baseId: baseId ?? undefined,
+            role: inviteResponse.role,
+            message: inviteResponse.message,
+          })
+        );
+        sessionStorage.removeItem("pendingInvitation");
+      }
+    } catch {
+      /* Wrong account, expired token, etc. — keep token in sessionStorage / query for retry */
+    }
+  }
+
+  if (me.email_verified === false) {
+    const invQ = invitationToken
+      ? `?invitation=${encodeURIComponent(invitationToken)}`
+      : "";
+    router.push(`/auth/verify-required${invQ}`);
     return;
   }
   if (me?.role === "admin") {
@@ -29,31 +67,9 @@ export async function routeAfterSuccessfulSession(
     return;
   }
 
-  const invitationToken =
-    searchParams?.get("invitation") ??
-    (typeof window !== "undefined" ? sessionStorage.getItem("pendingInvitation") : null);
-
-  if (invitationToken) {
-    try {
-      const inviteResponse = await apiRequest(`/invitations/${invitationToken}/accept`, {
-        method: "POST",
-      });
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(
-          "invitationAccepted",
-          JSON.stringify({
-            baseName: inviteResponse.base?.name,
-            role: inviteResponse.role,
-            message: inviteResponse.message,
-          })
-        );
-        sessionStorage.removeItem("pendingInvitation");
-      }
-      router.push("/dashboard?invited=true");
-      return;
-    } catch {
-      /* continue to dashboard */
-    }
+  if (inviteAcceptedOk) {
+    router.push("/dashboard?invited=true");
+    return;
   }
 
   router.push("/dashboard");

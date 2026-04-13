@@ -25,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const isPublicPage =
     pathname === "/" ||
     pathname.startsWith("/auth") ||
+    pathname.startsWith("/invite") ||
     pathname.startsWith("/demo") ||
     pathname.startsWith("/flow");
   const isOnboardingPage = pathname?.startsWith("/onboarding");

@@ -4,6 +4,7 @@ import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { acceptAIPlan, fetchPlanPreviewLeads, updateAIPlan } from "@/lib/flowClient";
 import { useBase } from "@/context/BaseContext";
+import { useBaseStore } from "@/stores/useBaseStore";
 import { Icons } from "@/components/ui/Icons";
 
 type SequenceStep = {
@@ -104,7 +105,8 @@ export default function PlanPage() {
       sessionStorage.removeItem("sparkai:plan");
       await refreshBases();
       if (data?.base_id) {
-        setActiveBaseId(data.base_id);
+        const b = useBaseStore.getState().bases.find((x) => x.id === data.base_id);
+        setActiveBaseId(data.base_id, b ? { name: b.name } : undefined);
       }
       router.push("/bases");
     } catch (error) {

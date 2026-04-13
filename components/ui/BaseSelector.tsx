@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBase } from "@/context/BaseContext";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "./Icons";
 import { useNotification } from "@/context/NotificationContext";
+import { readActiveBaseSnapshot } from "@/lib/activeBaseSnapshot";
 import { ChevronDown, Plus, Check, FolderKanban } from "lucide-react";
 
 interface BaseSelectorProps {
@@ -33,7 +34,15 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
   const router = useRouter();
   const { showError } = useNotification();
   const { bases, activeBaseId, setActiveBaseId, refreshBases } = useBase();
-  const activeBase = bases.find((b) => b.id === activeBaseId);
+  const activeBaseFromList = bases.find((b) => b.id === activeBaseId);
+  const activeBase = useMemo(() => {
+    if (activeBaseFromList) return activeBaseFromList;
+    const snap = readActiveBaseSnapshot();
+    if (activeBaseId != null && snap && snap.id === activeBaseId) {
+      return { id: snap.id, name: snap.name };
+    }
+    return undefined;
+  }, [activeBaseFromList, activeBaseId]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [baseName, setBaseName] = useState("");
@@ -49,7 +58,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
       });
       await refreshBases();
       if (data?.base?.id) {
-        setActiveBaseId(data.base.id);
+        const nm = typeof data.base.name === "string" ? data.base.name : "";
+        setActiveBaseId(data.base.id, nm ? { name: nm } : undefined);
         router.push(`/bases/${data.base.id}/leads?welcome=1`);
       }
       setBaseName("");
@@ -62,7 +72,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
   };
 
   const selectBase = (baseId: number) => {
-    setActiveBaseId(baseId);
+    const hit = bases.find((b) => b.id === baseId);
+    setActiveBaseId(baseId, hit ? { name: hit.name } : undefined);
     setDropdownOpen(false);
     const currentPath = window.location.pathname;
     if (currentPath.startsWith("/bases/")) {
@@ -73,7 +84,9 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
   };
 
   if (variant === "sidebar-premium") {
-    const label = activeBase?.name || "Select workspace";
+    const label =
+      activeBase?.name ||
+      (activeBaseId != null && bases.length === 0 ? "Loading workspace…" : "Select workspace");
     const initials = workspaceInitials(activeBase?.name || "");
     const bg = workspaceAvatarColor(activeBase?.name || "workspace");
 
@@ -379,7 +392,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               maxWidth: 120,
             }}
           >
-            {activeBase?.name || "Select workspace"}
+            {activeBase?.name ||
+              (activeBaseId != null && bases.length === 0 ? "Loading workspace…" : "Select workspace")}
           </span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
             <path d="M6 9l6 6 6-6" />

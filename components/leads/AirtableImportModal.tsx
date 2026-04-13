@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -252,11 +252,16 @@ export function AirtableImportModal({ open, onClose, onImported, targetBaseId }:
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, isImporting: false });
   const [importResult, setImportResult] = useState<any>(null);
 
+  const workspaceAirtableQs = useMemo(() => {
+    const n = Number(targetBaseId);
+    return Number.isFinite(n) && n > 0 ? `?workspace_base_id=${encodeURIComponent(String(n))}` : "";
+  }, [targetBaseId]);
+
   useEffect(() => {
     if (open && step === "select_base") {
       loadBases();
     }
-  }, [open, step]);
+  }, [open, step, workspaceAirtableQs]);
 
   useEffect(() => {
     if (selectedBaseId && step === "select_table") {
@@ -279,7 +284,7 @@ export function AirtableImportModal({ open, onClose, onImported, targetBaseId }:
   const loadBases = async () => {
     setLoading(true);
     try {
-      const data = await apiRequest("/integrations/airtable/bases");
+      const data = await apiRequest(`/integrations/airtable/bases${workspaceAirtableQs}`);
       const basesList = data.bases || [];
       setBases(basesList);
 
@@ -314,7 +319,7 @@ export function AirtableImportModal({ open, onClose, onImported, targetBaseId }:
     if (!selectedBaseId) return;
     setLoading(true);
     try {
-      const data = await apiRequest(`/integrations/airtable/${selectedBaseId}/tables`);
+      const data = await apiRequest(`/integrations/airtable/${selectedBaseId}/tables${workspaceAirtableQs}`);
       setTables(data.tables || []);
     } catch (error: any) {
       showError("Failed to load tables", error?.message || "Please check your Airtable connection");
@@ -334,7 +339,9 @@ export function AirtableImportModal({ open, onClose, onImported, targetBaseId }:
         encodedTableId,
       });
 
-      const data = await apiRequest(`/integrations/airtable/${selectedBaseId}/tables/${encodedTableId}/fields`);
+      const data = await apiRequest(
+        `/integrations/airtable/${selectedBaseId}/tables/${encodedTableId}/fields${workspaceAirtableQs}`,
+      );
       setFields(data.fields || []);
       setAutoMapping(data.autoMapping || {});
 

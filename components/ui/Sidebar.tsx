@@ -436,6 +436,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           }}
         >
           <nav
+            className="sidebar-nav-scroll"
             style={{
               flex: "0 1 auto",
               overflowX: "hidden",

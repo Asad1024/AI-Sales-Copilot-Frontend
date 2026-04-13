@@ -11,11 +11,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const isAuthRoute = pathname?.startsWith("/auth");
+    const isInviteRoute = pathname?.startsWith("/invite");
     const isOnboarding = pathname?.startsWith("/onboarding");
     const isLandingPage = pathname === "/";
     
     // Public routes don't need auth check
-    if (isAuthRoute || isLandingPage) {
+    if (isAuthRoute || isLandingPage || isInviteRoute) {
       setChecked(true);
       return;
     }

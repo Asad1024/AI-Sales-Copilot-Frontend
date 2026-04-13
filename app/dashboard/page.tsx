@@ -2,6 +2,11 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBase } from "@/context/BaseContext";
+import { useBaseStore } from "@/stores/useBaseStore";
+import {
+  clearRememberedTeamWorkspace,
+  readRememberedTeamWorkspaceId,
+} from "@/lib/focusTeamWorkspace";
 import ProductTour from "@/components/ui/ProductTour";
 import { apiRequest, getUser } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
@@ -61,14 +66,15 @@ export default function Dashboard() {
     baseName: string;
     role: string;
     message: string;
+    baseId?: number;
   } | null>(null);
 
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
-  const { activeBaseId, bases } = useBase();
+  const { activeBaseId, bases, setActiveBaseId, refreshBases } = useBase();
   const activeBase = bases.find((b) => b.id === activeBaseId);
-  const { campaigns, fetchCampaigns } = useCampaignStore();
+  const { campaigns, fetchCampaigns, loading: campaignsLoading } = useCampaignStore();
   const hasLeads = Number(analyticsData?.totalLeads || 0) > 0;
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
   const setupStepperVisible = useSparkBarStore((s) => s.setupStepperVisible);
@@ -88,8 +94,22 @@ export default function Dashboard() {
       const stored = sessionStorage.getItem("invitationAccepted");
       if (stored) {
         try {
-          const data = JSON.parse(stored);
-          setInvitationSuccess(data);
+          const data = JSON.parse(stored) as {
+            baseName?: string;
+            baseId?: number;
+            role?: string;
+            message?: string;
+          };
+          const baseId =
+            typeof data.baseId === "number" && Number.isFinite(data.baseId)
+              ? data.baseId
+              : Number(data.baseId);
+          setInvitationSuccess({
+            baseName: String(data.baseName || "your team workspace"),
+            role: String(data.role || "member"),
+            message: String(data.message || ""),
+            baseId: Number.isFinite(baseId) && baseId > 0 ? baseId : undefined,
+          });
           router.replace("/dashboard", { scroll: false });
           setTimeout(() => {
             sessionStorage.removeItem("invitationAccepted");
@@ -100,6 +120,33 @@ export default function Dashboard() {
       }
     }
   }, [searchParams, router]);
+
+  /** Open the invited team workspace (not the personal default) once bases are known. */
+  useEffect(() => {
+    const fromSession = readRememberedTeamWorkspaceId();
+    const fromInvite = invitationSuccess?.baseId ?? null;
+    const targetId = fromSession ?? fromInvite ?? null;
+    if (!targetId) return;
+    if (!bases.length) return;
+    if (!bases.some((b) => b.id === targetId)) return;
+    if (activeBaseId === targetId) {
+      clearRememberedTeamWorkspace();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      await refreshBases();
+      if (cancelled) return;
+      const list = useBaseStore.getState().bases;
+      if (!list.some((b) => b.id === targetId)) return;
+      const targetBase = list.find((b) => b.id === targetId);
+      setActiveBaseId(targetId, targetBase ? { name: targetBase.name } : undefined);
+      clearRememberedTeamWorkspace();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bases, activeBaseId, invitationSuccess?.baseId, refreshBases, setActiveBaseId]);
 
   useEffect(() => {
     if (!activeBaseId) {
@@ -309,7 +356,8 @@ export default function Dashboard() {
   });
   const recentCampaigns = filteredCampaigns.slice(0, 3);
 
-  const dashboardBody = analyticsLoading && activeBaseId ? (
+  const dashboardBody =
+    activeBaseId && (analyticsLoading || campaignsLoading) ? (
     <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading dashboard" />
   ) : (
     <>
@@ -521,8 +569,8 @@ export default function Dashboard() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Welcome to {invitationSuccess.baseName}</div>
             <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
-              You&apos;ve been added as <strong style={{ textTransform: "capitalize", color: "#374151" }}>{invitationSuccess.role}</strong>. You now have
-              access to this workspace.
+              You&apos;ve been added as <strong style={{ textTransform: "capitalize", color: "#374151" }}>{invitationSuccess.role}</strong>. This workspace is
+              open now — use the workspace switcher anytime to move between this team and your personal one.
             </div>
           </div>
           <button

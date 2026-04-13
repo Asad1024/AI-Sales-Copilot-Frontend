@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { apiRequest, getUser, User as ApiUser } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
+import { useBaseStore } from "@/stores/useBaseStore";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { BaseMemberRole } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
@@ -11,6 +13,7 @@ import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
+import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 
 type MembershipRole = BaseMemberRole;
 
@@ -22,6 +25,14 @@ interface MemberRow {
   joinedAt?: string;
 }
 
+interface PendingInviteRow {
+  id: number;
+  email: string;
+  role: string;
+  expires_at?: string;
+  createdAt?: string;
+}
+
 const membershipRoleOptions: Array<{ value: MembershipRole; label: string; description: string }> = [
   { value: "owner", label: "Owner (transfer)", description: "Full control. Only used when transferring ownership." },
   { value: "admin", label: "Admin", description: "Manage members, schema, settings, and all day-to-day operations" },
@@ -30,34 +41,25 @@ const membershipRoleOptions: Array<{ value: MembershipRole; label: string; descr
   { value: "member", label: "Member", description: "Collaborates on leads and campaigns (limited admin permissions)" }
 ];
 
-const roleBadgeColor: Partial<Record<MembershipRole, string>> = {
-  owner: "#ff6b6b",
-  member: "#7C3AED",
-  admin: "#7C3AED",
-  editor: "#4ecdc4",
-  viewer: "#888"
-};
-
-const defaultStats = {
-  status: "active",
-  lastActive: "—",
-  campaigns: 0,
-  leads: 0
-};
-
-const generateTemporaryPassword = () => `Join${Math.random().toString(36).slice(-6)}!`;
+const INVITE_RESEND_ROLES = new Set(["admin", "editor", "member", "viewer"]);
 
 export default function TeamPage() {
+  const router = useRouter();
   const { showError, showSuccess, showWarning } = useNotification();
   const confirm = useConfirm();
   const { bases, activeBaseId, setActiveBaseId, refreshBases } = useBase();
+  const storeBases = useBaseStore((s) => s.bases);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
   const [ownerCount, setOwnerCount] = useState(0);
   const [viewerMembershipRole, setViewerMembershipRole] = useState<MembershipRole | null>(null);
-  const [canManage, setCanManage] = useState(false);
   const [pendingMemberId, setPendingMemberId] = useState<number | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [pendingInvites, setPendingInvites] = useState<PendingInviteRow[]>([]);
+  const [pendingInvitesLoading, setPendingInvitesLoading] = useState(false);
+  const [cancelInviteId, setCancelInviteId] = useState<number | null>(null);
+  const [resendInviteId, setResendInviteId] = useState<number | null>(null);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({
@@ -66,6 +68,10 @@ export default function TeamPage() {
     role: "member" as MembershipRole
   });
   const [inviteLoading, setInviteLoading] = useState(false);
+
+  /** Workspace-owner-only: lead credits spent per teammate (from ledger). */
+  const [creditSpendByUser, setCreditSpendByUser] = useState<Record<number, number>>({});
+  const [creditSpendUnattributed, setCreditSpendUnattributed] = useState(0);
 
   const [availableUsers, setAvailableUsers] = useState<ApiUser[]>([]);
   const [directoryLoading, setDirectoryLoading] = useState(false);
@@ -81,12 +87,30 @@ export default function TeamPage() {
     }
   }, [bases.length, refreshBases]);
 
+  const activeBase = useMemo(
+    () => storeBases.find((b) => b.id === activeBaseId) ?? null,
+    [storeBases, activeBaseId]
+  );
+  const isWorkspaceOwner = useMemo(
+    () => Boolean(currentUser?.id && activeBase?.user_id === currentUser.id),
+    [currentUser?.id, activeBase?.user_id]
+  );
+  const canManageTeam = useMemo(
+    () =>
+      viewerIsAdmin ||
+      isWorkspaceOwner ||
+      viewerMembershipRole === "owner" ||
+      viewerMembershipRole === "admin",
+    [viewerIsAdmin, isWorkspaceOwner, viewerMembershipRole]
+  );
+
   const refreshMembers = useCallback(async () => {
     if (!activeBaseId) {
       setMembers([]);
       setOwnerCount(0);
       setViewerMembershipRole(null);
-      setCanManage(false);
+      setCreditSpendByUser({});
+      setCreditSpendUnattributed(0);
       setMembersError(null);
       return;
     }
@@ -128,7 +152,30 @@ export default function TeamPage() {
 
       const viewerMembership = parsedMembers.find((member) => member.userId === currentUser?.id) || null;
       setViewerMembershipRole(viewerMembership?.role ?? null);
-      setCanManage(viewerIsAdmin || viewerMembership?.role === "owner" || viewerMembership?.role === "admin");
+
+      const baseFromStore = useBaseStore.getState().bases.find((b) => b.id === activeBaseId);
+      const viewerIsWorkspaceOwner = Boolean(
+        currentUser?.id && baseFromStore?.user_id === currentUser.id
+      );
+      if (viewerIsWorkspaceOwner) {
+        try {
+          const spendRes = await apiRequest(`/bases/${activeBaseId}/members/credit-spend`);
+          const raw = (spendRes?.spend_by_user || {}) as Record<string, number>;
+          const next: Record<number, number> = {};
+          for (const [k, v] of Object.entries(raw)) {
+            const uid = Number(k);
+            if (Number.isFinite(uid) && uid > 0) next[uid] = Number(v) || 0;
+          }
+          setCreditSpendByUser(next);
+          setCreditSpendUnattributed(Number(spendRes?.unattributed) || 0);
+        } catch {
+          setCreditSpendByUser({});
+          setCreditSpendUnattributed(0);
+        }
+      } else {
+        setCreditSpendByUser({});
+        setCreditSpendUnattributed(0);
+      }
     } catch (error: any) {
       const message =
         error?.response?.data?.error ||
@@ -137,7 +184,8 @@ export default function TeamPage() {
       setMembers([]);
       setOwnerCount(0);
       setViewerMembershipRole(null);
-      setCanManage(false);
+      setCreditSpendByUser({});
+      setCreditSpendUnattributed(0);
       setMembersError(message);
     } finally {
       setMembersLoading(false);
@@ -147,6 +195,36 @@ export default function TeamPage() {
   useEffect(() => {
     refreshMembers();
   }, [refreshMembers]);
+
+  useEffect(() => {
+    setMemberSearch("");
+  }, [activeBaseId]);
+
+  const fetchPendingInvitations = useCallback(async () => {
+    if (!activeBaseId) {
+      setPendingInvites([]);
+      return;
+    }
+    setPendingInvitesLoading(true);
+    try {
+      const data = await apiRequest(`/invitations?base_id=${activeBaseId}`);
+      const list: PendingInviteRow[] = Array.isArray(data?.invitations) ? data.invitations : [];
+      setPendingInvites(list);
+    } catch {
+      setPendingInvites([]);
+    } finally {
+      setPendingInvitesLoading(false);
+    }
+  }, [activeBaseId]);
+
+  useEffect(() => {
+    if (!canManageTeam || !activeBaseId) {
+      setPendingInvites([]);
+      setPendingInvitesLoading(false);
+      return;
+    }
+    fetchPendingInvitations();
+  }, [canManageTeam, activeBaseId, fetchPendingInvitations]);
 
   const fetchDirectory = useCallback(async () => {
     if (!canViewDirectory) {
@@ -168,12 +246,12 @@ export default function TeamPage() {
   }, [canViewDirectory]);
 
   useEffect(() => {
-    if (canManage && canViewDirectory) {
+    if (canManageTeam && canViewDirectory) {
       fetchDirectory();
     } else {
       setAvailableUsers([]);
     }
-  }, [canManage, canViewDirectory, fetchDirectory]);
+  }, [canManageTeam, canViewDirectory, fetchDirectory]);
 
   const ownersRemainingAfterChange = useCallback(
     (membership: MemberRow, nextRole: MembershipRole) => {
@@ -300,6 +378,7 @@ export default function TeamPage() {
         );
         setShowInviteModal(false);
         setInviteForm({ emailOrId: "", name: "", role: "member" });
+        await fetchPendingInvitations();
         return;
       }
 
@@ -333,9 +412,65 @@ export default function TeamPage() {
     }
   };
 
+  const resendPendingInvitation = async (row: PendingInviteRow) => {
+    if (!activeBaseId) {
+      showWarning("Select a workspace", "Choose a workspace first.");
+      return;
+    }
+    const roleLower = String(row.role || "member").toLowerCase();
+    if (!INVITE_RESEND_ROLES.has(roleLower)) {
+      showError("Cannot resend", "This invitation has an unsupported role.");
+      return;
+    }
+    setResendInviteId(row.id);
+    try {
+      const data = await apiRequest("/invitations", {
+        method: "POST",
+        body: JSON.stringify({
+          base_id: activeBaseId,
+          email: row.email.trim().toLowerCase(),
+          role: roleLower,
+        }),
+      });
+      showSuccess(
+        data?.resent ? "Invitation resent" : "Invitation sent",
+        typeof data?.message === "string" ? data.message : `Email sent to ${row.email}.`
+      );
+      await fetchPendingInvitations();
+    } catch (error: any) {
+      const message = error?.response?.data?.error || error?.message || "Failed to resend invitation";
+      showError("Resend failed", message);
+    } finally {
+      setResendInviteId(null);
+    }
+  };
+
+  const cancelPendingInvitation = async (row: PendingInviteRow) => {
+    const ok = await confirm({
+      title: "Cancel invitation?",
+      message: `Remove the pending invite for ${row.email}?`,
+      confirmLabel: "Cancel invite",
+      variant: "danger",
+    });
+    if (!ok) return;
+    setCancelInviteId(row.id);
+    try {
+      await apiRequest(`/invitations/${row.id}`, { method: "DELETE" });
+      showSuccess("Invitation cancelled", "They will no longer be able to use that invite link.");
+      await fetchPendingInvitations();
+    } catch (error: any) {
+      const message = error?.response?.data?.error || error?.message || "Failed to cancel invitation";
+      showError("Cancel failed", message);
+    } finally {
+      setCancelInviteId(null);
+    }
+  };
+
   const handleBaseChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
-    setActiveBaseId(value ? Number(value) : null);
+    const n = value ? Number(value) : null;
+    const hit = n != null ? bases.find((b) => b.id === n) : undefined;
+    setActiveBaseId(n, hit ? { name: hit.name } : undefined);
   };
 
   const totalMembers = members.length;
@@ -348,143 +483,169 @@ export default function TeamPage() {
     return "Viewer";
   }, [viewerIsAdmin, viewerMembershipRole]);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <BaseCard
+  const filteredMembers = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) => {
+      const name = (m.user.name || "").toLowerCase();
+      const email = (m.user.email || "").toLowerCase();
+      return name.includes(q) || email.includes(q) || String(m.userId).includes(q);
+    });
+  }, [members, memberSearch]);
+
+  if (!activeBaseId) {
+    return (
+      <div
         style={{
-          padding: "20px 24px",
+          minHeight: "calc(100vh - 56px)",
+          width: "100%",
+          background: "var(--color-canvas)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+          gap: 16,
+          boxSizing: "border-box",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-            flexWrap: "wrap"
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-              gap: "16px"
-            }}
-          >
-            <div />
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                alignItems: "center",
-                flexWrap: "wrap"
-              }}
+        <EmptyStateBanner
+          icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+          title="No Active Workspace"
+          description="Choose a workspace to view members, roles, and invitations."
+          actions={
+            <button
+              type="button"
+              className="btn-primary focus-ring"
+              style={{ borderRadius: 8 }}
+              onClick={() => router.push("/bases")}
             >
-              <label
-                htmlFor="team-base-selector"
-                style={{
-                  fontSize: "12px",
-                  textTransform: "uppercase",
-                  color: "var(--color-text-muted)"
-                }}
-              >
-                Active Base
-              </label>
-              <select
-                id="team-base-selector"
-                value={activeBaseId ?? ""}
-                onChange={handleBaseChange}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: "10px",
-                  border: "1px solid rgba(124, 58, 237, 0.4)",
-                  background: "rgba(255,255,255,0.05)",
-                  color: "var(--color-text)",
-                  minWidth: "200px"
-                }}
-              >
-                {bases.length === 0 && <option value="">No bases available</option>}
-                {bases.map((base) => (
-                  <option key={base.id} value={base.id}>
-                    {base.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => setShowInviteModal(true)}
-                disabled={!canManage || !activeBaseId}
-                style={{
-                  background: canManage && activeBaseId
-                    ? "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)"
-                    : "rgba(124, 58, 237,0.2)",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "12px 24px",
-                  color: canManage && activeBaseId ? "#000000" : "#666",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  cursor: canManage && activeBaseId ? "pointer" : "not-allowed",
-                  boxShadow: canManage && activeBaseId ? "0 4px 12px rgba(124, 58, 237, 0.3)" : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}
-              >
-                <Icons.Plus size={16} />
-                Invite Member
-              </button>
-              <button
-                onClick={() => refreshMembers()}
-                style={{
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: "12px",
-                  padding: "12px 16px",
-                  color: "var(--color-text)",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}
-              >
-                <Icons.RefreshCw size={16} />
-                Refresh
-              </button>
-            </div>
-          </div>
-          <div
+              Open workspaces
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "calc(100vh - 56px)",
+        width: "100%",
+        background: "var(--color-canvas)",
+        display: "flex",
+        flexDirection: "column",
+        padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+        gap: 12,
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: 4,
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 260, flexWrap: "wrap" }}>
+          <ToolbarSearchField
+            variant="minimal"
+            value={memberSearch}
+            onChange={setMemberSearch}
+            placeholder="Search members by name or email"
+            style={{ minWidth: 260, maxWidth: 640, flex: 1 }}
+            aria-label="Search team members"
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexShrink: 0 }}>
+          <label htmlFor="team-base-selector" className="text-hint" style={{ fontSize: 11, fontWeight: 600 }}>
+            Workspace
+          </label>
+          <select
+            id="team-base-selector"
+            value={activeBaseId ?? ""}
+            onChange={handleBaseChange}
+            className="focus-ring"
             style={{
-              display: "flex",
-              gap: "12px",
-              flexWrap: "wrap",
-              color: "var(--color-text-muted)",
-              fontSize: "13px"
+              padding: "10px 14px",
+              borderRadius: 10,
+              border: "1px solid var(--elev-border)",
+              background: "var(--elev-bg)",
+              color: "var(--color-text)",
+              minWidth: 200,
+              fontSize: 14,
+              cursor: "pointer",
             }}
           >
-            <span>Viewer access: {viewerRoleLabel}</span>
-            {viewerMembershipRole && !viewerIsAdmin && (
-              <span> • Your role: <RoleBadge role={viewerMembershipRole} size="sm" /></span>
-            )}
-            {!canManage && activeBaseId && (
-              <span> • You can view the roster but only owners can manage members.</span>
-            )}
-          </div>
+            {bases.length === 0 && <option value="">No workspaces</option>}
+            {bases.map((base) => (
+              <option key={base.id} value={base.id}>
+                {base.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-primary focus-ring"
+            style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
+            onClick={() => setShowInviteModal(true)}
+            disabled={!canManageTeam}
+          >
+            <Icons.UserPlus size={16} strokeWidth={1.5} />
+            Invite
+          </button>
+          <button
+            type="button"
+            className="btn-dashboard-outline focus-ring"
+            style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
+            onClick={() => {
+              void refreshMembers();
+              if (canManageTeam) void fetchPendingInvitations();
+            }}
+          >
+            <Icons.RefreshCw size={16} strokeWidth={1.5} />
+            Refresh
+          </button>
         </div>
-      </BaseCard>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          color: "var(--color-text-muted)",
+          fontSize: 13,
+          alignItems: "center",
+        }}
+      >
+        <span>Your access: {viewerRoleLabel}</span>
+        {viewerMembershipRole && !viewerIsAdmin && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <RoleBadge role={viewerMembershipRole} size="sm" />
+          </span>
+        )}
+        {!canManageTeam && (
+          <span>View-only roster — workspace owners and admins can invite or change roles.</span>
+        )}
+      </div>
 
       {membersError && (
         <div
+          role="alert"
           style={{
-            background: "rgba(255, 107, 107, 0.15)",
-            border: "1px solid rgba(255, 107, 107, 0.3)",
-            color: "#ff6b6b",
-            padding: "16px",
-            borderRadius: "12px"
+            background: "rgba(248, 113, 113, 0.08)",
+            border: "1px solid var(--elev-border)",
+            color: "var(--color-text)",
+            padding: "14px 16px",
+            borderRadius: 10,
+            fontSize: 14,
           }}
         >
-          {membersError}
+          <strong style={{ color: "#f87171" }}>Could not load team.</strong> {membersError}
         </div>
       )}
 
@@ -494,7 +655,7 @@ export default function TeamPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "20px",
+              gap: 12,
             }}
           >
             {[0, 1, 2, 3].map((i) => (
@@ -525,7 +686,7 @@ export default function TeamPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "20px"
+              gap: 12,
             }}
           >
             <StatCard
@@ -558,37 +719,110 @@ export default function TeamPage() {
             />
           </div>
 
-          <BaseCard
-            style={{
-              padding: "24px",
-              overflow: "hidden"
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: 600,
-                margin: "0 0 20px 0",
-                color: "var(--color-text)"
-              }}
-            >
-              Team Members ({totalMembers})
+          {canManageTeam && (
+            <BaseCard style={{ padding: "20px 24px", overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "var(--color-text)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Icons.Mail size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />
+                  Pending invitations
+                </h3>
+              </div>
+              {pendingInvitesLoading ? (
+                <p className="text-hint" style={{ margin: 0, fontSize: 13 }}>
+                  Loading invitations…
+                </p>
+              ) : pendingInvites.length === 0 ? (
+                <p className="text-hint" style={{ margin: 0, fontSize: 13 }}>
+                  No pending invites. Send one with Invite — recipients appear here until they accept.
+                </p>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--elev-border)" }}>
+                        <HeaderCell>Email</HeaderCell>
+                        <HeaderCell>Role</HeaderCell>
+                        <HeaderCell>Expires</HeaderCell>
+                        <HeaderCell>Actions</HeaderCell>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingInvites.map((inv) => (
+                        <tr
+                          key={inv.id}
+                          style={{
+                            borderBottom: "1px solid var(--elev-border)",
+                            transition: "background 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "var(--color-surface-secondary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <td style={{ padding: "12px 10px", fontSize: 14, color: "var(--color-text)" }}>{inv.email}</td>
+                          <td style={{ padding: "12px 10px", fontSize: 13, color: "var(--color-text)" }}>
+                            <span style={{ textTransform: "capitalize" }}>{inv.role}</span>
+                          </td>
+                          <td style={{ padding: "12px 10px", fontSize: 13, color: "var(--color-text-muted)" }}>
+                            {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : "—"}
+                          </td>
+                          <td style={{ padding: "12px 10px" }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                              <button
+                                type="button"
+                                className="btn-dashboard-outline focus-ring"
+                                style={{ borderRadius: 8, fontSize: 12, padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 6 }}
+                                disabled={resendInviteId === inv.id || cancelInviteId === inv.id}
+                                onClick={() => void resendPendingInvitation(inv)}
+                              >
+                                <Icons.Send size={14} strokeWidth={1.5} />
+                                {resendInviteId === inv.id ? "Sending…" : "Resend"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-dashboard-outline focus-ring"
+                                style={{ borderRadius: 8, fontSize: 12, padding: "6px 12px" }}
+                                disabled={cancelInviteId === inv.id || resendInviteId === inv.id}
+                                onClick={() => void cancelPendingInvitation(inv)}
+                              >
+                                {cancelInviteId === inv.id ? "Cancelling…" : "Cancel"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </BaseCard>
+          )}
+
+          <BaseCard style={{ padding: "24px", overflow: "hidden" }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 20px 0", color: "var(--color-text)" }}>
+              Team members (
+              {memberSearch.trim() ? `${filteredMembers.length} shown · ${totalMembers} total` : totalMembers})
             </h3>
+            {isWorkspaceOwner && (
+              <p className="text-hint" style={{ margin: "-8px 0 16px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-muted)" }}>
+                Teammates use lead credits from your pool. The &quot;Credits spent&quot; column (visible only to you) sums
+                workspace ledger entries by who performed the action. Integrations run with your Admin → API credentials
+                when a member has not saved their own keys.
+              </p>
+            )}
 
             {members.length === 0 ? (
               <EmptyStateBanner
                 icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
-                title={activeBaseId ? "No members yet" : "Select a workspace"}
-                description={
-                  activeBaseId
-                    ? "Invite teammates to start collaborating on this workspace."
-                    : "Choose a workspace to view and manage its team."
-                }
+                title="No members yet"
+                description="Invite teammates to collaborate on campaigns and leads in this workspace."
                 actions={
-                  activeBaseId ? (
+                  canManageTeam ? (
                     <button
                       type="button"
-                      className="btn-primary"
+                      className="btn-primary focus-ring"
                       style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
                       onClick={() => setShowInviteModal(true)}
                     >
@@ -598,20 +832,43 @@ export default function TeamPage() {
                   ) : undefined
                 }
               />
+            ) : filteredMembers.length === 0 ? (
+              <EmptyStateBanner
+                icon={<Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+                title="No matches"
+                description="Try a different name, email, or user ID in the search field above."
+                actions={
+                  <button
+                    type="button"
+                    className="btn-dashboard-outline focus-ring"
+                    style={{ borderRadius: 8 }}
+                    onClick={() => setMemberSearch("")}
+                  >
+                    Clear search
+                  </button>
+                }
+              />
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ borderBottom: "2px solid rgba(124, 58, 237, 0.2)" }}>
+                    <tr style={{ borderBottom: "2px solid var(--elev-border)" }}>
                       <HeaderCell>Member</HeaderCell>
-                      <HeaderCell>Workspace Role</HeaderCell>
-                      <HeaderCell>Platform Role</HeaderCell>
+                      <HeaderCell>Workspace role</HeaderCell>
+                      <HeaderCell>Platform role</HeaderCell>
                       <HeaderCell>Joined</HeaderCell>
+                      {isWorkspaceOwner && (
+                        <HeaderCell>
+                          <span title="Lead credits debited from your workspace pool and attributed to this user when recorded.">
+                            Credits spent
+                          </span>
+                        </HeaderCell>
+                      )}
                       <HeaderCell>Actions</HeaderCell>
                     </tr>
                   </thead>
                   <tbody>
-                    {members.map((member) => {
+                    {filteredMembers.map((member) => {
                       const isSelf = member.userId === currentUser?.id;
                       const isOnlyOwner = member.role === "owner" && ownerCount <= 1;
                       const roleChangeDisabled =
@@ -623,11 +880,11 @@ export default function TeamPage() {
                         <tr
                           key={member.membershipId}
                           style={{
-                            borderBottom: "1px solid rgba(255,255,255,0.05)",
-                            transition: "all 0.2s ease"
+                            borderBottom: "1px solid var(--elev-border)",
+                            transition: "background 0.15s ease",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+                            e.currentTarget.style.background = "var(--color-surface-secondary)";
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = "transparent";
@@ -635,50 +892,38 @@ export default function TeamPage() {
                         >
                           <td style={{ padding: "16px 12px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                              <div style={{
-                                width: "40px",
-                                height: "40px",
-                                borderRadius: "50%",
-                                background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#000000",
-                                fontWeight: 600,
-                                fontSize: "16px"
-                              }}>
-                                <Icons.User size={20} />
+                              <div
+                                style={{
+                                  width: "40px",
+                                  height: "40px",
+                                  borderRadius: "50%",
+                                  background: "var(--elev-bg)",
+                                  border: "1px solid var(--elev-border)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "var(--color-text-muted)",
+                                }}
+                              >
+                                <Icons.User size={20} strokeWidth={1.5} />
                               </div>
                               <div>
-                                <div
-                                  style={{
-                                    fontSize: "14px",
-                                    fontWeight: 600,
-                                    color: "var(--color-text)"
-                                  }}
-                                >
+                                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-text)" }}>
                                   {member.user.name}
                                   {isSelf && (
-                                    <span
-                                      style={{
-                                        marginLeft: "8px",
-                                        fontSize: "11px",
-                                        color: "var(--color-text-muted)"
-                                      }}
-                                    >
+                                    <span style={{ marginLeft: "8px", fontSize: "11px", color: "var(--color-text-muted)" }}>
                                       (You)
                                     </span>
                                   )}
                                 </div>
-                                <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
-                                  {member.user.email}
-                                </div>
+                                <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{member.user.email}</div>
                               </div>
                             </div>
                           </td>
                           <td style={{ padding: "16px 12px" }}>
-                            {canManage ? (
+                            {canManageTeam ? (
                               <select
+                                className="focus-ring"
                                 value={member.role}
                                 disabled={roleChangeDisabled}
                                 onChange={(event) =>
@@ -686,11 +931,12 @@ export default function TeamPage() {
                                 }
                                 style={{
                                   padding: "8px 12px",
-                                  borderRadius: "8px",
-                                  border: "1px solid rgba(124, 58, 237,0.3)",
-                                  background: "rgba(124, 58, 237,0.08)",
+                                  borderRadius: 8,
+                                  border: "1px solid var(--elev-border)",
+                                  background: "var(--elev-bg)",
                                   color: "var(--color-text)",
-                                  cursor: roleChangeDisabled ? "not-allowed" : "pointer"
+                                  cursor: roleChangeDisabled ? "not-allowed" : "pointer",
+                                  fontSize: 13,
                                 }}
                               >
                                 {membershipRoleOptions.map((option) => (
@@ -703,51 +949,49 @@ export default function TeamPage() {
                               <RoleBadge role={member.role} size="sm" />
                             )}
                           </td>
-                          <td style={{ padding: "16px 12px", fontSize: "13px" }}>
+                          <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--color-text-muted)" }}>
                             {member.user.role === "admin" ? "Admin" : "User"}
                           </td>
-                          <td style={{ padding: "16px 12px", fontSize: "13px" }}>
-                            {member.joinedAt
-                              ? new Date(member.joinedAt).toLocaleDateString()
-                              : "—"}
+                          <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--color-text-muted)" }}>
+                            {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : "—"}
                           </td>
+                          {isWorkspaceOwner && (
+                            <td style={{ padding: "16px 12px", fontSize: "14px", fontWeight: 600, color: "var(--color-text)" }}>
+                              {(() => {
+                                const attributed = creditSpendByUser[member.userId] ?? 0;
+                                const isBillingOwnerRow =
+                                  Boolean(activeBase?.user_id) && member.userId === activeBase?.user_id;
+                                const total =
+                                  attributed + (isBillingOwnerRow && creditSpendUnattributed > 0 ? creditSpendUnattributed : 0);
+                                if (total === 0) return <span style={{ fontWeight: 500, color: "var(--color-text-muted)" }}>0</span>;
+                                return (
+                                  <span title={isBillingOwnerRow && creditSpendUnattributed > 0 ? `Includes ${creditSpendUnattributed} credit(s) not attributed to a specific teammate.` : undefined}>
+                                    {total.toLocaleString()}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                          )}
                           <td style={{ padding: "16px 12px" }}>
-                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                              <button
-                                onClick={() => removeMember(member)}
-                                disabled={!canManage || removeDisabled}
-                                style={{
-                                  background: "rgba(255, 107, 107, 0.15)",
-                                  border: "1px solid rgba(255, 107, 107, 0.3)",
-                                  borderRadius: "8px",
-                                  padding: "8px 14px",
-                                  color: "#ff6b6b",
-                                  fontSize: "12px",
-                                  fontWeight: 500,
-                                  cursor: !canManage || removeDisabled ? "not-allowed" : "pointer",
-                                  opacity: !canManage || removeDisabled ? 0.5 : 1,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  transition: "all 0.2s ease"
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (canManage && !removeDisabled) {
-                                    e.currentTarget.style.transform = "translateY(-1px)";
-                                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(255, 107, 107, 0.2)";
-                                    e.currentTarget.style.background = "rgba(255, 107, 107, 0.25)";
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.transform = "translateY(0)";
-                                  e.currentTarget.style.boxShadow = "none";
-                                  e.currentTarget.style.background = "rgba(255, 107, 107, 0.15)";
-                                }}
-                              >
-                                <Icons.Trash size={14} />
+                            <button
+                              type="button"
+                              className="btn-dashboard-outline focus-ring"
+                              style={{
+                                borderRadius: 8,
+                                fontSize: 12,
+                                padding: "8px 12px",
+                                borderColor: "rgba(248, 113, 113, 0.35)",
+                                color: "#f87171",
+                                opacity: !canManageTeam || removeDisabled ? 0.5 : 1,
+                              }}
+                              onClick={() => void removeMember(member)}
+                              disabled={!canManageTeam || removeDisabled}
+                            >
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <Icons.Trash size={14} strokeWidth={1.5} />
                                 Remove
-                              </button>
-                            </div>
+                              </span>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -795,33 +1039,20 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <BaseCard
-      style={{
-        padding: "20px",
-        transition: "all 0.2s ease",
-        cursor: "pointer"
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = `0 4px 12px ${accent}20`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
-      }}
-    >
+    <BaseCard className="bases-workspace-card" style={{ padding: "20px 22px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-        <div style={{ color: accent, display: "flex", alignItems: "center" }}>
-          {icon}
-        </div>
-        <h3 style={{ fontSize: "14px", fontWeight: 600, margin: 0, color: "var(--color-text)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div style={{ color: accent, display: "flex", alignItems: "center" }}>{icon}</div>
+        <h3
+          className="bases-workspace-card-metric-label"
+          style={{ margin: 0, letterSpacing: "0.06em", color: "var(--color-text-muted)" }}
+        >
           {label}
         </h3>
       </div>
-      <div style={{ fontSize: "32px", fontWeight: 700, color: accent, marginBottom: "4px" }}>{value}</div>
-      <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{description}</div>
+      <div className="bases-workspace-card-metric-value" style={{ fontSize: "1.75rem", marginBottom: 6 }}>
+        {value}
+      </div>
+      <div style={{ fontSize: "12px", color: "var(--color-text-muted)", lineHeight: 1.45 }}>{description}</div>
     </BaseCard>
   );
 }
@@ -909,9 +1140,10 @@ function InviteModal({
             >
               Invite Team Member
             </h2>
-            <p style={{ fontSize: "14px", color: "var(--color-text-muted)", margin: "8px 0 0 0" }}>
-              Add an existing teammate by email or user ID. Owners can optionally promote them to
-              owner during the invite.
+            <p style={{ fontSize: "14px", color: "var(--color-text-muted)", margin: "8px 0 0 0", lineHeight: 1.5 }}>
+              Send an <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>email invitation</strong> for
+              anyone to join after they sign in, or enter a numeric <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>user ID</strong>{" "}
+              to add an existing account directly. Owner role cannot be assigned via invite.
             </p>
           </div>
           <button
@@ -965,9 +1197,8 @@ function InviteModal({
               outline: "none"
             }}
           />
-          <small style={{ color: "var(--color-text-muted)" }}>
-            We’ll look for an existing user by email. If you’re an admin and they don’t exist yet,
-            we’ll create an account for them automatically.
+          <small style={{ color: "var(--color-text-muted)", lineHeight: 1.45 }}>
+            Email addresses always receive an invite link. User IDs must belong to an existing account in the system.
           </small>
         </div>
 
@@ -1024,11 +1255,12 @@ function InviteModal({
         {directoryLoading && (
           <div
             style={{
-              background: "rgba(124, 58, 237,0.12)",
-              border: "1px solid rgba(124, 58, 237,0.2)",
+              background: "var(--elev-bg)",
+              border: "1px solid var(--elev-border)",
               padding: "10px 14px",
-              borderRadius: "10px",
-              color: "var(--color-text)"
+              borderRadius: 10,
+              color: "var(--color-text)",
+              fontSize: 13,
             }}
           >
             Loading user directory…
@@ -1037,38 +1269,20 @@ function InviteModal({
 
         <div style={{ display: "flex", gap: "12px" }}>
           <button
-            onClick={onInvite}
+            type="button"
+            className="btn-primary focus-ring"
+            style={{ borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, flex: 1 }}
+            onClick={() => void onInvite()}
             disabled={disabled}
-            style={{
-              background: disabled
-                ? "rgba(124, 58, 237,0.3)"
-                : "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
-              border: "none",
-              borderRadius: "12px",
-              padding: "12px 24px",
-              color: disabled ? "#888" : "#000000",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: disabled ? "not-allowed" : "pointer",
-              flex: 1
-            }}
           >
-            {inviteLoading ? "Sending…" : "Invite Member"}
+            {inviteLoading ? "Sending…" : "Send invite"}
           </button>
           <button
+            type="button"
+            className="btn-dashboard-outline focus-ring"
+            style={{ borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, flex: 1 }}
             onClick={onClose}
             disabled={inviteLoading}
-            style={{
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "12px",
-              padding: "12px 24px",
-              color: "var(--color-text)",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: inviteLoading ? "not-allowed" : "pointer",
-              flex: 1
-            }}
           >
             Cancel
           </button>

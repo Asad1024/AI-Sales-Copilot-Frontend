@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, streamGenerateLeads } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import EnrichmentLoader from "./EnrichmentLoader";
 import { Icons } from "@/components/ui/Icons";
@@ -22,6 +22,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   const [prompt, setPrompt] = useState("");
   const [count, setCount] = useState(10);
   const [generating, setGenerating] = useState(false);
+  /** Real server-reported progress from NDJSON /leads/generate-stream. */
+  const [genStream, setGenStream] = useState({ stage: "", done: 0, total: 0, label: "" });
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [showEnrichPopup, setShowEnrichPopup] = useState(false);
@@ -53,6 +55,20 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
     return () => window.clearInterval(id);
   }, [suggestionLoadingTopic]);
 
+  const genPct =
+    generating && genStream.total > 0
+      ? Math.min(100, Math.round((100 * genStream.done) / genStream.total))
+      : 0;
+  const genShowCounts =
+    generating &&
+    genStream.total > 0 &&
+    genStream.stage !== "extract" &&
+    ["search", "research", "save"].includes(genStream.stage);
+  /** Backend often puts `done/total` in `label` (e.g. "Research 7/10"); avoid appending the same fraction again. */
+  const genShowCountsExtra =
+    genShowCounts &&
+    !(typeof genStream.label === "string" && genStream.label.includes(`${genStream.done}/${genStream.total}`));
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError("Please enter a prompt describing the leads you want to generate");
@@ -64,26 +80,35 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
       return;
     }
 
+    setGenStream({ stage: "extract", done: 0, total: 1, label: "Starting…" });
     setGenerating(true);
     setError("");
-    setProgress("Searching for leads...");
+    setProgress("");
 
     try {
-      setProgress("Searching database...");
-      
-      const response = await apiRequest("/leads/generate", {
-        method: "POST",
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          base_id: activeBaseId,
-          count: count
-        })
-      });
+      const complete = await streamGenerateLeads(
+        { prompt: prompt.trim(), base_id: activeBaseId, count },
+        (e) => {
+          setGenStream({
+            stage: e.stage,
+            done: e.done,
+            total: e.total,
+            label: e.label || "",
+          });
+        }
+      );
 
-      if (response?.leads && response.leads.length > 0) {
-        setProgress(`Successfully generated ${response.leads.length} leads!`);
-        setGeneratedLeads(response.leads);
-        onGenerated(response.leads);
+      const rows = Array.isArray(complete.leads) ? complete.leads : [];
+      if (rows.length > 0) {
+        setGenStream((s) => ({
+          ...s,
+          done: rows.length,
+          total: Math.max(rows.length, s.total || rows.length),
+          label: "Complete",
+        }));
+        setProgress(`Successfully generated ${rows.length} leads!`);
+        setGeneratedLeads(rows);
+        onGenerated(rows);
         setTimeout(() => {
           setShowEnrichPopup(true);
           setPrompt("");
@@ -128,20 +153,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
       setProgress("");
     } finally {
       setGenerating(false);
+      setGenStream({ stage: "", done: 0, total: 0, label: "" });
     }
-  };
-
-  const handleBuildPrompt = () => {
-    const idea = prompt.trim();
-    if (!idea) {
-      setError("Write a short idea first, then click AI Assist.");
-      return;
-    }
-    const built = `Find B2B leads matching this intent: ${idea}.
-Include: decision-maker role, company size, location, industry, and buying signals.
-Return contacts with name, role, company, email, LinkedIn URL, and region.`;
-    setPrompt(built);
-    setError("");
   };
 
   const handleSuggestionTopic = async (topic: string) => {
@@ -150,7 +163,10 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
     try {
       const response = await apiRequest("/ai/lead-prompt-from-suggestion", {
         method: "POST",
-        body: JSON.stringify({ topic }),
+        body: JSON.stringify({
+          topic,
+          ...(activeBaseId ? { base_id: activeBaseId } : {}),
+        }),
       });
       const p = typeof response?.prompt === "string" ? response.prompt.trim() : "";
       if (!p) {
@@ -193,9 +209,9 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
           0% { background-position: -240px 0; }
           100% { background-position: 240px 0; }
         }
-        @keyframes aiPulse {
-          0%, 100% { transform: scale(1); opacity: 0.95; }
-          50% { transform: scale(1.02); opacity: 1; }
+        @keyframes generateBarShimmer {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
         }
       `}} />
 
@@ -236,8 +252,8 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
                 Generate with AI
               </div>
               <p className="text-hint" style={{ margin: 0, fontSize: 11, lineHeight: 1.35, maxWidth: 560 }}>
-                One-click suggestions, or type your ICP and use AI Assist to expand it. Same flow as campaign Knowledge
-                base / Assistant — always open here (no upload step).
+                One-click suggestions, or type your full ICP in your own words. Same flow as campaign Knowledge base /
+                Assistant — always open here (no upload step).
               </p>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -248,14 +264,36 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
                     alignItems: "center",
                     gap: 6,
                     fontSize: 11,
-                    fontWeight: 500,
-                    color: "var(--color-text-muted)",
+                    fontWeight: 600,
+                    color: "var(--color-primary, #7C3AED)",
                   }}
+                  aria-live="polite"
                 >
-                  <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
-                    <Icons.Loader size={12} strokeWidth={2} aria-hidden />
+                  <span
+                    style={{
+                      width: 56,
+                      height: 6,
+                      borderRadius: 999,
+                      background: "var(--color-border)",
+                      overflow: "hidden",
+                      display: "inline-block",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        height: "100%",
+                        width: `${Math.max(4, genPct)}%`,
+                        borderRadius: 999,
+                        background:
+                          "linear-gradient(90deg, #7c3aed 0%, #a78bfa 35%, #c4b5fd 50%, #a78bfa 65%, #7c3aed 100%)",
+                        backgroundSize: "200% 100%",
+                        animation: "generateBarShimmer 1.1s linear infinite",
+                        transition: "width 0.12s ease-out",
+                      }}
+                    />
                   </span>
-                  Generating…
+                  Generating
                 </span>
               ) : null}
               {!generating && suggestionLoadingTopic ? (
@@ -379,52 +417,29 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
             >
               Your words
             </label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
-              <textarea
-                id="ai-lead-prompt"
-                value={prompt}
-                onChange={(e) => {
-                  setPrompt(e.target.value);
-                  setError("");
-                }}
-                rows={2}
-                placeholder="Short idea or full ICP — e.g. marketing directors, B2B SaaS, 50–200 employees, North America"
-                disabled={generating || Boolean(suggestionLoadingTopic)}
-                className="input"
-                style={{
-                  flex: "1 1 200px",
-                  minWidth: 0,
-                  width: "100%",
-                  fontSize: 12,
-                  lineHeight: 1.45,
-                  padding: "6px 10px",
-                  minHeight: 52,
-                  maxHeight: 112,
-                  resize: "vertical",
-                  borderRadius: 8,
-                  boxSizing: "border-box",
-                }}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleBuildPrompt}
-                disabled={generating || Boolean(suggestionLoadingTopic) || !prompt.trim()}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  flexShrink: 0,
-                  padding: "0 12px",
-                  minHeight: 32,
-                  marginTop: 2,
-                  fontSize: 12,
-                }}
-              >
-                <Icons.Lightbulb size={13} aria-hidden />
-                AI Assist
-              </button>
-            </div>
+            <textarea
+              id="ai-lead-prompt"
+              value={prompt}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                setError("");
+              }}
+              rows={5}
+              placeholder="Short idea or full ICP — e.g. marketing directors, B2B SaaS, 50–200 employees, North America"
+              disabled={generating || Boolean(suggestionLoadingTopic)}
+              className="input"
+              style={{
+                width: "100%",
+                fontSize: 12,
+                lineHeight: 1.45,
+                padding: "8px 12px",
+                minHeight: 112,
+                maxHeight: 220,
+                resize: "vertical",
+                borderRadius: 8,
+                boxSizing: "border-box",
+              }}
+            />
           </div>
 
           {error ? (
@@ -464,6 +479,55 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
             >
               <Icons.CheckCircle size={17} />
               <span>{progress}</span>
+            </div>
+          ) : null}
+
+          {generating ? (
+            <div style={{ marginTop: 2 }} role="status" aria-live="polite" aria-label="Lead generation progress">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  marginBottom: 6,
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)" }}>
+                  {genStream.label || progress || "Working on your request…"}
+                  {genShowCountsExtra ? (
+                    <span style={{ marginLeft: 6, color: "var(--color-primary, #7C3AED)", fontWeight: 700 }}>
+                      {genStream.done}/{genStream.total}
+                    </span>
+                  ) : null}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-primary, #7C3AED)", fontVariantNumeric: "tabular-nums" }}>
+                  {genPct}%
+                </span>
+              </div>
+              <div
+                style={{
+                  height: 10,
+                  borderRadius: 999,
+                  background: "var(--color-border)",
+                  overflow: "hidden",
+                  border: "1px solid rgba(124, 58, 237, 0.12)",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${Math.max(2, genPct)}%`,
+                    borderRadius: 999,
+                    background:
+                      "linear-gradient(90deg, #5b21b6 0%, #7c3aed 22%, #a78bfa 45%, #ddd6fe 55%, #a78bfa 68%, #7c3aed 100%)",
+                    backgroundSize: "220% 100%",
+                    animation: "generateBarShimmer 1.05s linear infinite",
+                    boxShadow: "0 0 12px rgba(124, 58, 237, 0.35)",
+                    transition: "width 0.1s ease-out",
+                  }}
+                />
+              </div>
             </div>
           ) : null}
 
@@ -525,7 +589,10 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
                 className="btn-primary"
                 onClick={() => void handleGenerate()}
                 disabled={generating || Boolean(suggestionLoadingTopic) || !prompt.trim()}
+                aria-busy={generating}
                 style={{
+                  position: "relative",
+                  overflow: "hidden",
                   padding: "10px 18px",
                   borderRadius: 8,
                   fontSize: 13,
@@ -537,15 +604,27 @@ Return contacts with name, role, company, email, LinkedIn URL, and region.`;
               >
                 {generating ? (
                   <>
-                    <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
-                      <Icons.Loader size={15} style={{ color: "inherit" }} />
+                    <span
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: `${Math.max(0, genPct)}%`,
+                        background: "linear-gradient(90deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%)",
+                        transition: "width 0.12s ease-out",
+                        pointerEvents: "none",
+                      }}
+                    />
+                    <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <Icons.Sparkles size={15} />
+                      Generating {genPct}%
+                      {genShowCountsExtra ? ` (${genStream.done}/${genStream.total})` : ""}
                     </span>
-                    Generating…
                   </>
                 ) : (
                   <>
                     <Icons.Sparkles size={15} />
-                    Generate {count} lead{count !== 1 ? "s" : ""}
+                    Generate leads
                   </>
                 )}
               </button>

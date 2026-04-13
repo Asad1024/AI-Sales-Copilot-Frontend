@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAIProgress } from "@/lib/flowClient";
 import { useBase } from "@/context/BaseContext";
+import { useBaseStore } from "@/stores/useBaseStore";
 
 const steps = [
   { key: "leads", label: "Leads prepared" },
@@ -51,7 +52,8 @@ export default function ProgressPage() {
             .catch(() => undefined)
             .finally(() => {
               if (targetBaseId) {
-                setActiveBaseId(targetBaseId);
+                const b = useBaseStore.getState().bases.find((x) => x.id === targetBaseId);
+                setActiveBaseId(targetBaseId, b ? { name: b.name } : undefined);
               }
               sessionStorage.removeItem("sparkai:run");
               router.push("/bases");

@@ -12,6 +12,7 @@ import { LEAD_STATUS_STORAGE_KEY, DEFAULT_LEAD_STATUS_OPTIONS } from "@/lib/lead
 import { BaseCell } from "./cells/BaseCell";
 import { StatusCell } from "./cells/StatusCell";
 import { OwnerAssignmentCell } from "./OwnerAssignmentCell";
+import { leadHasAsyncContactEnrichResult } from "@/lib/contactEnrichmentStatus";
 
 interface DynamicLeadsTableProps {
   leads: Lead[];
@@ -59,7 +60,7 @@ const WIZARD_LEAD_TABLE_CARD: React.CSSProperties = {
 const WIZARD_LEAD_TABLE: React.CSSProperties = {
   width: "100%",
   borderCollapse: "collapse",
-  fontSize: 13,
+  fontSize: 14,
   minWidth: 720,
 };
 const WIZARD_LEAD_THEAD_ROW: React.CSSProperties = {
@@ -69,7 +70,7 @@ const WIZARD_LEAD_THEAD_ROW: React.CSSProperties = {
 const WIZARD_LEAD_TH: React.CSSProperties = {
   padding: "12px 14px",
   textAlign: "left",
-  fontSize: 11,
+  fontSize: 12,
   fontWeight: 500,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
@@ -115,7 +116,12 @@ const SYSTEM_COLUMNS = [
   { id: 'lead_status', name: 'Lead status', type: 'status' as const, visible: true, system: true },
 ];
 
-export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false, onLeadClick }: DynamicLeadsTableProps) {
+export function DynamicLeadsTable({
+  leads,
+  pendingLeadIds = [],
+  embedded = false,
+  onLeadClick,
+}: DynamicLeadsTableProps) {
   const { selectedLeads = [], setSelectedLeads, pagination, setPagination, updateLead, filters } = useLeadStore();
   const { columns, fetchColumns } = useColumnStore();
   const { activeBaseId } = useBaseStore();
@@ -123,7 +129,22 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
   const { showSuccess, showError } = useNotification();
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
   const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null);
-  const pendingLeadSet = useMemo(() => new Set(pendingLeadIds), [pendingLeadIds]);
+  const pendingLeadSet = useMemo(
+    () =>
+      new Set(
+        (pendingLeadIds || [])
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id > 0)
+      ),
+    [pendingLeadIds]
+  );
+
+  const showContactEnrichProcessing = (lead: Lead) => {
+    const id = Number(lead.id);
+    if (!Number.isFinite(id) || id <= 0) return false;
+    if (!pendingLeadSet.has(id)) return false;
+    return !leadHasAsyncContactEnrichResult(lead.enrichment);
+  };
 
   useEffect(() => {
     const el = selectAllCheckboxRef.current;
@@ -322,26 +343,27 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       case 'name':
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div className="text-[10px] font-medium text-slate-900 dark:text-slate-100 tracking-tight">
+            <div className="text-[12px] font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
               {getLeadName(lead)}
             </div>
-            {pendingLeadSet.has(lead.id) && (
+            {showContactEnrichProcessing(lead) && (
               <span
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  borderRadius: 999,
-                  border: '1px solid rgba(124, 58, 237, 0.28)',
-                  background: 'rgba(124, 58, 237, 0.08)',
-                  color: 'var(--color-primary)',
-                  fontSize: 8,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  borderRadius: 9999,
+                  border: "1px solid rgba(124, 58, 237, 0.28)",
+                  background: "rgba(124, 58, 237, 0.08)",
+                  color: "var(--color-primary)",
+                  fontSize: 10,
                   fontWeight: 600,
-                  padding: '2px 8px'
+                  padding: "3px 8px",
+                  lineHeight: 1.2,
                 }}
               >
-                <Icons.Loader size={8} strokeWidth={2} style={{ animation: 'spin 0.9s linear infinite' }} />
-                Processing
+                <Icons.Loader size={10} strokeWidth={2} style={{ animation: "spin 0.9s linear infinite", flexShrink: 0 }} />
+                <span style={{ whiteSpace: "nowrap" }}>Processing</span>
               </span>
             )}
           </div>
@@ -351,9 +373,9 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
         const emailInfo = getEmailInfo(lead.email, lead.enrichment);
         const emailText = getEmailDisplayText(emailInfo);
         return emailInfo.isValid ? (
-          <div className="text-[10px] leading-snug text-slate-800 dark:text-slate-200">{emailText}</div>
+          <div className="text-[12px] leading-snug text-slate-800 dark:text-slate-200">{emailText}</div>
         ) : (
-          <span className="text-[10px] text-slate-400 dark:text-slate-500" aria-label="No email">
+          <span className="text-[12px] text-slate-400 dark:text-slate-500" aria-label="No email">
             —
           </span>
         );
@@ -362,13 +384,13 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       case 'phone':
         const phoneInfo = getPhoneInfo(lead.phone, lead.enrichment);
         return phoneInfo.normalized ? (
-          <div className="text-[10px] leading-snug">
+          <div className="text-[12px] leading-snug">
             <a href={`tel:${phoneInfo.normalized}`} className="text-blue-600 hover:underline dark:text-blue-400">
               {phoneInfo.normalized}
             </a>
           </div>
         ) : (
-          <div className="text-[10px] italic text-slate-400 dark:text-slate-500">—</div>
+          <div className="text-[12px] italic text-slate-400 dark:text-slate-500">—</div>
         );
       
       case 'owner':
@@ -382,7 +404,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       case 'score': {
         const s = lead.score;
         if (s === null || s === undefined) {
-          return <span className="text-[10px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
+          return <span className="text-[12px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
         }
         const n = Number(s);
         const scoreColor =
@@ -397,7 +419,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                   : "#475569";
         return (
           <span
-            className="inline-flex min-w-[2rem] items-center text-[11px] tabular-nums font-semibold"
+            className="inline-flex min-w-[2rem] items-center text-[12px] tabular-nums font-semibold"
             style={{ color: scoreColor }}
           >
             {s}
@@ -408,7 +430,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       case 'tier': {
         const t = lead.tier;
         if (!t) {
-          return <span className="text-[10px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
+          return <span className="text-[12px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
         }
         const TierIcon =
           t === "Hot" ? Icons.Flame : t === "Warm" ? Icons.Thermometer : Icons.Snowflake;
@@ -416,7 +438,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
           t === "Hot" ? "#be123c" : t === "Warm" ? "#b45309" : "#0369a1";
         return (
           <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-tight"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold tracking-tight"
             style={{ color: tierColor }}
           >
             <TierIcon size={13} strokeWidth={2} style={{ color: tierColor, flexShrink: 0 }} aria-hidden />
@@ -437,9 +459,9 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
 
       case 'company':
         return lead.company ? (
-          <div className="text-[10px] leading-snug text-slate-500 dark:text-slate-400">{lead.company}</div>
+          <div className="text-[12px] leading-snug text-slate-600 dark:text-slate-300">{lead.company}</div>
         ) : (
-          <div className="text-[10px] text-slate-400 dark:text-slate-500">—</div>
+          <div className="text-[12px] text-slate-400 dark:text-slate-500">—</div>
         );
       
       default:
@@ -458,8 +480,8 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
           background: embedded ? "var(--color-surface-secondary)" : "var(--color-surface)",
         }}
       >
-        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text)" }}>No leads match</div>
-        <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 8 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text)" }}>No leads match</div>
+        <div style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 8 }}>
           Try adjusting search or filters.
         </div>
       </div>
@@ -480,6 +502,10 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
       }}
     >
       <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
         .leads-table-scroll {
           scrollbar-width: thin;
           scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
@@ -588,7 +614,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                           style={{
                             padding: "12px 14px",
                             fontWeight: 600,
-                            fontSize: 11,
+                            fontSize: 12,
                             color: "var(--color-text-muted)",
                             letterSpacing: "0.06em",
                             textTransform: "uppercase",
@@ -624,7 +650,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                                 ...WIZARD_LEAD_TD,
                                 textAlign: "center",
                                 verticalAlign: "middle",
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: "var(--color-text-muted)",
                                 fontWeight: 600,
                                 position: "sticky",
@@ -730,7 +756,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                             ...WIZARD_LEAD_TD,
                             textAlign: "center",
                             verticalAlign: "middle",
-                            fontSize: 11,
+                            fontSize: 12,
                             color: "var(--color-text-muted)",
                             fontWeight: 600,
                             position: "sticky",
@@ -821,11 +847,11 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                 gap: 10,
                 padding: "8px 12px",
                 borderTop: "1px solid var(--color-border)",
-                fontSize: 12,
+                fontSize: 13,
                 color: "var(--color-text-muted)",
               }}
             >
-              <span style={{ lineHeight: "32px", fontSize: 12 }}>
+              <span style={{ lineHeight: "32px", fontSize: 13 }}>
                 Showing{" "}
                 <strong style={{ color: "var(--color-text)" }}>
                   {(pagination.currentPage - 1) * pagination.leadsPerPage + 1}
@@ -855,7 +881,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                     borderRadius: 6,
                     border: "1px solid #e5e7eb",
                     background: "var(--color-surface)",
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "#374151",
                     cursor: pagination.currentPage === 1 ? "not-allowed" : "pointer",
@@ -884,7 +910,7 @@ export function DynamicLeadsTable({ leads, pendingLeadIds = [], embedded = false
                     borderRadius: 6,
                     border: "1px solid #e5e7eb",
                     background: "var(--color-surface)",
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "#374151",
                     cursor: pagination.currentPage === pagination.totalPages ? "not-allowed" : "pointer",

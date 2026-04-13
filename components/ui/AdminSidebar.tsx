@@ -463,6 +463,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           }}
         >
           <nav
+            className="sidebar-nav-scroll"
             style={{
               flex: "0 1 auto",
               overflowX: "hidden",

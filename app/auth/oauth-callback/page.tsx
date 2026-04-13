@@ -3,6 +3,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { setToken, setUser, authAPI, getUser } from "@/lib/apiClient";
+import { useBaseStore } from "@/stores/useBaseStore";
 import { routeAfterSuccessfulSession } from "@/lib/authRouting";
 import OAuthCompletingScreen from "@/components/auth/OAuthCompletingScreen";
 
@@ -37,6 +38,7 @@ function OAuthCallbackContent() {
           router.replace("/auth/verify-required");
           return;
         }
+        await useBaseStore.getState().refreshBases();
         await routeAfterSuccessfulSession(router, null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to complete Google sign-in.");

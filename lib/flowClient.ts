@@ -13,10 +13,9 @@ export async function createAIPlan(goal: string) {
 }
 
 export async function acceptAIPlan(planId: string) {
-  const user = getUser();
   const data = await apiRequest("/ai/plan/accept", {
     method: "POST",
-    body: JSON.stringify({ plan_id: planId, user_id: user?.id || 1 })
+    body: JSON.stringify({ plan_id: planId }),
   });
   return data;
 }

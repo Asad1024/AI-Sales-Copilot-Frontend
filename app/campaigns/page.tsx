@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
+import { apiRequest } from "@/lib/apiClient";
 import { useSocket } from "@/hooks/useSocket";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
@@ -19,15 +20,17 @@ export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId, bases, refreshBases } = useBaseStore();
   const { pagination, fetchLeads } = useLeadStore();
-  const { 
-    loading, 
-    fetchCampaigns, 
+  const {
+    fetchCampaigns,
     filters,
     setFilters,
     getFilteredCampaigns,
-    refreshCampaign 
+    refreshCampaign,
   } = useCampaignStore();
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  /** One gate for campaigns list + stats + tier insights (avoids a second loader after fetchCampaigns). */
+  const [campaignsPageReady, setCampaignsPageReady] = useState(() => !activeBaseId);
+  const [tierLeadsForInsights, setTierLeadsForInsights] = useState<any[]>([]);
   
   const socket = useSocket();
 
@@ -37,16 +40,39 @@ export default function CampaignsPage() {
     }
   }, [activeBaseId, bases.length, refreshBases]);
 
-  // Fetch campaigns when base changes
   useEffect(() => {
-    fetchCampaigns(activeBaseId);
-  }, [activeBaseId, fetchCampaigns]);
-
-  // Ensure lead totals are available for "add leads first" guidance.
-  useEffect(() => {
-    if (!activeBaseId) return;
-    fetchLeads(activeBaseId, 1, 1);
-  }, [activeBaseId, fetchLeads]);
+    if (!activeBaseId) {
+      setCampaignsPageReady(true);
+      setTierLeadsForInsights([]);
+      return;
+    }
+    let cancelled = false;
+    setCampaignsPageReady(false);
+    (async () => {
+      try {
+        const [leadsPayload] = await Promise.all([
+          apiRequest(`/leads?base_id=${activeBaseId}&page=1&limit=100`),
+          fetchCampaigns(activeBaseId),
+          fetchLeads(activeBaseId, 1, 1),
+        ]);
+        if (cancelled) return;
+        const list = Array.isArray(leadsPayload?.leads)
+          ? leadsPayload.leads
+          : Array.isArray(leadsPayload)
+            ? leadsPayload
+            : [];
+        setTierLeadsForInsights(list);
+      } catch (e) {
+        console.error("[CampaignsPage] initial load:", e);
+        if (!cancelled) setTierLeadsForInsights([]);
+      } finally {
+        if (!cancelled) setCampaignsPageReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeBaseId, fetchCampaigns, fetchLeads]);
 
   // Listen for real-time campaign metrics updates via WebSocket
   useEffect(() => {
@@ -221,12 +247,12 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
-      {activeBaseId && loading ? (
+      {activeBaseId && !campaignsPageReady ? (
         <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
       ) : (
         <>
           <CampaignStats />
-          <TierBreakdown />
+          <TierBreakdown leadsForTiers={tierLeadsForInsights} />
           <CampaignGrid campaigns={filteredCampaigns} />
         </>
       )}

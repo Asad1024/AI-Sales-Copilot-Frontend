@@ -78,13 +78,21 @@ interface LeadStore {
   setDrawerOpen: (open: boolean) => void;
   
   // API Actions
-  fetchLeads: (baseId: number | null, page?: number, limit?: number, force?: boolean) => Promise<void>;
+  fetchLeads: (
+    baseId: number | null,
+    page?: number,
+    limit?: number,
+    force?: boolean,
+    opts?: { quiet?: boolean }
+  ) => Promise<void>;
   createLead: (lead: Partial<Lead>) => Promise<Lead | null>;
   updateLead: (id: number, updates: Partial<Lead>) => Promise<void>;
   deleteLead: (id: number) => Promise<void>;
   bulkDeleteLeads: (ids: number[]) => Promise<void>;
   clearCache: (baseId?: number) => void;
-  
+  /** After refetch, keep the open drawer in sync with the latest row from `leads`. */
+  syncDrawerLeadFromRows: () => void;
+
   // Computed
   getFilteredLeads: () => Lead[];
 }
@@ -160,8 +168,17 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       set({ leadCache: {} });
     }
   },
+
+  syncDrawerLeadFromRows: () => {
+    const { drawerLead, leads } = get();
+    if (!drawerLead?.id) return;
+    const row = leads.find((l) => l.id === drawerLead.id);
+    if (!row) return;
+    set({ drawerLead: { ...row } });
+  },
   
-  fetchLeads: async (baseId, page = 1, limit = 50, force = false) => {
+  fetchLeads: async (baseId, page = 1, limit = 50, force = false, opts) => {
+    const quiet = Boolean(opts?.quiet);
     if (!baseId) {
       set({ leads: [], loading: false });
       return;
@@ -191,14 +208,21 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       }
     }
     
-    set({ loading: true, lastFetchKey: fetchKey });
+    if (quiet) {
+      set({ lastFetchKey: fetchKey });
+    } else {
+      set({ loading: true, lastFetchKey: fetchKey });
+    }
     try {
       const params = new URLSearchParams({
         base_id: String(baseId),
         page: String(page),
         limit: String(limit),
       });
-      
+      if (force) {
+        params.append("_cb", String(Date.now()));
+      }
+
       const data = await apiRequest(`/leads?${params}`);
       const leadsList = data?.leads || [];
       const pagination = data?.pagination || {
@@ -218,7 +242,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       // Update cache
       set((state) => ({
         leads: leadsList,
-        loading: false,
+        loading: quiet ? state.loading : false,
         pagination: paginationState,
         leadCache: {
           ...state.leadCache,
@@ -231,7 +255,11 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       }));
     } catch (error) {
       console.error('Failed to fetch leads:', error);
-      set({ leads: [], loading: false, lastFetchKey: null });
+      set((state) => ({
+        leads: [],
+        loading: quiet ? state.loading : false,
+        lastFetchKey: null,
+      }));
     }
   },
   

@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useCallback } from "react";
 import { getToken, isAuthenticated } from "@/lib/apiClient";
 import { useBaseStore } from "@/stores/useBaseStore";
 
@@ -8,7 +8,7 @@ type Base = { id: number; name: string };
 type BaseContextType = {
   bases: Base[];
   activeBaseId: number | null;
-  setActiveBaseId: (id: number | null) => void;
+  setActiveBaseId: (id: number | null, options?: { name?: string }) => void;
   refreshBases: () => Promise<void>;
 };
 
@@ -31,57 +31,42 @@ function BaseProviderInner({ children }: { children: React.ReactNode }) {
     setActiveBaseId: setActiveBaseIdStore, 
     refreshBases: refreshBasesStore 
   } = useBaseStore();
-  
-  const isRefreshingRef = useRef(false);
-  const hasInitializedRef = useRef(false);
 
-  const setActiveBaseId = useCallback((id: number | null) => {
-    setActiveBaseIdStore(id);
+  const setActiveBaseId = useCallback((id: number | null, options?: { name?: string }) => {
+    setActiveBaseIdStore(id, options);
   }, [setActiveBaseIdStore]);
 
   const refreshBases = useCallback(async () => {
-    // Prevent concurrent refreshes
-    if (isRefreshingRef.current) {
-      return Promise.resolve();
-    }
-    
-    // Check if we have a token before making the request
     const token = getToken();
     if (!token) {
-      console.log("[BaseContext] No token available, skipping bases fetch");
       return;
     }
-    
     try {
-      isRefreshingRef.current = true;
       await refreshBasesStore();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[BaseContext] Failed to fetch bases:", error);
-    } finally {
-      isRefreshingRef.current = false;
     }
   }, [refreshBasesStore]);
 
   useEffect(() => {
-    // Only fetch if user is authenticated via our JWT token.
-    if (!isAuthenticated() || !getToken()) {
-      hasInitializedRef.current = false;
-      return;
-    }
-
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      refreshBases();
-    }
-
-    // Auto-refresh bases every 5 minutes
-    const interval = setInterval(() => {
-      if (isAuthenticated() && getToken()) {
-        refreshBases();
+    const runIfAuthed = () => {
+      if (!isAuthenticated() || !getToken()) {
+        return;
       }
-    }, 5 * 60 * 1000);
+      void refreshBases();
+    };
 
-    return () => clearInterval(interval);
+    runIfAuthed();
+
+    /** Login/signup/OAuth set user after token; layout does not remount, so we must refetch here. */
+    window.addEventListener("sparkai:user-changed", runIfAuthed);
+
+    const interval = setInterval(runIfAuthed, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener("sparkai:user-changed", runIfAuthed);
+      clearInterval(interval);
+    };
   }, [refreshBases]);
 
   const value = useMemo(() => ({ 

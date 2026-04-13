@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, type CSSProperties } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
-import { onNotification, offNotification } from "@/lib/websocketClient";
 import { API_BASE } from "@/lib/api";
 import { getToken, apiRequest } from "@/lib/apiClient";
 import { LeadsToolbar } from "@/app/leads/components/LeadsToolbar";
@@ -18,6 +17,7 @@ import { Icons } from "@/components/ui/Icons";
 import { LeadsImportEmptyGrid } from "@/app/leads/components/LeadsImportEmptyGrid";
 import { LeadsEmptyWorkspaceBanner } from "@/app/leads/components/LeadsEmptyWorkspaceBanner";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { leadHasAsyncContactEnrichResult } from "@/lib/contactEnrichmentStatus";
 
 const EnhancedCsvImportModal = dynamic(() => import("@/components/leads/EnhancedCsvImportModal").then(m => ({ default: m.EnhancedCsvImportModal })), { ssr: false });
 const AIGenerateModal = dynamic(() => import("@/components/leads/AIGenerateModal"), { ssr: false });
@@ -72,8 +72,46 @@ export default function BaseLeadsPage() {
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [showSchemaSidebar, setShowSchemaSidebar] = useState(false);
   const [pendingEnrichmentLeadIds, setPendingEnrichmentLeadIds] = useState<number[]>([]);
-  const [pendingEnrichmentStartedAt, setPendingEnrichmentStartedAt] = useState<number | null>(null);
-  const [pendingElapsedSeconds, setPendingElapsedSeconds] = useState(0);
+  /** Shown only after FullEnrich webhook (socket): refresh grid + workspace credits once. */
+  const [enrichmentRefreshing, setEnrichmentRefreshing] = useState(false);
+  /** Dedupe rapid duplicate socket + window events for the same completion. */
+  const lastEnrichmentEventAtRef = useRef(0);
+  /** Wall-clock seconds while any contact enrichment is pending (resets when queue empties). */
+  const enrichmentBannerStartedAtRef = useRef<number | null>(null);
+  const [enrichmentBannerElapsedSec, setEnrichmentBannerElapsedSec] = useState(0);
+
+  const enrichmentQueueProgress = useMemo(() => {
+    const ids = pendingEnrichmentLeadIds;
+    if (ids.length === 0) return null;
+    let done = 0;
+    for (const pid of ids) {
+      const row = leads.find((r) => Number(r.id) === Number(pid));
+      if (row && leadHasAsyncContactEnrichResult(row.enrichment)) done += 1;
+    }
+    const total = ids.length;
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    return { done, total, pct, remaining: total - done };
+  }, [pendingEnrichmentLeadIds, leads]);
+
+  const enrichmentBannerActive = pendingEnrichmentLeadIds.length > 0;
+  useEffect(() => {
+    if (!enrichmentBannerActive) {
+      enrichmentBannerStartedAtRef.current = null;
+      setEnrichmentBannerElapsedSec(0);
+      return;
+    }
+    if (enrichmentBannerStartedAtRef.current == null) {
+      enrichmentBannerStartedAtRef.current = Date.now();
+    }
+    const tick = () => {
+      const start = enrichmentBannerStartedAtRef.current;
+      if (start == null) return;
+      setEnrichmentBannerElapsedSec(Math.floor((Date.now() - start) / 1000));
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [enrichmentBannerActive]);
 
   const filteredLeads = getFilteredLeads();
   const currentBaseId = baseId || activeBaseId;
@@ -110,7 +148,8 @@ export default function BaseLeadsPage() {
       }
 
       if (baseId !== activeBaseId) {
-        setActiveBaseId(baseId);
+        const b = useBaseStore.getState().bases.find((x) => x.id === baseId);
+        setActiveBaseId(baseId, b ? { name: b.name } : undefined);
       }
     };
 
@@ -135,8 +174,16 @@ export default function BaseLeadsPage() {
   }, [currentBaseId, clearCache]);
 
   const loadImportConnectors = useCallback(async () => {
+    if (!currentBaseId) {
+      setConnectorImportMeta({ airtable: false, sheets: false });
+      return;
+    }
+    const qs = `?base_id=${encodeURIComponent(String(currentBaseId))}`;
     try {
-      const [intRes, vaultRes] = await Promise.all([apiRequest("/integrations"), apiRequest("/me/connector-vault")]);
+      const [intRes, vaultRes] = await Promise.all([
+        apiRequest(`/integrations${qs}`),
+        apiRequest(`/me/connector-vault${qs}`),
+      ]);
       const integrations = intRes?.integrations || [];
       const airtable = integrations.some(
         (i: { provider?: string; config?: { api_key?: string } }) =>
@@ -152,7 +199,7 @@ export default function BaseLeadsPage() {
     } catch {
       setConnectorImportMeta({ airtable: false, sheets: false });
     }
-  }, []);
+  }, [currentBaseId]);
 
   useEffect(() => {
     if (!currentBaseId) return;
@@ -162,59 +209,81 @@ export default function BaseLeadsPage() {
   useEffect(() => {
     if (!currentBaseId) return;
 
-    const handleEnrichmentCompleted = (notification: any) => {
+    const onEnrichmentCompleted = (ev: Event) => {
+      const notification = (ev as CustomEvent<{ type?: string; metadata?: Record<string, unknown> }>).detail;
+      if (!notification || notification.type !== "enrichment_completed") return;
+
       const notificationBaseId = notification.metadata?.base_id;
-      const notificationBaseIds = notification.metadata?.base_ids || [];
+      const notificationBaseIds = notification.metadata?.base_ids;
+      const cur = Number(currentBaseId);
       const isForCurrentBase =
-        notificationBaseId === currentBaseId || notificationBaseIds.includes(currentBaseId);
+        Number(notificationBaseId) === cur ||
+        (Array.isArray(notificationBaseIds) &&
+          notificationBaseIds.some((bid: unknown) => Number(bid) === cur));
 
-      if (notification.type === "enrichment_completed" && isForCurrentBase) {
-        setPendingEnrichmentLeadIds([]);
-        setPendingEnrichmentStartedAt(null);
-        setPendingElapsedSeconds(0);
+      if (!isForCurrentBase) return;
 
-        clearCache(currentBaseId);
-        setTimeout(() => {
-          fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
-        }, 500);
+      const now = Date.now();
+      if (now - lastEnrichmentEventAtRef.current < 1200) return;
+      lastEnrichmentEventAtRef.current = now;
 
-        const count =
-          notification.metadata?.enriched_count ?? notification.metadata?.updated_count ?? 0;
+      const count =
+        Number(notification.metadata?.enriched_count) ||
+        Number(notification.metadata?.updated_count) ||
+        0;
+
+      clearCache(currentBaseId);
+
+      void (async () => {
+        setEnrichmentRefreshing(true);
+        try {
+          const { pagination: pag } = useLeadStore.getState();
+          await fetchLeads(currentBaseId, pag.currentPage, pag.leadsPerPage, true, { quiet: true });
+          useLeadStore.getState().syncDrawerLeadFromRows();
+          setPendingEnrichmentLeadIds([]);
+          await refreshBases();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("sparkai:active-base-changed"));
+          }
+        } finally {
+          setEnrichmentRefreshing(false);
+        }
         showSuccess(
-          "Contact details updated",
+          "Enrich successfully",
           count > 0
-            ? `${count} lead(s) now have updated contact information.`
-            : "Your leads have been refreshed with the latest contact details."
+            ? `${count} lead(s) now have updated contact details.`
+            : "Your lead list has been refreshed."
         );
-      }
+      })();
     };
 
-    onNotification(handleEnrichmentCompleted);
-    return () => offNotification(handleEnrichmentCompleted);
-  }, [
-    currentBaseId,
-    fetchLeads,
-    pagination.currentPage,
-    pagination.leadsPerPage,
-    clearCache,
-    showSuccess,
-  ]);
+    window.addEventListener("sparkai:enrichment-completed", onEnrichmentCompleted as EventListener);
+    return () => {
+      window.removeEventListener("sparkai:enrichment-completed", onEnrichmentCompleted as EventListener);
+    };
+  }, [currentBaseId, fetchLeads, clearCache, showSuccess, refreshBases]);
 
   useEffect(() => {
     setPendingEnrichmentLeadIds([]);
-    setPendingEnrichmentStartedAt(null);
-    setPendingElapsedSeconds(0);
+    setEnrichmentRefreshing(false);
   }, [currentBaseId]);
 
+  /**
+   * If the realtime notification was missed, drop pending rows once fetched leads show a webhook completion stamp.
+   * If a pending id is not on the current page, remove it so "Processing" badges do not stick when paginated.
+   */
   useEffect(() => {
-    if (pendingEnrichmentLeadIds.length === 0 || !pendingEnrichmentStartedAt) return;
-    const interval = window.setInterval(() => {
-      setPendingElapsedSeconds(
-        Math.max(0, Math.floor((Date.now() - pendingEnrichmentStartedAt) / 1000))
-      );
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [pendingEnrichmentLeadIds.length, pendingEnrichmentStartedAt]);
+    setPendingEnrichmentLeadIds((prev) => {
+      if (prev.length === 0) return prev;
+      const rows = useLeadStore.getState().leads;
+      const next = prev.filter((pid) => {
+        const row = rows.find((r) => Number(r.id) === Number(pid));
+        if (!row) return false;
+        return !leadHasAsyncContactEnrichResult(row.enrichment);
+      });
+      return next.length === prev.length ? prev : next;
+    });
+  }, [leads]);
 
   const handleEnrich = () => {
     if (!currentBaseId) {
@@ -500,43 +569,28 @@ export default function BaseLeadsPage() {
               flexShrink: 0,
             }}
           >
-            <Icons.Sparkles size={20} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+            <Icons.Loader size={22} strokeWidth={2} style={{ color: "var(--color-primary)", animation: "spin 0.9s linear infinite" }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
               Finding contact details
             </div>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 6, lineHeight: 1.5 }}>
-              {pendingEnrichmentLeadIds.length} lead(s) are being updated. Your table will refresh automatically when each
-              one is ready—no need to reload the page.
+              {enrichmentQueueProgress
+                ? `${enrichmentQueueProgress.remaining} lead(s) still updating. Results appear as each row finishes (table may refresh briefly when all complete).`
+                : `${pendingEnrichmentLeadIds.length} lead(s) are being updated.`}
             </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexShrink: 0,
-              padding: "6px 12px",
-              borderRadius: 10,
-              background: "var(--color-surface-secondary)",
-              border: "1px solid var(--color-border-light)",
-            }}
-          >
-            <span
+            <div
               style={{
-                width: 10,
-                height: 10,
-                border: "2px solid rgba(124, 58, 237, 0.3)",
-                borderTopColor: "var(--color-primary)",
-                borderRadius: "50%",
-                display: "inline-block",
-                animation: "spin 0.75s linear infinite",
+                marginTop: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-text-muted)",
+                fontVariantNumeric: "tabular-nums",
               }}
-            />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>
-              {pendingElapsedSeconds}s
-            </span>
+            >
+              {enrichmentBannerElapsedSec}s
+            </div>
           </div>
         </div>
       )}
@@ -592,16 +646,45 @@ export default function BaseLeadsPage() {
               />
             </div>
           ) : (
-            <div style={{ flex: 1, minHeight: 0, padding: "0 4px" }}>
-            <DynamicLeadsTable 
-                embedded
-              leads={filteredLeads}
-                pendingLeadIds={pendingEnrichmentLeadIds}
-                onLeadClick={lead => {
-                setDrawerLead(lead);
-                setDrawerOpen(true);
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                padding: "0 4px",
+                position: "relative",
               }}
-            />
+            >
+              {enrichmentRefreshing && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "color-mix(in srgb, var(--color-surface) 92%, transparent)",
+                    backdropFilter: "blur(3px)",
+                    borderRadius: 12,
+                  }}
+                >
+                  <GlobalPageLoader
+                    layout="embedded"
+                    fill
+                    ariaLabel="Updating leads after enrichment"
+                    message="Refreshing leads…"
+                  />
+                </div>
+              )}
+              <DynamicLeadsTable
+                embedded
+                leads={filteredLeads}
+                pendingLeadIds={pendingEnrichmentLeadIds}
+                onLeadClick={(lead) => {
+                  setDrawerLead(lead);
+                  setDrawerOpen(true);
+                }}
+              />
             </div>
           )}
         </div>
@@ -672,7 +755,13 @@ export default function BaseLeadsPage() {
       {drawerOpen && drawerLead && (
         <LeadDrawer 
           lead={drawerLead}
-          contactEnrichmentPending={pendingEnrichmentLeadIds.includes(drawerLead.id)}
+          contactEnrichmentPending={(() => {
+            const id = Number(drawerLead.id);
+            const inPending = pendingEnrichmentLeadIds.some((x) => Number(x) === id);
+            const row = leads.find((l) => Number(l.id) === id);
+            const enrichment = (row ?? drawerLead).enrichment;
+            return inPending && !leadHasAsyncContactEnrichResult(enrichment);
+          })()}
           onClose={() => {
             setDrawerOpen(false);
             setDrawerLead(null);
@@ -690,13 +779,11 @@ export default function BaseLeadsPage() {
         onClose={() => setShowEnrichModal(false)}
         pendingLeadIds={pendingEnrichmentLeadIds}
         onAsyncEnrichmentStarted={({ leadIds }) => {
-          setPendingEnrichmentLeadIds(current => {
+          setPendingEnrichmentLeadIds((current) => {
             const next = new Set(current);
-            leadIds.forEach(id => next.add(id));
+            leadIds.forEach((id) => next.add(id));
             return Array.from(next);
           });
-          setPendingEnrichmentStartedAt(Date.now());
-          setPendingElapsedSeconds(0);
         }}
         onEnriched={async () => {
           if (currentBaseId) {

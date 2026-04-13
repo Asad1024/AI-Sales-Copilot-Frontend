@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -54,6 +54,11 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
     errors?: string[];
   } | null>(null);
 
+  const previewWorkspaceQs = useMemo(() => {
+    const n = Number(targetBaseId);
+    return Number.isFinite(n) && n > 0 ? `?workspace_base_id=${encodeURIComponent(String(n))}` : "";
+  }, [targetBaseId]);
+
   useEffect(() => {
     if (!open) return;
     setStep("map");
@@ -67,7 +72,7 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
     const load = async () => {
       setLoading(true);
       try {
-        const data = await apiRequest("/integrations/google-sheet/preview");
+        const data = await apiRequest(`/integrations/google-sheet/preview${previewWorkspaceQs}`);
         const h = (data.headers || []) as string[];
         setHeaders(h);
         setSheetMeta({
@@ -91,7 +96,7 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
       }
     };
     void load();
-  }, [open]);
+  }, [open, previewWorkspaceQs, showError]);
 
   const handleImport = async () => {
     if (!Object.values(fieldMapping).includes("email")) {

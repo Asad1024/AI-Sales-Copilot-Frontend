@@ -264,6 +264,38 @@ html, body {
   background: #64748b;
 }
 
+/* Sidebar nav: light neutral scrollbar (not purple AI theme) */
+.sidebar-nav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+.sidebar-nav-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-nav-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+[data-theme="dark"] .sidebar-nav-scroll {
+  scrollbar-color: #475569 #1e293b;
+}
+[data-theme="dark"] .sidebar-nav-scroll::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+[data-theme="dark"] .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+[data-theme="dark"] .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
 /* AI glow effects */
 .ai-glow {
   animation: glow 2s ease-in-out infinite alternate;
@@ -692,6 +724,9 @@ input::placeholder, textarea::placeholder {
   justify-content: center;
   gap: 8px;
   line-height: 1;
+  min-height: 36px;
+  padding: 10px 16px;
+  box-sizing: border-box;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   box-shadow: none;
 }

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
@@ -29,24 +29,26 @@ export default function CRMImportModal({ open, onClose, onImported, onOpenAirtab
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  useEffect(() => {
-    if (open) {
-      loadIntegrations();
-    }
-  }, [open]);
-
-  const loadIntegrations = async () => {
+  const loadIntegrations = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiRequest('/integrations');
+      const n = targetBaseId == null ? NaN : Number(targetBaseId);
+      const qs = Number.isFinite(n) && n > 0 ? `?base_id=${encodeURIComponent(String(n))}` : "";
+      const data = await apiRequest(`/integrations${qs}`);
       setIntegrations(data?.integrations || []);
     } catch (error) {
-      console.error('Failed to load integrations:', error);
+      console.error("Failed to load integrations:", error);
       setIntegrations([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [targetBaseId]);
+
+  useEffect(() => {
+    if (open) {
+      void loadIntegrations();
+    }
+  }, [open, loadIntegrations]);
 
   const getIntegrationStatus = (providerName: string) => {
     const providerInfo = CRM_PROVIDERS.find(p => p.name === providerName);

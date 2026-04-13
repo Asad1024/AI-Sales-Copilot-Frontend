@@ -166,7 +166,7 @@ export function TestConfigurationSection() {
             key={label}
             type="button"
             onClick={open}
-            className="header-utility-btn"
+            className="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(124,58,237,0.35)] focus-visible:ring-offset-2"
             aria-label={`Open ${label} test`}
             style={{
               textAlign: "left",
@@ -270,7 +270,7 @@ export function TestConfigurationSection() {
                 }}
               />
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" style={{ borderRadius: 8 }} disabled={testingEmail} onClick={() => setShowTestEmailModal(false)}>
+                <button type="button" className="btn-ghost" disabled={testingEmail} onClick={() => setShowTestEmailModal(false)}>
                   Cancel
                 </button>
                 <button
@@ -328,7 +328,7 @@ export function TestConfigurationSection() {
                 }}
               />
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" style={{ borderRadius: 8 }} disabled={testingLinkedIn} onClick={() => setShowTestLinkedInModal(false)}>
+                <button type="button" className="btn-ghost" disabled={testingLinkedIn} onClick={() => setShowTestLinkedInModal(false)}>
                   Cancel
                 </button>
                 <button
@@ -386,7 +386,7 @@ export function TestConfigurationSection() {
                 }}
               />
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" style={{ borderRadius: 8 }} disabled={testingWhatsApp} onClick={() => setShowTestWhatsAppModal(false)}>
+                <button type="button" className="btn-ghost" disabled={testingWhatsApp} onClick={() => setShowTestWhatsAppModal(false)}>
                   Cancel
                 </button>
                 <button
@@ -444,7 +444,7 @@ export function TestConfigurationSection() {
                 }}
               />
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" style={{ borderRadius: 8 }} disabled={testingCall} onClick={() => setShowTestCallModal(false)}>
+                <button type="button" className="btn-ghost" disabled={testingCall} onClick={() => setShowTestCallModal(false)}>
                   Cancel
                 </button>
                 <button

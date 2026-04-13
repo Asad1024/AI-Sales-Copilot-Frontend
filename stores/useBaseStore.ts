@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiRequest } from '@/lib/apiClient';
+import { writeActiveBaseSnapshot, clearActiveBaseSnapshot } from '@/lib/activeBaseSnapshot';
 
 export interface Base {
   id: number;
@@ -32,11 +33,14 @@ interface BaseStore {
   loading: boolean;
   
   setBases: (bases: Base[]) => void;
-  setActiveBaseId: (id: number | null) => void;
+  setActiveBaseId: (id: number | null, options?: { name?: string }) => void;
   setLoading: (loading: boolean) => void;
   refreshBases: () => Promise<void>;
   getActiveBase: () => Base | undefined;
 }
+
+/** Coalesce overlapping /bases calls (login + BaseProvider, profile save events, etc.). */
+let refreshBasesInFlight: Promise<void> | null = null;
 
 export const useBaseStore = create<BaseStore>((set, get) => ({
   bases: [],
@@ -45,14 +49,18 @@ export const useBaseStore = create<BaseStore>((set, get) => ({
   
   setBases: (bases) => set({ bases }),
   
-  setActiveBaseId: (id) => {
+  setActiveBaseId: (id, options) => {
     set({ activeBaseId: id });
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("sparkai:active-base-changed"));
       // Update localStorage
       if (id === null) {
         localStorage.removeItem("sparkai:active_base_id");
+        clearActiveBaseSnapshot();
       } else {
         localStorage.setItem("sparkai:active_base_id", String(id));
+        const name = options?.name ?? get().bases.find((b) => b.id === id)?.name;
+        if (name) writeActiveBaseSnapshot(id, name);
       }
       
       // Update URL if we're on a base-scoped route
@@ -73,44 +81,59 @@ export const useBaseStore = create<BaseStore>((set, get) => ({
   setLoading: (loading) => set({ loading }),
   
   refreshBases: async () => {
-    set({ loading: true });
-    try {
-      const data = await apiRequest('/bases');
-      const basesList = Array.isArray(data?.bases) ? data.bases : (Array.isArray(data) ? data : []);
-      set({ bases: basesList, loading: false });
-
-      if (typeof window === "undefined") return;
-
-      const ids = new Set(basesList.map((b: Base) => b.id));
-      let nextActive = get().activeBaseId;
-
-      if (nextActive != null && !ids.has(nextActive)) {
-        nextActive = null;
-      }
-
-      if (nextActive == null && basesList.length > 0) {
-        const stored = localStorage.getItem("sparkai:active_base_id");
-        const storedNum = stored ? Number(stored) : NaN;
-        if (stored && !Number.isNaN(storedNum) && ids.has(storedNum)) {
-          nextActive = storedNum;
-        } else {
-          nextActive = basesList[0].id;
-        }
-      }
-
-      if (nextActive !== get().activeBaseId) {
-        set({ activeBaseId: nextActive });
-      }
-
-      if (nextActive == null) {
-        localStorage.removeItem("sparkai:active_base_id");
-      } else {
-        localStorage.setItem("sparkai:active_base_id", String(nextActive));
-      }
-    } catch (error) {
-      console.error('Failed to fetch bases:', error);
-      set({ bases: [], loading: false });
+    if (refreshBasesInFlight) {
+      return refreshBasesInFlight;
     }
+    refreshBasesInFlight = (async () => {
+      set({ loading: true });
+      try {
+        const data = await apiRequest('/bases');
+        const basesList = Array.isArray(data?.bases) ? data.bases : (Array.isArray(data) ? data : []);
+        set({ bases: basesList, loading: false });
+
+        if (typeof window === "undefined") return;
+
+        const ids = new Set(basesList.map((b: Base) => b.id));
+        const prevActive = get().activeBaseId;
+        let nextActive = prevActive;
+
+        if (nextActive != null && !ids.has(nextActive)) {
+          nextActive = null;
+        }
+
+        if (nextActive == null && basesList.length > 0) {
+          const stored = localStorage.getItem("sparkai:active_base_id");
+          const storedNum = stored ? Number(stored) : NaN;
+          if (stored && !Number.isNaN(storedNum) && ids.has(storedNum)) {
+            nextActive = storedNum;
+          } else {
+            nextActive = basesList[0].id;
+          }
+        }
+
+        if (nextActive !== prevActive) {
+          set({ activeBaseId: nextActive });
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("sparkai:active-base-changed"));
+          }
+        }
+
+        if (nextActive == null) {
+          localStorage.removeItem("sparkai:active_base_id");
+          clearActiveBaseSnapshot();
+        } else {
+          localStorage.setItem("sparkai:active_base_id", String(nextActive));
+          const chosen = basesList.find((b: Base) => b.id === nextActive);
+          if (chosen?.name) writeActiveBaseSnapshot(nextActive, chosen.name);
+        }
+      } catch (error) {
+        console.error('Failed to fetch bases:', error);
+        set({ bases: [], loading: false });
+      } finally {
+        refreshBasesInFlight = null;
+      }
+    })();
+    return refreshBasesInFlight;
   },
   
   getActiveBase: () => {

@@ -5,6 +5,55 @@ let socket: Socket | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 let cachedWebSocketUrl: string | null = null;
+let activeBaseListenerBound = false;
+
+function getStoredActiveBaseId(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const s = localStorage.getItem("sparkai:active_base_id");
+    if (!s) return null;
+    const n = Number(s);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function ensureActiveBaseWorkspaceBinding() {
+  if (typeof window === "undefined" || activeBaseListenerBound) return;
+  activeBaseListenerBound = true;
+  window.addEventListener("sparkai:active-base-changed", () => {
+    syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
+  });
+}
+
+/**
+ * Join or leave the server `base:{id}` room so workspace notifications (e.g. enrichment) reach teammates.
+ * Safe to call before the socket exists; no-ops when disconnected.
+ */
+export function syncWebSocketWorkspaceRoom(baseId: number | null): void {
+  if (!socket?.connected) return;
+  socket.emit("join_workspace", { base_id: baseId });
+}
+
+/** Many features register `notification` handlers; socket.io replaces the client on reconnect — fan out from one relay. */
+const notificationListeners = new Set<(notification: unknown) => void>();
+
+function fanOutNotification(notification: unknown) {
+  notificationListeners.forEach((cb) => {
+    try {
+      cb(notification);
+    } catch (e) {
+      console.error("[WebSocket] notification listener error:", e);
+    }
+  });
+}
+
+function bindNotificationRelay(sock: Socket | null) {
+  if (!sock) return;
+  sock.off("notification", fanOutNotification);
+  sock.on("notification", fanOutNotification);
+}
 
 /**
  * Get WebSocket URL from backend API
@@ -39,14 +88,25 @@ async function getWebSocketUrl(): Promise<string> {
  * Initialize WebSocket connection
  */
 export async function initializeWebSocket(): Promise<Socket | null> {
-  if (socket?.connected) {
-    return socket;
-  }
-
   const token = getToken();
   if (!token) {
     console.warn('[WebSocket] No token available, skipping connection');
     return null;
+  }
+
+  ensureActiveBaseWorkspaceBinding();
+
+  if (socket?.connected) {
+    bindNotificationRelay(socket);
+    syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
+    return socket;
+  }
+
+  /** Reuse the same client instance so `notification` listeners survive reconnects (do not orphan handlers with a second `io()`). */
+  if (socket && !socket.connected) {
+    bindNotificationRelay(socket);
+    socket.connect();
+    return socket;
   }
 
   const wsUrl = await getWebSocketUrl();
@@ -70,9 +130,13 @@ export async function initializeWebSocket(): Promise<Socket | null> {
     timeout: 20000,
   });
 
+  bindNotificationRelay(socket);
+
   socket.on('connect', () => {
     console.log('[WebSocket] ✅ Connected to notification server');
     reconnectAttempts = 0;
+    bindNotificationRelay(socket);
+    syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
   });
 
   socket.on('disconnect', (reason: string) => {
@@ -115,8 +179,10 @@ export function getWebSocket(): Socket | null {
  */
 export function disconnectWebSocket() {
   if (socket) {
+    socket.off("notification", fanOutNotification);
     socket.disconnect();
     socket = null;
+    notificationListeners.clear();
     console.log('[WebSocket] Disconnected');
   }
 }
@@ -132,12 +198,10 @@ export function isWebSocketConnected(): boolean {
  * Listen for notifications
  */
 export async function onNotification(callback: (notification: any) => void) {
-  if (!socket) {
-    socket = await initializeWebSocket();
-  }
-
-  if (socket) {
-    socket.on('notification', callback);
+  notificationListeners.add(callback);
+  const s = await initializeWebSocket();
+  if (s) {
+    bindNotificationRelay(s);
   }
 }
 
@@ -145,12 +209,10 @@ export async function onNotification(callback: (notification: any) => void) {
  * Remove notification listener
  */
 export function offNotification(callback?: (notification: any) => void) {
-  if (socket) {
-    if (callback) {
-      socket.off('notification', callback);
-    } else {
-      socket.off('notification');
-    }
+  if (callback) {
+    notificationListeners.delete(callback);
+    return;
   }
+  notificationListeners.clear();
 }
 

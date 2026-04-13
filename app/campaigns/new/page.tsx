@@ -2643,7 +2643,7 @@ export default function CampaignNew() {
         return;
       }
       try {
-        const integrations = await apiRequest('/integrations');
+        const integrations = await apiRequest(`/integrations/${activeBaseId}`);
         const linkedInIntegration = integrations.integrations?.find(
           (i: any) => i.provider === 'unipile_linkedin' && i.base_id === activeBaseId
         );

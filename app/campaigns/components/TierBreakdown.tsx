@@ -15,9 +15,18 @@ type TierKey = "Hot" | "Warm" | "Cold";
 
 const disclosureChevronTransition = "transform 0.42s cubic-bezier(0.33, 1, 0.68, 1)";
 
-export function TierBreakdown() {
+export type TierBreakdownProps = {
+  /**
+   * When set (including `[]`), tier math uses this list and the component does not fetch `/leads`.
+   * Omit to keep legacy self-fetch (e.g. if reused elsewhere).
+   */
+  leadsForTiers?: any[];
+};
+
+export function TierBreakdown({ leadsForTiers }: TierBreakdownProps) {
   const { activeBaseId } = useBaseStore();
-  const [leads, setLeads] = useState<any[]>([]);
+  const externallySupplied = leadsForTiers !== undefined;
+  const [internalLeads, setInternalLeads] = useState<any[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [insightsExpanded, setInsightsExpanded] = useState(false);
   const [showTierBreakdown, setShowTierBreakdown] = useState(false);
@@ -25,9 +34,13 @@ export function TierBreakdown() {
   const [showTierModal, setShowTierModal] = useState(false);
 
   useEffect(() => {
+    if (externallySupplied) {
+      setLoadingLeads(false);
+      return;
+    }
     const fetchLeads = async () => {
       if (!activeBaseId) {
-        setLeads([]);
+        setInternalLeads([]);
         setLoadingLeads(false);
         return;
       }
@@ -35,16 +48,18 @@ export function TierBreakdown() {
       try {
         const data = await apiRequest(`/leads?base_id=${activeBaseId}&page=1&limit=100`);
         const leadsList = Array.isArray(data?.leads) ? data.leads : (Array.isArray(data) ? data : []);
-        setLeads(leadsList);
+        setInternalLeads(leadsList);
       } catch (error) {
         console.error("Failed to fetch leads:", error);
-        setLeads([]);
+        setInternalLeads([]);
       } finally {
         setLoadingLeads(false);
       }
     };
     fetchLeads();
-  }, [activeBaseId]);
+  }, [activeBaseId, externallySupplied]);
+
+  const leads = externallySupplied ? leadsForTiers : internalLeads;
 
   const tierBreakdown = useMemo(() => {
     const hot = leads.filter((l) => l.tier === "Hot");
@@ -82,7 +97,7 @@ export function TierBreakdown() {
     overflow: "hidden" as const,
   };
 
-  if (loadingLeads) {
+  if (!externallySupplied && loadingLeads) {
     return (
       <div style={cardShell} aria-busy="true" aria-label="Loading engagement insights">
         <GlobalPageLoader layout="embedded" minHeight={140} ariaLabel="Loading engagement insights" />

@@ -47,7 +47,8 @@ export default function BasesPage() {
       await refreshBases();
       const newId = data?.base?.id;
       if (typeof newId === "number" && newId > 0) {
-        setActiveBaseId(newId);
+        const nm = typeof data?.base?.name === "string" ? data.base.name.trim() : "";
+        setActiveBaseId(newId, nm ? { name: nm } : undefined);
         showSuccess("Workspace created", "Opening Leads — add your first contacts here.");
         router.push(`/bases/${newId}/leads?welcome=1`);
       } else {
@@ -139,7 +140,11 @@ export default function BasesPage() {
       (b: { id: number }) => loadingStats[b.id] === true || baseQuickStats[b.id] === undefined
     );
 
-  if (basesLoading && bases.length === 0) {
+  const basesPageBlocking =
+    (basesLoading && bases.length === 0) ||
+    (bases.length > 0 && filtered.length > 0 && statsLoadingAny);
+
+  if (basesPageBlocking) {
     return <GlobalPageLoader layout="page" ariaLabel="Loading workspaces" />;
   }
 
@@ -282,33 +287,30 @@ export default function BasesPage() {
           </div>
         )}
 
-        {/* Grid — single central loader while workspace stats load (same pattern as Dashboard) */}
-        {filtered.length > 0 &&
-          (statsLoadingAny ? (
-            <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading workspaces" />
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(288px, 1fr))",
-                gap: 14,
-              }}
-            >
-              {filtered.map((b: any) => (
-                <BaseCard
-                  key={b.id}
-                  base={b}
-                  stats={baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 }}
-                  isLoading={false}
-                  onRename={renameBase}
-                  onDelete={deleteBase}
+        {filtered.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(288px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {filtered.map((b: any) => (
+              <BaseCard
+                key={b.id}
+                base={b}
+                stats={baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 }}
+                isLoading={false}
+                onRename={renameBase}
+                onDelete={deleteBase}
                   onSetActive={(id) => {
-                    setActiveBaseId(id);
+                    const b = bases.find((x) => x.id === id);
+                    setActiveBaseId(id, b ? { name: b.name } : undefined);
                   }}
-                />
-              ))}
-            </div>
-          ))}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Create modal */}

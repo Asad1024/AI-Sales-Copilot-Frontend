@@ -20,7 +20,82 @@ interface ProductTourProps {
 
 const ACCENT = "#4F46E5";
 const ACCENT_SOFT = "#6366F1";
-const RING = "rgba(79, 70, 229, 0.45)";
+const RING = "rgba(79, 70, 229, 0.5)";
+/** Dimmed regions only — hole stays clear so the target is fully visible */
+const DIM_BG = "rgba(51, 65, 85, 0.42)";
+const DIM_FULL = "rgba(51, 65, 85, 0.38)";
+const SPOTLIGHT_PAD = 6;
+
+type PaddedRect = { top: number; left: number; width: number; height: number };
+
+function clampPaddedRect(rect: DOMRect): PaddedRect {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 0;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 0;
+  const left = Math.max(0, rect.left - SPOTLIGHT_PAD);
+  const top = Math.max(0, rect.top - SPOTLIGHT_PAD);
+  const width = Math.min(vw - left, rect.width + SPOTLIGHT_PAD * 2);
+  const height = Math.min(vh - top, rect.height + SPOTLIGHT_PAD * 2);
+  return { left, top, width, height };
+}
+
+function SpotlightFrame({ r }: { r: PaddedRect }) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        height: r.height,
+        borderRadius: 12,
+        border: `2px solid ${ACCENT}`,
+        boxShadow: `0 0 0 4px ${RING}, 0 12px 40px rgba(79, 70, 229, 0.2)`,
+        zIndex: 9998,
+        pointerEvents: "none",
+      }}
+      className="product-tour-spotlight-frame"
+    />
+  );
+}
+
+function DimShadePanels({ r, onDimClick }: { r: PaddedRect; onDimClick: () => void }) {
+  const panel = {
+    position: "fixed" as const,
+    zIndex: 9998,
+    background: DIM_BG,
+    backdropFilter: "blur(2px)",
+    pointerEvents: "auto" as const,
+  };
+  const { left, top, width, height } = r;
+  const bottomTop = top + height;
+  const rightLeft = left + width;
+
+  return (
+    <>
+      <div
+        role="presentation"
+        onClick={onDimClick}
+        style={{ ...panel, top: 0, left: 0, right: 0, height: top }}
+      />
+      <div
+        role="presentation"
+        onClick={onDimClick}
+        style={{ ...panel, top: bottomTop, left: 0, right: 0, bottom: 0 }}
+      />
+      <div
+        role="presentation"
+        onClick={onDimClick}
+        style={{ ...panel, top, left: 0, width: left, height }}
+      />
+      <div
+        role="presentation"
+        onClick={onDimClick}
+        style={{ ...panel, top, left: rightLeft, right: 0, height }}
+      />
+    </>
+  );
+}
 
 export default function ProductTour({ steps, onComplete, onSkip }: ProductTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -132,41 +207,33 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
 
   const step = steps[currentStep];
   const position = step.position || "bottom";
+  const padded = targetRect ? clampPaddedRect(targetRect) : null;
 
   return (
     <>
-      <div
-        ref={overlayRef}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(15, 23, 42, 0.72)",
-          backdropFilter: "blur(5px)",
-          zIndex: 9998,
-          pointerEvents: "auto",
-        }}
-        onClick={skipTour}
-      >
-        {targetRect ? (
-          <div
-            style={{
-              position: "absolute",
-              left: `${targetRect.left}px`,
-              top: `${targetRect.top}px`,
-              width: `${targetRect.width}px`,
-              height: `${targetRect.height}px`,
-              borderRadius: 12,
-              border: `2px solid ${ACCENT}`,
-              boxShadow: `0 0 0 9999px rgba(15, 23, 42, 0.72), 0 0 0 4px ${RING}, 0 8px 32px rgba(79, 70, 229, 0.25)`,
-              pointerEvents: "none",
-              animation: "productTourPulse 2.2s ease-in-out infinite",
-            }}
-          />
-        ) : null}
-      </div>
+      {padded ? (
+        <>
+          <DimShadePanels r={padded} onDimClick={skipTour} />
+          <SpotlightFrame r={padded} />
+        </>
+      ) : (
+        <div
+          ref={overlayRef}
+          role="presentation"
+          onClick={skipTour}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: DIM_FULL,
+            backdropFilter: "blur(3px)",
+            zIndex: 9998,
+            pointerEvents: "auto",
+          }}
+        />
+      )}
 
       <div
         style={{
@@ -175,26 +242,26 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
           ...(targetRect
             ? position === "bottom"
               ? {
-                  top: `${targetRect.bottom + 16}px`,
-                  left: `${targetRect.left + targetRect.width / 2}px`,
+                  top: `${padded!.top + padded!.height + 16}px`,
+                  left: `${padded!.left + padded!.width / 2}px`,
                   transform: "translateX(-50%)",
                 }
               : position === "top"
                 ? {
-                    bottom: `${window.innerHeight - targetRect.top + 16}px`,
-                    left: `${targetRect.left + targetRect.width / 2}px`,
+                    bottom: `${window.innerHeight - padded!.top + 16}px`,
+                    left: `${padded!.left + padded!.width / 2}px`,
                     transform: "translateX(-50%)",
                   }
                 : position === "right"
                   ? {
-                      left: `${targetRect.right + 16}px`,
-                      top: `${targetRect.top + targetRect.height / 2}px`,
+                      left: `${padded!.left + padded!.width + 16}px`,
+                      top: `${padded!.top + padded!.height / 2}px`,
                       transform: "translateY(-50%)",
                     }
                   : position === "left"
                     ? {
-                        right: `${window.innerWidth - targetRect.left + 16}px`,
-                        top: `${targetRect.top + targetRect.height / 2}px`,
+                        right: `${window.innerWidth - padded!.left + 16}px`,
+                        top: `${padded!.top + padded!.height / 2}px`,
                         transform: "translateY(-50%)",
                       }
                     : {
@@ -341,18 +408,6 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes productTourPulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.88;
-          }
-        }
-      `}</style>
     </>
   );
 }

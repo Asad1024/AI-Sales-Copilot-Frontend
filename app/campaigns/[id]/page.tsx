@@ -373,7 +373,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
         {/* Tab Content */}
         {tab === 'overview' && (
-          <OverviewTab campaign={campaign} totalLeads={leads.length} />
+          <OverviewTab campaign={campaign} totalLeads={leads.length} loadingLeads={loadingLeads} />
         )}
 
         {tab === 'leads' && (
@@ -414,6 +414,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
           editData={editData}
           updating={updating}
           totalLeads={leads.length}
+          loadingLeads={loadingLeads}
           onClose={() => setShowEditModal(false)}
           onUpdate={updateCampaign}
           onEditDataChange={setEditData}

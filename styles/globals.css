@@ -1593,6 +1593,19 @@ a.campaigns-ai-flow-link:hover {
   transform: translateY(-1px);
 }
 
+@keyframes productTourSpotPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+.product-tour-spotlight-frame {
+  animation: productTourSpotPulse 2.2s ease-in-out infinite;
+}
+
 .dashboard-qa-card {
   position: relative;
   background: #fff;

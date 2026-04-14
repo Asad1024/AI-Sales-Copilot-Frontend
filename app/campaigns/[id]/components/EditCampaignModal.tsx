@@ -12,12 +12,13 @@ interface EditCampaignModalProps {
   editData: { name: string; status: 'draft' | 'running' | 'paused' | 'completed' };
   updating: boolean;
   totalLeads: number;
+  loadingLeads?: boolean;
   onClose: () => void;
   onUpdate: () => void;
   onEditDataChange: (data: { name: string; status: 'draft' | 'running' | 'paused' | 'completed' }) => void;
 }
 
-export function EditCampaignModal({ campaign, editData, updating, totalLeads, onClose, onUpdate, onEditDataChange }: EditCampaignModalProps) {
+export function EditCampaignModal({ campaign, editData, updating, totalLeads, loadingLeads = false, onClose, onUpdate, onEditDataChange }: EditCampaignModalProps) {
   return (
     <div 
       style={{ 
@@ -94,7 +95,7 @@ export function EditCampaignModal({ campaign, editData, updating, totalLeads, on
               fontSize: 13,
               color: 'var(--color-text-muted)'
             }}>
-              <strong>Target Tier:</strong> {campaign.tier_filter} Leads ({campaign.leads || totalLeads} leads)
+              <strong>Target Tier:</strong> {campaign.tier_filter} Leads ({loadingLeads ? (campaign.leads ?? 0) : totalLeads} leads)
             </div>
           )}
 

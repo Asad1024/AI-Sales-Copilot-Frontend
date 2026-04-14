@@ -46,10 +46,13 @@ interface Campaign {
 
 interface OverviewTabProps {
   campaign: Campaign;
+  /** Row count from GET /campaigns/:id/leads (source of truth). */
   totalLeads: number;
+  /** While true, KPI may fall back to campaign.leads (wizard metadata can be stale). */
+  loadingLeads?: boolean;
 }
 
-export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
+export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: OverviewTabProps) {
   const calculatedOpenRate = campaign.sent && campaign.opened 
     ? ((campaign.opened / campaign.sent) * 100).toFixed(1) 
     : '0';
@@ -62,6 +65,10 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
 
   const activeChannels = campaign.channels || (campaign.channel ? [campaign.channel] : []);
 
+  // Prefer fetched list count: `campaign.leads` is saved at create/edit and can disagree
+  // with tier/segment expansion (e.g. wizard showed 1 selected vs 7 cold leads in campaign).
+  const totalLeadsKpi = loadingLeads ? (campaign.leads ?? 0) : totalLeads;
+
   return (
     <div style={{ padding: '8px 0' }}>
       {/* Total Leads - Universal Metric */}
@@ -71,7 +78,7 @@ export function OverviewTab({ campaign, totalLeads }: OverviewTabProps) {
         gap:20, 
         marginBottom: 40 
       }}>
-        <Kpi title="Total Leads" value={campaign.leads || totalLeads || 0} icon={Icons.Users} />
+        <Kpi title="Total Leads" value={totalLeadsKpi} icon={Icons.Users} />
       </div>
       
       {/* Channel-Specific Metrics */}

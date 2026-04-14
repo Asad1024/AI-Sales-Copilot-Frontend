@@ -2552,10 +2552,10 @@ export default function CampaignNew() {
 
   const selectedLeadIds = useMemo(() => {
     const allowed = new Set(allChannelLeads.map((l) => l.id));
-    if (explicitCampaignTargetLeadIds !== null) {
-      return new Set(
-        explicitCampaignTargetLeadIds.filter((id) => allowed.has(id))
-      );
+    const ids = explicitCampaignTargetLeadIds;
+    // Only treat non-empty explicit lists as authoritative; [] still falls back to segments (draft/API edge cases).
+    if (ids != null && ids.length > 0) {
+      return new Set(ids.filter((id) => allowed.has(id)));
     }
     const set = new Set<number>();
     segments.forEach((segName) => {
@@ -2582,7 +2582,10 @@ export default function CampaignNew() {
 
   useEffect(() => {
     if (explicitCampaignTargetLeadIds === null) return;
+    if (explicitCampaignTargetLeadIds.length === 0) return;
     const allowed = new Set(allChannelLeads.map((l) => l.id));
+    // While leads refetch / channel filter yields an empty list, do not wipe saved selection.
+    if (allowed.size === 0) return;
     const filtered = explicitCampaignTargetLeadIds.filter((id) => allowed.has(id));
     if (filtered.length === explicitCampaignTargetLeadIds.length) return;
     setExplicitCampaignTargetLeadIds(filtered);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { DASHBOARD_TOUR_START_EVENT } from "@/lib/dashboardTour";
 
 interface TourStep {
@@ -36,6 +36,87 @@ function clampPaddedRect(rect: DOMRect): PaddedRect {
   const width = Math.min(vw - left, rect.width + SPOTLIGHT_PAD * 2);
   const height = Math.min(vh - top, rect.height + SPOTLIGHT_PAD * 2);
   return { left, top, width, height };
+}
+
+/** Used to clamp tooltip so it stays on-screen (translateY(-50%) etc. need a bounded anchor). */
+const TOOLTIP_EST_W = 380;
+const TOOLTIP_EST_H = 420;
+const VIEW_MARGIN = 16;
+const TOOLTIP_GAP = 16;
+
+function getTooltipWrapperStyle(
+  position: "top" | "bottom" | "left" | "right" | "center",
+  padded: PaddedRect | null
+): CSSProperties {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const base: CSSProperties = { maxWidth: 400, minWidth: 300 };
+
+  if (!padded) {
+    return { ...base, top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+  }
+
+  const midX = padded.left + padded.width / 2;
+  const midY = padded.top + padded.height / 2;
+  const halfH = TOOLTIP_EST_H / 2;
+  const halfW = TOOLTIP_EST_W / 2;
+  const clampCenterY = (y: number) => {
+    const minTop = VIEW_MARGIN + halfH;
+    const maxTop = vh - VIEW_MARGIN - halfH;
+    if (maxTop < minTop) return vh / 2;
+    return Math.max(minTop, Math.min(maxTop, y));
+  };
+  const clampCenterX = (x: number) => {
+    const minL = VIEW_MARGIN + halfW;
+    const maxL = vw - VIEW_MARGIN - halfW;
+    if (maxL < minL) return vw / 2;
+    return Math.max(minL, Math.min(maxL, x));
+  };
+
+  if (position === "center") {
+    return { ...base, top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+  }
+
+  if (position === "right") {
+    const leftSide = padded.left + padded.width + TOOLTIP_GAP;
+    const fitsRight = leftSide + TOOLTIP_EST_W <= vw - VIEW_MARGIN;
+    const topClamped = clampCenterY(midY);
+    if (fitsRight) {
+      return { ...base, left: leftSide, top: topClamped, transform: "translateY(-50%)" };
+    }
+    return { ...base, right: vw - padded.left + TOOLTIP_GAP, top: topClamped, transform: "translateY(-50%)" };
+  }
+
+  if (position === "left") {
+    const topClamped = clampCenterY(midY);
+    return { ...base, right: vw - padded.left + TOOLTIP_GAP, top: topClamped, transform: "translateY(-50%)" };
+  }
+
+  if (position === "bottom") {
+    const topPx = padded.top + padded.height + TOOLTIP_GAP;
+    const leftClamped = clampCenterX(midX);
+    if (topPx + TOOLTIP_EST_H > vh - VIEW_MARGIN) {
+      return {
+        ...base,
+        left: leftClamped,
+        bottom: vh - padded.top + TOOLTIP_GAP,
+        transform: "translateX(-50%)",
+      };
+    }
+    return { ...base, left: leftClamped, top: topPx, transform: "translateX(-50%)" };
+  }
+
+  if (position === "top") {
+    const leftClamped = clampCenterX(midX);
+    return {
+      ...base,
+      left: leftClamped,
+      bottom: vh - padded.top + TOOLTIP_GAP,
+      transform: "translateX(-50%)",
+    };
+  }
+
+  return { ...base, top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
 }
 
 function SpotlightFrame({ r }: { r: PaddedRect }) {
@@ -239,43 +320,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
         style={{
           position: "fixed",
           zIndex: 9999,
-          ...(targetRect
-            ? position === "bottom"
-              ? {
-                  top: `${padded!.top + padded!.height + 16}px`,
-                  left: `${padded!.left + padded!.width / 2}px`,
-                  transform: "translateX(-50%)",
-                }
-              : position === "top"
-                ? {
-                    bottom: `${window.innerHeight - padded!.top + 16}px`,
-                    left: `${padded!.left + padded!.width / 2}px`,
-                    transform: "translateX(-50%)",
-                  }
-                : position === "right"
-                  ? {
-                      left: `${padded!.left + padded!.width + 16}px`,
-                      top: `${padded!.top + padded!.height / 2}px`,
-                      transform: "translateY(-50%)",
-                    }
-                  : position === "left"
-                    ? {
-                        right: `${window.innerWidth - padded!.left + 16}px`,
-                        top: `${padded!.top + padded!.height / 2}px`,
-                        transform: "translateY(-50%)",
-                      }
-                    : {
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                      }
-            : {
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-              }),
-          maxWidth: 400,
-          minWidth: 300,
+          ...getTooltipWrapperStyle(position, padded),
         }}
         onClick={(e) => e.stopPropagation()}
       >

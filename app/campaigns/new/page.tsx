@@ -370,23 +370,25 @@ const CALL_OPENING_VARIABLES = [
   { key: "product_service", example: "our AI platform" },
   { key: "value_proposition", example: "automate 80% of their workflows" },
   { key: "call_to_action", example: "scheduling a free consultation" },
+  { key: "sender_name", example: "Alex Rivera" },
+  { key: "sender_company", example: "Acme Sales" },
 ] as const;
 
 const CALL_STARTER_SCRIPTS = [
   {
     title: "Warm Introduction",
     description: "Friendly intro referencing their company and industry, soft ask for time.",
-    text: "Hello {{first_name}}! This is [Your Name] from [Your Company]. I noticed {{company_name}} is doing great work in {{industry}}. Do you have a moment to discuss how {{product_service}} could help {{value_proposition}}?",
+    text: "Hello {{first_name}}! This is {{sender_name}} from {{sender_company}}. I noticed {{company_name}} is doing great work in {{industry}}. Do you have a moment to discuss how {{product_service}} could help {{value_proposition}}?",
   },
   {
     title: "Value-First Approach",
     description: "Lead with outcomes and your offer, then invite a quick conversation.",
-    text: "Hi {{first_name}}! I'm reaching out from [Your Company] because we help companies like {{company_name}} {{value_proposition}} using {{product_service}}. Would you be open to a quick discussion about {{call_to_action}}?",
+    text: "Hi {{first_name}}! I'm reaching out from {{sender_company}} because we help companies like {{company_name}} {{value_proposition}} using {{product_service}}. Would you be open to a quick discussion about {{call_to_action}}?",
   },
   {
     title: "Personal Connection",
     description: "Speaks to their role and how similar teams benefited.",
-    text: "Hello {{first_name}}! My name is [Your Name] and I work with {{role}}s at companies like {{company_name}}. We've helped similar organizations {{value_proposition}} through {{product_service}}. Could we explore {{call_to_action}} together?",
+    text: "Hello {{first_name}}! My name is {{sender_name}} and I work with {{role}}s at companies like {{company_name}}. We've helped similar organizations {{value_proposition}} through {{product_service}}. Could we explore {{call_to_action}} together?",
   },
 ] as const;
 
@@ -9388,6 +9390,43 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 4 }}>Unique leads</div>
                     <div style={{ fontSize: 15, fontWeight: 600 }}>{totalLeads}</div>
                   </div>
+                  {selectedLeadsForSamples.length > 0 ? (
+                    <div>
+                      <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 6 }}>
+                        {explicitCampaignTargetLeadIds != null && explicitCampaignTargetLeadIds.length > 0
+                          ? "Selected recipients"
+                          : "Recipients (from segments)"}
+                      </div>
+                      <ul
+                        style={{
+                          margin: 0,
+                          paddingLeft: 18,
+                          fontSize: 14,
+                          lineHeight: 1.45,
+                          color: "var(--color-text)",
+                        }}
+                      >
+                        {selectedLeadsForSamples.slice(0, 20).map((l) => {
+                          const nm = [l.first_name, l.last_name].filter(Boolean).join(" ").trim();
+                          const label = nm || l.email || `Lead #${l.id}`;
+                          const co = (l as { company_name?: string; company?: string }).company_name || (l as { company?: string }).company;
+                          return (
+                            <li key={l.id} style={{ marginBottom: 4 }}>
+                              {label}
+                              {co ? (
+                                <span style={{ color: "var(--color-text-muted)" }}> · {co}</span>
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {selectedLeadsForSamples.length > 20 ? (
+                        <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>
+                          +{selectedLeadsForSamples.length - 20} more
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -13386,6 +13425,35 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         <span style={{ color: '#ef4444' }}>no segments</span>
                       )}
                     </div>
+                    {selectedLeadsForSamples.length > 0 ? (
+                      <div
+                        style={{
+                          marginLeft: 24,
+                          marginTop: 8,
+                          fontSize: 12,
+                          color: "var(--color-text-muted)",
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
+                          {explicitCampaignTargetLeadIds != null && explicitCampaignTargetLeadIds.length > 0
+                            ? "Selected recipients"
+                            : "Recipients"}
+                        </div>
+                        {selectedLeadsForSamples.slice(0, 10).map((l) => {
+                          const nm = [l.first_name, l.last_name].filter(Boolean).join(" ").trim();
+                          const label = nm || l.email || `Lead #${l.id}`;
+                          return (
+                            <div key={l.id} style={{ marginBottom: 2 }}>
+                              · {label}
+                            </div>
+                          );
+                        })}
+                        {selectedLeadsForSamples.length > 10 ? (
+                          <div>+{selectedLeadsForSamples.length - 10} more</div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 

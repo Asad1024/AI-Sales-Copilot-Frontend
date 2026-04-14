@@ -1533,22 +1533,59 @@ button.dgsc-step-cta--secondary:hover {
   border-color: rgba(123, 145, 255, 0.35);
 }
 
-/* Spark & demo panel: width animates in browsers that interpolate max-width */
+/* Spark & demo panel: smooth reveal without forcing a fixed inner min-width */
 .dashboard-spark-demo-column {
   flex: 0 0 auto;
   overflow: hidden;
   align-self: stretch;
   max-width: 0;
+  min-width: 0;
   opacity: 0;
   pointer-events: none;
   transition:
-    max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.3s ease;
+    max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.28s ease;
 }
 .dashboard-spark-demo-column[data-demo-open="true"] {
-  max-width: min(380px, 100%);
+  max-width: min(340px, 100%);
   opacity: 1;
   pointer-events: auto;
+}
+
+.dashboard-spark-learn-inner {
+  min-width: 0;
+}
+
+button.dashboard-spark-action:hover {
+  border-color: #c7d2fe !important;
+  box-shadow: 0 8px 28px rgba(79, 70, 229, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+button.dashboard-spark-action:hover .dashboard-spark-action-chevron {
+  color: #4f46e5 !important;
+  transform: translate(2px, -2px);
+}
+
+.dashboard-spark-action-chevron {
+  flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+@media (max-width: 960px) {
+  .dashboard-stepper-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .dashboard-spark-demo-column[data-demo-open="true"] {
+    max-width: 100%;
+  }
+}
+
+a.campaigns-ai-flow-link:hover {
+  border-color: #a5b4fc;
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.15);
+  transform: translateY(-1px);
 }
 
 .dashboard-qa-card {

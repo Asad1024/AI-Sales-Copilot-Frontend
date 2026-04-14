@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
@@ -177,57 +177,53 @@ export default function Dashboard() {
     fetchCampaigns(activeBaseId ?? null);
   }, [activeBaseId, fetchCampaigns]);
 
-  const tourSteps = [
-    {
-      id: "welcome",
-      title: "Welcome to Sales Co-Pilot!",
-      description:
-        "Let's take a quick tour to help you get started. We'll show you the key features in just a few steps. You can skip anytime.",
-      position: "center" as const,
-    },
-    {
-      id: "goal-input",
-      title: "1. Set Your Growth Goal",
-      description:
-        'Start here! Enter what you want to achieve, like "Get 50 demos with SaaS founders in 30 days". The AI will analyze your goal and create a personalized outreach plan.',
-      target: '[data-tour="goal-input"]',
-      position: "bottom" as const,
-      action: () => {
-        const element = document.querySelector('[data-tour="goal-input"]');
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+  const tourSteps = useMemo(
+    () => [
+      {
+        id: "welcome",
+        title: "Welcome to your dashboard",
+        description:
+          "This short tour covers the essentials: choosing a workspace, following setup, and opening Leads and Campaigns from the sidebar. You can skip anytime.",
+        position: "center" as const,
       },
-    },
-    {
-      id: "bases-selector",
-      title: "2. Organize with Bases",
-      description:
-        "Bases are workspaces for organizing your leads and campaigns. Create different bases for different audiences, regions, or projects.",
-      target: '[data-tour="bases-selector"]',
-      position: "bottom" as const,
-    },
-    {
-      id: "campaigns-link",
-      title: "3. View Campaigns",
-      description: "Once you create a campaign, track its performance here. See opens, replies, and conversions in real-time.",
-      target: '[data-tour="campaigns-link"]',
-      position: "left" as const,
-    },
-    {
-      id: "leads-link",
-      title: "4. Manage Leads",
-      description: "Import leads from CSV, CRM, or generate them using AI. All your leads are organized here with scoring and enrichment.",
-      target: '[data-tour="leads-link"]',
-      position: "left" as const,
-    },
-    {
-      id: "complete",
-      title: "You're All Set!",
-      description: "Ready to grow? Enter a goal in the input field above and watch the AI create your complete outreach strategy.",
-      position: "center" as const,
-    },
-  ];
+      {
+        id: "workspace",
+        title: "Pick your workspace",
+        description:
+          "Everything runs inside a workspace. Switch here before importing leads or launching campaigns so activity lands in the right place.",
+        target: '[data-tour="bases-selector"]',
+        position: "right" as const,
+      },
+      {
+        id: "setup-steps",
+        title: "Setup checklist",
+        description:
+          "Expand Setup steps when you want a guided path: workspace → leads → first campaign. It stays available whenever you need it.",
+        target: '[data-tour="dashboard-setup-steps"]',
+        position: "bottom" as const,
+        action: () => {
+          const el = document.querySelector('[data-tour="dashboard-setup-steps"]');
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        },
+      },
+      {
+        id: "leads",
+        title: "Leads first",
+        description:
+          "Add or import leads for the active workspace. Use Campaigns in the same sidebar block when you are ready to launch outreach.",
+        target: '[data-tour="leads-link"]',
+        position: "right" as const,
+      },
+      {
+        id: "complete",
+        title: "You’re ready",
+        description:
+          "That is the core loop: choose a workspace, add leads, then open Campaigns to build and run sequences. Replay this tour anytime from Tutorial in the header.",
+        position: "center" as const,
+      },
+    ],
+    []
+  );
 
   const goToLeads = () => {
     if (activeBaseId) {
@@ -377,6 +373,7 @@ export default function Dashboard() {
             </span>
             <button
               type="button"
+              data-tour="dashboard-setup-steps"
               onClick={toggleSetupStepper}
               aria-label={
                 setupStepperVisible

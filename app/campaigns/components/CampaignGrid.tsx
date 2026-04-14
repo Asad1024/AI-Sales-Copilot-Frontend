@@ -62,10 +62,24 @@ export function CampaignGrid({ campaigns, onDelete }: CampaignGridProps) {
               </button>
               <Link
                 href="/flow/new-goal"
-                className="btn-ghost ms-hover-scale ms-press focus-ring"
-                style={{ borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8 }}
+                className="focus-ring campaigns-ai-flow-link"
+                style={{
+                  borderRadius: 10,
+                  padding: "10px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  border: "1px solid #c7d2fe",
+                  background: "linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%)",
+                  color: "#3730a3",
+                  textDecoration: "none",
+                  boxShadow: "0 1px 2px rgba(79, 70, 229, 0.08)",
+                  transition: "border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease",
+                }}
               >
-                <Icons.Sparkles size={16} strokeWidth={1.5} />
+                <Icons.Sparkles size={16} strokeWidth={1.5} style={{ color: "#4f46e5" }} />
                 AI flow
               </Link>
             </>

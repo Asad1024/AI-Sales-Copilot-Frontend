@@ -197,8 +197,12 @@ export function buildCampaignDraftPayload(
     whatsAppMessagesGenerated,
     followupsPreferenceSet,
     showFollowupsNumberInput,
-    target_lead_ids: targetLeadIds,
   };
+
+  /** Only when set — never send `target_lead_ids: null` or it wipes explicit selection on PUT merge. */
+  if (targetLeadIds !== null && targetLeadIds !== undefined) {
+    config.target_lead_ids = targetLeadIds;
+  }
 
   if (channels.includes("email")) {
     config.email = {

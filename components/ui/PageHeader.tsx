@@ -109,7 +109,7 @@ export default function PageHeader({
             justifyContent: "flex-end",
           }}
         >
-          {!isAdminRoute && <HeaderTopRightPills />}
+          {!isAdminRoute && <HeaderTopRightPills showDashboardTutorial={isDashboardRoute} />}
           {showHeaderNewCampaign && (
             <button className="btn-primary shimmer-cta" onClick={onDashboardPrimaryClick} style={{ borderRadius: 8 }}>
               New Campaign

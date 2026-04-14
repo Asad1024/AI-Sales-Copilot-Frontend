@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
-import { Zap, PlayCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { Zap, PlayCircle, ChevronRight, ChevronLeft, ArrowUpRight } from "lucide-react";
 
 type StepStatus = "complete" | "current" | "upcoming";
 
@@ -160,6 +160,7 @@ export default function DashboardOnboardingSteppers({
 
   return (
     <div
+      className="dashboard-stepper-row"
       style={{
         display: "flex",
         flexDirection: "row",
@@ -304,68 +305,179 @@ export default function DashboardOnboardingSteppers({
       >
         <div
           id="dashboard-spark-learn-card"
-          className="dashboard-surface-card"
+          className="dashboard-surface-card dashboard-spark-learn-inner"
           style={{
             ...cardShell,
-            background: "#FAFAFA",
+            background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
             width: "100%",
-            minWidth: 280,
+            minWidth: 0,
             height: "100%",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 4px 24px rgba(15, 23, 42, 0.06)",
           }}
         >
-          <div style={{ ...sectionTitle, marginBottom: 10 }}>Spark &amp; learn</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ ...sectionTitle, marginBottom: 0, letterSpacing: "0.1em" }}>Spark &amp; learn</div>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: "#6366f1",
+                background: "#eef2ff",
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid #c7d2fe",
+              }}
+            >
+              Optional
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <button
               type="button"
-              className="btn-ghost"
               onClick={() => router.push("/flow/new-goal")}
+              className="dashboard-spark-action"
               style={{
-                flex: "1 1 140px",
-                minWidth: 0,
-                justifyContent: "center",
-                borderRadius: 10,
-                border: "1px solid #E5E7EB",
-                background: "#FFFFFF",
-                padding: "10px 12px",
-                display: "inline-flex",
+                width: "100%",
+                margin: 0,
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                background: "#fff",
+                padding: "14px 14px",
+                display: "flex",
                 alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#111827",
+                gap: 12,
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "inherit",
+                transition: "border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease",
+                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
               }}
             >
-              <Zap size={16} strokeWidth={1.5} style={{ color: "#4F46E5", flexShrink: 0 }} />
-              Set a goal
+              <span
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  border: "1px solid #c7d2fe",
+                }}
+              >
+                <Zap size={20} strokeWidth={2} color="#4f46e5" aria-hidden />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
+                  Set a goal
+                </span>
+                <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2, lineHeight: 1.35 }}>
+                  Describe an outcome and preview an AI-built plan.
+                </span>
+              </span>
+              <ArrowUpRight size={18} strokeWidth={2} color="#94a3b8" className="dashboard-spark-action-chevron" aria-hidden />
             </button>
+
             <button
               type="button"
-              className="btn-ghost"
               onClick={() => router.push("/demo")}
+              className="dashboard-spark-action"
               style={{
-                flex: "1 1 140px",
-                minWidth: 0,
-                justifyContent: "center",
-                borderRadius: 10,
-                border: "1px solid #E5E7EB",
-                background: "#FFFFFF",
-                padding: "10px 12px",
-                display: "inline-flex",
+                width: "100%",
+                margin: 0,
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                background: "#fff",
+                padding: "14px 14px",
+                display: "flex",
                 alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#111827",
+                gap: 12,
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "inherit",
+                transition: "border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease",
+                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
               }}
             >
-              <PlayCircle size={16} strokeWidth={1.5} style={{ color: "#6B7280", flexShrink: 0 }} />
-              Watch demo
+              <span
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  border: "1px solid #cbd5e1",
+                }}
+              >
+                <PlayCircle size={20} strokeWidth={2} color="#475569" aria-hidden />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
+                  Watch demo
+                </span>
+                <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2, lineHeight: 1.35 }}>
+                  Walk through the product in a guided, interactive tour.
+                </span>
+              </span>
+              <ArrowUpRight size={18} strokeWidth={2} color="#94a3b8" className="dashboard-spark-action-chevron" aria-hidden />
             </button>
           </div>
-          <p style={{ margin: "10px 0 0", fontSize: 12, color: "#6B7280", lineHeight: 1.45 }}>
-            <span style={{ fontWeight: 600, color: "#4F46E5" }}>1</span> Plan with AI ·{" "}
-            <span style={{ fontWeight: 600, color: "#6B7280" }}>2</span> See the product in action
-          </p>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+              paddingTop: 12,
+              borderTop: "1px solid #f1f5f9",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#4f46e5",
+                background: "#eef2ff",
+                padding: "4px 10px",
+                borderRadius: 9999,
+                border: "1px solid #e0e7ff",
+              }}
+            >
+              1 · Plan
+            </span>
+            <span style={{ color: "#cbd5e1", fontSize: 12 }} aria-hidden>
+              →
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#475569",
+                background: "#f8fafc",
+                padding: "4px 10px",
+                borderRadius: 9999,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              2 · Demo
+            </span>
+          </div>
         </div>
       </div>
     </div>

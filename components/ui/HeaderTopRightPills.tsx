@@ -8,6 +8,7 @@ import { getUser, apiRequest } from "@/lib/apiClient";
 import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
+import { dispatchStartDashboardTour } from "@/lib/dashboardTour";
 
 /** Same outer height for tutorial pill and credits / upgrade pill */
 const HEADER_PILL_HEIGHT = 40;
@@ -21,7 +22,12 @@ const headerPillBox: CSSProperties = {
   fontFamily: "Inter, -apple-system, sans-serif",
 };
 
-export default function HeaderTopRightPills() {
+type HeaderTopRightPillsProps = {
+  /** Tutorial pill is only shown on `/dashboard` and replays the dashboard product tour. */
+  showDashboardTutorial?: boolean;
+};
+
+export default function HeaderTopRightPills({ showDashboardTutorial = false }: HeaderTopRightPillsProps) {
   const { activeBaseId } = useBase();
   const bases = useBaseStore((s) => s.bases);
   const basesLoading = useBaseStore((s) => s.loading);
@@ -83,27 +89,35 @@ export default function HeaderTopRightPills() {
         flexShrink: 0,
       }}
     >
-      <button
-        type="button"
-        className="header-top-right-pills__tutorial"
-        style={{
-          ...headerPillBox,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "0 14px",
-          cursor: "pointer",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "#f3f4f6";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "#fafafa";
-        }}
-      >
-        <BookOpen size={18} strokeWidth={1.75} color="#374151" aria-hidden />
-        <span style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Tutorial</span>
-      </button>
+      {showDashboardTutorial ? (
+        <button
+          type="button"
+          className="header-top-right-pills__tutorial"
+          aria-label="Replay dashboard tutorial"
+          style={{
+            ...headerPillBox,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 14px",
+            cursor: "pointer",
+            border: "1px solid #C7D2FE",
+            background: "#EEF2FF",
+          }}
+          onClick={() => dispatchStartDashboardTour()}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#E0E7FF";
+            e.currentTarget.style.borderColor = "#A5B4FC";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#EEF2FF";
+            e.currentTarget.style.borderColor = "#C7D2FE";
+          }}
+        >
+          <BookOpen size={18} strokeWidth={1.75} color="#4F46E5" aria-hidden />
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#4F46E5" }}>Tutorial</span>
+        </button>
+      ) : null}
 
       <div
         className="header-top-right-pills__credits"

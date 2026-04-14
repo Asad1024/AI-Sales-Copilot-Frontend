@@ -327,76 +327,95 @@ export default function DemoPage() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'var(--color-background)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--color-canvas, var(--color-background, #f8fafc))",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       {/* Progress Bar */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '4px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        zIndex: 100
-      }}>
-        <div style={{
-          width: `${((currentSlide + 1) / slides.length) * 100}%`,
-          height: '100%',
-          background: 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)',
-          transition: 'width 0.8s ease'
-        }} />
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: 4,
+          background: "#e2e8f0",
+          zIndex: 100,
+        }}
+      >
+        <div
+          style={{
+            width: `${((currentSlide + 1) / slides.length) * 100}%`,
+            height: "100%",
+            background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+            transition: "width 0.5s ease",
+          }}
+        />
       </div>
 
       {/* Slide Container */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        {/* Slide Content */}
-        <div style={{
-          width: '100%',
-          maxWidth: '900px',
-          padding: '40px 20px',
-          opacity: 1,
-          transform: 'translateX(0)',
-          transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-          animation: slideDirection === 'right' ? 'slideInRight 0.8s ease-out' : 'slideInLeft 0.8s ease-out'
-        }}>
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "56px clamp(16px, 4vw, 48px) 100px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 920,
+            opacity: 1,
+            transform: "translateX(0)",
+            transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+            animation: slideDirection === "right" ? "slideInRight 0.55s ease-out" : "slideInLeft 0.55s ease-out",
+          }}
+        >
           {renderSlideContent()}
         </div>
       </div>
 
       {/* Slide Navigation Dots */}
-      <div style={{
-        position: 'fixed',
-        bottom: '40px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        gap: '12px',
-        zIndex: 100
-      }}>
+      <div
+        style={{
+          position: "fixed",
+          bottom: 28,
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          gap: 10,
+          zIndex: 100,
+          padding: "10px 16px",
+          borderRadius: 9999,
+          background: "rgba(255, 255, 255, 0.9)",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
+        }}
+      >
         {slides.map((_, index) => (
           <button
             key={index}
+            type="button"
+            title={`Go to slide ${index + 1}`}
             onClick={() => goToSlide(index)}
             style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: currentSlide === index ? '#7C3AED' : 'rgba(255, 255, 255, 0.3)',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: currentSlide === index ? '0 0 8px rgba(124, 58, 237, 0.5)' : 'none'
+              width: currentSlide === index ? 22 : 10,
+              height: 10,
+              borderRadius: 9999,
+              background: currentSlide === index ? "#4f46e5" : "#cbd5e1",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.25s ease",
+              padding: 0,
             }}
           />
         ))}
@@ -404,69 +423,76 @@ export default function DemoPage() {
 
       {/* Navigation Arrows */}
       <button
+        type="button"
+        aria-label="Previous slide"
         onClick={prevSlide}
         disabled={currentSlide === 0}
         style={{
-          position: 'fixed',
-          left: '40px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          background: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '50%',
-          width: '60px',
-          height: '60px',
-          color: 'var(--color-text)',
-          fontSize: '24px',
-          cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
-          opacity: currentSlide === 0 ? 0.3 : 1,
+          position: "fixed",
+          left: "clamp(12px, 3vw, 36px)",
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "50%",
+          width: 48,
+          height: 48,
+          color: "#334155",
+          fontSize: 20,
+          cursor: currentSlide === 0 ? "not-allowed" : "pointer",
+          opacity: currentSlide === 0 ? 0.4 : 1,
           zIndex: 100,
-          backdropFilter: 'blur(10px)',
-          transition: 'all 0.3s ease'
+          boxShadow: "0 4px 16px rgba(15, 23, 42, 0.08)",
+          transition: "border-color 0.15s ease, box-shadow 0.15s ease",
         }}
       >
         ←
       </button>
 
       <button
+        type="button"
+        aria-label="Next slide"
         onClick={nextSlide}
         disabled={currentSlide === slides.length - 1}
         style={{
-          position: 'fixed',
-          right: '40px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          background: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '50%',
-          width: '60px',
-          height: '60px',
-          color: 'var(--color-text)',
-          fontSize: '24px',
-          cursor: currentSlide === slides.length - 1 ? 'not-allowed' : 'pointer',
-          opacity: currentSlide === slides.length - 1 ? 0.3 : 1,
+          position: "fixed",
+          right: "clamp(12px, 3vw, 36px)",
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "50%",
+          width: 48,
+          height: 48,
+          color: "#334155",
+          fontSize: 20,
+          cursor: currentSlide === slides.length - 1 ? "not-allowed" : "pointer",
+          opacity: currentSlide === slides.length - 1 ? 0.4 : 1,
           zIndex: 100,
-          backdropFilter: 'blur(10px)',
-          transition: 'all 0.3s ease'
+          boxShadow: "0 4px 16px rgba(15, 23, 42, 0.08)",
+          transition: "border-color 0.15s ease, box-shadow 0.15s ease",
         }}
       >
         →
       </button>
 
       {/* Slide Counter */}
-      <div style={{
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        background: 'rgba(0, 0, 0, 0.5)',
-        borderRadius: '20px',
-        padding: '8px 16px',
-        color: 'var(--color-text)',
-        fontSize: '14px',
-        fontWeight: '600',
-        zIndex: 100,
-        backdropFilter: 'blur(10px)'
-      }}>
+      <div
+        style={{
+          position: "fixed",
+          top: 16,
+          right: 16,
+          background: "#fff",
+          borderRadius: 9999,
+          padding: "8px 14px",
+          color: "#475569",
+          fontSize: 13,
+          fontWeight: 600,
+          zIndex: 100,
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 12px rgba(15, 23, 42, 0.06)",
+        }}
+      >
         {currentSlide + 1} / {slides.length}
       </div>
 
@@ -520,96 +546,120 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
   onSubmit: () => void;
   exampleGoals: string[];
 }) => (
-  <div style={{ textAlign: 'center' }}>
-    <h1 style={{ 
-      fontSize: '48px', 
-      fontWeight: '700', 
-      margin: '0 0 16px 0',
-      background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent'
-    }}>
-      Spark AI Demo
+  <div style={{ textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 12px",
+        borderRadius: 9999,
+        background: "#eef2ff",
+        border: "1px solid #c7d2fe",
+        marginBottom: 16,
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 700, color: "#4338ca", letterSpacing: "0.04em" }}>INTERACTIVE DEMO</span>
+    </div>
+    <h1
+      style={{
+        fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
+        fontWeight: 800,
+        margin: "0 0 12px 0",
+        color: "var(--color-text, #0f172a)",
+        letterSpacing: "-0.03em",
+        fontFamily: "Inter, -apple-system, sans-serif",
+      }}
+    >
+      Spark AI demo
     </h1>
-    <p style={{ 
-      fontSize: '20px', 
-      color: 'var(--color-text-muted)', 
-      margin: '0 0 48px 0' 
-    }}>
-      Experience the power of AI-driven sales automation
+    <p style={{ fontSize: 16, color: "var(--color-text-muted, #64748b)", margin: "0 0 28px 0", lineHeight: 1.55 }}>
+      Experience how a goal becomes a plan, then a live pipeline — use arrows or dots to move between steps.
     </p>
 
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
-      borderRadius: '24px',
-      padding: '48px',
-      border: '1px solid rgba(124, 58, 237, 0.2)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      <div style={{
-        position: 'absolute',
-        top: '-100px',
-        right: '-100px',
-        width: '200px',
-        height: '200px',
-        background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
-        borderRadius: '50%'
-      }} />
-      
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <h2 style={{ 
-          fontSize: '32px', 
-          fontWeight: '700', 
-          margin: '0 0 16px 0',
-          color: 'var(--color-text)'
-        }}>
+    <div
+      style={{
+        background: "var(--color-surface, #ffffff)",
+        borderRadius: 20,
+        padding: "clamp(24px, 4vw, 36px)",
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 4px 24px rgba(15, 23, 42, 0.08)",
+        position: "relative",
+        overflow: "hidden",
+        textAlign: "left",
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+        }}
+      />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <h2
+          style={{
+            fontSize: "clamp(1.15rem, 2.5vw, 1.35rem)",
+            fontWeight: 700,
+            margin: "0 0 14px 0",
+            color: "var(--color-text, #0f172a)",
+            textAlign: "center",
+          }}
+        >
           What do you want to achieve?
         </h2>
-        
-        <div style={{ marginBottom: '24px' }}>
+
+        <div style={{ marginBottom: 20 }}>
           <textarea
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
             placeholder="Get 30 demos with UAE real estate founders in 30 days"
             style={{
-              width: '100%',
-              minHeight: '120px',
-              padding: '20px',
-              borderRadius: '16px',
-              border: '2px solid rgba(124, 58, 237, 0.3)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: 'var(--color-text)',
-              fontSize: '18px',
-              outline: 'none',
-              resize: 'vertical',
-              fontFamily: 'inherit'
+              width: "100%",
+              minHeight: 120,
+              padding: "14px 16px",
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              background: "#f8fafc",
+              color: "var(--color-text, #0f172a)",
+              fontSize: 15,
+              outline: "none",
+              resize: "vertical",
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+              lineHeight: 1.5,
             }}
           />
         </div>
 
-        <div style={{ marginBottom: '32px' }}>
-          <p style={{ 
-            fontSize: '14px', 
-            color: 'var(--color-text-muted)', 
-            margin: '0 0 12px 0'
-          }}>
-            Try these examples:
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: "0 0 10px 0", textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "center" }}>
+            Try an example
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {exampleGoals.map((example: string, index: number) => (
               <button
                 key={index}
+                type="button"
                 onClick={() => setGoal(example)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '20px',
-                  padding: '8px 16px',
-                  color: 'var(--color-text)',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  width: "100%",
+                  textAlign: "left",
+                  background: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  color: "#334155",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  lineHeight: 1.4,
+                  transition: "border-color 0.15s ease, background 0.15s ease",
                 }}
               >
                 {example}
@@ -619,32 +669,35 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
         </div>
 
         <button
+          type="button"
           onClick={onSubmit}
           disabled={!goal.trim()}
           style={{
-            background: !goal.trim() 
-              ? 'rgba(255, 255, 255, 0.2)' 
-              : 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-            border: 'none',
-            borderRadius: '16px',
-            padding: '16px 32px',
-            color: !goal.trim() ? 'var(--color-text-muted)' : '#000000',
-            fontSize: '18px',
-            fontWeight: '600',
-            cursor: !goal.trim() ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            margin: '0 auto',
-            boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
-            transition: 'all 0.3s ease'
+            background: !goal.trim() ? "#e2e8f0" : "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
+            border: "none",
+            borderRadius: 12,
+            padding: "14px 24px",
+            color: !goal.trim() ? "#94a3b8" : "#ffffff",
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: !goal.trim() ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            margin: "0 auto",
+            boxShadow: !goal.trim() ? "none" : "0 8px 24px rgba(79, 70, 229, 0.3)",
+            transition: "transform 0.12s ease, box-shadow 0.12s ease",
+            width: "100%",
+            maxWidth: 320,
+            justifyContent: "center",
+            fontFamily: "inherit",
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="7" width="18" height="10" rx="2"/>
-            <path d="M12 3v4M8 11h.01M16 11h.01M8 17a4 4 0 0 0 8 0"/>
+            <rect x="3" y="7" width="18" height="10" rx="2" />
+            <path d="M12 3v4M8 11h.01M16 11h.01M8 17a4 4 0 0 0 8 0" />
           </svg>
-          Let AI Build Your Plan
+          Let AI build your plan
         </button>
       </div>
     </div>
@@ -652,81 +705,94 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
 );
 
 const AnalyzingSlide = () => (
-  <div style={{ textAlign: 'center' }}>
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
-      borderRadius: '24px',
-      padding: '80px 48px',
-      border: '1px solid rgba(124, 58, 237, 0.2)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      <div style={{
-        position: 'absolute',
-        top: '-100px',
-        right: '-100px',
-        width: '200px',
-        height: '200px',
-        background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
-        borderRadius: '50%'
-      }} />
-      
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <div style={{
-          width: '120px',
-          height: '120px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 32px auto',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            border: '4px solid rgba(255, 255, 255, 0.3)',
-            borderTop: '4px solid #ffffff',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
+  <div style={{ textAlign: "center", maxWidth: 520, margin: "0 auto" }}>
+    <div
+      style={{
+        background: "var(--color-surface, #ffffff)",
+        borderRadius: 20,
+        padding: "clamp(48px, 8vw, 80px) clamp(24px, 5vw, 48px)",
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 4px 24px rgba(15, 23, 42, 0.08)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+        }}
+      />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 28px auto",
+            boxShadow: "0 12px 40px rgba(79, 70, 229, 0.35)",
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              border: "3px solid rgba(255, 255, 255, 0.35)",
+              borderTopColor: "#ffffff",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          />
         </div>
-        
-        <h2 style={{ 
-          fontSize: '32px', 
-          fontWeight: '700', 
-          margin: '0 0 16px 0',
-          color: 'var(--color-text)'
-        }}>
-          AI is analyzing your goal...
+
+        <h2
+          style={{
+            fontSize: "clamp(1.35rem, 3vw, 1.75rem)",
+            fontWeight: 800,
+            margin: "0 0 12px 0",
+            color: "var(--color-text, #0f172a)",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          AI is analyzing your goal…
         </h2>
-        <p style={{ 
-          fontSize: '18px', 
-          color: 'var(--color-text-muted)', 
-          margin: '0 0 24px 0' 
-        }}>
-          Our AI is processing your requirements and building a personalized campaign plan
+        <p style={{ fontSize: 16, color: "var(--color-text-muted, #64748b)", margin: "0 0 24px 0", lineHeight: 1.55 }}>
+          We are shaping audience, channels, and pacing for your plan preview.
         </p>
-        
-        <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          borderRadius: '12px',
-          padding: '16px',
-          border: '1px solid rgba(124, 58, 237, 0.3)',
-          display: 'inline-block'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#7C3AED',
-              animation: 'pulse 2s infinite'
-            }} />
-            <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text)' }}>
-              Analyzing audience patterns and optimal channels...
+
+        <div
+          style={{
+            background: "#f8fafc",
+            borderRadius: 12,
+            padding: "14px 18px",
+            border: "1px solid #e2e8f0",
+            display: "inline-flex",
+            maxWidth: "100%",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#4f46e5",
+                flexShrink: 0,
+                opacity: 0.85,
+              }}
+            />
+            <p style={{ margin: 0, fontSize: 14, color: "#334155", lineHeight: 1.45 }}>
+              Analyzing audience patterns and optimal channels…
             </p>
           </div>
         </div>

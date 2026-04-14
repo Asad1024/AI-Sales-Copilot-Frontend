@@ -1,11 +1,19 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { acceptAIPlan, fetchPlanPreviewLeads, updateAIPlan } from "@/lib/flowClient";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { Icons } from "@/components/ui/Icons";
+
+const ACCENT = "#4f46e5";
+const ACCENT_MID = "#6366f1";
+const SLATE_200 = "#e2e8f0";
+const SLATE_500 = "#64748b";
+const SLATE_700 = "#334155";
+const EMERALD = "#059669";
 
 type SequenceStep = {
   day: number;
@@ -26,10 +34,10 @@ type ApolloFilterChip = {
 const leadTagStyle: CSSProperties = {
   padding: "4px 10px",
   borderRadius: "999px",
-  background: "rgba(124, 58, 237, 0.12)",
-  border: "1px solid rgba(124, 58, 237, 0.2)",
+  background: "#eef2ff",
+  border: "1px solid #c7d2fe",
   fontSize: "11px",
-  color: "#7C3AED",
+  color: ACCENT,
   fontWeight: 600,
   display: "inline-flex",
   alignItems: "center",
@@ -171,200 +179,290 @@ export default function PlanPage() {
   const currentCardIndex = cards.findIndex(c => c.id === currentCard);
   const currentCardData = cards[currentCardIndex];
 
+  const stepIcon = (card: (typeof cards)[0], index: number) => {
+    const done = index < currentCardIndex;
+    const active = index === currentCardIndex;
+    const c = done || active ? "#ffffff" : SLATE_500;
+    const s = { color: c } as CSSProperties;
+    if (done) return <Icons.Check size={20} strokeWidth={2.5} style={s} />;
+    if (card.icon === "target") return <Icons.Target size={20} strokeWidth={1.75} style={s} />;
+    if (card.icon === "chart") return <Icons.Chart size={20} strokeWidth={1.75} style={s} />;
+    if (card.icon === "list") return <Icons.FileText size={20} strokeWidth={1.75} style={s} />;
+    return <Icons.Shield size={20} strokeWidth={1.75} style={s} />;
+  };
+
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px', minHeight: 'calc(100vh - 100px)' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-        <h1 style={{ 
-          fontSize: '32px', 
-          fontWeight: '700', 
-          margin: '0 0 8px 0',
-          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
-          Review & edit plan
+    <div
+      style={{
+        maxWidth: 720,
+        margin: "0 auto",
+        padding: "clamp(16px, 3vw, 28px)",
+        minHeight: "calc(100vh - 100px)",
+        fontFamily: "Inter, -apple-system, sans-serif",
+      }}
+    >
+      <header style={{ marginBottom: 28, textAlign: "left" }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "5px 11px",
+            borderRadius: 9999,
+            background: "#eef2ff",
+            border: "1px solid #c7d2fe",
+            marginBottom: 12,
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#4338ca", letterSpacing: "0.06em" }}>4 STEPS</span>
+        </div>
+        <h1
+          style={{
+            fontSize: "clamp(1.5rem, 3vw, 1.75rem)",
+            fontWeight: 800,
+            margin: "0 0 8px 0",
+            letterSpacing: "-0.03em",
+            color: "var(--color-text, #0f172a)",
+          }}
+        >
+          Review &amp; edit plan
         </h1>
-        <p style={{ 
-          fontSize: '15px', 
-          color: 'var(--color-text-muted)',
-          margin: 0,
-          lineHeight: 1.6
-        }}>
-          Review and edit each section before starting your campaign
+        <p style={{ fontSize: 15, color: "var(--color-text-muted, #64748b)", margin: 0, lineHeight: 1.55, maxWidth: 560 }}>
+          Review and edit each section before starting your campaign.
         </p>
-        {plan.summary && (
-          <p style={{ 
-            fontSize: '14px',
-            color: 'var(--color-text-muted)',
-            marginTop: '16px',
-            maxWidth: '680px',
-            marginLeft: 'auto',
-            marginRight: 'auto'
-          }}>
+        {plan.summary ? (
+          <p
+            style={{
+              fontSize: 14,
+              color: SLATE_500,
+              marginTop: 14,
+              marginBottom: 0,
+              lineHeight: 1.55,
+              padding: "12px 14px",
+              background: "#f8fafc",
+              borderRadius: 10,
+              border: `1px solid ${SLATE_200}`,
+            }}
+          >
             {plan.summary}
           </p>
-        )}
-      </div>
+        ) : null}
+      </header>
 
-      {/* Progress Indicator */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        gap: '12px',
-        marginBottom: '40px',
-        flexWrap: 'wrap'
-      }}>
-        {cards.map((card, index) => (
-          <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: index === currentCardIndex
-                  ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)'
-                  : index < currentCardIndex
-                  ? 'rgba(124, 58, 237, 0.2)'
-                  : 'var(--color-surface-secondary)',
-                border: index === currentCardIndex
-                  ? '2px solid transparent'
-                  : '2px solid var(--elev-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                fontWeight: '600',
-                color: index === currentCardIndex ? '#000' : 'var(--color-text-muted)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                position: 'relative'
-              }}
-              onClick={() => {
-                setCurrentCard(card.id);
-                setIsEditing(false);
-              }}
-            >
-              {index < currentCardIndex ? (
-                <Icons.Check size={20} />
-              ) : card.icon === 'target' ? (
-                <Icons.Target size={20} />
-              ) : card.icon === 'chart' ? (
-                <Icons.Chart size={20} />
-              ) : card.icon === 'list' ? (
-                <Icons.FileText size={20} />
-              ) : (
-                <Icons.Shield size={20} />
-              )}
-            </div>
-            {index < cards.length - 1 && (
-              <div style={{
-                width: '40px',
-                height: '2px',
-                background: index < currentCardIndex
-                  ? 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)'
-                  : 'var(--elev-border)',
-                transition: 'all 0.3s ease'
-              }} />
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Step indicator — compact, labeled */}
+      <nav aria-label="Plan sections" style={{ marginBottom: 28 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            width: "100%",
+            maxWidth: 640,
+            margin: "0 auto",
+            gap: 0,
+          }}
+        >
+          {cards.map((card, index) => {
+            const done = index < currentCardIndex;
+            const active = index === currentCardIndex;
+            const ring = active ? `0 0 0 3px rgba(99, 102, 241, 0.35)` : "none";
+            const bg = done
+              ? EMERALD
+              : active
+                ? `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)`
+                : "#f8fafc";
+            const border = done || active ? "2px solid transparent" : `2px solid ${SLATE_200}`;
+            return (
+              <Fragment key={card.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentCard(card.id);
+                    setIsEditing(false);
+                  }}
+                  style={{
+                    flex: "0 0 auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "4px 6px",
+                    margin: 0,
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    minWidth: 72,
+                  }}
+                >
+                  <span
+                    aria-current={active ? "step" : undefined}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: bg,
+                      border,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: ring,
+                      transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                    }}
+                  >
+                    {stepIcon(card, index)}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: active ? 700 : 600,
+                      color: active ? ACCENT : done ? SLATE_700 : SLATE_500,
+                      letterSpacing: "-0.01em",
+                      textAlign: "center",
+                      lineHeight: 1.2,
+                      maxWidth: 88,
+                    }}
+                  >
+                    {card.title}
+                  </span>
+                </button>
+                {index < cards.length - 1 ? (
+                  <div
+                    aria-hidden
+                    style={{
+                      flex: "1 1 12px",
+                      height: 3,
+                      minWidth: 8,
+                      maxWidth: 48,
+                      alignSelf: "flex-start",
+                      marginTop: 24,
+                      borderRadius: 2,
+                      background: index < currentCardIndex ? `linear-gradient(90deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)` : SLATE_200,
+                      transition: "background 0.2s ease",
+                    }}
+                  />
+                ) : null}
+              </Fragment>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* Current Card */}
-      <div style={{
-        background: 'var(--elev-bg)',
-        border: '1px solid var(--elev-border)',
-        borderRadius: '24px',
-        padding: '40px',
-        boxShadow: 'var(--elev-shadow-lg)',
-        marginBottom: '32px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Gradient top border */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)'
-        }} />
+      <div
+        style={{
+          background: "var(--elev-bg, #ffffff)",
+          border: `1px solid ${SLATE_200}`,
+          borderRadius: 16,
+          padding: "clamp(20px, 4vw, 32px)",
+          boxShadow: "0 4px 24px rgba(15, 23, 42, 0.06)",
+          marginBottom: 24,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: `linear-gradient(90deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)`,
+          }}
+        />
 
-        {/* Card Header */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          marginBottom: '24px',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#7C3AED'
-            }}>
-              {currentCardData.icon === 'target' ? (
-                <Icons.Target size={28} />
-              ) : currentCardData.icon === 'chart' ? (
-                <Icons.Chart size={28} />
-              ) : currentCardData.icon === 'list' ? (
-                <Icons.FileText size={28} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 16,
+            marginBottom: 20,
+            position: "relative",
+            zIndex: 1,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 14,
+                background: "#eef2ff",
+                border: "1px solid #c7d2fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: ACCENT,
+                flexShrink: 0,
+              }}
+            >
+              {currentCardData.icon === "target" ? (
+                <Icons.Target size={26} />
+              ) : currentCardData.icon === "chart" ? (
+                <Icons.Chart size={26} />
+              ) : currentCardData.icon === "list" ? (
+                <Icons.FileText size={26} />
               ) : (
-                <Icons.Shield size={28} />
+                <Icons.Shield size={26} />
               )}
             </div>
-            <div>
-              <h2 style={{ 
-                fontSize: '24px', 
-                fontWeight: '700', 
-                margin: '0 0 4px 0',
-                color: 'var(--color-text)'
-              }}>
+            <div style={{ minWidth: 0 }}>
+              <h2
+                style={{
+                  fontSize: "clamp(1.15rem, 2.5vw, 1.35rem)",
+                  fontWeight: 700,
+                  margin: "0 0 6px 0",
+                  color: "var(--color-text, #0f172a)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 {currentCardData.title}
               </h2>
-              <span style={{
-                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
-                color: '#7C3AED',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '11px',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                border: '1px solid rgba(124, 58, 237, 0.2)'
-              }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "#eef2ff",
+                  color: ACCENT,
+                  padding: "3px 10px",
+                  borderRadius: 9999,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  border: "1px solid #e0e7ff",
+                }}
+              >
                 {currentCardData.badge}
               </span>
             </div>
           </div>
-          {!isEditing && (
+          {!isEditing ? (
             <button
+              type="button"
               onClick={() => setIsEditing(true)}
-              className="btn-ghost"
               style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
+                padding: "10px 16px",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                borderRadius: 10,
+                border: `1px solid ${SLATE_200}`,
+                background: "#fff",
+                color: SLATE_700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                transition: "border-color 0.15s ease, background 0.15s ease",
               }}
             >
-              <span>✏️</span>
-              <span>Edit</span>
+              <Pencil size={16} strokeWidth={2} aria-hidden />
+              Edit
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* Card Content */}
@@ -575,130 +673,110 @@ export default function PlanPage() {
       </div>
 
       {/* Navigation */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        gap: '16px'
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          paddingTop: 4,
+        }}
+      >
         <button
+          type="button"
           onClick={prevCard}
           disabled={currentCardIndex === 0}
-          className="btn-ghost"
           style={{
-            padding: '16px 28px',
-            fontSize: '15px',
-            fontWeight: '600',
-            opacity: currentCardIndex === 0 ? 0.5 : 1,
-            cursor: currentCardIndex === 0 ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            borderRadius: '14px',
-            border: '1px solid var(--elev-border)',
-            background: 'var(--color-surface-secondary)',
-            color: 'var(--color-text)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-          }}
-          onMouseEnter={(e) => {
-            if (currentCardIndex !== 0) {
-              e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)';
-              e.currentTarget.style.background = 'rgba(124, 58, 237, 0.08)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'var(--elev-border)';
-            e.currentTarget.style.background = 'var(--color-surface-secondary)';
-            e.currentTarget.style.transform = 'translateY(0)';
+            padding: "12px 18px",
+            fontSize: 14,
+            fontWeight: 600,
+            opacity: currentCardIndex === 0 ? 0.45 : 1,
+            cursor: currentCardIndex === 0 ? "not-allowed" : "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 10,
+            border: `1px solid ${SLATE_200}`,
+            background: "#fff",
+            color: SLATE_700,
+            fontFamily: "inherit",
+            transition: "border-color 0.15s ease, box-shadow 0.15s ease",
           }}
         >
+          <ChevronLeft size={18} strokeWidth={2} aria-hidden />
           Previous
         </button>
 
-        <div style={{ 
-          fontSize: '13px', 
-          color: 'var(--color-text-muted)',
-          fontWeight: '500'
-        }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: SLATE_500,
+            letterSpacing: "0.04em",
+            padding: "6px 12px",
+            borderRadius: 9999,
+            background: "#f8fafc",
+            border: `1px solid ${SLATE_200}`,
+          }}
+        >
           {currentCardIndex + 1} of {cards.length}
         </div>
 
         {currentCardIndex === cards.length - 1 ? (
           <button
+            type="button"
             onClick={handleApprove}
             disabled={loading || saving}
-            className="btn-primary"
             style={{
-              padding: '16px 36px',
-              fontSize: '15px',
-              fontWeight: '700',
-              minWidth: '200px',
-              opacity: (loading || saving) ? 0.7 : 1,
-              cursor: (loading || saving) ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              borderRadius: '14px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-              color: '#000',
-              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading && !saving) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.3)';
+              padding: "12px 22px",
+              fontSize: 14,
+              fontWeight: 700,
+              minWidth: 168,
+              opacity: loading || saving ? 0.65 : 1,
+              cursor: loading || saving ? "not-allowed" : "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              borderRadius: 10,
+              border: "none",
+              background: `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)`,
+              color: "#ffffff",
+              boxShadow: "0 4px 16px rgba(79, 70, 229, 0.35)",
+              fontFamily: "inherit",
+              transition: "transform 0.12s ease, box-shadow 0.12s ease",
             }}
           >
-            {loading ? "Starting..." : saving ? "Saving..." : "Approve & Start"}
+            {loading ? "Starting…" : saving ? "Saving…" : "Approve & start"}
           </button>
         ) : (
           <button
+            type="button"
             onClick={nextCard}
             disabled={isEditing}
-            className="btn-primary"
             style={{
-              padding: '16px 36px',
-              fontSize: '15px',
-              fontWeight: '700',
-              minWidth: '200px',
-              opacity: isEditing ? 0.5 : 1,
-              cursor: isEditing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              borderRadius: '14px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-              color: '#000',
-              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              if (!isEditing) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.3)';
+              padding: "12px 22px",
+              fontSize: 14,
+              fontWeight: 700,
+              minWidth: 168,
+              opacity: isEditing ? 0.45 : 1,
+              cursor: isEditing ? "not-allowed" : "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              borderRadius: 10,
+              border: "none",
+              background: `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)`,
+              color: "#ffffff",
+              boxShadow: "0 4px 16px rgba(79, 70, 229, 0.35)",
+              fontFamily: "inherit",
+              transition: "transform 0.12s ease, box-shadow 0.12s ease",
             }}
           >
             Next
+            <ChevronRight size={18} strokeWidth={2} aria-hidden />
           </button>
         )}
       </div>

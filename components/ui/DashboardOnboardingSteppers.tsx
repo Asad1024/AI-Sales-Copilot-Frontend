@@ -164,7 +164,7 @@ export default function DashboardOnboardingSteppers({
       style={{
         display: "flex",
         flexDirection: "row",
-        alignItems: "stretch",
+        alignItems: "flex-start",
         gap: 12,
         width: "100%",
         minWidth: 0,
@@ -311,7 +311,6 @@ export default function DashboardOnboardingSteppers({
             background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
             width: "100%",
             minWidth: 0,
-            height: "100%",
             border: "1px solid #e2e8f0",
             boxShadow: "0 4px 24px rgba(15, 23, 42, 0.06)",
           }}

@@ -19,7 +19,16 @@ interface UserRow {
   company?: string;
   createdAt: string;
   avatar_url?: string | null;
+  billing_plan_key?: string | null;
+  credits_balance?: number;
+  monthly_lead_credits?: number;
 }
+
+const SUBSCRIPTION_PLAN_OPTIONS = [
+  { key: "basic" as const, label: "Basic", credits: 300 },
+  { key: "pro" as const, label: "Pro", credits: 500 },
+  { key: "premium" as const, label: "Premium", credits: 1000 },
+];
 
 type CredKey =
   | "apolloApiKey"
@@ -52,7 +61,7 @@ const CRED_FIELDS: { key: CredKey; label: string; hint: string; inputType?: "tex
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const { showError, showSuccess } = useNotification();
+  const { showError, showSuccess, showWarning } = useNotification();
   const confirm = useConfirm();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,10 +88,70 @@ export default function AdminUsersPage() {
   const [credTouched, setCredTouched] = useState<Partial<Record<CredKey, boolean>>>({});
   const [credSaving, setCredSaving] = useState(false);
   const [credShowAll, setCredShowAll] = useState(false);
+  const [subModalUser, setSubModalUser] = useState<UserRow | null>(null);
+  const [subPlanKey, setSubPlanKey] = useState<"basic" | "pro" | "premium">("basic");
+  const [subSaving, setSubSaving] = useState(false);
 
   const closeCredModal = () => {
     setCredShowAll(false);
     setCredUser(null);
+  };
+
+  const closeSubModal = () => {
+    setSubModalUser(null);
+  };
+
+  const openManageSubscription = (u: UserRow) => {
+    const current = u.billing_plan_key;
+    const match = SUBSCRIPTION_PLAN_OPTIONS.find((p) => p.key === current);
+    setSubPlanKey(match ? match.key : "basic");
+    setSubModalUser(u);
+  };
+
+  const applySubscriptionPlan = async () => {
+    if (!subModalUser) return;
+    setSubSaving(true);
+    try {
+      const data = (await apiRequest(`/admin/users/${subModalUser.id}/subscription`, {
+        method: "POST",
+        body: JSON.stringify({ action: "apply", planKey: subPlanKey }),
+      })) as { user?: UserRow; stripeWarning?: string };
+      closeSubModal();
+      fetchUsers();
+      showSuccess("Subscription updated", `${subModalUser.name} is on ${subPlanKey} with matching credits.`);
+      if (data.stripeWarning) showWarning("Stripe", data.stripeWarning);
+    } catch (error: unknown) {
+      showError("Update failed", error instanceof Error ? error.message : "Failed to update subscription");
+    } finally {
+      setSubSaving(false);
+    }
+  };
+
+  const cancelUserSubscription = async () => {
+    if (!subModalUser) return;
+    const ok = await confirm({
+      title: "Cancel subscription?",
+      message:
+        "This clears their plan and sets credits to zero. If they have a Stripe subscription, we will try to cancel it there as well.",
+      confirmLabel: "Cancel subscription",
+      variant: "danger",
+    });
+    if (!ok) return;
+    setSubSaving(true);
+    try {
+      const data = (await apiRequest(`/admin/users/${subModalUser.id}/subscription`, {
+        method: "POST",
+        body: JSON.stringify({ action: "cancel" }),
+      })) as { user?: UserRow; stripeWarning?: string };
+      closeSubModal();
+      fetchUsers();
+      showSuccess("Subscription cleared", `${subModalUser.name} no longer has an active plan.`);
+      if (data.stripeWarning) showWarning("Stripe", data.stripeWarning);
+    } catch (error: unknown) {
+      showError("Cancel failed", error instanceof Error ? error.message : "Failed to cancel subscription");
+    } finally {
+      setSubSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -134,7 +203,8 @@ export default function AdminUsersPage() {
   const handleDeleteUser = async (id: number) => {
     const ok = await confirm({
       title: "Delete user?",
-      message: "This permanently removes the user from the platform.",
+      message:
+        "This permanently removes the user from the platform. Any workspaces they own are reassigned to your account.",
       confirmLabel: "Delete",
       variant: "danger",
     });
@@ -371,6 +441,11 @@ export default function AdminUsersPage() {
                             void openCredentials(row);
                           },
                         },
+                        {
+                          key: "sub",
+                          label: "Manage subscription",
+                          onClick: () => openManageSubscription(row),
+                        },
                         { key: "role", label: row.role === "admin" ? "Make user" : "Make admin", onClick: () => handleUpdateRole(row) },
                         { key: "del", label: "Delete", danger: true, onClick: () => handleDeleteUser(row.id) },
                       ]}
@@ -437,6 +512,52 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </form>
+        )}
+
+      {subModalUser &&
+        modalShell(
+          `Manage subscription — ${subModalUser.name}`,
+          closeSubModal,
+          <div>
+            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
+              Current plan:{" "}
+              <strong>{subModalUser.billing_plan_key || "None"}</strong>
+              {" · "}
+              Credits: <strong>{Number(subModalUser.credits_balance ?? 0)}</strong>
+              {" · "}
+              Monthly allowance: <strong>{Number(subModalUser.monthly_lead_credits ?? 0)}</strong>
+            </p>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Grant / change plan</label>
+            <select
+              className="input"
+              value={subPlanKey}
+              onChange={(e) => setSubPlanKey(e.target.value as "basic" | "pro" | "premium")}
+              style={{ width: "100%", marginBottom: 8 }}
+              disabled={subSaving}
+            >
+              {SUBSCRIPTION_PLAN_OPTIONS.map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.label} — {p.credits} credits / month
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 20 }}>
+              Applying a plan sets their credit balance to that plan&apos;s monthly allowance (same as after checkout). If
+              they had a paid Stripe subscription, it is canceled first so billing does not overlap.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button type="button" className="btn-primary" disabled={subSaving} onClick={() => void applySubscriptionPlan()}>
+                {subSaving ? "Saving…" : "Apply selected plan"}
+              </button>
+              <button type="button" className="btn-ghost" disabled={subSaving} onClick={() => void cancelUserSubscription()}>
+                Cancel subscription and zero credits
+              </button>
+              <button type="button" className="btn-ghost" disabled={subSaving} onClick={closeSubModal}>
+                Close
+              </button>
+            </div>
+          </div>,
+          520
         )}
 
       {credUser &&

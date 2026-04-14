@@ -148,16 +148,16 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                 </p>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
-                <Kpi title="Sent" value={campaign.whatsapp_sent ?? 0} icon={Icons.Send} />
-                <Kpi title="Delivered" value={campaign.whatsapp_delivered ?? 0} icon={Icons.CheckCircle} />
-                <Kpi title="Replied" value={campaign.whatsapp_replied ?? 0} icon={Icons.MessageCircle} />
+                <Kpi title="Sent" value={campaign.whatsapp_sent && campaign.whatsapp_sent > 0 ? campaign.whatsapp_sent : '—'} icon={Icons.Send} />
+                <Kpi title="Delivered" value={campaign.whatsapp_delivered && campaign.whatsapp_delivered > 0 ? campaign.whatsapp_delivered : '—'} icon={Icons.CheckCircle} />
+                <Kpi title="Replied" value={campaign.whatsapp_replied && campaign.whatsapp_replied > 0 ? campaign.whatsapp_replied : '—'} icon={Icons.MessageCircle} />
                 {campaign.whatsapp_no_whatsapp && campaign.whatsapp_no_whatsapp > 0 && (
                   <Kpi title="Skipped (No WhatsApp)" value={campaign.whatsapp_no_whatsapp} icon={Icons.AlertCircle} />
                 )}
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
-                <Kpi title="Delivery Rate" value={`${campaign.whatsapp_delivery_rate ?? '0'}%`} icon={Icons.Chart} />
-                <Kpi title="Reply Rate" value={`${campaign.whatsapp_reply_rate ?? '0'}%`} icon={Icons.Target} />
+                <Kpi title="Delivery Rate" value={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}%` : '—'} icon={Icons.Chart} />
+                <Kpi title="Reply Rate" value={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}%` : '—'} icon={Icons.Target} />
               </div>
             </div>
           );

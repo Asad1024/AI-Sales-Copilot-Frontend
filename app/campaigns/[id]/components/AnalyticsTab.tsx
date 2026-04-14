@@ -175,9 +175,9 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Sent" value={campaign.whatsapp_sent ?? 0} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
-                <MetricCard title="Delivered" value={campaign.whatsapp_delivered ?? 0} subtitle={`${campaign.whatsapp_delivery_rate ?? '0'}% delivery rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="Replied" value={campaign.whatsapp_replied ?? 0} subtitle={`${campaign.whatsapp_reply_rate ?? '0'}% reply rate`} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
+                <MetricCard title="Sent" value={campaign.whatsapp_sent && campaign.whatsapp_sent > 0 ? campaign.whatsapp_sent : '—'} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
+                <MetricCard title="Delivered" value={campaign.whatsapp_delivered && campaign.whatsapp_delivered > 0 ? campaign.whatsapp_delivered : '—'} subtitle={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                <MetricCard title="Replied" value={campaign.whatsapp_replied && campaign.whatsapp_replied > 0 ? campaign.whatsapp_replied : '—'} subtitle={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
               </div>
             </div>
           )}
@@ -234,6 +234,30 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 )}
                 {campaign.linkedin_invitations_skipped && campaign.linkedin_invitations_skipped > 0 && (
                   <MetricCard title="Skipped" value={campaign.linkedin_invitations_skipped} gradient="linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)" color="#ffc107" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Call Channel Metrics */}
+          {activeChannels.includes('call') && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Icons.Phone size={18} />
+                  Call Metrics
+                </h3>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                <MetricCard title="Calls Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
+                <MetricCard title="Answered" value={campaign.call_answered || 0} subtitle={`${campaign.call_answer_rate || '0'}% answer rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                <MetricCard title="Completed" value={campaign.call_completed || 0} subtitle={`${campaign.call_completion_rate || '0'}% completion rate`} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
+                <MetricCard title="Not Answered" value={campaign.call_not_answered || 0} gradient="linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)" color="#ffc107" />
+                {(campaign.call_failed || 0) > 0 && (
+                  <MetricCard title="Failed" value={campaign.call_failed || 0} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
+                )}
+                {(campaign.call_busy || 0) > 0 && (
+                  <MetricCard title="Busy" value={campaign.call_busy || 0} gradient="linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%)" color="#fb923c" />
                 )}
               </div>
             </div>

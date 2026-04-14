@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
 import {
   pricingPlansByLayout,
   type SalesCopilotPricingPlan,
 } from "@/lib/salesCopilotPricing";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, getUser } from "@/lib/apiClient";
 
 type Variant = "landing" | "portal";
 
@@ -27,6 +27,7 @@ function PortalPlanCard({
   enableCheckout,
   onMarketingCta,
   compact,
+  isCurrentPlan,
 }: {
   plan: SalesCopilotPricingPlan;
   busyId: string | null;
@@ -34,6 +35,7 @@ function PortalPlanCard({
   enableCheckout: boolean;
   onMarketingCta: (plan: SalesCopilotPricingPlan) => void;
   compact?: boolean;
+  isCurrentPlan?: boolean;
 }) {
   const isCustom = plan.kind === "custom";
   const ctaLabel = enableCheckout
@@ -188,6 +190,23 @@ function PortalPlanCard({
         >
           {ctaLabel}
         </Link>
+      ) : isCurrentPlan ? (
+        <div
+          role="status"
+          style={{
+            width: "100%",
+            padding: compact ? "12px 14px" : "14px 18px",
+            borderRadius: 12,
+            fontWeight: 700,
+            textAlign: "center",
+            fontSize: compact ? 14 : undefined,
+            border: "1px solid rgba(124, 58, 237, 0.4)",
+            background: "rgba(124, 58, 237, 0.1)",
+            color: "#5b21b6",
+          }}
+        >
+          Current plan
+        </div>
       ) : enableCheckout ? (
         <button
           type="button"
@@ -412,7 +431,20 @@ export default function SalesCopilotPricingSection({
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [billingHint, setBillingHint] = useState<string | null>(null);
+  const [currentBillingPlanKey, setCurrentBillingPlanKey] = useState<string | null>(null);
   const { setup, tiers, custom } = useMemo(() => pricingPlansByLayout(), []);
+
+  useEffect(() => {
+    if (variant !== "portal") return;
+    const read = () => {
+      const raw = getUser()?.billing_plan_key;
+      const k = typeof raw === "string" ? raw.trim() : "";
+      setCurrentBillingPlanKey(k || null);
+    };
+    read();
+    window.addEventListener("sparkai:user-changed", read);
+    return () => window.removeEventListener("sparkai:user-changed", read);
+  }, [variant]);
 
   const handlePortalCta = useCallback(
     async (plan: SalesCopilotPricingPlan) => {
@@ -659,6 +691,7 @@ export default function SalesCopilotPricingSection({
               enableCheckout={enableCheckout}
               onMarketingCta={handleMarketingCta}
               compact
+              isCurrentPlan={Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
             />
           ))}
         </div>

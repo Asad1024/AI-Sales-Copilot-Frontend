@@ -347,37 +347,35 @@ html, body {
   animation: shimmer-min 1.2s linear infinite;
 }
 
-/* Theme CSS Variables */
+/* Theme CSS Variables — default is light (white) until data-theme="dark" */
 :root {
-  /* Premium dark-forward theme */
-  --color-primary: #7C3AED;           /* Brand violet (Tailwind violet-600) */
-  --color-accent: #A94CFF;            /* Lavender Purple */
-  --color-background: #09090b;
-  --color-canvas: #0a0a0c;            /* Slightly lighter than bg for depth */
-  --color-surface: #0c0c0e;           /* Sidebar / subtle inset */
-  --color-surface-secondary: #18181b;
-  --color-text: #f4f4f5;
-  --color-text-muted: #a1a1aa;
+  --color-primary: #7C3AED;
+  --color-accent: #A94CFF;
+  --color-background: #f8fafc;
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
   --color-text-inverse: #ffffff;
-  --color-border: rgba(255, 255, 255, 0.12);
-  --color-border-light: rgba(255, 255, 255, 0.08);
-  --color-shadow: rgba(0, 0, 0, 0.35);
-  /* Light elevation tokens */
-  --elev-bg: #111113;
-  --elev-border: rgba(255, 255, 255, 0.12);
-  --elev-shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.45);
-  --elev-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
-  /* Skeleton shimmer (dark) */
-  --skeleton-base: rgba(255, 255, 255, 0.06);
-  --skeleton-mid: rgba(255, 255, 255, 0.11);
-  --skeleton-edge: rgba(255, 255, 255, 0.06);
-  --color-success: #7C3AED;           /* Using primary for success */
+  --color-border: rgba(15, 23, 42, 0.14);
+  --color-border-light: rgba(15, 23, 42, 0.08);
+  --color-shadow: rgba(2, 6, 23, 0.12);
+  --elev-bg: #ffffff;
+  --elev-border: rgba(15, 23, 42, 0.12);
+  --elev-shadow-lg: 0 12px 24px rgba(2, 6, 23, 0.12);
+  --elev-shadow: 0 6px 12px rgba(2, 6, 23, 0.08);
+  --skeleton-base: rgba(15, 23, 42, 0.07);
+  --skeleton-mid: rgba(15, 23, 42, 0.14);
+  --skeleton-edge: rgba(15, 23, 42, 0.07);
+  --color-success: #7C3AED;
   --color-warning: #ffa726;
   --color-error: #ff6b6b;
-  --color-info: #A94CFF;              /* Using accent for info */
+  --color-info: #A94CFF;
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --skeleton-base: rgba(255, 255, 255, 0.06);
   --skeleton-mid: rgba(255, 255, 255, 0.11);
   --skeleton-edge: rgba(255, 255, 255, 0.06);
@@ -404,6 +402,7 @@ html, body {
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --color-background: #f8fafc;
   --color-canvas: #f8fafc;
   --color-surface: #ffffff;

@@ -57,14 +57,14 @@ export const themes: Record<ResolvedTheme, ThemeColors> = {
 };
 
 export const getSystemTheme = (): ResolvedTheme => {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'light';
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
 export const getStoredTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'light';
   const stored = localStorage.getItem('spark-theme') as Theme;
-  return stored || 'system';
+  return stored || 'light';
 };
 
 export const setStoredTheme = (theme: Theme): void => {

@@ -78,7 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     pathname?.startsWith("/settings") ? "8px 10px 20px" : "8px 20px 20px";
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <body
         style={{
           margin: 0,

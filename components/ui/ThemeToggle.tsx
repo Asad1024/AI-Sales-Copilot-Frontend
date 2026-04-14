@@ -3,12 +3,13 @@ import { useState, useEffect } from "react";
 import { Icons } from "./Icons";
 
 export default function ThemeToggle({ compact }: { compact?: boolean }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem('spark-theme') as 'light' | 'dark' || 'dark';
+    const raw = localStorage.getItem('spark-theme');
+    const stored: 'light' | 'dark' = raw === 'dark' ? 'dark' : 'light';
     setTheme(stored);
     applyTheme(stored);
   }, []);

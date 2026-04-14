@@ -53,6 +53,8 @@ export type BuildCampaignDraftPayloadInput = {
   knowledgeBaseFiles: Array<{ id: string; name: string }>;
   leads: DraftLead[];
   hasLinkedInUrl: (lead: DraftLead) => boolean;
+  /** When non-null, campaign targets exactly these lead IDs (wizard partial selection). Null = use segments only. */
+  targetLeadIds?: number[] | null;
 };
 
 function tierFilterFromSegments(segments: string[]): string | undefined {
@@ -151,11 +153,18 @@ export function buildCampaignDraftPayload(
     knowledgeBaseFiles,
     leads,
     hasLinkedInUrl,
+    targetLeadIds: targetLeadIdsInput,
   } = input;
 
   const tierFilter = tierFilterFromSegments(segments);
+  const targetLeadIds = targetLeadIdsInput !== undefined ? targetLeadIdsInput : null;
 
   const totalLeads = (() => {
+    if (targetLeadIds !== null) {
+      if (targetLeadIds.length === 0) return 0;
+      const leadIdSet = new Set(leads.map((l) => l.id));
+      return targetLeadIds.filter((id) => leadIdSet.has(id)).length;
+    }
     const ids = new Set<number>();
     for (const seg of segments) {
       getSegmentLeadsFiltered(seg, leads, channels, hasLinkedInUrl).forEach((l) => ids.add(l.id));
@@ -188,6 +197,7 @@ export function buildCampaignDraftPayload(
     whatsAppMessagesGenerated,
     followupsPreferenceSet,
     showFollowupsNumberInput,
+    target_lead_ids: targetLeadIds,
   };
 
   if (channels.includes("email")) {

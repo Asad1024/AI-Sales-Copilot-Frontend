@@ -1021,6 +1021,8 @@ export default function CampaignNew() {
   const channelsRef = useRef<string[]>(channels);
   channelsRef.current = channels;
   const [segments, setSegments] = useState<string[]>([]);
+  /** When non-null, selected leads = this list ∩ channel-eligible leads (fixes checkboxes vs segment-union bug). */
+  const [explicitCampaignTargetLeadIds, setExplicitCampaignTargetLeadIds] = useState<number[] | null>(null);
   const [leadTableFilter, setLeadTableFilter] = useState<LeadTableFilterKey>("all");
   const [leadTableSearch, setLeadTableSearch] = useState("");
   const [leadTablePage, setLeadTablePage] = useState(1);
@@ -1346,6 +1348,7 @@ export default function CampaignNew() {
     isLaunching: false,
     channels: [] as string[],
     segments: [] as string[],
+    explicitCampaignTargetLeadIds: null as number[] | null,
     schedule,
     messages,
     selectedMessageIndices,
@@ -1391,6 +1394,14 @@ export default function CampaignNew() {
       linkedin_step: linkedInStepConfig,
     });
   }, [step, channels, linkedInStepConfig]);
+
+  /** Default schedule has followups > 0 so "Yes" looks selected — sync flags so count UI shows without toggling No/Yes. */
+  useEffect(() => {
+    if (currentStepInfo?.stepType !== "email_followup_preferences") return;
+    if (!channels.includes("email")) return;
+    setShowFollowupsNumberInput(schedule.followups > 0);
+    setFollowupsPreferenceSet(true);
+  }, [currentStepInfo?.stepType, channels, schedule.followups]);
 
   useEffect(() => {
     if (currentStepInfo?.stepType !== "call_knowledge_base") {
@@ -1734,6 +1745,7 @@ export default function CampaignNew() {
     isLaunching,
     channels,
     segments,
+    explicitCampaignTargetLeadIds,
     schedule,
     messages,
     selectedMessageIndices,
@@ -1779,6 +1791,7 @@ export default function CampaignNew() {
           name: ctx.name,
           channels: channelsForPayload,
           segments: ctx.segments,
+          targetLeadIds: ctx.explicitCampaignTargetLeadIds,
           schedule: ctx.schedule,
           messages: ctx.messages,
           selectedMessageIndices: ctx.selectedMessageIndices,
@@ -2064,6 +2077,16 @@ export default function CampaignNew() {
         if (config.segments && Array.isArray(config.segments)) {
           setSegments(config.segments);
         }
+        if (Array.isArray((config as { target_lead_ids?: unknown }).target_lead_ids)) {
+          const raw = (config as { target_lead_ids: unknown[] }).target_lead_ids;
+          setExplicitCampaignTargetLeadIds(
+            raw
+              .map((x) => Number(x))
+              .filter((n) => Number.isFinite(n) && !Number.isNaN(n))
+          );
+        } else {
+          setExplicitCampaignTargetLeadIds(null);
+        }
 
         if (config.schedule) {
           const oldSchedule = config.schedule;
@@ -2325,6 +2348,7 @@ export default function CampaignNew() {
     name,
     channels,
     segments,
+    explicitCampaignTargetLeadIds,
     schedule,
     activeBaseId,
     draftCampaignId,
@@ -2371,6 +2395,7 @@ export default function CampaignNew() {
           name: ctx.name,
           channels: channelsRef.current,
           segments: ctx.segments,
+          targetLeadIds: ctx.explicitCampaignTargetLeadIds,
           schedule: ctx.schedule,
           messages: ctx.messages,
           selectedMessageIndices: ctx.selectedMessageIndices,
@@ -2526,12 +2551,23 @@ export default function CampaignNew() {
   }, [leads, channels, hasLinkedInUrl]);
 
   const selectedLeadIds = useMemo(() => {
+    const allowed = new Set(allChannelLeads.map((l) => l.id));
+    if (explicitCampaignTargetLeadIds !== null) {
+      return new Set(
+        explicitCampaignTargetLeadIds.filter((id) => allowed.has(id))
+      );
+    }
     const set = new Set<number>();
     segments.forEach((segName) => {
       segmentData.find((s) => s.name === segName)?.leads.forEach((l) => set.add(l.id));
     });
     return set;
-  }, [segments, segmentData]);
+  }, [segments, segmentData, explicitCampaignTargetLeadIds, allChannelLeads]);
+
+  const selectedLeadsForSamples = useMemo(
+    () => allChannelLeads.filter((l) => selectedLeadIds.has(l.id)),
+    [allChannelLeads, selectedLeadIds]
+  );
 
   const buildSegmentsFromLeadIds = useCallback(
     (ids: Set<number>) => {
@@ -2543,6 +2579,15 @@ export default function CampaignNew() {
     },
     [segmentData]
   );
+
+  useEffect(() => {
+    if (explicitCampaignTargetLeadIds === null) return;
+    const allowed = new Set(allChannelLeads.map((l) => l.id));
+    const filtered = explicitCampaignTargetLeadIds.filter((id) => allowed.has(id));
+    if (filtered.length === explicitCampaignTargetLeadIds.length) return;
+    setExplicitCampaignTargetLeadIds(filtered);
+    setSegments(buildSegmentsFromLeadIds(new Set(filtered)));
+  }, [allChannelLeads, explicitCampaignTargetLeadIds, buildSegmentsFromLeadIds]);
 
   useEffect(() => {
     setLeadTablePage(1);
@@ -3044,20 +3089,13 @@ export default function CampaignNew() {
         productService &&
         valueProposition &&
         callToAction &&
-        segments.length > 0 &&
+        totalLeads > 0 &&
         activeBaseId &&
         segmentData.length > 0
       ) {
         setEmailDraftFetchState("center");
         try {
-          // Get sample leads from selected segments
-          const sampleLeads = segments
-            .map(segName => {
-              const seg = segmentData.find(s => s.name === segName);
-              return seg?.leads?.[0]; // Get first lead from each segment
-            })
-            .filter((lead): lead is Lead => lead !== undefined)
-            .slice(0, 3); // Limit to 3 sample leads
+          const sampleLeads = selectedLeadsForSamples.slice(0, 3);
           
           if (sampleLeads.length > 0) {
             // Calculate number of templates needed: 1 initial + number of follow-ups
@@ -3110,7 +3148,7 @@ export default function CampaignNew() {
     };
     
     generateEmailTemplates();
-  }, [currentStepInfo?.stepType, step, channels, name, segments, segmentData, activeBaseId, productService, valueProposition, callToAction, senderName, senderCompany, messages, messagesGenerated, followupsPreferenceSet, schedule.followups, linkedInStepConfig]);
+  }, [currentStepInfo?.stepType, step, channels, name, segments, segmentData, activeBaseId, productService, valueProposition, callToAction, senderName, senderCompany, messages, messagesGenerated, followupsPreferenceSet, schedule.followups, linkedInStepConfig, totalLeads, selectedLeadsForSamples]);
 
   const regenerateAiEmailDrafts = useCallback(
     async (opts: { tone: EmailDraftTone; toastTitle: string; toastMessage?: string }) => {
@@ -3122,10 +3160,7 @@ export default function CampaignNew() {
         showWarning("Workspace", "Select a workspace (base) so we can generate drafts.");
         return;
       }
-      const sampleLeads = segments
-        .map((segName) => segmentData.find((s) => s.name === segName)?.leads?.[0])
-        .filter((lead): lead is Lead => lead !== undefined)
-        .slice(0, 3);
+      const sampleLeads = selectedLeadsForSamples.slice(0, 3);
 
       setEmailDraftFetchState("skeleton");
       try {
@@ -3174,7 +3209,6 @@ export default function CampaignNew() {
       channels,
       activeBaseId,
       segments,
-      segmentData,
       name,
       productService,
       valueProposition,
@@ -3182,6 +3216,7 @@ export default function CampaignNew() {
       senderName,
       senderCompany,
       schedule.followups,
+      selectedLeadsForSamples,
       showSuccess,
       showWarning,
       showError,
@@ -4563,6 +4598,8 @@ export default function CampaignNew() {
                             if (key === "all") return;
                             const preset = filterLeadsByLeadTableKey(allChannelLeads, key);
                             const next = new Set(preset.map((l) => l.id));
+                            const nextArr = Array.from(next);
+                            setExplicitCampaignTargetLeadIds(nextArr);
                             setSegments(buildSegmentsFromLeadIds(next));
                           }}
                           className={active ? "btn-primary" : undefined}
@@ -4684,12 +4721,17 @@ export default function CampaignNew() {
                           el.indeterminate = some && !all;
                         }}
                         onChange={(e) => {
-                          const next = new Set(selectedLeadIds);
+                          const base =
+                            explicitCampaignTargetLeadIds !== null
+                              ? new Set(explicitCampaignTargetLeadIds)
+                              : new Set(selectedLeadIds);
+                          const next = base;
                           if (e.target.checked) {
                             leadsMatchingFilterPreset.forEach((l) => next.add(l.id));
                           } else {
                             leadsMatchingFilterPreset.forEach((l) => next.delete(l.id));
                           }
+                          setExplicitCampaignTargetLeadIds(Array.from(next));
                           setSegments(buildSegmentsFromLeadIds(next));
                         }}
                         aria-label={`Select all ${leadsMatchingFilterPreset.length} leads in this filter`}
@@ -4750,12 +4792,16 @@ export default function CampaignNew() {
                                 const allSelected =
                                   pageIds.length > 0 &&
                                   pageIds.every((id) => selectedLeadIds.has(id));
-                                const next = new Set(selectedLeadIds);
+                                const next =
+                                  explicitCampaignTargetLeadIds !== null
+                                    ? new Set(explicitCampaignTargetLeadIds)
+                                    : new Set(selectedLeadIds);
                                 if (allSelected) {
                                   pageIds.forEach((id) => next.delete(id));
                                 } else {
                                   pageIds.forEach((id) => next.add(id));
                                 }
+                                setExplicitCampaignTargetLeadIds(Array.from(next));
                                 setSegments(buildSegmentsFromLeadIds(next));
                               }}
                               aria-label="Select all leads on this page"
@@ -4962,9 +5008,13 @@ export default function CampaignNew() {
                                   style={WIZARD_LEAD_STEP_CHECKBOX_STYLE}
                                   checked={checked}
                                   onChange={(e) => {
-                                    const next = new Set(selectedLeadIds);
+                                    const next =
+                                      explicitCampaignTargetLeadIds !== null
+                                        ? new Set(explicitCampaignTargetLeadIds)
+                                        : new Set(selectedLeadIds);
                                     if (e.target.checked) next.add(lead.id);
                                     else next.delete(lead.id);
+                                    setExplicitCampaignTargetLeadIds(Array.from(next));
                                     setSegments(buildSegmentsFromLeadIds(next));
                                   }}
                                   aria-label={`Select ${name}`}
@@ -5077,7 +5127,10 @@ export default function CampaignNew() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => setSegments([])}
+                        onClick={() => {
+                          setExplicitCampaignTargetLeadIds([]);
+                          setSegments([]);
+                        }}
                         style={{
                           margin: 0,
                           padding: 0,
@@ -5337,7 +5390,7 @@ export default function CampaignNew() {
             </div>
           </div>
 
-          {showFollowupsNumberInput && schedule.followups > 0 && (
+          {schedule.followups > 0 && (
             <div>
               <label
                 style={{
@@ -7092,9 +7145,7 @@ export default function CampaignNew() {
                     if (!channels.includes("whatsapp") || !activeBaseId) return;
                     setGeneratingWhatsAppMessages(true);
                     try {
-                      const sampleLeads = segments
-                        .map((segName) => segmentData.find((s) => s.name === segName)?.leads || [])
-                        .flat()
+                      const sampleLeads = selectedLeadsForSamples
                         .filter((lead: Lead) => {
                           if (!lead.phone || !lead.phone.trim()) return false;
                           const cleaned = lead.phone.replace(/[^\d+]/g, "");
@@ -12034,10 +12085,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     }}
                     onClick={async () => {
                       if (!channels.includes("email") || !activeBaseId) return;
-                      const sampleLeads = segments
-                        .map((segName) => segmentData.find((s) => s.name === segName)?.leads?.[0])
-                        .filter((lead): lead is Lead => lead !== undefined)
-                        .slice(0, 3);
+                      const sampleLeads = selectedLeadsForSamples.slice(0, 3);
                       setRegeneratingEmailSlot(idx);
                       try {
                         const response = await apiRequest("/campaigns/generate-messages", {
@@ -13563,8 +13611,18 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       }
                     }
                     
-                    // Validate segments before launching
-                    if (finalSegments.length === 0) {
+                    if (finalSegments.length === 0 && segments.length > 0) {
+                      finalSegments = [...segments];
+                    }
+                    if (
+                      finalSegments.length === 0 &&
+                      explicitCampaignTargetLeadIds !== null &&
+                      explicitCampaignTargetLeadIds.length > 0
+                    ) {
+                      finalSegments = buildSegmentsFromLeadIds(new Set(explicitCampaignTargetLeadIds));
+                    }
+                    
+                    if (totalLeads === 0) {
                       showWarning("Leads required", "Select at least one lead before launching the campaign.");
                       setLaunching(false);
                       setIsLaunching(false);
@@ -13580,12 +13638,6 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     } else if (finalSegments.some((s: string) => s.includes('Cold'))) {
                       tierFilter = 'Cold';
                     }
-                    
-                    const launchLeadIdSet = new Set<number>();
-                    finalSegments.forEach((seg: string) => {
-                      segmentData.find((s) => s.name === seg)?.leads.forEach((l) => launchLeadIdSet.add(l.id));
-                    });
-                    const totalLeads = launchLeadIdSet.size;
                     
                     // Build config object with all necessary fields
                     // Include all throttle settings for all selected channels
@@ -13612,7 +13664,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       selectedWhatsAppMessageIndices: selectedWhatsAppMessageIndices,
                       whatsAppMessagesGenerated: whatsAppMessagesGenerated,
                       followupsPreferenceSet: followupsPreferenceSet,
-                      showFollowupsNumberInput: showFollowupsNumberInput
+                      showFollowupsNumberInput: showFollowupsNumberInput,
+                      ...(explicitCampaignTargetLeadIds !== null && explicitCampaignTargetLeadIds.length > 0
+                        ? { target_lead_ids: [...explicitCampaignTargetLeadIds] }
+                        : {}),
                     };
                     
                     // Add email campaign details if email channel

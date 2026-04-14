@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import { AppBrandLogoMark, appBrandWordmarkStyle } from "@/components/ui/AppBrandLogo";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+// import ThemeToggle from "@/components/ui/ThemeToggle";
 import BaseCard from "@/components/ui/BaseCard";
 import { Icons } from "@/components/ui/Icons";
 
@@ -73,7 +73,7 @@ function InvitePublicHeader() {
         >
           Sign in
         </Link>
-        <ThemeToggle compact />
+        {/* <ThemeToggle compact /> */}
       </div>
     </header>
   );

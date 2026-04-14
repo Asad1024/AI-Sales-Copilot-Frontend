@@ -7,7 +7,7 @@ import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import BaseSelector from "./BaseSelector";
-import ThemeToggle from "./ThemeToggle";
+// import ThemeToggle from "./ThemeToggle";
 import { Icons } from "./Icons";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 import {
@@ -604,7 +604,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 <Settings size={16} strokeWidth={1.75} />
               </Link>
-              <ThemeToggle compact />
+              {/* <ThemeToggle compact /> */}
             </div>
             <button
               type="button"

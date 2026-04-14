@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
 import { getUser, clearAuth, type User } from "@/lib/apiClient";
-import ThemeToggle from "./ThemeToggle";
+// import ThemeToggle from "./ThemeToggle";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 
@@ -612,7 +612,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               >
                 <Settings size={16} strokeWidth={1.75} />
               </Link>
-              <ThemeToggle compact />
+              {/* <ThemeToggle compact /> */}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button

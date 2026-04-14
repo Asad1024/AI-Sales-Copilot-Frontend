@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useMemo, Suspense, type CSSProperties, type ReactNode } from "react";
 import { Icons } from "@/components/ui/Icons";
 import { useSearchParams, useRouter } from "next/navigation";
+import { apiRequest, getUser, setUser, type User } from "@/lib/apiClient";
+import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
+import { useBaseStore } from "@/stores/useBaseStore";
 import { TestConfigurationSection } from "./TestConfigurationSection";
 import { IntegrationsHub } from "./IntegrationsHub";
 import BaseCard from "@/components/ui/BaseCard";
@@ -57,11 +60,50 @@ function parseSettingsTab(raw: string | null): SettingsTabId {
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [userRev, setUserRev] = useState(0);
+  const bases = useBaseStore((s) => s.bases);
+  const basesLoading = useBaseStore((s) => s.loading);
+
+  useEffect(() => {
+    const sync = () => setUserRev((n) => n + 1);
+    window.addEventListener("sparkai:user-changed", sync);
+    return () => window.removeEventListener("sparkai:user-changed", sync);
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const me = (await apiRequest("/auth/me")) as { user: User };
+        if (me?.user) {
+          setUser(me.user);
+          setUserRev((n) => n + 1);
+        }
+      } catch {
+        /* offline / stale tab — keep cached user */
+      }
+    })();
+  }, []);
+
+  const hidePaymentsTab = useMemo(() => {
+    const u = getUser();
+    return u ? shouldHideBillingAndUpgrade(u, bases, basesLoading) : false;
+  }, [userRev, bases, basesLoading]);
+
   const [tab, setTab] = useState<SettingsTabId>(() => parseSettingsTab(searchParams?.get("tab")));
 
   useEffect(() => {
     setTab(parseSettingsTab(searchParams?.get("tab")));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!hidePaymentsTab) return;
+    if (tab !== "payments") return;
+    setTab("profile");
+    const p = new URLSearchParams(searchParams?.toString() || "");
+    p.set("tab", "profile");
+    p.delete("session_id");
+    router.replace(`/settings?${p.toString()}`);
+  }, [hidePaymentsTab, tab, router, searchParams]);
 
   const selectTab = (id: SettingsTabId) => {
     setTab(id);
@@ -79,33 +121,50 @@ export default function SettingsPage() {
     icon: (active: boolean) => ReactNode;
   };
 
-  const settingsGroups: { category: string; items: TabDef[] }[] = [
-    {
-      category: "Account",
-      items: [
-        { id: "profile", label: "Profile", hint: "Identity, password & account", icon: (a) => <UserIcon active={a} /> },
-      ],
-    },
-    {
-      category: "Workspace",
-      items: [
-        { id: "integrations", label: "Integrations", hint: "CRM & messaging", icon: (a) => <PlugTabIcon active={a} /> },
-        { id: "payments", label: "Payments", hint: "Stripe receipts & plan", icon: (a) => <PaymentsTabIcon active={a} /> },
-        {
-          id: "credit-history",
-          label: "Credit history",
-          hint: "Shared workspace credits & who spent them",
-          icon: (a) => <CreditHistoryTabIcon active={a} />,
-        },
-      ],
-    },
-    {
-      category: "Tools",
-      items: [
-        { id: "test-configuration", label: "Test configuration", hint: "Channels & SMTP", icon: (a) => <TestConfigTabIcon active={a} /> },
-      ],
-    },
-  ];
+  const settingsGroups: { category: string; items: TabDef[] }[] = useMemo(
+    () => [
+      {
+        category: "Account",
+        items: [
+          { id: "profile", label: "Profile", hint: "Identity, password & account", icon: (a) => <UserIcon active={a} /> },
+        ],
+      },
+      {
+        category: "Workspace",
+        items: [
+          { id: "integrations", label: "Integrations", hint: "CRM & messaging", icon: (a) => <PlugTabIcon active={a} /> },
+          { id: "payments", label: "Payments", hint: "Stripe receipts & plan", icon: (a) => <PaymentsTabIcon active={a} /> },
+          {
+            id: "credit-history",
+            label: "Credit history",
+            hint: "Shared workspace credits & who spent them",
+            icon: (a) => <CreditHistoryTabIcon active={a} />,
+          },
+        ],
+      },
+      {
+        category: "Tools",
+        items: [
+          { id: "test-configuration", label: "Test configuration", hint: "Channels & SMTP", icon: (a) => <TestConfigTabIcon active={a} /> },
+        ],
+      },
+    ],
+    []
+  );
+
+  const visibleSettingsGroups = useMemo(() => {
+    if (!hidePaymentsTab) return settingsGroups;
+    return settingsGroups.map((g) =>
+      g.category === "Workspace"
+        ? {
+            ...g,
+            items: g.items.filter((item) => item.id !== "payments"),
+          }
+        : g
+    );
+  }, [hidePaymentsTab, settingsGroups]);
+
+  const effectiveTab: SettingsTabId = hidePaymentsTab && tab === "payments" ? "profile" : tab;
 
   const groupLabelStyle: CSSProperties = {
     fontSize: 10,
@@ -144,7 +203,7 @@ export default function SettingsPage() {
           aria-label="Settings sections"
           className="settings-nav flex flex-col gap-0 sticky top-4"
         >
-          {settingsGroups.map((group, groupIndex) => (
+          {visibleSettingsGroups.map((group, groupIndex) => (
             <div
               key={group.category}
               className="settings-nav-group"
@@ -152,7 +211,7 @@ export default function SettingsPage() {
             >
               <div style={groupLabelStyle}>{group.category}</div>
               {group.items.map(({ id, label, hint, icon }) => {
-                const active = tab === id;
+                const active = effectiveTab === id;
                 return (
                   <button
                     key={id}
@@ -211,21 +270,22 @@ export default function SettingsPage() {
         <BaseCard
           style={{
             borderRadius: 16,
-            padding: tab === "integrations" ? 18 : tab === "payments" || tab === "credit-history" ? 20 : 22,
+            padding:
+              effectiveTab === "integrations" ? 18 : effectiveTab === "payments" || effectiveTab === "credit-history" ? 20 : 22,
             minHeight: 400,
             border: "1px solid var(--color-border)",
             boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
           }}
         >
-          {tab === "profile" && <ProfileSettingsPanel />}
-          {tab === "integrations" && <IntegrationsHub />}
-          {tab === "payments" && (
+          {effectiveTab === "profile" && <ProfileSettingsPanel />}
+          {effectiveTab === "integrations" && <IntegrationsHub />}
+          {effectiveTab === "payments" && (
             <Suspense fallback={<p style={{ color: "var(--color-text-muted)" }}>Loading…</p>}>
               <PaymentSettingsPanel />
             </Suspense>
           )}
-          {tab === "credit-history" && <CreditHistorySettingsPanel />}
-          {tab === "test-configuration" && <TestConfigurationSection />}
+          {effectiveTab === "credit-history" && <CreditHistorySettingsPanel />}
+          {effectiveTab === "test-configuration" && <TestConfigurationSection />}
         </BaseCard>
       </div>
 

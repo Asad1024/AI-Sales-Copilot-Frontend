@@ -45,6 +45,10 @@ export default function OnboardingPage() {
       router.replace("/admin");
       return;
     }
+    if (u.team_member_only === true) {
+      router.replace("/dashboard");
+      return;
+    }
     if (u.onboarding_completed === true) {
       router.replace("/dashboard");
       return;

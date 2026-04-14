@@ -8,6 +8,7 @@ import { Icons } from "@/components/ui/Icons";
 import { ColumnList } from "./components/ColumnList";
 import { ColumnEditorModal } from "./components/ColumnEditorModal";
 import { StatusFieldHelper } from "./components/StatusFieldHelper";
+import { ScoringPromptCard } from "./components/ScoringPromptCard";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
 
 export default function BaseSchemaPage() {
@@ -15,7 +16,7 @@ export default function BaseSchemaPage() {
   const params = useParams();
   const baseId = params?.id ? parseInt(params.id as string) : null;
   const { columns, loading, fetchColumns } = useColumnStore();
-  const { permissions } = useBasePermissions(baseId);
+  const { permissions, loading: permissionsLoading } = useBasePermissions(baseId);
   const { showSuccess, showError } = useNotification();
   const [editingColumn, setEditingColumn] = useState<BaseColumn | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -72,6 +73,10 @@ export default function BaseSchemaPage() {
           Add Column
         </button>
       </div>
+
+      {!permissionsLoading && permissions.canManageSettings && (
+        <ScoringPromptCard baseId={baseId} canManageSettings={permissions.canManageSettings} />
+      )}
 
       {/* Status Field Helper */}
       {!loading && columns.length === 0 && (

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, getUser } from "@/lib/apiClient";
 import { extractSpreadsheetIdFromUrl, validateGoogleSheetsVaultInput } from "@/lib/googleSheetsVault";
 import { useBase } from "@/context/BaseContext";
 import { useNotification } from "@/context/NotificationContext";
@@ -469,6 +469,15 @@ export function IntegrationsHub() {
   const [hsConfigureOpen, setHsConfigureOpen] = useState(false);
   const [savingAirtable, setSavingAirtable] = useState(false);
   const [usingWorkspaceOwnerCredentials, setUsingWorkspaceOwnerCredentials] = useState(false);
+  const [teamMemberOnly, setTeamMemberOnly] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setTeamMemberOnly(Boolean(getUser()?.team_member_only));
+    sync();
+    if (typeof window === "undefined") return;
+    window.addEventListener("sparkai:user-changed", sync);
+    return () => window.removeEventListener("sparkai:user-changed", sync);
+  }, []);
 
   const integrationContextQs = useMemo(() => {
     const n = activeBaseId == null ? NaN : Number(activeBaseId);
@@ -476,6 +485,13 @@ export function IntegrationsHub() {
   }, [activeBaseId]);
 
   const assertCanMutateWorkspaceIntegrations = useCallback((): boolean => {
+    if (teamMemberOnly) {
+      showWarning(
+        "Workspace owner only",
+        "Only your workspace owner can connect or change integrations.",
+      );
+      return false;
+    }
     if (!usingWorkspaceOwnerCredentials) {
       return true;
     }
@@ -484,7 +500,7 @@ export function IntegrationsHub() {
       "Only the workspace owner can connect, configure, or remove integrations for this workspace.",
     );
     return false;
-  }, [usingWorkspaceOwnerCredentials, showWarning]);
+  }, [teamMemberOnly, usingWorkspaceOwnerCredentials, showWarning]);
 
   const loadAll = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
@@ -559,11 +575,11 @@ export function IntegrationsHub() {
   const liUserConnected = Boolean(linkedin?.config?.account_id);
   const waUserConnected = Boolean(whatsapp?.config?.account_id);
   const atOk = Boolean(airtable?.config?.api_key);
-  /** Vault returns masked apiKey when a real key is stored — drive the status badge after save/refresh. */
+  /** Badge is connected only when backend confirms masked key exactly and required fields exist. */
   const gsOk = Boolean(
     (vault.googleSheets?.spreadsheetId || "").trim() &&
       (vault.googleSheets?.sheetName || "").trim() &&
-      (vault.googleSheets?.apiKey || "").includes("***"),
+      (vault.googleSheets?.apiKey || "").trim() === "***configured***",
   );
   const hsOk = Boolean((vault.hubspot?.privateAppToken || "").includes("***"));
 
@@ -661,12 +677,13 @@ export function IntegrationsHub() {
     });
     if (!ok) return;
     try {
-      await apiRequest(`/me/connector-vault${integrationContextQs}`, {
+      const response = await apiRequest(`/me/connector-vault${integrationContextQs}`, {
         method: "PUT",
         body: JSON.stringify({
           googleSheets: { spreadsheetId: "", sheetName: "", apiKey: "" },
         }),
       });
+      setVault(response?.vault || {});
       setGsSpreadsheetId("");
       setGsSheetName("");
       setGsApiKey("");
@@ -750,10 +767,14 @@ export function IntegrationsHub() {
     }
     setSavingSheets(true);
     try {
-      await apiRequest(`/me/connector-vault${integrationContextQs}`, {
+      const response = await apiRequest(`/me/connector-vault${integrationContextQs}`, {
         method: "PUT",
         body: JSON.stringify({ googleSheets }),
       });
+      const nextVault = response?.vault || {};
+      setVault(nextVault);
+      setGsSpreadsheetId(nextVault.googleSheets?.spreadsheetId || "");
+      setGsSheetName(nextVault.googleSheets?.sheetName || "");
       showSuccess("Saved", "Google Sheets settings stored securely.");
       void loadAll({ silent: true });
       return true;
@@ -797,7 +818,10 @@ export function IntegrationsHub() {
     }
   };
 
-  const ownerReadOnly = usingWorkspaceOwnerCredentials;
+  const ownerReadOnly = usingWorkspaceOwnerCredentials || teamMemberOnly;
+  /** Shown in banner and disabled-control tooltips when viewer cannot edit integrations. */
+  const integrationOwnerOnlyHint =
+    "Only the workspace owner can connect or change integrations for this workspace.";
 
   if (loading) {
     return <GlobalPageLoader layout="embedded" minHeight={400} ariaLabel="Loading integrations" />;
@@ -805,23 +829,6 @@ export function IntegrationsHub() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      {usingWorkspaceOwnerCredentials ? (
-        <div
-          role="status"
-          style={{
-            borderRadius: 12,
-            padding: "12px 14px",
-            border: "1px solid rgba(124, 58, 237, 0.35)",
-            background: "rgba(124, 58, 237, 0.08)",
-            fontSize: 13,
-            color: "var(--color-text)",
-            lineHeight: 1.45,
-          }}
-        >
-          You&apos;re viewing this workspace&apos;s owner integrations and connectors (same as API keys). Only the owner
-          can change them; your campaigns and imports here use these connections.
-        </div>
-      ) : null}
       {showUnipileSuccessModal ? <UnipileSuccessModal onClose={() => setShowUnipileSuccessModal(false)} /> : null}
       {liModal && (
         <LinkedInTypeModal
@@ -879,6 +886,14 @@ export function IntegrationsHub() {
       <div style={{ marginBottom: 20, minWidth: 0 }}>
         <h2 className="m-0 text-lg font-medium tracking-tight text-gray-900">Integrations</h2>
         <p className="mt-1 text-[13px] text-gray-400">Connect messaging, outbound email, and CRM data sources for your workspace.</p>
+        {ownerReadOnly ? (
+          <p
+            className="mt-3 mb-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-600"
+            role="status"
+          >
+            {integrationOwnerOnlyHint}
+          </p>
+        ) : null}
       </div>
 
       {!activeBaseId ? (
@@ -922,6 +937,7 @@ export function IntegrationsHub() {
                 {!liUserConnected ? (
                   <ConnectFilledButton
                     disabled={unipileBusy === "linkedin" || ownerReadOnly}
+                    title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
                     onClick={() => {
                       setPendingLi("unipile_linkedin");
                       setLiModal(true);
@@ -935,6 +951,7 @@ export function IntegrationsHub() {
                 {liUserConnected ? (
                   <RemoveIntegrationLink
                     disabled={ownerReadOnly}
+                    title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
                     onClick={() => void removeMessagingIntegration(linkedin, "LinkedIn")}
                   />
                 ) : (
@@ -957,6 +974,7 @@ export function IntegrationsHub() {
                 {!waUserConnected ? (
                   <ConnectFilledButton
                     disabled={unipileBusy === "whatsapp" || ownerReadOnly}
+                    title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
                     onClick={() => setWaModal(true)}
                   >
                     {unipileBusy === "whatsapp" ? "Opening…" : "Connect"}
@@ -967,6 +985,7 @@ export function IntegrationsHub() {
                 {waUserConnected ? (
                   <RemoveIntegrationLink
                     disabled={ownerReadOnly}
+                    title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
                     onClick={() => void removeMessagingIntegration(whatsapp, "WhatsApp")}
                   />
                 ) : (
@@ -1020,9 +1039,17 @@ export function IntegrationsHub() {
             status={gsOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton disabled={ownerReadOnly} onClick={() => setGsConfigureOpen(true)} />
+                <ConfigureLinkButton
+                  onClick={() => setGsConfigureOpen(true)}
+                  disabled={ownerReadOnly}
+                  title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
+                />
                 {gsOk ? (
-                  <RemoveIntegrationLink disabled={ownerReadOnly} onClick={() => void removeGoogleSheetsIntegration()} />
+                  <RemoveIntegrationLink
+                    disabled={ownerReadOnly}
+                    title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
+                    onClick={() => void removeGoogleSheetsIntegration()}
+                  />
                 ) : (
                   <span aria-hidden />
                 )}
@@ -1040,9 +1067,17 @@ export function IntegrationsHub() {
             status={atOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton disabled={ownerReadOnly} onClick={() => setAtConfigureOpen(true)} />
+                <ConfigureLinkButton
+                  onClick={() => setAtConfigureOpen(true)}
+                  disabled={ownerReadOnly}
+                  title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
+                />
                 {atOk ? (
-                  <RemoveIntegrationLink disabled={ownerReadOnly} onClick={() => void disconnectAirtable()} />
+                  <RemoveIntegrationLink
+                    disabled={ownerReadOnly}
+                    title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
+                    onClick={() => void disconnectAirtable()}
+                  />
                 ) : (
                   <span aria-hidden />
                 )}
@@ -1056,18 +1091,9 @@ export function IntegrationsHub() {
               </div>
             }
             name="HubSpot"
-            subtitle={hsOk ? "Private app token on file" : "Paste a private app token in Configure"}
-            status={hsOk ? "connected" : "not_connected"}
-            actionRow={
-              <>
-                <ConfigureLinkButton disabled={ownerReadOnly} onClick={() => setHsConfigureOpen(true)} />
-                {hsOk ? (
-                  <RemoveIntegrationLink disabled={ownerReadOnly} onClick={() => void removeHubspotIntegration()} />
-                ) : (
-                  <span aria-hidden />
-                )}
-              </>
-            }
+            subtitle="Coming soon"
+            status="coming_soon"
+            comingSoon
           />
         </div>
       </div>

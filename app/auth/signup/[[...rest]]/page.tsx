@@ -139,6 +139,7 @@ export default function SignupPage() {
           company: company.trim(),
           dob: dob.trim() || undefined,
           password: password.trim().length >= 6 ? password.trim() : undefined,
+          ...(invitationToken ? { invitation_token: invitationToken } : {}),
         });
         router.replace("/auth/verify-required");
         return;
@@ -151,38 +152,31 @@ export default function SignupPage() {
         throw new Error("Email must match the invitation.");
       }
 
-      await authAPI.signup(email, password, name, company.trim(), dob.trim() || undefined);
+      const signupRes = await authAPI.signup(
+        email,
+        password,
+        name,
+        company.trim(),
+        dob.trim() || undefined,
+        invitationToken || undefined
+      );
 
-      if (invitationToken) {
-        try {
-          // Accept the invitation
-          const inviteResponse = await apiRequest(`/invitations/${invitationToken}/accept`, {
-            method: 'POST'
-          });
-          
-          // Store invitation details for display
-          if (typeof window !== "undefined") {
-            const baseId = inviteResponse?.base?.id;
-            if (baseId) rememberTeamWorkspaceAfterInvite(baseId);
-            sessionStorage.setItem(
-              "invitationAccepted",
-              JSON.stringify({
-                baseName: inviteResponse.base?.name,
-                baseId: baseId ?? undefined,
-                role: inviteResponse.role,
-                message: inviteResponse.message,
-              })
-            );
-          }
-          
-          router.push("/auth/verify-required?invited=1");
-          return;
-        } catch (inviteError: any) {
-          console.error('Failed to accept invitation:', inviteError);
-          // Continue to onboarding even if invitation acceptance fails
-        }
+      if (invitationToken && typeof window !== "undefined") {
+        const bid = signupRes?.base?.id;
+        if (bid) rememberTeamWorkspaceAfterInvite(bid);
+        sessionStorage.setItem(
+          "invitationAccepted",
+          JSON.stringify({
+            baseName: signupRes.base?.name || invitationDetails?.base_name || "",
+            baseId: bid,
+            role: invitationDetails?.role || "member",
+            message: "Welcome to the workspace",
+          })
+        );
+        router.push("/auth/verify-required?invited=1");
+        return;
       }
-      
+
       router.push("/auth/verify-required");
     } catch (e: any) {
       setError(e?.message || "Signup failed");

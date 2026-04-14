@@ -1,8 +1,10 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBase } from "@/context/BaseContext";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, getUser } from "@/lib/apiClient";
+import { shouldRestrictWorkspaceManagement } from "@/lib/billingUi";
+import { useBaseStore } from "@/stores/useBaseStore";
 import { Icons } from "./Icons";
 import { useNotification } from "@/context/NotificationContext";
 import { readActiveBaseSnapshot } from "@/lib/activeBaseSnapshot";
@@ -34,6 +36,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
   const router = useRouter();
   const { showError } = useNotification();
   const { bases, activeBaseId, setActiveBaseId, refreshBases } = useBase();
+  const basesFromStore = useBaseStore((s) => s.bases);
+  const basesLoading = useBaseStore((s) => s.loading);
   const activeBaseFromList = bases.find((b) => b.id === activeBaseId);
   const activeBase = useMemo(() => {
     if (activeBaseFromList) return activeBaseFromList;
@@ -47,8 +51,26 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
   const [modalOpen, setModalOpen] = useState(false);
   const [baseName, setBaseName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userRev, setUserRev] = useState(0);
+
+  useEffect(() => {
+    const sync = () => setUserRev((n) => n + 1);
+    if (typeof window === "undefined") return;
+    window.addEventListener("sparkai:user-changed", sync);
+    return () => window.removeEventListener("sparkai:user-changed", sync);
+  }, []);
+
+  const restrictWorkspace = useMemo(() => {
+    const u = getUser();
+    return u ? shouldRestrictWorkspaceManagement(u, basesFromStore, basesLoading) : false;
+  }, [userRev, basesFromStore, basesLoading]);
 
   const handleCreateBase = async () => {
+    const u = getUser();
+    if (u && shouldRestrictWorkspaceManagement(u, useBaseStore.getState().bases, useBaseStore.getState().loading)) {
+      showError("Not available", "Only a workspace owner can create workspaces.");
+      return;
+    }
     if (!baseName.trim()) return;
     try {
       setLoading(true);
@@ -232,36 +254,38 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                     ))
                   )}
                 </div>
-                <div style={{ borderTop: "1px solid #E5E7EB", padding: 4 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      setModalOpen(true);
-                    }}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "8px 10px",
-                      borderRadius: 8,
-                      border: "none",
-                      background: "transparent",
-                      color: "#7C3AED",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      transition: "background 150ms ease",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 58, 237, 0.08)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <Plus size={16} strokeWidth={1.5} />
-                    New workspace
-                  </button>
-                </div>
+                {!restrictWorkspace ? (
+                  <div style={{ borderTop: "1px solid #E5E7EB", padding: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        setModalOpen(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: "transparent",
+                        color: "#7C3AED",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "background 150ms ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 58, 237, 0.08)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <Plus size={16} strokeWidth={1.5} />
+                      New workspace
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </>
           )}
@@ -471,35 +495,37 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               )}
             </div>
 
-            <div style={{ padding: 4, borderTop: "1px solid var(--color-border)" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setModalOpen(true);
-                }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 10px",
-                  borderRadius: 4,
-                  border: "none",
-                  background: "transparent",
-                  color: "#2563eb",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <Icons.Plus size={14} />
-                New workspace
-              </button>
-            </div>
+            {!restrictWorkspace ? (
+              <div style={{ padding: 4, borderTop: "1px solid var(--color-border)" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setModalOpen(true);
+                  }}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    borderRadius: 4,
+                    border: "none",
+                    background: "transparent",
+                    color: "#2563eb",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <Icons.Plus size={14} />
+                  New workspace
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

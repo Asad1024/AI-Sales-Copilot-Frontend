@@ -31,6 +31,8 @@ interface LeadsToolbarProps {
   onExportCSV?: () => void;
   /** Outline Import CSV (dashboard-style) */
   onImportCSV?: () => void;
+  /** Add → Add from LinkedIn URL */
+  onAddFromLinkedIn?: () => void;
 }
 
 export function LeadsToolbar({
@@ -43,6 +45,7 @@ export function LeadsToolbar({
   onSchemaClick,
   onExportCSV,
   onImportCSV,
+  onAddFromLinkedIn,
 }: LeadsToolbarProps) {
   const embedded = variant === "embedded";
   const { filters, setFilters, pagination } = useLeadStore();
@@ -287,6 +290,20 @@ export function LeadsToolbar({
                       label="Import CSV"
                       onClick={() => {
                         onImportCSV();
+                        setShowAddMenu(false);
+                      }}
+                    />
+                  )}
+                  {onAddFromLinkedIn && (
+                    <MenuButton
+                      icon={
+                        <MenuBrandIconSlot>
+                          <Icons.Linkedin size={18} strokeWidth={1.5} style={{ color: "#0A66C2" }} />
+                        </MenuBrandIconSlot>
+                      }
+                      label="Add from LinkedIn URL"
+                      onClick={() => {
+                        onAddFromLinkedIn();
                         setShowAddMenu(false);
                       }}
                     />

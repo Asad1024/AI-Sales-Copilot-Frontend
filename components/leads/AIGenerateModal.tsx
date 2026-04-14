@@ -1,13 +1,36 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { apiRequest, streamGenerateLeads } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
-import EnrichmentLoader from "./EnrichmentLoader";
+import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
 import { GenerateLeadAIIcon } from "@/app/leads/components/LeadSourceBrandIcons";
 import { ImportModalFrame } from "@/components/leads/ImportModalChrome";
+import { getEmailInfo } from "@/utils/emailNormalization";
+import { getPhoneInfo } from "@/utils/phoneNormalization";
 
-type Props = { open: boolean; onClose: () => void; onGenerated: (rows: any[]) => void };
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  onGenerated: (rows: any[]) => void;
+  onAsyncEnrichmentStarted?: (payload: {
+    leadIds: number[];
+    enrichmentIds: string[];
+    pendingCount: number;
+  }) => void;
+};
+
+function countContactGapsForLeads(leads: any[]) {
+  let missingEmail = 0;
+  let missingPhone = 0;
+  for (const lead of leads) {
+    const e = getEmailInfo(lead?.email, lead?.enrichment);
+    if (!e.isValid) missingEmail += 1;
+    const p = getPhoneInfo(lead?.phone, lead?.enrichment);
+    if (!p.isValid) missingPhone += 1;
+  }
+  return { missingEmail, missingPhone, total: leads.length };
+}
 
 const SUGGESTION_LOADING_PHASES = [
   "Mapping your segment…",
@@ -17,8 +40,30 @@ const SUGGESTION_LOADING_PHASES = [
   "Almost ready…",
 ];
 
-export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
+/**
+ * Map server phases to cumulative weight bands so % never goes backward when a new
+ * phase resets done/total (extract 1/1 was 100%, then search 0/n read as 0%).
+ */
+const LEAD_GEN_STAGE_BAND: Record<string, readonly [number, number]> = {
+  extract: [0, 10],
+  search: [10, 38],
+  research: [38, 88],
+  save: [88, 100],
+};
+
+function overallLeadGenPercent(stage: string, done: number, total: number): number {
+  const s = (stage || "").toLowerCase();
+  const band = LEAD_GEN_STAGE_BAND[s] ?? [0, 100];
+  const [lo, hi] = band;
+  const safeTotal = Math.max(1, Number(total) || 1);
+  const d = Math.min(Math.max(0, Number(done) || 0), safeTotal);
+  const frac = d / safeTotal;
+  return Math.min(100, Math.max(0, Math.round(lo + frac * (hi - lo))));
+}
+
+export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnrichmentStarted }: Props) {
   const { activeBaseId } = useBase();
+  const { showSuccess, showError } = useNotification();
   const [prompt, setPrompt] = useState("");
   const [count, setCount] = useState(10);
   const [generating, setGenerating] = useState(false);
@@ -28,10 +73,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
   const [error, setError] = useState("");
   const [showEnrichPopup, setShowEnrichPopup] = useState(false);
   const [generatedLeads, setGeneratedLeads] = useState<any[]>([]);
-  const [enriching, setEnriching] = useState(false);
-  const [enrichPhase, setEnrichPhase] = useState<'validation' | 'enrichment' | 'complete'>('validation');
-  const [enrichProgress, setEnrichProgress] = useState(0);
-  const [enrichMessage, setEnrichMessage] = useState("Preparing enrichment...");
+  const [enrichSubmitting, setEnrichSubmitting] = useState(false);
   const [suggestionLoadingTopic, setSuggestionLoadingTopic] = useState<string | null>(null);
   const suggestionPrompts = [
     "SaaS Founders",
@@ -44,6 +86,47 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
     "Logistics Decision Makers",
   ];
 
+  const contactGaps = useMemo(() => countContactGapsForLeads(generatedLeads), [generatedLeads]);
+
+  const handleEnrichAfterGenerate = useCallback(async () => {
+    const leadIds = generatedLeads.map((l) => l?.id).filter((id) => id != null).map(Number);
+    if (!activeBaseId || leadIds.length === 0) {
+      showError("Nothing to enrich", "No leads were found to enrich.");
+      return;
+    }
+    setEnrichSubmitting(true);
+    setError("");
+    try {
+      const response = await apiRequest("/leads/bulk-enrich", {
+        method: "POST",
+        body: JSON.stringify({
+          lead_ids: leadIds,
+          base_id: activeBaseId,
+          enrichment_type: "contact",
+          only_fullenrich: true,
+        }),
+      });
+      const enrichmentIds = Array.isArray(response?.enrichment_ids)
+        ? response.enrichment_ids.filter((id: unknown) => typeof id === "string" && String(id).trim().length > 0)
+        : [];
+      const pendingCount =
+        typeof response?.pending_count === "number" ? response.pending_count : leadIds.length;
+
+      onAsyncEnrichmentStarted?.({ leadIds, enrichmentIds, pendingCount });
+      showSuccess(
+        "Enrichment started",
+        "Watch the leads table for the progress banner and row tags until FullEnrich finishes."
+      );
+      setShowEnrichPopup(false);
+      void onGenerated([]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not start enrichment.";
+      showError("Couldn't start enrichment", msg);
+    } finally {
+      setEnrichSubmitting(false);
+    }
+  }, [activeBaseId, generatedLeads, onAsyncEnrichmentStarted, onGenerated, showError, showSuccess]);
+
   useEffect(() => {
     if (!suggestionLoadingTopic) return;
     let i = 0;
@@ -55,10 +138,10 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
     return () => window.clearInterval(id);
   }, [suggestionLoadingTopic]);
 
-  const genPct =
-    generating && genStream.total > 0
-      ? Math.min(100, Math.round((100 * genStream.done) / genStream.total))
-      : 0;
+  const genPct = useMemo(() => {
+    if (!generating) return 0;
+    return overallLeadGenPercent(genStream.stage, genStream.done, genStream.total);
+  }, [generating, genStream.stage, genStream.done, genStream.total]);
   const genShowCounts =
     generating &&
     genStream.total > 0 &&
@@ -633,253 +716,199 @@ export default function AIGenerateModal({ open, onClose, onGenerated }: Props) {
         </div>
       </ImportModalFrame>
 
-      {/* Enrich & Score Popup */}
+      {/* Post-generation: optional FullEnrich contact flow (same as toolbar Enrich → contact-only) */}
       {showEnrichPopup && (
-        <div 
-          style={{ 
-            position:'fixed', 
-            inset:0, 
-            background:'rgba(0,0,0,.55)', 
-            zIndex:2000, 
-            display:'flex', 
-            alignItems:'center', 
-            justifyContent:'center', 
-            padding:20,
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            animation: 'fadeIn 0.2s ease-out'
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.62)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            animation: "fadeIn 0.2s ease-out",
           }}
           onClick={() => {
+            if (enrichSubmitting) return;
             setShowEnrichPopup(false);
             onClose();
           }}
         >
-          <div 
-            style={{ 
-              width:'min(500px, 90vw)', 
-              background:'var(--color-surface)', 
-              border:'1px solid var(--color-border)', 
-              borderRadius:16, 
-              padding:0,
-              boxShadow: '0 24px 64px var(--color-shadow)',
-              animation: 'slideUp 0.3s ease-out',
-              overflow: 'hidden'
+          <div
+            style={{
+              width: "min(520px, 96vw)",
+              background: "var(--color-surface)",
+              border: "1px solid var(--elev-border)",
+              borderRadius: 20,
+              padding: 0,
+              boxShadow: "0 32px 80px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(124, 58, 237, 0.08)",
+              animation: "slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+              overflow: "hidden",
             }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="ai-generate-success-title"
           >
-            <div style={{
-              padding: '18px 20px',
-              borderBottom: '1px solid var(--color-border)',
-              background: 'var(--color-surface-secondary)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: 'rgba(124, 58, 237, 0.14)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <Icons.CheckCircle size={22} strokeWidth={1.5} style={{ color: 'var(--color-primary)' }} />
+            <div
+              style={{
+                padding: "22px 24px 18px",
+                background:
+                  "linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(99, 102, 241, 0.06) 50%, transparent 100%)",
+                borderBottom: "1px solid var(--elev-border)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: "linear-gradient(145deg, rgba(124, 58, 237, 0.22), rgba(167, 139, 250, 0.12))",
+                    border: "1px solid rgba(124, 58, 237, 0.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    boxShadow: "0 8px 24px rgba(124, 58, 237, 0.2)",
+                  }}
+                >
+                  <Icons.CheckCircle size={26} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <h3 id="ai-generate-success-title" style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                    Leads generated
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <h3
+                    id="ai-generate-success-title"
+                    style={{
+                      margin: 0,
+                      fontSize: 20,
+                      fontWeight: 800,
+                      color: "var(--color-text)",
+                      letterSpacing: "-0.03em",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Leads ready
                   </h3>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
-                    You can enrich them now or continue in your table.
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
+                    We added {contactGaps.total} lead{contactGaps.total === 1 ? "" : "s"}. Many records still need verified
+                    email or phone — run enrichment to pull them from FullEnrich, or continue in your table.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Content */}
-            <div style={{ 
-              padding: '28px',
-              background: 'var(--elev-bg)'
-            }}>
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ 
-                  padding: '16px 20px',
-                  background: 'rgba(255, 193, 7, 0.1)',
-                  border: '2px solid rgba(255, 193, 7, 0.3)',
-                  borderRadius: 16,
-                  marginBottom: 20
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    <Icons.Mail size={24} style={{ color: '#ffc107', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 14, color: '#ffc107' }}>
-                        Email Information
-                      </div>
-                      <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-text)' }}>
-                        Initial search results may include placeholder emails. Use <strong>Enrich & Score</strong> to get complete contact information including verified emails, phone numbers, and lead scores.
-                      </div>
-                    </div>
+            <div style={{ padding: "22px 24px 24px", background: "var(--color-surface)" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  marginBottom: 18,
+                }}
+              >
+                <div
+                  style={{
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid var(--elev-border)",
+                    background: "var(--color-surface-secondary)",
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", letterSpacing: "0.06em" }}>
+                    EMAILS TO FETCH
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "var(--color-text)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {contactGaps.missingEmail}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+                    Missing or placeholder addresses
                   </div>
                 </div>
-
-                <div style={{ 
-                  padding: '16px 20px',
-                  background: 'var(--color-surface-secondary)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 16,
-                  marginBottom: 24
-                }}>
-                  <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-text)' }}>
-                    <strong style={{ color: 'var(--color-text)' }}>What you&apos;ll get:</strong>
-                    <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-                      <li style={{ marginBottom: 6 }}>Verified email addresses</li>
-                      <li style={{ marginBottom: 6 }}>Complete contact information</li>
-                      <li style={{ marginBottom: 6 }}>Lead scoring and tier classification</li>
-                      <li>Enhanced company and person insights</li>
-                    </ul>
+                <div
+                  style={{
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid var(--elev-border)",
+                    background: "var(--color-surface-secondary)",
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", letterSpacing: "0.06em" }}>
+                    PHONES TO FETCH
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "var(--color-text)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {contactGaps.missingPhone}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+                    Missing or short numbers
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ 
-                display:'flex', 
-                gap:12, 
-                justifyContent:'flex-end'
-              }}>
-                <button 
-                  className="btn-ghost" 
+              <div
+                style={{
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  background: "rgba(124, 58, 237, 0.06)",
+                  border: "1px solid rgba(124, 58, 237, 0.2)",
+                  fontSize: 12,
+                  color: "var(--color-text-muted)",
+                  lineHeight: 1.55,
+                  marginBottom: 22,
+                }}
+              >
+                <strong style={{ color: "var(--color-text)" }}>After Enrich:</strong> the leads table shows the same
+                progress banner and per-row &quot;Processing&quot; state as when you enrich from the toolbar, until the webhook
+                completes.
+              </div>
+
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn-ghost focus-ring"
+                  disabled={enrichSubmitting}
                   onClick={() => {
                     setShowEnrichPopup(false);
                     onClose();
                   }}
-                  style={{
-                    padding: '14px 24px',
-                    borderRadius: 12,
-                    fontSize: 15,
-                    fontWeight: 600,
-                    transition: 'all 0.2s ease'
-                  }}
+                  style={{ padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600 }}
                 >
-                  Skip for Now
+                  Skip for now
                 </button>
-                <button 
-                  onClick={async () => {
-                    setShowEnrichPopup(false);
-                    setEnriching(true);
-                    setEnrichPhase('validation');
-                    setEnrichProgress(0);
-                    setEnrichMessage("Validating leads...");
-                    
-                    try {
-                      // Phase 1: Validation
-                      await new Promise(resolve => setTimeout(resolve, 500));
-                      setEnrichProgress(20);
-                      setEnrichMessage("Preparing for enrichment...");
-                      
-                      // Get lead IDs from generated leads
-                      const leadIds = generatedLeads.map(lead => lead.id).filter(Boolean);
-                      
-                      if (leadIds.length === 0) {
-                        throw new Error("No leads to enrich");
-                      }
-                      
-                      setEnrichPhase('enrichment');
-                      setEnrichProgress(30);
-                      setEnrichMessage("Enriching leads...");
-                      
-                      // Phase 2: Enrichment
-                      const response = await apiRequest("/leads/bulk-enrich", {
-                        method: "POST",
-                        body: JSON.stringify({ 
-                          lead_ids: leadIds,
-                          base_id: activeBaseId,
-                          only_fullenrich: true // Set to true to skip Apollo and Anymail Finder, only run FullEnrich
-                        })
-                      });
-                      
-                      // Simulate progress updates
-                      setEnrichProgress(60);
-                      setEnrichMessage("Processing enriched data...");
-                      await new Promise(resolve => setTimeout(resolve, 500));
-                      
-                      setEnrichProgress(80);
-                      setEnrichMessage("Updating leads...");
-                      await new Promise(resolve => setTimeout(resolve, 500));
-                      
-                      setEnrichProgress(100);
-                      setEnrichPhase('complete');
-                      setEnrichMessage(`Successfully enriched ${response.enriched || 0} leads!`);
-                      
-                      // Trigger refresh callback to update parent component
-                      // This ensures the leads list is refreshed with updated data from database
-                      if (onGenerated) {
-                        // Wait a moment for database commits to complete
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        // Call onGenerated with empty array to trigger refresh (parent will fetch fresh data)
-                        onGenerated([]);
-                      }
-                      
-                      // Refresh leads after a delay
-                      setTimeout(() => {
-                        setEnriching(false);
-                        onClose();
-                      }, 2000);
-                      
-                    } catch (error: any) {
-                      console.error("Enrichment error:", error);
-                      setEnriching(false);
-                      setError(error.message || "Failed to enrich leads");
-                      setShowEnrichPopup(true);
-                    }
-                  }}
+                <button
+                  type="button"
+                  className="btn-primary focus-ring"
+                  disabled={enrichSubmitting || contactGaps.total === 0}
+                  onClick={() => void handleEnrichAfterGenerate()}
                   style={{
-                    padding: '14px 32px',
-                    background: 'var(--color-primary)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 12,
-                    fontSize: 15,
+                    padding: "12px 22px",
+                    borderRadius: 10,
+                    fontSize: 14,
                     fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    boxShadow: '0 8px 22px rgba(124, 58, 237, 0.28)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 10px 28px rgba(124, 58, 237, 0.32)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 8px 22px rgba(124, 58, 237, 0.28)';
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 10,
                   }}
                 >
-                  <Icons.Target size={18} style={{ color: '#fff' }} />
-                  <span>Enrich & Score</span>
+                  {enrichSubmitting ? (
+                    <>
+                      <Icons.Loader size={16} strokeWidth={2} style={{ animation: "spin 0.85s linear infinite" }} />
+                      Starting…
+                    </>
+                  ) : (
+                    <>
+                      <Icons.Target size={17} strokeWidth={1.5} />
+                      Enrich
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Enrichment Loader */}
-      {enriching && (
-        <EnrichmentLoader
-          phase={enrichPhase}
-          progress={enrichProgress}
-          message={enrichMessage}
-          onComplete={() => {
-            setEnriching(false);
-            onClose();
-          }}
-        />
       )}
     </>
   );

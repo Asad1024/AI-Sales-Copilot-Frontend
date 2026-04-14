@@ -51,9 +51,10 @@ export async function apiRequest<T = any>(
     ...(fetchOptions.headers as Record<string, string>),
   };
 
-  // Add auth token if not skipped
-  if (!skipAuth) {
-    const token = localStorage.getItem("token");
+  // Add auth token if not skipped (must match apiClient: sparkai:token)
+  if (!skipAuth && typeof window !== "undefined") {
+    const token =
+      localStorage.getItem("sparkai:token") || localStorage.getItem("token");
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
@@ -177,6 +178,17 @@ export const api = {
     });
   },
 
+  async getIcpContext(baseId: number) {
+    return apiRequest(`/api/bases/${baseId}/icp-context`);
+  },
+
+  async updateIcpContext(baseId: number, icpContext: Record<string, unknown>) {
+    return apiRequest(`/api/bases/${baseId}/icp-context`, {
+      method: "PUT",
+      body: JSON.stringify(icpContext),
+    });
+  },
+
   async deleteBase(id: number) {
     return apiRequest(`/api/bases/${id}`, { method: "DELETE" });
   },
@@ -216,6 +228,13 @@ export const api = {
     return apiRequest("/api/leads", {
       method: "POST",
       body: JSON.stringify({ ...lead, base_id: baseId }),
+    });
+  },
+
+  async createLeadFromLinkedIn(baseId: number, linkedinUrl: string) {
+    return apiRequest("/api/leads/from-linkedin", {
+      method: "POST",
+      body: JSON.stringify({ base_id: baseId, linkedin_url: linkedinUrl }),
     });
   },
 

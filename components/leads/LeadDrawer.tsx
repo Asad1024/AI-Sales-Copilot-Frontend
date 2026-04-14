@@ -8,7 +8,7 @@ import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
 
-/** Layout tokens — elevated surfaces, minimal gradient noise for a cleaner lead modal. */
+/** Layout tokens — elevated surfaces; shell is a right slide-over (see return), not centered modal. */
 const LD: {
   panel: CSSProperties;
   header: CSSProperties;
@@ -21,12 +21,18 @@ const LD: {
   statCard: CSSProperties;
 } = {
   panel: {
-    width: "min(720px, 96vw)",
-    maxHeight: "min(90vh, 920px)",
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: "min(480px, 94vw)",
+    height: "100%",
+    maxHeight: "100dvh",
     background: "var(--color-surface)",
     border: "1px solid var(--elev-border, var(--color-border))",
-    borderRadius: 14,
-    boxShadow: "var(--elev-shadow-lg)",
+    borderRadius: 0,
+    borderRight: "none",
+    boxShadow: "-12px 0 40px rgba(0, 0, 0, 0.16)",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -174,12 +180,48 @@ export default function LeadDrawer({
   }, [activeBaseId]);
 
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollY = window.scrollY;
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyLeft = body.style.left;
+    const prevBodyRight = body.style.right;
+    const prevBodyWidth = body.style.width;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+
     return () => {
-      document.body.style.overflow = prev;
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.left = prevBodyLeft;
+      body.style.right = prevBodyRight;
+      body.style.width = prevBodyWidth;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      window.scrollTo(0, scrollY);
     };
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   // Update currentLead when lead prop changes
   useEffect(() => {
@@ -488,34 +530,42 @@ export default function LeadDrawer({
   })();
 
   return (
-    <div 
-      style={{ 
-        position:'fixed', 
-        inset:0, 
-        background:'rgba(0,0,0,0.48)', 
-        zIndex:1000,
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-        animation: 'leadDrawerBackdropIn 0.2s ease-out',
-      }} 
-      onClick={onClose}
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        overflow: "hidden",
+        overscrollBehavior: "none",
+      }}
       role="presentation"
     >
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes leadDrawerBackdropIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes leadDrawerPanelIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes leadDrawerSlideIn { from { opacity: 0.99; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+          @keyframes leadDrawerSlideIn { from { opacity: 1; transform: none; } to { opacity: 1; transform: none; } }
+        }
       `}} />
-      <div 
-        style={{ 
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0,0,0,0.48)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          animation: "leadDrawerBackdropIn 0.22s ease-out",
+        }}
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        style={{
           ...LD.panel,
-          animation: 'leadDrawerPanelIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
-        }} 
-        onClick={(e)=>e.stopPropagation()}
+          animation: "leadDrawerSlideIn 0.34s cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="lead-detail-title"

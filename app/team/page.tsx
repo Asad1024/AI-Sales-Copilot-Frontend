@@ -14,6 +14,12 @@ import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
+import {
+  ALL_WORKSPACE_ROLE_OPTIONS,
+  INVITE_WORKSPACE_ROLE_OPTIONS,
+  getWorkspaceRoleLabel,
+  type WorkspaceRoleOption,
+} from "@/lib/workspaceRoles";
 
 type MembershipRole = BaseMemberRole;
 
@@ -23,6 +29,8 @@ interface MemberRow {
   role: MembershipRole;
   user: ApiUser;
   joinedAt?: string;
+  /** Suspended — no workspace API access until re-enabled */
+  accessDisabled?: boolean;
 }
 
 interface PendingInviteRow {
@@ -33,14 +41,7 @@ interface PendingInviteRow {
   createdAt?: string;
 }
 
-const membershipRoleOptions: Array<{ value: MembershipRole; label: string; description: string }> = [
-  { value: "owner", label: "Owner (transfer)", description: "Full control. Only used when transferring ownership." },
-  { value: "admin", label: "Admin", description: "Manage members, schema, settings, and all day-to-day operations" },
-  { value: "editor", label: "Editor", description: "Create/update leads & campaigns, run campaigns, manage views" },
-  { value: "viewer", label: "Viewer", description: "Read-only access (can export), no edits" },
-  { value: "member", label: "Member", description: "Collaborates on leads and campaigns (limited admin permissions)" }
-];
-
+/** Legacy pending invites may still use `member` in the DB until rescinded. */
 const INVITE_RESEND_ROLES = new Set(["admin", "editor", "member", "viewer"]);
 
 export default function TeamPage() {
@@ -55,6 +56,12 @@ export default function TeamPage() {
   const [ownerCount, setOwnerCount] = useState(0);
   const [viewerMembershipRole, setViewerMembershipRole] = useState<MembershipRole | null>(null);
   const [pendingMemberId, setPendingMemberId] = useState<number | null>(null);
+  /** Fixed-position row actions menu (avoids overflow clipping in horizontal scroll). */
+  const [memberActionMenu, setMemberActionMenu] = useState<{
+    member: MemberRow;
+    top: number;
+    left: number;
+  } | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
   const [pendingInvites, setPendingInvites] = useState<PendingInviteRow[]>([]);
   const [pendingInvitesLoading, setPendingInvitesLoading] = useState(false);
@@ -65,7 +72,7 @@ export default function TeamPage() {
   const [inviteForm, setInviteForm] = useState({
     emailOrId: "",
     name: "",
-    role: "member" as MembershipRole
+    role: "editor" as MembershipRole,
   });
   const [inviteLoading, setInviteLoading] = useState(false);
 
@@ -104,6 +111,64 @@ export default function TeamPage() {
     [viewerIsAdmin, isWorkspaceOwner, viewerMembershipRole]
   );
 
+  /** Bases owned by this workspace's owner (not only the current viewer — aligns with POST assign-workspaces). */
+  const workspaceOwnerId = activeBase?.user_id ?? null;
+  const ownerBasesCount = useMemo(
+    () =>
+      workspaceOwnerId == null ? 0 : storeBases.filter((b) => b.user_id === workspaceOwnerId).length,
+    [storeBases, workspaceOwnerId]
+  );
+  const otherOwnedBases = useMemo(
+    () =>
+      workspaceOwnerId == null
+        ? []
+        : storeBases.filter((b) => b.user_id === workspaceOwnerId && b.id !== activeBaseId),
+    [storeBases, workspaceOwnerId, activeBaseId]
+  );
+  const canAssignWorkspacesUi =
+    (isWorkspaceOwner || viewerIsAdmin) && canManageTeam;
+
+  const [assignMember, setAssignMember] = useState<MemberRow | null>(null);
+  const [assignSelections, setAssignSelections] = useState<Record<number, boolean>>({});
+  const [assignSaving, setAssignSaving] = useState(false);
+
+  const openAssignWorkspaces = useCallback(
+    (member: MemberRow) => {
+      const next: Record<number, boolean> = {};
+      otherOwnedBases.forEach((b) => {
+        next[b.id] = false;
+      });
+      setAssignSelections(next);
+      setAssignMember(member);
+    },
+    [otherOwnedBases]
+  );
+
+  const submitAssignWorkspaces = useCallback(async () => {
+    if (!assignMember || !activeBaseId) return;
+    const base_ids = Object.entries(assignSelections)
+      .filter(([, v]) => v)
+      .map(([k]) => Number(k));
+    if (base_ids.length === 0) {
+      setAssignMember(null);
+      return;
+    }
+    setAssignSaving(true);
+    try {
+      await apiRequest(`/bases/${activeBaseId}/members/assign-workspaces`, {
+        method: "POST",
+        body: JSON.stringify({ user_id: assignMember.userId, base_ids }),
+      });
+      showSuccess("Access updated", "They can switch to the selected workspaces from the workspace menu.");
+      setAssignMember(null);
+      await refreshBases();
+    } catch (e: unknown) {
+      showError("Assign failed", e instanceof Error ? e.message : "Could not assign workspaces.");
+    } finally {
+      setAssignSaving(false);
+    }
+  }, [assignMember, activeBaseId, assignSelections, showSuccess, showError, refreshBases]);
+
   const refreshMembers = useCallback(async () => {
     if (!activeBaseId) {
       setMembers([]);
@@ -141,7 +206,8 @@ export default function TeamPage() {
           userId: resolvedUser.id,
           role: member.role as MembershipRole,
           user: resolvedUser,
-          joinedAt: member.createdAt
+          joinedAt: member.createdAt,
+          accessDisabled: Boolean(member.access_disabled),
         });
         return acc;
       }, []);
@@ -198,7 +264,24 @@ export default function TeamPage() {
 
   useEffect(() => {
     setMemberSearch("");
+    setMemberActionMenu(null);
   }, [activeBaseId]);
+
+  useEffect(() => {
+    if (!memberActionMenu) return undefined;
+    const close = () => setMemberActionMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [memberActionMenu]);
 
   const fetchPendingInvitations = useCallback(async () => {
     if (!activeBaseId) {
@@ -271,6 +354,10 @@ export default function TeamPage() {
       showWarning("Select a workspace", "Choose a workspace before changing roles.");
       return;
     }
+    if (membership.accessDisabled) {
+      showWarning("Suspended", "Restore access before changing this member's role.");
+      return;
+    }
     if (membership.role === nextRole) {
       return;
     }
@@ -297,6 +384,37 @@ export default function TeamPage() {
     }
   };
 
+  const setMemberAccessDisabled = async (membership: MemberRow, accessDisabled: boolean) => {
+    if (!activeBaseId) {
+      showWarning("Select a workspace", "Choose a workspace first.");
+      return;
+    }
+    if (membership.userId === activeBase?.user_id) {
+      showWarning("Not allowed", "You cannot suspend the workspace owner.");
+      return;
+    }
+    setPendingMemberId(membership.membershipId);
+    try {
+      await apiRequest(`/bases/${activeBaseId}/members/${membership.membershipId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ access_disabled: accessDisabled }),
+      });
+      await refreshMembers();
+      void refreshBases();
+      showSuccess(
+        accessDisabled ? "Access suspended" : "Access restored",
+        accessDisabled
+          ? `${membership.user.name} can no longer open this workspace until you enable them again.`
+          : `${membership.user.name} can use this workspace again.`
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Could not update member";
+      showError("Update failed", message);
+    } finally {
+      setPendingMemberId(null);
+    }
+  };
+
   const removeMember = async (membership: MemberRow) => {
     if (!activeBaseId) {
       showWarning("Select a workspace", "Choose a workspace first.");
@@ -312,8 +430,8 @@ export default function TeamPage() {
     }
 
     const confirmed = await confirm({
-      title: "Remove member?",
-      message: `Remove ${membership.user.name} from this workspace?`,
+      title: "Remove from workspace?",
+      message: `Remove ${membership.user.name} from this workspace? They will lose access here. Invite-only accounts with no other workspaces may be deleted entirely.`,
       confirmLabel: "Remove",
       variant: "danger",
     });
@@ -325,6 +443,7 @@ export default function TeamPage() {
         method: "DELETE"
       });
       await refreshMembers();
+      void refreshBases();
       showSuccess("Member removed", `${membership.user.name} was removed from this workspace.`);
     } catch (error: any) {
       const message = error?.response?.data?.error || error?.message || "Failed to remove member";
@@ -374,10 +493,10 @@ export default function TeamPage() {
 
         showSuccess(
           "Invitation sent",
-          `Email sent to ${lowerEmail}. They can sign in or register and accept to join with role: ${inviteForm.role}. They will appear here after accepting.`
+          `Email sent to ${lowerEmail}. They can sign in or register and accept as ${getWorkspaceRoleLabel(inviteForm.role)}. They will appear here after accepting.`
         );
         setShowInviteModal(false);
-        setInviteForm({ emailOrId: "", name: "", role: "member" });
+        setInviteForm({ emailOrId: "", name: "", role: "editor" });
         await fetchPendingInvitations();
         return;
       }
@@ -402,7 +521,7 @@ export default function TeamPage() {
 
       showSuccess("Member added", "The user was added to this workspace.");
       setShowInviteModal(false);
-      setInviteForm({ emailOrId: "", name: "", role: "member" });
+      setInviteForm({ emailOrId: "", name: "", role: "editor" });
       await refreshMembers();
     } catch (error: any) {
       const message = error?.response?.data?.error || error?.message || "Failed to invite member";
@@ -479,7 +598,7 @@ export default function TeamPage() {
 
   const viewerRoleLabel = useMemo(() => {
     if (viewerIsAdmin) return "Platform Admin";
-    if (viewerMembershipRole) return `Base ${viewerMembershipRole.charAt(0).toUpperCase() + viewerMembershipRole.slice(1)}`;
+    if (viewerMembershipRole) return getWorkspaceRoleLabel(viewerMembershipRole);
     return "Viewer";
   }, [viewerIsAdmin, viewerMembershipRole]);
 
@@ -763,7 +882,7 @@ export default function TeamPage() {
                         >
                           <td style={{ padding: "12px 10px", fontSize: 14, color: "var(--color-text)" }}>{inv.email}</td>
                           <td style={{ padding: "12px 10px", fontSize: 13, color: "var(--color-text)" }}>
-                            <span style={{ textTransform: "capitalize" }}>{inv.role}</span>
+                            <span>{getWorkspaceRoleLabel(inv.role as BaseMemberRole)}</span>
                           </td>
                           <td style={{ padding: "12px 10px", fontSize: 13, color: "var(--color-text-muted)" }}>
                             {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : "—"}
@@ -870,11 +989,16 @@ export default function TeamPage() {
                   <tbody>
                     {filteredMembers.map((member) => {
                       const isSelf = member.userId === currentUser?.id;
+                      const isOwnerRow = Boolean(activeBase?.user_id && member.userId === activeBase.user_id);
                       const isOnlyOwner = member.role === "owner" && ownerCount <= 1;
                       const roleChangeDisabled =
-                        pendingMemberId === member.membershipId || (isOnlyOwner && !viewerIsAdmin);
+                        pendingMemberId === member.membershipId ||
+                        (isOnlyOwner && !viewerIsAdmin) ||
+                        Boolean(member.accessDisabled);
                       const removeDisabled =
                         pendingMemberId === member.membershipId || isSelf || isOnlyOwner;
+                      const suspendActionDisabled =
+                        pendingMemberId === member.membershipId || isOwnerRow || !canManageTeam;
 
                       return (
                         <tr
@@ -908,11 +1032,29 @@ export default function TeamPage() {
                                 <Icons.User size={20} strokeWidth={1.5} />
                               </div>
                               <div>
-                                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-text)" }}>
-                                  {member.user.name}
+                                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-text)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                  <span>{member.user.name}</span>
                                   {isSelf && (
-                                    <span style={{ marginLeft: "8px", fontSize: "11px", color: "var(--color-text-muted)" }}>
+                                    <span style={{ fontSize: "11px", color: "var(--color-text-muted)", fontWeight: 500 }}>
                                       (You)
+                                    </span>
+                                  )}
+                                  {member.accessDisabled && (
+                                    <span
+                                      title="They remain on the team but cannot open this workspace until access is restored."
+                                      style={{
+                                        fontSize: "10px",
+                                        fontWeight: 700,
+                                        letterSpacing: "0.06em",
+                                        textTransform: "uppercase",
+                                        padding: "2px 8px",
+                                        borderRadius: 999,
+                                        background: "rgba(248, 113, 113, 0.14)",
+                                        color: "#f87171",
+                                        border: "1px solid rgba(248, 113, 113, 0.35)",
+                                      }}
+                                    >
+                                      Suspended
                                     </span>
                                   )}
                                 </div>
@@ -939,7 +1081,7 @@ export default function TeamPage() {
                                   fontSize: 13,
                                 }}
                               >
-                                {membershipRoleOptions.map((option) => (
+                                {ALL_WORKSPACE_ROLE_OPTIONS.map((option) => (
                                   <option key={option.value} value={option.value}>
                                     {option.label}
                                   </option>
@@ -972,26 +1114,55 @@ export default function TeamPage() {
                               })()}
                             </td>
                           )}
-                          <td style={{ padding: "16px 12px" }}>
-                            <button
-                              type="button"
-                              className="btn-dashboard-outline focus-ring"
-                              style={{
-                                borderRadius: 8,
-                                fontSize: 12,
-                                padding: "8px 12px",
-                                borderColor: "rgba(248, 113, 113, 0.35)",
-                                color: "#f87171",
-                                opacity: !canManageTeam || removeDisabled ? 0.5 : 1,
-                              }}
-                              onClick={() => void removeMember(member)}
-                              disabled={!canManageTeam || removeDisabled}
-                            >
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                <Icons.Trash size={14} strokeWidth={1.5} />
-                                Remove
+                          <td style={{ padding: "16px 12px", position: "relative" }}>
+                            {isOwnerRow ? (
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  color: "var(--color-text-muted)",
+                                  userSelect: "none",
+                                }}
+                                aria-label="No actions for workspace owner"
+                              >
+                                —
                               </span>
-                            </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn-dashboard-outline focus-ring"
+                                aria-haspopup="menu"
+                                aria-expanded={
+                                  memberActionMenu?.member.membershipId === member.membershipId ? "true" : "false"
+                                }
+                                aria-label={`Actions for ${member.user.name || member.user.email || "member"}`}
+                                disabled={pendingMemberId === member.membershipId}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                                  const panelWidth = 228;
+                                  const left = Math.min(
+                                    window.innerWidth - panelWidth - 8,
+                                    Math.max(8, rect.right - panelWidth)
+                                  );
+                                  setMemberActionMenu((prev) =>
+                                    prev?.member.membershipId === member.membershipId
+                                      ? null
+                                      : { member, top: rect.bottom + 6, left }
+                                  );
+                                }}
+                                style={{
+                                  borderRadius: 8,
+                                  padding: "6px 10px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  opacity: pendingMemberId === member.membershipId ? 0.55 : 1,
+                                  cursor: pendingMemberId === member.membershipId ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                <Icons.MoreVertical size={18} />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1004,17 +1175,265 @@ export default function TeamPage() {
         </>
       )}
 
+      {memberActionMenu ? (
+        <>
+          <div
+            aria-hidden
+            style={{ position: "fixed", inset: 0, zIndex: 1250 }}
+            onMouseDown={() => setMemberActionMenu(null)}
+          />
+          <div
+            role="menu"
+            aria-label="Member actions"
+            style={{
+              position: "fixed",
+              top: memberActionMenu.top,
+              left: memberActionMenu.left,
+              zIndex: 1260,
+              minWidth: 228,
+              padding: 6,
+              borderRadius: 10,
+              border: "1px solid var(--elev-border)",
+              background: "var(--color-surface)",
+              boxShadow: "0 12px 48px rgba(15, 23, 42, 0.2)",
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const m = memberActionMenu.member;
+              const isOwnerRowM = Boolean(activeBase?.user_id && m.userId === activeBase.user_id);
+              const isSelfM = m.userId === currentUser?.id;
+              const isOnlyOwnerM = m.role === "owner" && ownerCount <= 1;
+              const removeDisabledM = pendingMemberId === m.membershipId || isSelfM || isOnlyOwnerM;
+              const suspendDisabledM =
+                pendingMemberId === m.membershipId || isOwnerRowM || !canManageTeam;
+              const showAssign =
+                canAssignWorkspacesUi && m.userId !== activeBase?.user_id && !m.accessDisabled;
+              const showSuspendToggle = canManageTeam && !isOwnerRowM;
+
+              const itemStyle = (danger?: boolean) =>
+                ({
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 12px",
+                  border: "none",
+                  borderRadius: 8,
+                  background: "transparent",
+                  color: danger ? "#f87171" : "var(--color-text)",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  textAlign: "left" as const,
+                  fontWeight: 500,
+                });
+
+              return (
+                <>
+                  {showAssign ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={otherOwnedBases.length === 0}
+                      title={
+                        otherOwnedBases.length === 0
+                          ? "Create another workspace (or ensure it appears in your list) to grant this member access to more than one workspace."
+                          : "Add this teammate to other workspaces you own."
+                      }
+                      style={{
+                        ...itemStyle(),
+                        opacity: otherOwnedBases.length === 0 ? 0.5 : 1,
+                        cursor: otherOwnedBases.length === 0 ? "not-allowed" : "pointer",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (otherOwnedBases.length === 0) return;
+                        e.currentTarget.style.background = "var(--color-surface-secondary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                      onClick={() => {
+                        if (otherOwnedBases.length === 0) return;
+                        setMemberActionMenu(null);
+                        openAssignWorkspaces(m);
+                      }}
+                    >
+                      <Icons.Folder size={16} strokeWidth={1.5} />
+                      Assign Workspaces
+                    </button>
+                  ) : null}
+                  {showSuspendToggle ? (
+                    m.accessDisabled ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={suspendDisabledM}
+                        title="Let them open this workspace again."
+                        style={{
+                          ...itemStyle(),
+                          opacity: suspendDisabledM ? 0.5 : 1,
+                          cursor: suspendDisabledM ? "not-allowed" : "pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (suspendDisabledM) return;
+                          e.currentTarget.style.background = "var(--color-surface-secondary)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                        onClick={() => {
+                          if (suspendDisabledM) return;
+                          setMemberActionMenu(null);
+                          void setMemberAccessDisabled(m, false);
+                        }}
+                      >
+                        <Icons.CheckCircle size={16} strokeWidth={1.5} />
+                        Enable access
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={suspendDisabledM}
+                        title="Keep them on the team but block API, app, and realtime access until re-enabled."
+                        style={{
+                          ...itemStyle(),
+                          opacity: suspendDisabledM ? 0.5 : 1,
+                          cursor: suspendDisabledM ? "not-allowed" : "pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (suspendDisabledM) return;
+                          e.currentTarget.style.background = "var(--color-surface-secondary)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                        onClick={() => {
+                          if (suspendDisabledM) return;
+                          setMemberActionMenu(null);
+                          void setMemberAccessDisabled(m, true);
+                        }}
+                      >
+                        <Icons.Lock size={16} strokeWidth={1.5} />
+                        Suspend access
+                      </button>
+                    )
+                  ) : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={!canManageTeam || removeDisabledM}
+                    style={{
+                      ...itemStyle(true),
+                      opacity: !canManageTeam || removeDisabledM ? 0.5 : 1,
+                      cursor: !canManageTeam || removeDisabledM ? "not-allowed" : "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!canManageTeam || removeDisabledM) return;
+                      e.currentTarget.style.background = "rgba(248, 113, 113, 0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                    onClick={() => {
+                      if (!canManageTeam || removeDisabledM) return;
+                      setMemberActionMenu(null);
+                      void removeMember(m);
+                    }}
+                  >
+                    <Icons.Trash size={16} strokeWidth={1.5} />
+                    Remove from workspace
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </>
+      ) : null}
+
+      {assignMember && otherOwnedBases.length > 0 ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1200,
+            background: "rgba(15, 23, 42, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onMouseDown={(e) => e.target === e.currentTarget && !assignSaving && setAssignMember(null)}
+        >
+          <BaseCard
+            style={{
+              width: "min(440px, 100%)",
+              padding: "22px 24px",
+              maxHeight: "min(80vh, 520px)",
+              overflow: "auto",
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Assign Workspaces</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              Grant <strong>{assignMember.user.name}</strong> access to other workspaces owned by this workspace&apos;s
+              owner. They already belong to the workspace you&apos;re viewing.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+              {otherOwnedBases.map((b) => (
+                <label
+                  key={b.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(assignSelections[b.id])}
+                    onChange={(e) =>
+                      setAssignSelections((prev) => ({ ...prev, [b.id]: e.target.checked }))
+                    }
+                  />
+                  <span>{b.name}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={assignSaving}
+                onClick={() => !assignSaving && setAssignMember(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={assignSaving}
+                onClick={() => void submitAssignWorkspaces()}
+              >
+                {assignSaving ? "Saving…" : "Save access"}
+              </button>
+            </div>
+          </BaseCard>
+        </div>
+      ) : null}
+
       {showInviteModal && (
         <InviteModal
           onClose={() => {
             if (!inviteLoading) {
               setShowInviteModal(false);
-              setInviteForm({ emailOrId: "", name: "", role: "member" });
+              setInviteForm({ emailOrId: "", name: "", role: "editor" });
             }
           }}
           inviteForm={inviteForm}
           setInviteForm={setInviteForm}
-          roleOptions={membershipRoleOptions.filter((opt) => opt.value !== "owner")}
+          roleOptions={INVITE_WORKSPACE_ROLE_OPTIONS}
           onInvite={handleInvite}
           inviteLoading={inviteLoading}
           canCreateUsers={viewerIsAdmin}
@@ -1090,7 +1509,7 @@ function InviteModal({
   setInviteForm: React.Dispatch<
     React.SetStateAction<{ emailOrId: string; name: string; role: MembershipRole }>
   >;
-  roleOptions: Array<{ value: MembershipRole; label: string; description: string }>;
+  roleOptions: WorkspaceRoleOption[];
   onInvite: () => Promise<void>;
   inviteLoading: boolean;
   canCreateUsers: boolean;
@@ -1143,7 +1562,7 @@ function InviteModal({
             <p style={{ fontSize: "14px", color: "var(--color-text-muted)", margin: "8px 0 0 0", lineHeight: 1.5 }}>
               Send an <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>email invitation</strong> for
               anyone to join after they sign in, or enter a numeric <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>user ID</strong>{" "}
-              to add an existing account directly. Owner role cannot be assigned via invite.
+              to add an existing account directly. Ownership is not available here; use Team to transfer Owner when needed.
             </p>
           </div>
           <button

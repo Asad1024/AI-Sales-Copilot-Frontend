@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getUser, type User } from "@/lib/apiClient";
+import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import BaseSelector from "./BaseSelector";
@@ -149,7 +150,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { activeBaseId } = useBaseStore();
+  const { activeBaseId, bases, loading: basesLoading } = useBaseStore();
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
@@ -206,10 +207,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { href: "/templates", label: "Templates", icon: <FileText size={iconSize} strokeWidth={iconStroke} />, tour: "templates-link" },
   ];
 
+  const hideUpgradeNav = user ? shouldHideBillingAndUpgrade(user, bases, basesLoading) : true;
+
   const secondaryNav: NavItem[] = [
     { href: "/reports", label: "Reports", icon: <BarChart2 size={iconSize} strokeWidth={iconStroke} /> },
     { href: "/team", label: "Team", icon: <UserCircle2 size={iconSize} strokeWidth={iconStroke} /> },
-    { href: "/upgrade", label: "Upgrade", icon: <Sparkles size={iconSize} strokeWidth={iconStroke} /> },
+    ...(!hideUpgradeNav ? [{ href: "/upgrade", label: "Upgrade", icon: <Sparkles size={iconSize} strokeWidth={iconStroke} /> }] : []),
   ];
 
   const userInitials = (user?.name || user?.email || "U")

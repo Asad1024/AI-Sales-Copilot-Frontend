@@ -14,6 +14,8 @@ interface BaseCardProps {
   onRename: (id: number, name: string) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onSetActive: (id: number) => void;
+  /** When true (invite-only or collaborator-only account), hide rename/delete even if membership would allow. */
+  restrictWorkspaceChrome?: boolean;
 }
 
 const BASE_COLORS = [
@@ -27,7 +29,15 @@ const BASE_COLORS = [
   { bg: "#ccfbf1", icon: "#14b8a6" },
 ];
 
-export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActive }: BaseCardProps) {
+export function BaseCard({
+  base,
+  stats,
+  isLoading,
+  onRename,
+  onDelete,
+  onSetActive,
+  restrictWorkspaceChrome = false,
+}: BaseCardProps) {
   const router = useRouter();
   const { showSuccess, showError } = useNotification();
   const { permissions, loading: permissionsLoading } = useBasePermissions(base.id);
@@ -109,6 +119,9 @@ export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActi
     setMenuOpen(false);
     onDelete(base.id);
   };
+
+  const canEdit = Boolean(permissions.canManageSettings && !restrictWorkspaceChrome);
+  const canDelete = Boolean(permissions.canDeleteBase && !restrictWorkspaceChrome);
 
   const menuItemBase: React.CSSProperties = {
     width: "100%",
@@ -281,87 +294,111 @@ export function BaseCard({ base, stats, isLoading, onRename, onDelete, onSetActi
             )}
           </div>
 
-          <div ref={menuWrapRef} onClick={(e) => e.stopPropagation()} style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              className="bases-workspace-card-menu-trigger"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              title="Workspace actions"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen((v) => !v);
-              }}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
-              }}
-            >
-              <MoreVertical size={18} strokeWidth={2} />
-            </button>
-            {menuOpen && (
-              <div
-                className="bases-workspace-card-menu-panel"
-                role="menu"
+          {restrictWorkspaceChrome && !canEdit && !canDelete ? (
+            <div onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+              <button
+                type="button"
+                className="bases-workspace-card-menu-trigger"
+                title="Copy workspace link"
+                aria-label="Copy workspace link"
+                onClick={handleShare}
                 style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 6px)",
-                  zIndex: 40,
-                  minWidth: 176,
-                  padding: 4,
-                  borderRadius: 12,
-                  border: "1px solid var(--elev-border, #e2e8f0)",
-                  background: "var(--elev-bg, #ffffff)",
-                  boxShadow: "0 10px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.06)",
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
                 }}
               >
-                {permissions.canManageSettings && (
+                <Share2 size={18} strokeWidth={2} />
+              </button>
+            </div>
+          ) : (
+            <div ref={menuWrapRef} onClick={(e) => e.stopPropagation()} style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                type="button"
+                className="bases-workspace-card-menu-trigger"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                title="Workspace actions"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen((v) => !v);
+                }}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                }}
+              >
+                <MoreVertical size={18} strokeWidth={2} />
+              </button>
+              {menuOpen && (
+                <div
+                  className="bases-workspace-card-menu-panel"
+                  role="menu"
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 6px)",
+                    zIndex: 40,
+                    minWidth: 176,
+                    padding: 4,
+                    borderRadius: 12,
+                    border: "1px solid var(--elev-border, #e2e8f0)",
+                    background: "var(--elev-bg, #ffffff)",
+                    boxShadow: "0 10px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.06)",
+                  }}
+                >
+                  {canEdit && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      style={menuItemBase}
+                      className="bases-workspace-card-menu-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startRename();
+                      }}
+                    >
+                      <Pencil size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
+                      Edit
+                    </button>
+                  )}
                   <button
                     type="button"
                     role="menuitem"
                     style={menuItemBase}
                     className="bases-workspace-card-menu-item"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startRename();
-                    }}
+                    onClick={handleShare}
                   >
-                    <Pencil size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
-                    Edit
+                    <Share2 size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
+                    Share
                   </button>
-                )}
-                <button
-                  type="button"
-                  role="menuitem"
-                  style={menuItemBase}
-                  className="bases-workspace-card-menu-item"
-                  onClick={handleShare}
-                >
-                  <Share2 size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
-                  Share
-                </button>
-                {permissions.canDeleteBase && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    style={{ ...menuItemBase, color: "#dc2626" }}
-                    className="bases-workspace-card-menu-item bases-workspace-card-menu-item--danger"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 size={16} strokeWidth={2} />
-                    Delete
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      style={{ ...menuItemBase, color: "#dc2626" }}
+                      className="bases-workspace-card-menu-item bases-workspace-card-menu-item--danger"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 size={16} strokeWidth={2} />
+                      Delete
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div

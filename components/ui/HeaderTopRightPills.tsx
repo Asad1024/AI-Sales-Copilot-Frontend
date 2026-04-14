@@ -1,11 +1,13 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Coins } from "lucide-react";
 import { getUser, apiRequest } from "@/lib/apiClient";
+import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
+import { useBaseStore } from "@/stores/useBaseStore";
 
 /** Same outer height for tutorial pill and credits / upgrade pill */
 const HEADER_PILL_HEIGHT = 40;
@@ -21,7 +23,15 @@ const headerPillBox: CSSProperties = {
 
 export default function HeaderTopRightPills() {
   const { activeBaseId } = useBase();
+  const bases = useBaseStore((s) => s.bases);
+  const basesLoading = useBaseStore((s) => s.loading);
+  const [userRev, setUserRev] = useState(0);
   const [credits, setCredits] = useState<number>(() => getUser()?.credits_balance ?? 0);
+
+  const hideUpgrade = useMemo(() => {
+    const u = getUser();
+    return u ? shouldHideBillingAndUpgrade(u, bases, basesLoading) : true;
+  }, [userRev, bases, basesLoading]);
 
   const syncCredits = useCallback(async () => {
     const u = getUser();
@@ -44,7 +54,10 @@ export default function HeaderTopRightPills() {
   }, [syncCredits]);
 
   useEffect(() => {
-    const onUser = () => void syncCredits();
+    const onUser = () => {
+      setUserRev((n) => n + 1);
+      void syncCredits();
+    };
     const onBase = () => void syncCredits();
     const onVisible = () => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") void syncCredits();
@@ -119,38 +132,42 @@ export default function HeaderTopRightPills() {
           <Coins size={15} strokeWidth={1.75} color="#d97706" />
         </div>
         <span style={{ fontWeight: 700, fontSize: 14, color: "#b45309", minWidth: 28, lineHeight: 1 }}>{credits}</span>
-        <div
-          style={{
-            width: 1,
-            height: 18,
-            background: "#e5e7eb",
-            flexShrink: 0,
-          }}
-          aria-hidden
-        />
-        <Link
-          href="/upgrade"
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            padding: "0 2px",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--color-primary, #7C3AED)",
-            fontFamily: "inherit",
-            lineHeight: 1,
-            textDecoration: "none",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#6D28D9";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--color-primary, #7C3AED)";
-          }}
-        >
-          Upgrade
-        </Link>
+        {!hideUpgrade ? (
+          <>
+            <div
+              style={{
+                width: 1,
+                height: 18,
+                background: "#e5e7eb",
+                flexShrink: 0,
+              }}
+              aria-hidden
+            />
+            <Link
+              href="/upgrade"
+              style={{
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                padding: "0 2px",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-primary, #7C3AED)",
+                fontFamily: "inherit",
+                lineHeight: 1,
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#6D28D9";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--color-primary, #7C3AED)";
+              }}
+            >
+              Upgrade
+            </Link>
+          </>
+        ) : null}
       </div>
     </div>
   );

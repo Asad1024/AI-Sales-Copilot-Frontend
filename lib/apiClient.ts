@@ -15,6 +15,10 @@ export interface User {
   email_verified?: boolean;
   /** Server-owned; when false and email is verified, user must finish onboarding. */
   onboarding_completed?: boolean;
+  /** Account created only via workspace invite — no personal workspace; restricted billing/integrations. */
+  team_member_only?: boolean;
+  /** From GET /auth/me (and login/refresh): server truth for billing/upgrade/payments access. */
+  restrict_billing_ui?: boolean;
   billing_plan_key?: string | null;
   credits_balance?: number;
   monthly_lead_credits?: number;
@@ -24,6 +28,7 @@ export interface AuthResponse {
   token: string;
   user: User;
   base?: { id: number; name: string };
+  invitation_accepted?: boolean;
 }
 
 export interface PasswordResetRequestResponse {
@@ -405,11 +410,25 @@ export const authAPI = {
     return data;
   },
 
-  signup: async (email: string, password: string, name: string, company: string, dob?: string): Promise<AuthResponse> => {
+  signup: async (
+    email: string,
+    password: string,
+    name: string,
+    company: string,
+    dob?: string,
+    invitationToken?: string
+  ): Promise<AuthResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, company, dob }),
+      body: JSON.stringify({
+        email,
+        password,
+        name,
+        company,
+        dob,
+        ...(invitationToken ? { invitation_token: invitationToken } : {}),
+      }),
     });
 
     if (!response.ok) {
@@ -488,6 +507,7 @@ export const authAPI = {
     company: string;
     dob?: string;
     password?: string;
+    invitation_token?: string;
   }): Promise<AuthResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/google/complete-signup`, {
       method: "POST",

@@ -181,15 +181,18 @@ export function RemoveIntegrationLink({
   onClick,
   label = "Remove",
   disabled,
+  title: titleProp,
 }: {
   onClick: () => void | Promise<void>;
   label?: string;
   disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
+      title={titleProp}
       onClick={() => void onClick()}
       className="border-0 bg-transparent p-0 text-xs font-medium text-red-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-45"
     >
@@ -198,11 +201,12 @@ export function RemoveIntegrationLink({
   );
 }
 
-export function ConfigureLinkButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+export function ConfigureLinkButton({ onClick, disabled, title: titleProp }: { onClick: () => void; disabled?: boolean; title?: string }) {
   return (
     <button
       type="button"
       disabled={disabled}
+      title={titleProp}
       onClick={onClick}
       className="btn-secondary-outline"
       style={{
@@ -225,15 +229,18 @@ export function ConnectFilledButton({
   onClick,
   disabled,
   children,
+  title: titleProp,
 }: {
   onClick: () => void;
   disabled?: boolean;
   children: ReactNode;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
+      title={titleProp}
       onClick={onClick}
       className="btn-primary"
       style={{

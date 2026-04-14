@@ -1,7 +1,8 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, getUser } from "@/lib/apiClient";
+import { shouldRestrictWorkspaceManagement } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
@@ -17,8 +18,10 @@ export default function BasesPage() {
   const router = useRouter();
   const { showError, showSuccess } = useNotification();
   const confirm = useConfirm();
-  const { bases, refreshBases, setActiveBaseId } = useBase();
+  const { refreshBases, setActiveBaseId } = useBase();
+  const basesFromStore = useBaseStore((s) => s.bases);
   const basesLoading = useBaseStore((s) => s.loading);
+  const bases = basesFromStore;
   const [name, setName] = useState("");
   const [search, setSearch] = useState("");
   const [loadingCreate, setLoadingCreate] = useState(false);
@@ -27,14 +30,35 @@ export default function BasesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<"all" | "with-leads" | "with-campaigns">("all");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [userRev, setUserRev] = useState(0);
 
   useEffect(() => {
-    const openCreate = () => setShowCreateModal(true);
+    const sync = () => setUserRev((n) => n + 1);
+    window.addEventListener("sparkai:user-changed", sync);
+    return () => window.removeEventListener("sparkai:user-changed", sync);
+  }, []);
+
+  const restrictWorkspace = useMemo(() => {
+    const u = getUser();
+    return u ? shouldRestrictWorkspaceManagement(u, basesFromStore, basesLoading) : false;
+  }, [userRev, basesFromStore, basesLoading]);
+
+  useEffect(() => {
+    const openCreate = () => {
+      const u = getUser();
+      if (u && shouldRestrictWorkspaceManagement(u, useBaseStore.getState().bases, useBaseStore.getState().loading)) return;
+      setShowCreateModal(true);
+    };
     window.addEventListener("app:bases-new-workspace", openCreate as EventListener);
     return () => window.removeEventListener("app:bases-new-workspace", openCreate as EventListener);
   }, []);
 
   async function createBase() {
+    const u = getUser();
+    if (u && shouldRestrictWorkspaceManagement(u, useBaseStore.getState().bases, useBaseStore.getState().loading)) {
+      showError("Not available", "Only a workspace owner can create workspaces.");
+      return;
+    }
     if (!name.trim()) return;
     try {
       setLoadingCreate(true);
@@ -62,6 +86,11 @@ export default function BasesPage() {
   }
 
   async function renameBase(id: number, newName: string) {
+    const u = getUser();
+    if (u && shouldRestrictWorkspaceManagement(u, useBaseStore.getState().bases, useBaseStore.getState().loading)) {
+      showError("Not available", "You can’t rename workspaces with your account.");
+      return;
+    }
     try {
       await apiRequest(`/bases/${id}`, { method: 'PUT', body: JSON.stringify({ name: newName }) });
       await refreshBases();
@@ -72,6 +101,11 @@ export default function BasesPage() {
   }
 
   async function deleteBase(id: number) {
+    const u = getUser();
+    if (u && shouldRestrictWorkspaceManagement(u, useBaseStore.getState().bases, useBaseStore.getState().loading)) {
+      showError("Not available", "You can’t delete workspaces with your account.");
+      return;
+    }
     const ok = await confirm({
       title: "Delete workspace?",
       message: "This removes the workspace and related data you are allowed to delete. This cannot be undone.",
@@ -240,14 +274,16 @@ export default function BasesPage() {
               )}
             </div>
           </div>
-          <button
-            type="button"
-            className="btn-dashboard-outline"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <Icons.Plus size={16} strokeWidth={1.5} />
-            New Workspace
-          </button>
+          {!restrictWorkspace ? (
+            <button
+              type="button"
+              className="btn-dashboard-outline"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Icons.Plus size={16} strokeWidth={1.5} />
+              New Workspace
+            </button>
+          ) : null}
         </div>
 
         {allVisibleEmpty && (
@@ -272,9 +308,11 @@ export default function BasesPage() {
             title="No workspaces yet"
             description="Workspaces help you organize your leads and campaigns. Create your first one to get started."
             actions={
-              <button type="button" onClick={() => setShowCreateModal(true)} className="btn-dashboard-outline">
-                Create a workspace
-              </button>
+              !restrictWorkspace ? (
+                <button type="button" onClick={() => setShowCreateModal(true)} className="btn-dashboard-outline">
+                  Create a workspace
+                </button>
+              ) : undefined
             }
           />
         )}
@@ -303,10 +341,11 @@ export default function BasesPage() {
                 isLoading={false}
                 onRename={renameBase}
                 onDelete={deleteBase}
-                  onSetActive={(id) => {
-                    const b = bases.find((x) => x.id === id);
-                    setActiveBaseId(id, b ? { name: b.name } : undefined);
-                  }}
+                restrictWorkspaceChrome={restrictWorkspace}
+                onSetActive={(id) => {
+                  const b = bases.find((x) => x.id === id);
+                  setActiveBaseId(id, b ? { name: b.name } : undefined);
+                }}
               />
             ))}
           </div>
@@ -314,7 +353,7 @@ export default function BasesPage() {
       </div>
 
       {/* Create modal */}
-      {showCreateModal && (
+      {showCreateModal && !restrictWorkspace && (
         <div 
           style={{ 
             position: 'fixed', 

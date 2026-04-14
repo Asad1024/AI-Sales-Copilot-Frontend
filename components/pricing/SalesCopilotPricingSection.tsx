@@ -247,14 +247,14 @@ function PortalSetupPairCard({
     <div
       className="card-enhanced"
       style={{
-        borderRadius: 18,
+        borderRadius: 16,
         border: "1px solid rgba(124, 58, 237, 0.32)",
-        background: "linear-gradient(160deg, rgba(124, 58, 237, 0.1) 0%, rgba(15, 23, 42, 0.35) 50%, rgba(124, 58, 237, 0.06) 100%)",
-        padding: "20px 22px 22px",
+        background: "var(--color-surface, #fff)",
+        padding: "16px 18px 18px",
         display: "flex",
         flexDirection: "column",
         minHeight: "100%",
-        boxShadow: "0 12px 36px rgba(124, 58, 237, 0.08)",
+        boxShadow: "0 10px 24px rgba(124, 58, 237, 0.06)",
       }}
     >
       <span
@@ -269,21 +269,21 @@ function PortalSetupPairCard({
       >
         Step 1 · Required first
       </span>
-      <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)", letterSpacing: "-0.02em" }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)", letterSpacing: "-0.02em" }}>
         {plan.name}
       </h2>
-      <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: "0 0 10px", lineHeight: 1.45 }}>
         {plan.headline} Monthly plans and add-ons below activate after setup.
       </p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <span style={{ fontSize: 30, fontWeight: 800, color: "#7C3AED" }}>{plan.priceDisplay}</span>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        <span style={{ fontSize: 26, fontWeight: 800, color: "#7C3AED" }}>{plan.priceDisplay}</span>
         {plan.priceSub ? (
-          <span style={{ fontSize: 14, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
+          <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
         ) : null}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
         {bullets.map((b) => (
-          <div key={b} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--color-text)", lineHeight: 1.45 }}>
+          <div key={b} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "var(--color-text)", lineHeight: 1.4 }}>
             <Check size={15} strokeWidth={2.25} style={{ flexShrink: 0, color: "#7C3AED", marginTop: 2 }} />
             <span>{b}</span>
           </div>
@@ -301,10 +301,10 @@ function PortalSetupPairCard({
             onClick={() => onCta(plan)}
             style={{
               width: "100%",
-              padding: "11px 16px",
+              padding: "10px 14px",
               borderRadius: 11,
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 13,
               cursor: busy ? "wait" : "pointer",
             }}
           >
@@ -315,7 +315,7 @@ function PortalSetupPairCard({
             type="button"
             className="btn-primary"
             onClick={() => onMarketingCta(plan)}
-            style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontWeight: 700, fontSize: 14 }}
+            style={{ width: "100%", padding: "10px 14px", borderRadius: 11, fontWeight: 700, fontSize: 13 }}
           >
             Get started
           </button>
@@ -332,8 +332,8 @@ function PortalCustomPairCard({ plan }: { plan: SalesCopilotPricingPlan }) {
     <div
       className="card-enhanced"
       style={{
-        borderRadius: 18,
-        padding: "20px 22px 22px",
+        borderRadius: 16,
+        padding: "16px 18px 18px",
         border: "1px dashed rgba(124, 58, 237, 0.38)",
         background: "var(--color-surface, #fff)",
         display: "flex",
@@ -353,20 +353,20 @@ function PortalCustomPairCard({ plan }: { plan: SalesCopilotPricingPlan }) {
       >
         Enterprise
       </span>
-      <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)", letterSpacing: "-0.02em" }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)", letterSpacing: "-0.02em" }}>
         {plan.name}
       </h2>
-      <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
         {plan.headline}
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
         {chips.map((c) => (
           <span
             key={c}
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 600,
-              padding: "5px 10px",
+              padding: "4px 9px",
               borderRadius: 999,
               background: "rgba(124, 58, 237, 0.08)",
               color: "var(--color-text)",
@@ -389,10 +389,10 @@ function PortalCustomPairCard({ plan }: { plan: SalesCopilotPricingPlan }) {
             display: "flex",
             justifyContent: "center",
             width: "100%",
-            padding: "11px 16px",
+            padding: "10px 14px",
             borderRadius: 11,
             fontWeight: 700,
-            fontSize: 14,
+            fontSize: 13,
             textDecoration: "none",
           }}
         >
@@ -593,15 +593,20 @@ export default function SalesCopilotPricingSection({
 
   return (
     <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 8px", color: "var(--color-text)" }}>
-          {pageTitle}
-        </h1>
-        <p style={{ fontSize: 15, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.6, maxWidth: 720 }}>
-          {intro ||
-            "Setup runs first. Then pick a monthly tier or the calling add-on. Checkout uses Stripe when Price IDs are configured."}
-        </p>
-      </div>
+      {(pageTitle || intro) ? (
+        <div style={{ marginBottom: 24 }}>
+          {pageTitle ? (
+            <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 8px", color: "var(--color-text)" }}>
+              {pageTitle}
+            </h1>
+          ) : null}
+          {intro ? (
+            <p style={{ fontSize: 15, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.6, maxWidth: 720 }}>
+              {intro}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {enableCheckout && billingHint && (
         <div
           role="status"

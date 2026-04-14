@@ -31,6 +31,10 @@ const LeadDrawer = dynamic(() => import("@/components/leads/LeadDrawer"), { ssr:
 const SchemaSidebar = dynamic(() => import("@/app/leads/components/SchemaSidebar").then(m => ({ default: m.SchemaSidebar })), { ssr: false });
 const EnrichModal = dynamic(() => import("@/components/leads/EnrichModal").then(m => ({ default: m.EnrichModal })), { ssr: false });
 const ScoreModal = dynamic(() => import("@/components/leads/ScoreModal").then(m => ({ default: m.ScoreModal })), { ssr: false });
+const AddLinkedInLeadModal = dynamic(
+  () => import("@/components/leads/AddLinkedInLeadModal").then((m) => ({ default: m.AddLinkedInLeadModal })),
+  { ssr: false },
+);
 
 export default function BaseLeadsPage() {
   const router = useRouter();
@@ -70,6 +74,7 @@ export default function BaseLeadsPage() {
   });
   const [showEnrichModal, setShowEnrichModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
+  const [linkedInOpen, setLinkedInOpen] = useState(false);
   const [showSchemaSidebar, setShowSchemaSidebar] = useState(false);
   const [pendingEnrichmentLeadIds, setPendingEnrichmentLeadIds] = useState<number[]>([]);
   /** Shown only after FullEnrich webhook (socket): refresh grid + workspace credits once. */
@@ -611,6 +616,7 @@ export default function BaseLeadsPage() {
         onSchemaClick={() => setShowSchemaSidebar(true)}
         onExportCSV={handleExportCSV}
         onImportCSV={() => setImportOpen(true)}
+        onAddFromLinkedIn={permissions.canCreateLeads ? () => setLinkedInOpen(true) : undefined}
       />
 
         <div
@@ -626,6 +632,10 @@ export default function BaseLeadsPage() {
           }}
         >
           {loading || permissionsLoading ? (
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 4px" }}>
+              <GlobalPageLoader layout="embedded" fill ariaLabel="Loading leads" />
+            </div>
+          ) : enrichmentRefreshing ? (
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 4px" }}>
               <GlobalPageLoader layout="embedded" fill ariaLabel="Loading leads" />
             </div>
@@ -654,28 +664,6 @@ export default function BaseLeadsPage() {
                 position: "relative",
               }}
             >
-              {enrichmentRefreshing && (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    zIndex: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "color-mix(in srgb, var(--color-surface) 92%, transparent)",
-                    backdropFilter: "blur(3px)",
-                    borderRadius: 12,
-                  }}
-                >
-                  <GlobalPageLoader
-                    layout="embedded"
-                    fill
-                    ariaLabel="Updating leads after enrichment"
-                    message="Refreshing leads…"
-                  />
-                </div>
-              )}
               <DynamicLeadsTable
                 embedded
                 leads={filteredLeads}
@@ -710,12 +698,31 @@ export default function BaseLeadsPage() {
           void refreshLeadsAfterImport();
         }}
       />
-      <AIGenerateModal 
+      {currentBaseId && (
+        <AddLinkedInLeadModal
+          open={linkedInOpen}
+          onClose={() => setLinkedInOpen(false)}
+          baseId={currentBaseId}
+          onCreated={async (lead) => {
+            await refreshLeadsAfterImport();
+            setDrawerLead(lead as any);
+            setDrawerOpen(true);
+          }}
+        />
+      )}
+      <AIGenerateModal
         open={genOpen}
         onClose={() => setGenOpen(false)}
         onGenerated={() => {
           setGenOpen(false);
           void refreshLeadsAfterImport();
+        }}
+        onAsyncEnrichmentStarted={({ leadIds }) => {
+          setPendingEnrichmentLeadIds((current) => {
+            const next = new Set(current);
+            leadIds.forEach((id) => next.add(id));
+            return Array.from(next);
+          });
         }}
       />
       <CRMImportModal 

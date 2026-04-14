@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiRequest, setUser, getUser, type User } from "@/lib/apiClient";
+import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
+import { useBaseStore } from "@/stores/useBaseStore";
 
 type BillingTx = {
   id: number;
@@ -48,13 +50,32 @@ function formatMoney(cents: number, currency: string) {
 export function PaymentSettingsPanel() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const bases = useBaseStore((s) => s.bases);
+  const basesLoading = useBaseStore((s) => s.loading);
+  const [userRev, setUserRev] = useState(0);
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [transactionsPage, setTransactionsPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  useEffect(() => {
+    const sync = () => setUserRev((n) => n + 1);
+    window.addEventListener("sparkai:user-changed", sync);
+    return () => window.removeEventListener("sparkai:user-changed", sync);
+  }, []);
+
+  const restrictBilling = useMemo(() => {
+    const u = getUser();
+    return u ? shouldHideBillingAndUpgrade(u, bases, basesLoading) : false;
+  }, [userRev, bases, basesLoading]);
+
   const load = useCallback(async (pageOverride?: number) => {
+    const u = getUser();
+    if (u && shouldHideBillingAndUpgrade(u, useBaseStore.getState().bases, useBaseStore.getState().loading)) {
+      setLoading(false);
+      return;
+    }
     const page = Math.max(1, pageOverride ?? transactionsPage);
     setLoading(true);
     setError(null);
@@ -88,8 +109,13 @@ export function PaymentSettingsPanel() {
   }, []);
 
   useEffect(() => {
+    if (restrictBilling) {
+      setLoading(false);
+      router.replace("/settings?tab=profile");
+      return;
+    }
     void load();
-  }, [load]);
+  }, [load, router, restrictBilling]);
 
   useEffect(() => {
     const sid = searchParams?.get("session_id");
@@ -309,11 +335,18 @@ export function PaymentSettingsPanel() {
           </div>
 
           <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
-            Profile cache: plan {getUser()?.billing_plan_key ?? "—"} · credits {getUser()?.credits_balance ?? "—"}. Open{" "}
-            <a href="/upgrade" style={{ color: "#7C3AED", fontWeight: 600 }}>
-              Upgrade
-            </a>{" "}
-            to change plan.
+            Profile cache: plan {getUser()?.billing_plan_key ?? "—"} · credits {getUser()?.credits_balance ?? "—"}.{" "}
+            {restrictBilling ? (
+              <>Billing is managed by your workspace owner.</>
+            ) : (
+              <>
+                Open{" "}
+                <a href="/upgrade" style={{ color: "#7C3AED", fontWeight: 600 }}>
+                  Upgrade
+                </a>{" "}
+                to change plan.
+              </>
+            )}
           </p>
         </>
       ) : null}

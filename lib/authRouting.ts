@@ -6,6 +6,7 @@ type AppRouter = { push: (href: string) => void };
 
 export function userNeedsOnboarding(user: User | null | undefined): boolean {
   if (!user || user.email_verified !== true) return false;
+  if (user.team_member_only === true) return false;
   return user.onboarding_completed !== true;
 }
 

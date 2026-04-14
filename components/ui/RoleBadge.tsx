@@ -1,5 +1,6 @@
 "use client";
 import { BaseMemberRole } from "@/hooks/useBasePermissions";
+import { WORKSPACE_ROLE_LABEL } from "@/lib/workspaceRoles";
 
 interface RoleBadgeProps {
   role: BaseMemberRole | null;
@@ -8,33 +9,28 @@ interface RoleBadgeProps {
   className?: string;
 }
 
-const roleConfig: Record<BaseMemberRole, { label: string; color: string; bgColor: string; icon: string }> = {
+const roleConfig: Record<BaseMemberRole, { color: string; bgColor: string; icon: string }> = {
   owner: {
-    label: "Owner",
     color: "#ff6b6b",
     bgColor: "rgba(255, 107, 107, 0.15)",
     icon: "👑"
   },
   admin: {
-    label: "Admin",
     color: "#7C3AED",
     bgColor: "rgba(124, 58, 237, 0.15)",
     icon: "⚡"
   },
   editor: {
-    label: "Editor",
     color: "#4ecdc4",
     bgColor: "rgba(78, 205, 196, 0.15)",
     icon: "✏️"
   },
   viewer: {
-    label: "Viewer",
     color: "#888",
     bgColor: "rgba(136, 136, 136, 0.15)",
     icon: "👁️"
   },
   member: {
-    label: "Member",
     color: "#ffa726",
     bgColor: "rgba(255, 167, 38, 0.15)",
     icon: "👤"
@@ -45,6 +41,7 @@ export function RoleBadge({ role, size = "md", showLabel = true, className = "" 
   if (!role) return null;
 
   const config = roleConfig[role];
+  const label = WORKSPACE_ROLE_LABEL[role];
   const sizeStyles = {
     sm: { padding: "4px 8px", fontSize: "11px", iconSize: "12px" },
     md: { padding: "6px 12px", fontSize: "12px", iconSize: "14px" },
@@ -69,10 +66,10 @@ export function RoleBadge({ role, size = "md", showLabel = true, className = "" 
         border: `1px solid ${config.color}40`,
         lineHeight: 1,
       }}
-      title={`Role: ${config.label}`}
+      title={`Role: ${label}`}
     >
       <span style={{ fontSize: style.iconSize }}>{config.icon}</span>
-      {showLabel && <span>{config.label}</span>}
+      {showLabel && <span>{label}</span>}
     </span>
   );
 }

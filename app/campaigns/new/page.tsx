@@ -49,6 +49,7 @@ import {
   getFirstBlockingStepForForwardJump,
   getValidationError,
   CAMPAIGN_NAME_MAX_LENGTH,
+  CAMPAIGN_WIZARD_MAX_LEADS,
   getBasicSetupCampaignNameError,
   type ValidationContext,
 } from "./stepValidation";
@@ -3614,6 +3615,7 @@ export default function CampaignNew() {
       valueProposition,
       callToAction,
       segments,
+      selectedLeadCount: totalLeads,
       schedule,
       followupsPreferenceSet,
       linkedInStepConfig: linkedInStepConfig || undefined,
@@ -3636,6 +3638,7 @@ export default function CampaignNew() {
       valueProposition,
       callToAction,
       segments,
+      totalLeads,
       schedule,
       followupsPreferenceSet,
       knowledgeBaseFiles,
@@ -3657,6 +3660,16 @@ export default function CampaignNew() {
 
   const next = async () => {
     if (wizardNavBusy || wizardStepperLoadingStep !== null) return;
+    if (
+      currentStepInfo?.stepType === "core_details_part2" &&
+      totalLeads > CAMPAIGN_WIZARD_MAX_LEADS
+    ) {
+      showWarning(
+        "Maximum 30 leads per campaign",
+        `Each campaign can include up to ${CAMPAIGN_WIZARD_MAX_LEADS} leads. Remove some leads before continuing.`
+      );
+      return;
+    }
     if (!canProceedToNextStep(stepValidationContext)) {
       return;
     }
@@ -5048,9 +5061,19 @@ export default function CampaignNew() {
                           fontWeight: 500,
                           color: "#7C3AED",
                           lineHeight: "20px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
                         }}
                       >
-                        {selectedLeadIds.size} lead{selectedLeadIds.size !== 1 ? "s" : ""} selected
+                        <span>
+                          {selectedLeadIds.size} lead{selectedLeadIds.size !== 1 ? "s" : ""} selected
+                        </span>
+                        {selectedLeadIds.size > CAMPAIGN_WIZARD_MAX_LEADS ? (
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#b45309" }}>
+                            Max {CAMPAIGN_WIZARD_MAX_LEADS} leads per campaign — remove some to continue
+                          </span>
+                        ) : null}
                       </span>
                       <button
                         type="button"
@@ -10309,7 +10332,11 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             : currentStepInfo?.stepType === "core_details_part1"
                               ? "Fill required fields to continue"
                               : nextStepValidationError ?? "Please complete the required fields"
-                      : undefined
+                      : wizardNavBusy === null && wizardStepperLoadingStep === null &&
+                          currentStepInfo?.stepType === "core_details_part2" &&
+                          totalLeads > CAMPAIGN_WIZARD_MAX_LEADS
+                        ? `Maximum ${CAMPAIGN_WIZARD_MAX_LEADS} leads per campaign — remove some before continuing`
+                        : undefined
                   }
                   onClick={() => {
                     if (

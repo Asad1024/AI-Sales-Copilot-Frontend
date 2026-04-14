@@ -3,6 +3,9 @@ import { getStepInfo } from './stepFlowCalculator';
 
 export const CAMPAIGN_NAME_MAX_LENGTH = 60;
 
+/** Max distinct leads that can be included in a single campaign (wizard lead step). */
+export const CAMPAIGN_WIZARD_MAX_LEADS = 30;
+
 function trimmedCampaignName(name: string | undefined): string {
   return (name ?? '').trim();
 }
@@ -53,6 +56,8 @@ export interface ValidationContext {
   valueProposition?: string;
   callToAction?: string;
   segments?: string[];
+  /** Distinct selected leads on the lead step (wizard); used for 30-lead cap. */
+  selectedLeadCount?: number;
   schedule?: {
     start?: string;
     end?: string;
@@ -190,7 +195,15 @@ export function getFirstBlockingStepForForwardJump(
 ): number | null {
   if (toStep <= fromStep) return null;
   for (let s = fromStep; s < toStep; s++) {
-    if (!canProceedToNextStep({ ...base, step: s })) return s;
+    const ctx = { ...base, step: s };
+    if (!canProceedToNextStep(ctx)) return s;
+    const stepInfo = getStepInfo(s, base.channels, base.channelConfigs);
+    if (
+      stepInfo?.stepType === 'core_details_part2' &&
+      (base.selectedLeadCount ?? 0) > CAMPAIGN_WIZARD_MAX_LEADS
+    ) {
+      return s;
+    }
   }
   return null;
 }
@@ -222,6 +235,9 @@ export function getValidationError(context: ValidationContext): string | null {
       return null;
     
     case 'core_details_part2':
+      if ((context.selectedLeadCount ?? 0) > CAMPAIGN_WIZARD_MAX_LEADS) {
+        return `You can include at most ${CAMPAIGN_WIZARD_MAX_LEADS} leads per campaign. Remove some leads before continuing.`;
+      }
       if (!context.segments || context.segments.length === 0) {
         return 'Please select at least one lead';
       }

@@ -120,7 +120,7 @@ export function CampaignStats() {
 
   useEffect(() => {
     if (activeBaseId && pagination.totalLeads === 0) {
-      fetchLeads(activeBaseId, 1, 50);
+      fetchLeads(activeBaseId, 1, 30);
     }
   }, [activeBaseId, fetchLeads, pagination.totalLeads]);
 

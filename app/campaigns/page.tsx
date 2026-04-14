@@ -19,7 +19,7 @@ import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId, bases, refreshBases } = useBaseStore();
-  const { pagination, fetchLeads } = useLeadStore();
+  const { pagination, setPagination } = useLeadStore();
   const {
     fetchCampaigns,
     filters,
@@ -53,7 +53,6 @@ export default function CampaignsPage() {
         const [leadsPayload] = await Promise.all([
           apiRequest(`/leads?base_id=${activeBaseId}&page=1&limit=100`),
           fetchCampaigns(activeBaseId),
-          fetchLeads(activeBaseId, 1, 1),
         ]);
         if (cancelled) return;
         const list = Array.isArray(leadsPayload?.leads)
@@ -62,6 +61,14 @@ export default function CampaignsPage() {
             ? leadsPayload
             : [];
         setTierLeadsForInsights(list);
+        const p = leadsPayload?.pagination;
+        if (p && typeof p.total === "number") {
+          const perPage = useLeadStore.getState().pagination.leadsPerPage || 30;
+          setPagination({
+            totalLeads: p.total,
+            totalPages: Math.max(1, Math.ceil(p.total / perPage)),
+          });
+        }
       } catch (e) {
         console.error("[CampaignsPage] initial load:", e);
         if (!cancelled) setTierLeadsForInsights([]);
@@ -72,7 +79,7 @@ export default function CampaignsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeBaseId, fetchCampaigns, fetchLeads]);
+  }, [activeBaseId, fetchCampaigns, setPagination]);
 
   // Listen for real-time campaign metrics updates via WebSocket
   useEffect(() => {

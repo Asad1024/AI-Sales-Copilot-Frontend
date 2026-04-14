@@ -115,7 +115,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   },
   pagination: {
     currentPage: 1,
-    leadsPerPage: 50,
+    leadsPerPage: 30,
     totalLeads: 0,
     totalPages: 1,
   },
@@ -177,7 +177,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     set({ drawerLead: { ...row } });
   },
   
-  fetchLeads: async (baseId, page = 1, limit = 50, force = false, opts) => {
+  fetchLeads: async (baseId, page = 1, limit = 30, force = false, opts) => {
     const quiet = Boolean(opts?.quiet);
     if (!baseId) {
       set({ leads: [], loading: false });
@@ -228,7 +228,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       const pagination = data?.pagination || {
         total: 0,
         page: 1,
-        limit: 50,
+        limit: 30,
         totalPages: 1,
       };
       

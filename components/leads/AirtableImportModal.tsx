@@ -39,6 +39,7 @@ const LEAD_FIELDS = [
   { value: "last_name", label: "Last Name" },
   { value: "company", label: "Company" },
   { value: "phone", label: "Phone" },
+  { value: "linkedin_url", label: "LinkedIn URL" },
   { value: "role", label: "Role / Title" },
   { value: "industry", label: "Industry" },
   { value: "region", label: "Region" },

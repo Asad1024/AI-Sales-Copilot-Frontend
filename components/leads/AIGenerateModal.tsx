@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { apiRequest, streamGenerateLeads } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { useNotification } from "@/context/NotificationContext";
@@ -61,6 +61,15 @@ function overallLeadGenPercent(stage: string, done: number, total: number): numb
   return Math.min(100, Math.max(0, Math.round(lo + frac * (hi - lo))));
 }
 
+function getSpeechRecognitionCtor(): unknown {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: unknown;
+    webkitSpeechRecognition?: unknown;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
 export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnrichmentStarted }: Props) {
   const { activeBaseId } = useBase();
   const { showSuccess, showError } = useNotification();
@@ -75,6 +84,25 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const [generatedLeads, setGeneratedLeads] = useState<any[]>([]);
   const [enrichSubmitting, setEnrichSubmitting] = useState(false);
   const [suggestionLoadingTopic, setSuggestionLoadingTopic] = useState<string | null>(null);
+  const [speechListening, setSpeechListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const speechRecRef = useRef<{
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start: () => void;
+    stop: () => void;
+    abort: () => void;
+    onstart: (() => void) | null;
+    onend: (() => void) | null;
+    onresult: ((event: {
+      resultIndex: number;
+      results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } };
+    }) => void) | null;
+    onerror: ((event: { error: string }) => void) | null;
+  } | null>(null);
+  const speechPrefixRef = useRef("");
+  const speechAccumulatedFinalRef = useRef("");
   const suggestionPrompts = [
     "SaaS Founders",
     "Marketing Directors",
@@ -126,6 +154,96 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
       setEnrichSubmitting(false);
     }
   }, [activeBaseId, generatedLeads, onAsyncEnrichmentStarted, onGenerated, showError, showSuccess]);
+
+  useEffect(() => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor || typeof Ctor !== "function") return;
+    const rec = new (Ctor as new () => NonNullable<typeof speechRecRef.current>)();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
+
+    rec.onstart = () => {
+      setSpeechListening(true);
+    };
+
+    rec.onresult = (event: {
+      resultIndex: number;
+      results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } };
+    }) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const piece = event.results[i][0]?.transcript ?? "";
+        if (event.results[i].isFinal) {
+          speechAccumulatedFinalRef.current += piece;
+        } else {
+          interim += piece;
+        }
+      }
+      const prefix = speechPrefixRef.current;
+      const finals = speechAccumulatedFinalRef.current;
+      const sep =
+        prefix.length > 0 && (finals.length > 0 || interim.length > 0) && !prefix.endsWith(" ") ? " " : "";
+      setPrompt(prefix + sep + finals + interim);
+      setError("");
+    };
+
+    rec.onerror = (event: { error: string }) => {
+      if (event.error === "aborted" || event.error === "no-speech") return;
+      setSpeechListening(false);
+      if (event.error === "not-allowed") {
+        setError("Microphone access was denied. Allow the mic in your browser settings to use voice input.");
+      }
+    };
+
+    rec.onend = () => {
+      setSpeechListening(false);
+    };
+
+    speechRecRef.current = rec;
+    setSpeechSupported(true);
+    return () => {
+      speechRecRef.current = null;
+      try {
+        rec.abort();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (open) return;
+    const rec = speechRecRef.current;
+    if (!rec) return;
+    try {
+      rec.abort();
+    } catch {
+      /* ignore */
+    }
+    setSpeechListening(false);
+  }, [open]);
+
+  const toggleSpeechInput = useCallback(() => {
+    const rec = speechRecRef.current;
+    if (!rec) return;
+    if (speechListening) {
+      try {
+        rec.stop();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    speechPrefixRef.current = prompt;
+    speechAccumulatedFinalRef.current = "";
+    setError("");
+    try {
+      rec.start();
+    } catch {
+      setError("Could not start voice input. Try again or refresh the page.");
+    }
+  }, [prompt, speechListening]);
 
   useEffect(() => {
     if (!suggestionLoadingTopic) return;
@@ -500,29 +618,96 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             >
               Your words
             </label>
-            <textarea
-              id="ai-lead-prompt"
-              value={prompt}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                setError("");
-              }}
-              rows={5}
-              placeholder="Short idea or full ICP — e.g. marketing directors, B2B SaaS, 50–200 employees, North America"
-              disabled={generating || Boolean(suggestionLoadingTopic)}
-              className="input"
-              style={{
-                width: "100%",
-                fontSize: 12,
-                lineHeight: 1.45,
-                padding: "8px 12px",
-                minHeight: 112,
-                maxHeight: 220,
-                resize: "vertical",
-                borderRadius: 8,
-                boxSizing: "border-box",
-              }}
-            />
+            <div style={{ position: "relative" }}>
+              <textarea
+                id="ai-lead-prompt"
+                value={prompt}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  setError("");
+                }}
+                rows={5}
+                placeholder="Short idea or full ICP — e.g. marketing directors, B2B SaaS, 50–200 employees, North America"
+                disabled={generating || Boolean(suggestionLoadingTopic)}
+                className="input"
+                style={{
+                  width: "100%",
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  padding: "8px 44px 8px 12px",
+                  minHeight: 112,
+                  maxHeight: 220,
+                  resize: "vertical",
+                  borderRadius: 8,
+                  boxSizing: "border-box",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void toggleSpeechInput()}
+                disabled={!speechSupported || generating || Boolean(suggestionLoadingTopic)}
+                aria-pressed={speechListening}
+                aria-label={speechListening ? "Stop voice input" : "Start voice input"}
+                title={
+                  !speechSupported
+                    ? "Voice input needs a browser with speech recognition (e.g. Chrome or Edge)."
+                    : speechListening
+                      ? "Stop dictation"
+                      : "Dictate with your voice"
+                }
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  bottom: 8,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  border: speechListening
+                    ? "1px solid var(--color-primary, #7C3AED)"
+                    : "1px solid var(--color-border)",
+                  background: speechListening ? "rgba(124, 58, 237, 0.16)" : "var(--color-surface)",
+                  color: speechListening ? "var(--color-primary, #7C3AED)" : "var(--color-text-muted)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor:
+                    !speechSupported || generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                  opacity: !speechSupported ? 0.45 : 1,
+                  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+                {speechListening ? (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -2,
+                      right: -2,
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#ef4444",
+                      animation: "pulse 1.2s ease-in-out infinite",
+                    }}
+                  />
+                ) : null}
+              </button>
+            </div>
           </div>
 
           {error ? (

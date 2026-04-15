@@ -2,10 +2,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { isAuthenticated } from "@/lib/apiClient";
+import { Menu, X } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
 import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
 import SalesCopilotPricingSection from "@/components/pricing/SalesCopilotPricingSection";
+import LandingThemeToggle from "@/components/ui/LandingThemeToggle";
+import "@/styles/landing-theme-light.css";
 
 // Animated counter component
 function AnimatedCounter({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
@@ -70,16 +72,10 @@ function ParticlesBackground() {
 
 // Video placeholder component
 function VideoPlaceholder({ title, duration }: { title: string; duration: string }) {
-  const [isHovered, setIsHovered] = useState(false);
-  
   return (
-    <div 
-      className="video-placeholder"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="video-placeholder">
       <div className="video-gradient-overlay" />
-      <div className="video-play-btn" style={{ transform: isHovered ? 'scale(1.1)' : 'scale(1)' }}>
+      <div className="video-play-btn" aria-hidden>
         <Icons.Play size={32} />
       </div>
       <div className="video-info">
@@ -309,10 +305,35 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
+const LANDING_THEME_STORAGE_KEY = "spark-landing-theme";
+
 export default function LandingPage() {
   const router = useRouter();
   const [scrollY, setScrollY] = useState(0);
   const [activeFeature, setActiveFeature] = useState(0);
+  const [landingAppearance, setLandingAppearance] = useState<"light" | "dark">("light");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LANDING_THEME_STORAGE_KEY);
+      if (raw === "dark" || raw === "light") setLandingAppearance(raw);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleLandingAppearance = () => {
+    setLandingAppearance((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      try {
+        localStorage.setItem(LANDING_THEME_STORAGE_KEY, next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
   
   // Redirect authenticated users to dashboard - temporarily disabled for preview
   // useEffect(() => {
@@ -323,9 +344,18 @@ export default function LandingPage() {
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNavOpen]);
 
   // Auto-rotate features
   useEffect(() => {
@@ -428,7 +458,7 @@ export default function LandingPage() {
   ];
   
   return (
-    <div className="landing-page">
+    <div className={`landing-page${landingAppearance === "light" ? " landing-theme-light" : ""}`}>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
@@ -470,10 +500,8 @@ export default function LandingPage() {
           top: 0;
           left: 0;
           right: 0;
-          padding: 16px 32px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          padding: 12px 16px;
+          display: block;
           z-index: 100;
           background: rgba(5, 5, 8, 0.8);
           backdrop-filter: blur(20px);
@@ -481,7 +509,7 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .header-scrolled {
-          padding: 12px 32px;
+          padding: 10px 14px;
           background: rgba(5, 5, 8, 0.95);
         }
         .logo-container {
@@ -658,7 +686,7 @@ export default function LandingPage() {
           color: #000;
           background: var(--gradient-primary);
           border: none;
-          border-radius: 14px;
+          border-radius: 9999px;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -677,7 +705,7 @@ export default function LandingPage() {
           color: #fff;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 14px;
+          border-radius: 9999px;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -815,9 +843,13 @@ export default function LandingPage() {
           align-items: center;
           justify-content: center;
           color: #000;
-          transition: all 0.3s ease;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
           box-shadow: 0 8px 32px rgba(124, 58, 237, 0.5);
-          z-index: 2;
+          z-index: 3;
+        }
+        .video-play-btn:hover {
+          transform: translate(-50%, -50%) scale(1.08);
+          box-shadow: 0 10px 36px rgba(124, 58, 237, 0.55);
         }
         .video-info {
           position: absolute;
@@ -1772,7 +1804,7 @@ export default function LandingPage() {
           padding: 16px 24px;
           font-size: 16px;
           font-weight: 700;
-          border-radius: 12px;
+          border-radius: 9999px;
           cursor: pointer;
           transition: all 0.3s ease;
         }
@@ -1839,7 +1871,19 @@ export default function LandingPage() {
           }
           .features-grid {
             grid-template-columns: 1fr;
-            gap: 48px;
+            gap: 32px;
+          }
+          .features-section {
+            padding: 88px 20px;
+          }
+          .features-list,
+          .features-showcase {
+            min-width: 0;
+            max-width: 100%;
+          }
+          .feature-item {
+            max-width: 100%;
+            box-sizing: border-box;
           }
           .testimonials-grid {
             grid-template-columns: 1fr;
@@ -1850,18 +1894,39 @@ export default function LandingPage() {
           .footer-grid {
             grid-template-columns: 1fr 1fr;
           }
+          .trusted-section {
+            padding: 56px 16px;
+          }
+          .integrations-section {
+            padding: 72px 16px;
+          }
+          .how-section {
+            padding: 80px 16px;
+          }
+          .testimonials-section {
+            padding: 80px 16px;
+          }
+          .faq-section {
+            padding: 80px 16px;
+          }
+          .cta-section {
+            padding: 80px 16px;
+          }
+          .pricing-section {
+            padding: 80px 16px;
+          }
         }
         @media (max-width: 768px) {
           .landing-header {
-            padding: 12px 16px;
-          }
-          .nav-links {
-            display: none;
+            padding: 10px 12px;
           }
           .stats-row {
             flex-wrap: wrap;
             gap: 24px;
             padding: 24px;
+          }
+          .hero-section {
+            padding: 120px 16px 64px;
           }
           .hero-buttons {
             flex-direction: column;
@@ -1871,6 +1936,105 @@ export default function LandingPage() {
           .btn-hero-primary, .btn-hero-secondary {
             width: 100%;
             justify-content: center;
+          }
+          .video-section {
+            padding: 64px 16px;
+          }
+          .section-header {
+            margin-bottom: 36px;
+          }
+          .section-subtitle {
+            font-size: 15px;
+            padding: 0 4px;
+          }
+          .video-info {
+            left: 14px;
+            right: 14px;
+            bottom: 16px;
+          }
+          .video-play-btn {
+            width: 68px;
+            height: 68px;
+          }
+          .video-play-btn:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+          }
+          .video-title {
+            font-size: 15px;
+            line-height: 1.25;
+          }
+          .features-section {
+            padding: 72px 16px;
+          }
+          .features-grid {
+            gap: 28px;
+          }
+          .feature-header {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 10px;
+          }
+          .feature-header .feature-icon {
+            flex-shrink: 0;
+          }
+          .feature-title {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 16px;
+            word-break: break-word;
+          }
+          .feature-highlight {
+            margin-left: 0;
+            flex: 0 0 auto;
+          }
+          .feature-desc {
+            padding-left: 0;
+            margin-top: 4px;
+            font-size: 13px;
+          }
+          .features-showcase {
+            width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          .app-mockup {
+            min-width: 0;
+            max-width: 100%;
+          }
+          .mockup-content {
+            min-width: 0;
+          }
+          .mockup-main {
+            min-width: 0;
+            padding: 16px;
+          }
+          .mockup-url {
+            min-width: 0;
+            overflow: hidden;
+          }
+          .mockup-url span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .mockup-stats {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+          .integrations-grid {
+            gap: 12px;
+          }
+          .integration-card {
+            min-width: 0;
+            flex: 1 1 calc(50% - 8px);
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 16px 14px;
+          }
+          .chart-bars {
+            gap: 8px;
+            height: 100px;
           }
           .cta-buttons {
             flex-direction: column;
@@ -1884,27 +2048,116 @@ export default function LandingPage() {
             text-align: center;
           }
         }
+
+        @media (max-width: 520px) {
+          .mockup-content {
+            flex-direction: column;
+            min-height: 0;
+          }
+          .mockup-sidebar {
+            width: 100%;
+            flex-direction: row;
+            justify-content: center;
+            padding: 10px 12px;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          }
+          .mockup-main {
+            padding: 12px;
+          }
+        }
+
+        /* Nav: desktop row must not compete with hamburger (styled-jsx loads after imported CSS) */
+        @media (max-width: 1024px) {
+          .landing-header-inner nav.nav-links.landing-nav-desktop {
+            display: none !important;
+          }
+          .landing-header-inner .landing-mobile-menu-btn {
+            display: flex !important;
+          }
+        }
       `}</style>
 
       <ParticlesBackground />
 
       {/* Header */}
-      <header className={`landing-header ${scrollY > 50 ? 'header-scrolled' : ''}`}>
-        <div className="logo-container">
-          <AppBrandLogoMark size={44} />
-          <span className="logo-text">Sales Co-Pilot</span>
-        </div>
-        <nav className="nav-links">
-          <Link href="#features" className="nav-link">Features</Link>
-          <Link href="#how-it-works" className="nav-link">How It Works</Link>
-          <Link href="#testimonials" className="nav-link">Testimonials</Link>
-          <Link href="#pricing" className="nav-link">Pricing</Link>
-        </nav>
-        <div className="nav-buttons">
-          <button className="btn-login" onClick={() => router.push('/auth/login')}>Log in</button>
-          <button className="btn-cta" onClick={() => router.push('/auth/signup')}>Start Free Trial</button>
+      <header className={`landing-header ${scrollY > 50 ? "header-scrolled" : ""}`}>
+        <div className="landing-header-inner">
+          <div className="landing-header-left">
+            <button
+              type="button"
+              className="landing-mobile-menu-btn"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={22} strokeWidth={1.75} />
+            </button>
+            <div className="logo-container">
+              <AppBrandLogoMark size={44} />
+              <span className="logo-text">Sales Co-Pilot</span>
+            </div>
+          </div>
+          <nav className="nav-links landing-nav-desktop" aria-label="Primary">
+            <Link href="#features" className="nav-link">
+              Features
+            </Link>
+            <Link href="#how-it-works" className="nav-link">
+              How It Works
+            </Link>
+            <Link href="#testimonials" className="nav-link">
+              Testimonials
+            </Link>
+            <Link href="#pricing" className="nav-link">
+              Pricing
+            </Link>
+          </nav>
+          <div className="landing-header-actions">
+            <LandingThemeToggle appearance={landingAppearance} onToggle={toggleLandingAppearance} />
+            <div className="nav-buttons">
+              <button className="btn-login" onClick={() => router.push("/auth/login")}>
+                Log in
+              </button>
+              <button className="btn-cta" onClick={() => router.push("/auth/signup")}>
+                Start Free Trial
+              </button>
+            </div>
+          </div>
         </div>
       </header>
+
+      {mobileNavOpen ? (
+        <>
+          <div className="landing-mobile-overlay" onClick={() => setMobileNavOpen(false)} role="presentation" />
+          <div className="landing-mobile-panel" role="dialog" aria-modal="true" aria-label="Site menu">
+            <button
+              type="button"
+              className="landing-mobile-panel-close"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close menu"
+            >
+              <X size={22} strokeWidth={1.75} />
+            </button>
+            <Link href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>
+              Features
+            </Link>
+            <Link href="#how-it-works" className="nav-link" onClick={() => setMobileNavOpen(false)}>
+              How It Works
+            </Link>
+            <Link href="#testimonials" className="nav-link" onClick={() => setMobileNavOpen(false)}>
+              Testimonials
+            </Link>
+            <Link href="#pricing" className="nav-link" onClick={() => setMobileNavOpen(false)}>
+              Pricing
+            </Link>
+            <Link href="/auth/login" className="nav-link" onClick={() => setMobileNavOpen(false)}>
+              Log in
+            </Link>
+            <Link href="/auth/signup" className="nav-link" onClick={() => setMobileNavOpen(false)}>
+              Start free trial
+            </Link>
+          </div>
+        </>
+      ) : null}
 
       {/* Hero Section */}
       <section className="hero-section">

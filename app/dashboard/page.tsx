@@ -34,16 +34,15 @@ const sectionLabelStyle = {
   fontWeight: 500 as const,
   letterSpacing: "0.08em",
   textTransform: "uppercase" as const,
-  color: "#9CA3AF",
+  color: "var(--color-text-muted)",
 };
 
-/** Stat grid labels — stronger hierarchy than section rails */
+/** Stat grid labels — stronger hierarchy than section rails (color from .dashboard-metric-label) */
 const metricLabelStyle = {
   fontSize: 12,
   fontWeight: 600 as const,
   letterSpacing: "0.06em",
   textTransform: "uppercase" as const,
-  color: "#4B5563",
 };
 
 function isMutedMetricValue(value: string): boolean {
@@ -281,28 +280,28 @@ export default function Dashboard() {
       key: "leads",
       title: "Manage leads",
       desc: "Import, enrich, and score your pipeline",
-      icon: <Icons.Users size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      icon: <Icons.Users size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
       onClick: goToLeads,
     },
     {
       key: "campaigns",
       title: "Campaigns",
       desc: "Launch and track outreach",
-      icon: <Icons.Rocket size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      icon: <Icons.Rocket size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
       onClick: () => router.push("/campaigns"),
     },
     {
       key: "workspaces",
       title: "Workspaces",
       desc: "Switch organization context",
-      icon: <Icons.Folder size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      icon: <Icons.Folder size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
       onClick: () => router.push("/bases"),
     },
     {
       key: "templates",
       title: "Templates",
       desc: "Reusable message blocks",
-      icon: <Icons.FileText size={20} strokeWidth={1.5} style={{ color: "#6B7280" }} />,
+      icon: <Icons.FileText size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
       onClick: () => router.push("/templates"),
     },
   ];
@@ -364,7 +363,7 @@ export default function Dashboard() {
               style={{
                 fontSize: 10,
                 fontWeight: 500,
-                color: "#9CA3AF",
+                color: "var(--color-text-muted)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
               }}
@@ -373,6 +372,7 @@ export default function Dashboard() {
             </span>
             <button
               type="button"
+              className="dashboard-setup-steps-toggle"
               data-tour="dashboard-setup-steps"
               onClick={toggleSetupStepper}
               aria-label={
@@ -471,12 +471,13 @@ export default function Dashboard() {
               </span>
             </div>
             <div
+              className="dashboard-stat-value"
               style={{
                 fontSize: 34,
                 fontWeight: 800,
                 letterSpacing: "-0.035em",
                 lineHeight: 1.12,
-                color: valueMuted ? "#64748B" : "#0F172A",
+                color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
                 fontFamily: "Inter, -apple-system, sans-serif",
                 wordBreak: "break-word",
               }}
@@ -486,6 +487,7 @@ export default function Dashboard() {
             <div style={{ marginTop: 10, minHeight: 28 }}>
               {card.showTrend ? (
                 <span
+                  className="dashboard-stat-trend-pill"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -502,7 +504,9 @@ export default function Dashboard() {
                   {card.trendPositive ? "↑" : "↓"}
                   {card.trendValue}
                   {card.trendSuffix === "pp" ? "pp" : "%"}
-                  <span style={{ fontWeight: 500, color: "#6B7280" }}>vs last month</span>
+                  <span className="dashboard-stat-trend-meta" style={{ fontWeight: 500, color: "#6B7280" }}>
+                    vs last month
+                  </span>
                 </span>
               ) : (
                 <span
@@ -524,12 +528,14 @@ export default function Dashboard() {
                     →
                   </span>
                   Baseline
-                  <span style={{ fontWeight: 500, color: "#94A3B8" }}>· no prior period</span>
+                  <span className="dashboard-stat-trend-meta" style={{ fontWeight: 500, color: "#94A3B8" }}>
+                    · no prior period
+                  </span>
                 </span>
               )}
             </div>
             {card.subline ? (
-              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 8, lineHeight: 1.35 }}>{card.subline}</div>
+              <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 8, lineHeight: 1.35 }}>{card.subline}</div>
             ) : null}
           </div>
           );
@@ -538,7 +544,7 @@ export default function Dashboard() {
 
       {invitationSuccess && (
         <div
-          className="dashboard-surface-card"
+          className="dashboard-surface-card dashboard-invite-success-banner"
           style={{
             padding: "18px 20px",
             display: "flex",
@@ -549,12 +555,11 @@ export default function Dashboard() {
           }}
         >
           <div
+            className="dashboard-invite-success-icon-wrap"
             style={{
               width: 40,
               height: 40,
               borderRadius: 10,
-              background: "#F3F4F6",
-              border: "1px solid #E5E7EB",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -564,14 +569,18 @@ export default function Dashboard() {
             <Icons.Check size={18} strokeWidth={1.5} style={{ color: "#059669" }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Welcome to {invitationSuccess.baseName}</div>
-            <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
-              You&apos;ve been added as <strong style={{ textTransform: "capitalize", color: "#374151" }}>{invitationSuccess.role}</strong>. This workspace is
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
+              Welcome to {invitationSuccess.baseName}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              You&apos;ve been added as{" "}
+              <strong style={{ textTransform: "capitalize", color: "var(--color-text)" }}>{invitationSuccess.role}</strong>. This workspace is
               open now — use the workspace switcher anytime to move between this team and your personal one.
             </div>
           </div>
           <button
             type="button"
+            className="dashboard-invite-dismiss"
             onClick={() => setInvitationSuccess(null)}
             style={{
               background: "transparent",
@@ -582,16 +591,8 @@ export default function Dashboard() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#9CA3AF",
+              color: "var(--color-text-muted)",
               transition: "background 0.15s ease, color 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#374151";
-              e.currentTarget.style.background = "#F3F4F6";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#9CA3AF";
-              e.currentTarget.style.background = "transparent";
             }}
             aria-label="Dismiss"
           >
@@ -639,7 +640,7 @@ export default function Dashboard() {
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "#111827" }}>Recent activity</span>
+            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--color-text)" }}>Recent activity</span>
             <button
               type="button"
               className="dashboard-demo-toggle-badge"
@@ -713,8 +714,8 @@ export default function Dashboard() {
               <ArrowUpRight size={16} strokeWidth={2} />
             </span>
             <div style={{ display: "flex", marginBottom: 8 }}>{action.icon}</div>
-            <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", color: "#111827", marginBottom: 4 }}>{action.title}</div>
-            <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>{action.desc}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--color-text)", marginBottom: 4 }}>{action.title}</div>
+            <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.4 }}>{action.desc}</div>
           </button>
         ))}
       </div>
@@ -732,7 +733,7 @@ export default function Dashboard() {
         >
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Icons.Zap size={18} strokeWidth={1.5} style={{ color: "#4F46E5" }} />
+              <Icons.Zap size={18} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
               <div style={{ ...sectionLabelStyle, textTransform: "uppercase" }}>Suggestion</div>
             </div>
             <button

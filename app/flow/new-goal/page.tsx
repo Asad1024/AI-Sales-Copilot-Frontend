@@ -53,8 +53,9 @@ export default function NewGoalPage() {
   };
 
   return (
-    <div style={shell}>
-      <header style={{ textAlign: "left" }}>
+    <div className="flow-new-goal-page">
+      <div style={shell}>
+        <header style={{ textAlign: "left" }}>
         <div
           style={{
             display: "inline-flex",
@@ -86,9 +87,9 @@ export default function NewGoalPage() {
           Describe what you want to achieve. We will draft audience, channels, and safety guardrails you can review on the next
           step.
         </p>
-      </header>
+        </header>
 
-      <form onSubmit={handleSubmit} style={card}>
+        <form onSubmit={handleSubmit} style={card}>
         <div
           aria-hidden
           style={{
@@ -247,9 +248,16 @@ export default function NewGoalPage() {
             Cancel
           </button>
         </div>
-      </form>
+        </form>
+      </div>
 
       <style jsx>{`
+        .flow-new-goal-page {
+          width: 100%;
+          min-height: 100vh;
+          box-sizing: border-box;
+          padding: clamp(18px, 4vh, 32px) 16px clamp(28px, 6vh, 48px);
+        }
         @keyframes flowGoalSpin {
           to {
             transform: rotate(360deg);

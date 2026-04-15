@@ -196,7 +196,8 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
                   minHeight: "100vh",
                   margin: 0,
                   padding: 0,
-                  background: "#f8fafc",
+                  background: "var(--color-background)",
+                  color: "var(--color-text)",
                 }}
               >
                 {children}

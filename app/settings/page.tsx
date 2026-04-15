@@ -21,27 +21,27 @@ const ACTIVE_NAV_TEXT = "#7C3AED";
 const ACTIVE_NAV_ACCENT = "#7C3AED";
 
 const UserIcon = ({ active }: { active: boolean }) => (
-  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "#6B7280" }}>
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <Icons.User size={16} strokeWidth={1.5} />
   </span>
 );
 const PlugTabIcon = ({ active }: { active: boolean }) => (
-  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "#6B7280" }}>
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <Icons.Plug size={16} strokeWidth={1.5} />
   </span>
 );
 const TestConfigTabIcon = ({ active }: { active: boolean }) => (
-  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "#6B7280" }}>
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <Icons.Zap size={16} strokeWidth={1.5} />
   </span>
 );
 const PaymentsTabIcon = ({ active }: { active: boolean }) => (
-  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "#6B7280" }}>
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <CreditCard size={16} strokeWidth={1.5} />
   </span>
 );
 const CreditHistoryTabIcon = ({ active }: { active: boolean }) => (
-  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "#6B7280" }}>
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <Coins size={16} strokeWidth={1.5} />
   </span>
 );
@@ -170,7 +170,7 @@ export default function SettingsPage() {
     fontSize: 10,
     fontWeight: 600,
     letterSpacing: "0.06em",
-    color: "#9CA3AF",
+    color: "var(--sidebar-label)",
     textTransform: "uppercase",
     padding: "0 11px",
     marginBottom: 4,
@@ -235,21 +235,21 @@ export default function SettingsPage() {
                       fontSize: 14,
                       fontWeight: active ? 600 : 500,
                       fontFamily: "Inter, sans-serif",
-                      color: active ? ACTIVE_NAV_TEXT : "#374151",
+                      color: active ? ACTIVE_NAV_TEXT : "var(--sidebar-nav-text)",
                       background: active ? ACTIVE_NAV_BG : "transparent",
                       transition: "background 150ms ease, color 150ms ease, min-height 150ms ease, border-radius 150ms ease",
                       marginBottom: 5,
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
-                        e.currentTarget.style.background = "#F3F4F6";
-                        e.currentTarget.style.color = "#111827";
+                        e.currentTarget.style.background = "var(--sidebar-nav-hover-bg)";
+                        e.currentTarget.style.color = "var(--sidebar-nav-hover-text)";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!active) {
                         e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "#374151";
+                        e.currentTarget.style.color = "var(--sidebar-nav-text)";
                       } else {
                         e.currentTarget.style.background = ACTIVE_NAV_BG;
                         e.currentTarget.style.color = ACTIVE_NAV_TEXT;

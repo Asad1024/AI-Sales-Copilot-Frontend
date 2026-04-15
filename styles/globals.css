@@ -399,6 +399,28 @@ html, body {
   --elev-border: rgba(255, 255, 255, 0.1);
   --elev-shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.45);
   --elev-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
+  /* Sidebar + header pills (dark) */
+  --sidebar-active-nav-bg: rgba(124, 58, 237, 0.22);
+  --sidebar-divider: rgba(255, 255, 255, 0.08);
+  --sidebar-nav-text: #e4e4e7;
+  --sidebar-nav-icon: #a1a1aa;
+  --sidebar-nav-muted-icon: #71717a;
+  --sidebar-label: #a1a1aa;
+  --sidebar-logo-text: #fafafa;
+  --sidebar-user-bg: rgba(39, 39, 42, 0.88);
+  --sidebar-user-bg-hover: rgba(63, 63, 70, 0.92);
+  --sidebar-nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-nav-hover-text: #fafafa;
+  --sidebar-tooltip-bg: #27272a;
+  --sidebar-tooltip-text: #fafafa;
+  --header-pill-border: rgba(255, 255, 255, 0.12);
+  --header-pill-bg: rgba(24, 24, 27, 0.92);
+  --header-pill-divider: rgba(255, 255, 255, 0.12);
+  --header-tutorial-border: rgba(129, 140, 248, 0.45);
+  --header-tutorial-bg: rgba(79, 70, 229, 0.2);
+  --header-tutorial-bg-hover: rgba(79, 70, 229, 0.32);
+  --header-tutorial-border-hover: rgba(165, 180, 252, 0.55);
+  --header-tutorial-text: #c7d2fe;
 }
 
 [data-theme="light"] {
@@ -423,6 +445,31 @@ html, body {
   --skeleton-edge: rgba(15, 23, 42, 0.07);
   --color-primary: #7C3AED;
   --color-success: #7C3AED;
+}
+
+/* Sidebar + header pills — light defaults (dark overrides are defined above) */
+[data-theme="light"], :root:not([data-theme="dark"]) {
+  --sidebar-active-nav-bg: rgba(124, 58, 237, 0.09);
+  --sidebar-divider: #e5e7eb;
+  --sidebar-nav-text: #374151;
+  --sidebar-nav-icon: #6b7280;
+  --sidebar-nav-muted-icon: #9ca3af;
+  --sidebar-label: #9ca3af;
+  --sidebar-logo-text: #111827;
+  --sidebar-user-bg: #f3f4f6;
+  --sidebar-user-bg-hover: #e8eaed;
+  --sidebar-nav-hover-bg: #f3f4f6;
+  --sidebar-nav-hover-text: #111827;
+  --sidebar-tooltip-bg: #1f2937;
+  --sidebar-tooltip-text: #ffffff;
+  --header-pill-border: #e5e7eb;
+  --header-pill-bg: #fafafa;
+  --header-pill-divider: #e5e7eb;
+  --header-tutorial-border: #c7d2fe;
+  --header-tutorial-bg: #eef2ff;
+  --header-tutorial-bg-hover: #e0e7ff;
+  --header-tutorial-border-hover: #a5b4fc;
+  --header-tutorial-text: #4f46e5;
 }
 
 /* Legacy variables for backward compatibility */
@@ -588,6 +635,17 @@ input::placeholder, textarea::placeholder {
   border-color: rgba(124, 58, 237, 0.4);
   box-shadow: 0 12px 40px rgba(124, 58, 237, 0.25);
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .card-enhanced {
+  background: var(--elev-bg, var(--color-surface));
+  border: 1px solid var(--elev-border, var(--color-border));
+  box-shadow: var(--elev-shadow);
+}
+
+[data-theme="dark"] .card-enhanced:hover {
+  border-color: rgba(124, 58, 237, 0.45);
+  box-shadow: var(--elev-shadow-lg);
 }
 
 /* Enhanced Button Interactions */
@@ -1136,14 +1194,53 @@ input::placeholder, textarea::placeholder {
   box-shadow: 4px 0 40px rgba(0, 0, 0, 0.35);
 }
 
+.dashboard-metric-label {
+  color: #4b5563;
+}
 [data-theme="dark"] .dashboard-metric-label {
   color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .dashboard-stat-trend-pill {
+  background: rgba(39, 39, 42, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .dashboard-stat-trend-pill .dashboard-stat-trend-meta {
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .dashboard-stat-trend-neutral {
   background: rgba(51, 65, 85, 0.55) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #94a3b8 !important;
+}
+[data-theme="dark"] .dashboard-stat-trend-neutral .dashboard-stat-trend-meta {
+  color: var(--color-text-muted) !important;
+}
+
+[data-theme="dark"] button.dashboard-setup-steps-toggle[aria-pressed="false"] {
+  background: rgba(79, 70, 229, 0.2) !important;
+  border: 1px solid rgba(129, 140, 248, 0.45) !important;
+  color: #c7d2fe !important;
+}
+[data-theme="dark"] button.dashboard-setup-steps-toggle[aria-pressed="true"] {
+  background: #4f46e5 !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+
+.dashboard-invite-success-icon-wrap {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+[data-theme="dark"] .dashboard-invite-success-icon-wrap {
+  background: rgba(39, 39, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+button.dashboard-invite-dismiss:hover {
+  color: var(--color-text) !important;
+  background: var(--color-surface-secondary) !important;
 }
 
 /* Stepper: avoid clipping ring/glow; flex parent may still clip — inner cards use overflow visible */

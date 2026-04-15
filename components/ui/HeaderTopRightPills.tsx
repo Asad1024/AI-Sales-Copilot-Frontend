@@ -17,8 +17,8 @@ const headerPillBox: CSSProperties = {
   minHeight: HEADER_PILL_HEIGHT,
   height: HEADER_PILL_HEIGHT,
   borderRadius: 10,
-  border: "1px solid #e5e7eb",
-  background: "#fafafa",
+  border: "1px solid var(--header-pill-border)",
+  background: "var(--header-pill-bg)",
   fontFamily: "Inter, -apple-system, sans-serif",
 };
 
@@ -101,21 +101,21 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
             gap: 8,
             padding: "0 14px",
             cursor: "pointer",
-            border: "1px solid #C7D2FE",
-            background: "#EEF2FF",
+            border: "1px solid var(--header-tutorial-border)",
+            background: "var(--header-tutorial-bg)",
           }}
           onClick={() => dispatchStartDashboardTour()}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#E0E7FF";
-            e.currentTarget.style.borderColor = "#A5B4FC";
+            e.currentTarget.style.background = "var(--header-tutorial-bg-hover)";
+            e.currentTarget.style.borderColor = "var(--header-tutorial-border-hover)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#EEF2FF";
-            e.currentTarget.style.borderColor = "#C7D2FE";
+            e.currentTarget.style.background = "var(--header-tutorial-bg)";
+            e.currentTarget.style.borderColor = "var(--header-tutorial-border)";
           }}
         >
-          <BookOpen size={18} strokeWidth={1.75} color="#4F46E5" aria-hidden />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#4F46E5" }}>Tutorial</span>
+          <BookOpen size={18} strokeWidth={1.75} color="var(--header-tutorial-text)" aria-hidden />
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--header-tutorial-text)" }}>Tutorial</span>
         </button>
       ) : null}
 
@@ -152,7 +152,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
               style={{
                 width: 1,
                 height: 18,
-                background: "#e5e7eb",
+                background: "var(--header-pill-divider)",
                 flexShrink: 0,
               }}
               aria-hidden

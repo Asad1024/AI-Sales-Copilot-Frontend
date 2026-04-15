@@ -7,7 +7,7 @@ import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import BaseSelector from "./BaseSelector";
-// import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "./ThemeToggle";
 import { Icons } from "./Icons";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 import {
@@ -59,8 +59,8 @@ function CollapsedHoverTip({ label, children }: { label: string; children: React
             left: pos.left,
             transform: "translateY(-50%)",
             zIndex: 100,
-            background: "#1F2937",
-            color: "#FFFFFF",
+            background: "var(--sidebar-tooltip-bg)",
+            color: "var(--sidebar-tooltip-text)",
             padding: 8,
             borderRadius: 6,
             fontSize: 13,
@@ -95,7 +95,7 @@ interface NavItem {
 const iconStroke = 1.5;
 const iconSize = 16;
 /** Active nav: soft violet tint, primary label + icon */
-const ACTIVE_NAV_BG = "rgba(124, 58, 237, 0.09)";
+const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
 const ACTIVE_NAV_TEXT = "#7C3AED";
 const ACTIVE_NAV_ACCENT = "#7C3AED";
 
@@ -228,7 +228,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <div
       style={{
         height: 1,
-        background: "#E5E7EB",
+        background: "var(--sidebar-divider)",
         margin: "3px 12px",
         flexShrink: 0,
       }}
@@ -244,7 +244,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           fontSize: 10,
           fontWeight: 600,
           letterSpacing: "0.06em",
-          color: "#9CA3AF",
+          color: "var(--sidebar-label)",
           textTransform: "uppercase",
           padding: "0 12px",
           marginTop: isFirstCategory ? 10 : 8,
@@ -282,28 +282,28 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             fontWeight: active ? 600 : 500,
             fontFamily: "Inter, sans-serif",
             transition: "background 150ms ease, color 150ms ease, padding 150ms ease, border-radius 150ms ease, min-height 150ms ease",
-            color: active ? ACTIVE_NAV_TEXT : "#374151",
+            color: active ? ACTIVE_NAV_TEXT : "var(--sidebar-nav-text)",
             background: active ? ACTIVE_NAV_BG : "transparent",
             position: "relative",
             marginBottom: 5,
           }}
           onMouseEnter={(e) => {
             if (!active) {
-              e.currentTarget.style.background = "#F3F4F6";
-              e.currentTarget.style.color = "#111827";
+              e.currentTarget.style.background = "var(--sidebar-nav-hover-bg)";
+              e.currentTarget.style.color = "var(--sidebar-nav-hover-text)";
             }
           }}
           onMouseLeave={(e) => {
             if (!active) {
               e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#374151";
+              e.currentTarget.style.color = "var(--sidebar-nav-text)";
             } else {
               e.currentTarget.style.background = ACTIVE_NAV_BG;
               e.currentTarget.style.color = ACTIVE_NAV_TEXT;
             }
           }}
         >
-          <span style={{ display: "inline-flex", flexShrink: 0, color: active ? ACTIVE_NAV_ACCENT : "#6B7280" }}>{item.icon}</span>
+          <span style={{ display: "inline-flex", flexShrink: 0, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>{item.icon}</span>
           {!(collapsed && !isMobile) && (
             <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
           )}
@@ -351,7 +351,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             paddingBottom: 0,
             paddingRight: collapsed && !isMobile ? 10 : 12,
             paddingLeft: collapsed && !isMobile ? 17 : 21,
-            borderBottom: "1px solid #E5E7EB",
+            borderBottom: "1px solid var(--sidebar-divider)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -368,7 +368,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               alignItems: "center",
               gap: 10,
               textDecoration: "none",
-              color: "#111827",
+              color: "var(--sidebar-logo-text)",
               minWidth: 0,
               flex: collapsed && !isMobile ? undefined : 1,
               overflow: "hidden",
@@ -382,7 +382,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   fontWeight: 800,
                   letterSpacing: "-0.03em",
                   fontFamily: "Inter, sans-serif",
-                  color: "#111827",
+                  color: "var(--sidebar-logo-text)",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -409,7 +409,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 borderRadius: 8,
                 border: "none",
                 background: "transparent",
-                color: "#9CA3AF",
+                color: "var(--sidebar-nav-muted-icon)",
                 cursor: "pointer",
                 transition: "color 150ms ease",
               }}
@@ -417,7 +417,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 e.currentTarget.style.color = "#7C3AED";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#9CA3AF";
+                e.currentTarget.style.color = "var(--sidebar-nav-muted-icon)";
               }}
             >
               {collapsed ? <PanelLeftOpen size={18} strokeWidth={1.5} /> : <PanelLeftClose size={18} strokeWidth={1.5} />}
@@ -470,7 +470,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           className="sidebar-premium-user"
           style={{
             padding: "14px 12px",
-            borderTop: "1px solid #E5E7EB",
+            borderTop: "1px solid var(--sidebar-divider)",
             position: "relative",
             flexShrink: 0,
           }}
@@ -488,16 +488,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 gap: 8,
                 padding: "12px 8px",
                 borderRadius: 10,
-                background: "#F3F4F6",
+                background: "var(--sidebar-user-bg)",
                 textDecoration: "none",
                 color: "inherit",
                 transition: "background 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#E8EAED";
+                e.currentTarget.style.background = "var(--sidebar-user-bg-hover)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#F3F4F6";
+                e.currentTarget.style.background = "var(--sidebar-user-bg)";
               }}
             >
               <SidebarUserAvatar avatarUrl={user?.avatar_url} initials={userInitials} />
@@ -509,7 +509,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#9CA3AF",
+                  color: "var(--sidebar-nav-muted-icon)",
                 }}
                 aria-hidden
               >
@@ -529,24 +529,24 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 minWidth: 0,
                 padding: "12px 14px",
                 borderRadius: 10,
-                background: "#F3F4F6",
+                background: "var(--sidebar-user-bg)",
                 textDecoration: "none",
                 color: "inherit",
                 transition: "background 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#E8EAED";
+                e.currentTarget.style.background = "var(--sidebar-user-bg-hover)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#F3F4F6";
+                e.currentTarget.style.background = "var(--sidebar-user-bg)";
               }}
             >
               <SidebarUserAvatar avatarUrl={user?.avatar_url} initials={userInitials} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#111827" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--sidebar-logo-text)" }}>
                   {user?.name || "Account"}
                 </div>
-                <div style={{ fontSize: 11, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 11, color: "var(--sidebar-nav-icon)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user?.company?.trim() || "—"}
                 </div>
               </div>
@@ -559,7 +559,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  color: "#9CA3AF",
+                  color: "var(--sidebar-nav-muted-icon)",
                 }}
                 aria-hidden
               >
@@ -590,7 +590,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#6B7280",
+                  color: "var(--sidebar-nav-icon)",
                   textDecoration: "none",
                   borderRadius: 6,
                   transition: "color 150ms ease",
@@ -599,12 +599,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   e.currentTarget.style.color = "#7C3AED";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#6B7280";
+                  e.currentTarget.style.color = "var(--sidebar-nav-icon)";
                 }}
               >
                 <Settings size={16} strokeWidth={1.75} />
               </Link>
-              {/* <ThemeToggle compact /> */}
+              <ThemeToggle compact />
             </div>
             <button
               type="button"
@@ -621,7 +621,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
-                color: "#6B7280",
+                color: "var(--sidebar-nav-icon)",
                 padding: 0,
               }}
               aria-label="Notifications"

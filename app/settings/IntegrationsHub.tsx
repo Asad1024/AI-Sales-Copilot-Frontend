@@ -38,11 +38,11 @@ const WIZ_CHANNEL_EMAIL = "#2563eb";
 const integrationIconSlot: CSSProperties = {
   width: "100%",
   height: "100%",
-  background: "#fff",
+  background: "var(--color-surface)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  border: "1px solid #EEECF8",
+  border: "1px solid var(--color-border)",
 };
 
 function SectionHeader({ children }: { children: ReactNode }) {
@@ -52,12 +52,12 @@ function SectionHeader({ children }: { children: ReactNode }) {
         fontSize: 11,
         fontWeight: 600,
         letterSpacing: "0.07em",
-        color: "#9CA3AF",
+        color: "var(--color-text-muted)",
         textTransform: "uppercase",
         marginBottom: 12,
         marginTop: 0,
         paddingBottom: 8,
-        borderBottom: "1px solid #F3F4F6",
+        borderBottom: "1px solid var(--color-border)",
       }}
     >
       {children}
@@ -884,11 +884,11 @@ export function IntegrationsHub() {
       />
 
       <div style={{ marginBottom: 20, minWidth: 0 }}>
-        <h2 className="m-0 text-lg font-medium tracking-tight text-gray-900">Integrations</h2>
-        <p className="mt-1 text-[13px] text-gray-400">Connect messaging, outbound email, and CRM data sources for your workspace.</p>
+        <h2 className="m-0 text-lg font-medium tracking-tight text-[var(--color-text)]">Integrations</h2>
+        <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">Connect messaging, outbound email, and CRM data sources for your workspace.</p>
         {ownerReadOnly ? (
           <p
-            className="mt-3 mb-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] text-gray-600"
+            className="mt-3 mb-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[13px] text-[var(--color-text-muted)]"
             role="status"
           >
             {integrationOwnerOnlyHint}
@@ -908,7 +908,7 @@ export function IntegrationsHub() {
           }}
         >
           <AlertCircle size={22} color="#ca8a04" />
-          <span style={{ fontSize: 14 }}>Select a workspace to connect LinkedIn and WhatsApp via Unipile.</span>
+          <span style={{ fontSize: 14, color: "var(--color-text)" }}>Select a workspace to connect LinkedIn and WhatsApp via Unipile.</span>
         </div>
       ) : null}
 

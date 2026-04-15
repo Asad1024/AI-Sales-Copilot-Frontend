@@ -21,13 +21,13 @@ import {
 } from "lucide-react";
 import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
 import { getUser, clearAuth, type User } from "@/lib/apiClient";
-// import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "./ThemeToggle";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 
 const iconStroke = 1.5;
 const iconSize = 16;
-const ACTIVE_NAV_BG = "rgba(124, 58, 237, 0.09)";
+const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
 const ACTIVE_NAV_TEXT = "#7C3AED";
 const ACTIVE_NAV_ACCENT = "#7C3AED";
 
@@ -64,8 +64,8 @@ function CollapsedHoverTip({ label, children }: { label: string; children: React
             left: pos.left,
             transform: "translateY(-50%)",
             zIndex: 100,
-            background: "#1F2937",
-            color: "#FFFFFF",
+            background: "var(--sidebar-tooltip-bg)",
+            color: "var(--sidebar-tooltip-text)",
             padding: 8,
             borderRadius: 6,
             fontSize: 13,
@@ -216,7 +216,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     <div
       style={{
         height: 1,
-        background: "#E5E7EB",
+        background: "var(--sidebar-divider)",
         margin: "3px 12px",
         flexShrink: 0,
       }}
@@ -232,7 +232,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           fontSize: 10,
           fontWeight: 600,
           letterSpacing: "0.06em",
-          color: "#9CA3AF",
+          color: "var(--sidebar-label)",
           textTransform: "uppercase",
           padding: "0 12px",
           marginTop: isFirstCategory ? 10 : 8,
@@ -271,21 +271,21 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             fontFamily: "Inter, sans-serif",
             transition:
               "background 150ms ease, color 150ms ease, padding 150ms ease, border-radius 150ms ease, min-height 150ms ease",
-            color: active ? ACTIVE_NAV_TEXT : "#374151",
+            color: active ? ACTIVE_NAV_TEXT : "var(--sidebar-nav-text)",
             background: active ? ACTIVE_NAV_BG : "transparent",
             position: "relative",
             marginBottom: 5,
           }}
           onMouseEnter={(e) => {
             if (!active) {
-              e.currentTarget.style.background = "#F3F4F6";
-              e.currentTarget.style.color = "#111827";
+              e.currentTarget.style.background = "var(--sidebar-nav-hover-bg)";
+              e.currentTarget.style.color = "var(--sidebar-nav-hover-text)";
             }
           }}
           onMouseLeave={(e) => {
             if (!active) {
               e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#374151";
+              e.currentTarget.style.color = "var(--sidebar-nav-text)";
             } else {
               e.currentTarget.style.background = ACTIVE_NAV_BG;
               e.currentTarget.style.color = ACTIVE_NAV_TEXT;
@@ -296,7 +296,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             style={{
               display: "inline-flex",
               flexShrink: 0,
-              color: active ? ACTIVE_NAV_ACCENT : "#6B7280",
+              color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)",
             }}
           >
             {item.icon}
@@ -366,7 +366,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             paddingBottom: 0,
             paddingRight: collapsed && !isMobile ? 10 : 12,
             paddingLeft: collapsed && !isMobile ? 17 : 21,
-            borderBottom: "1px solid #E5E7EB",
+            borderBottom: "1px solid var(--sidebar-divider)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -383,7 +383,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               alignItems: "center",
               gap: 10,
               textDecoration: "none",
-              color: "#111827",
+              color: "var(--sidebar-logo-text)",
               minWidth: 0,
               flex: collapsed && !isMobile ? undefined : 1,
               overflow: "hidden",
@@ -397,6 +397,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   fontWeight: 800,
                   letterSpacing: "-0.03em",
                   fontFamily: "Inter, sans-serif",
+                  color: "var(--sidebar-logo-text)",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -422,7 +423,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 borderRadius: 8,
                 border: "none",
                 background: "transparent",
-                color: "#9CA3AF",
+                color: "var(--sidebar-nav-muted-icon)",
                 cursor: "pointer",
                 transition: "color 150ms ease",
               }}
@@ -430,7 +431,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 e.currentTarget.style.color = "#7C3AED";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#9CA3AF";
+                e.currentTarget.style.color = "var(--sidebar-nav-muted-icon)";
               }}
             >
               {collapsed ? <PanelLeftOpen size={18} strokeWidth={1.5} /> : <PanelLeftClose size={18} strokeWidth={1.5} />}
@@ -445,7 +446,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 fontSize: 11,
                 fontWeight: 600,
                 letterSpacing: "0.04em",
-                color: "#6B7280",
+                color: "var(--sidebar-label)",
                 textTransform: "uppercase",
               }}
             >
@@ -488,7 +489,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           className="sidebar-premium-user"
           style={{
             padding: "14px 12px",
-            borderTop: "1px solid #E5E7EB",
+            borderTop: "1px solid var(--sidebar-divider)",
             position: "relative",
             flexShrink: 0,
           }}
@@ -506,20 +507,20 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 gap: 8,
                 padding: "12px 8px",
                 borderRadius: 10,
-                background: "#F3F4F6",
+                background: "var(--sidebar-user-bg)",
                 textDecoration: "none",
                 color: "inherit",
                 transition: "background 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#E8EAED";
+                e.currentTarget.style.background = "var(--sidebar-user-bg-hover)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#F3F4F6";
+                e.currentTarget.style.background = "var(--sidebar-user-bg)";
               }}
             >
               <SidebarUserAvatar avatarUrl={user?.avatar_url} initials={userInitials} />
-              <ChevronRight size={18} strokeWidth={1.5} style={{ color: "#9CA3AF" }} aria-hidden />
+              <ChevronRight size={18} strokeWidth={1.5} style={{ color: "var(--sidebar-nav-muted-icon)" }} aria-hidden />
             </Link>
           ) : (
             <Link
@@ -534,16 +535,16 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 minWidth: 0,
                 padding: "12px 14px",
                 borderRadius: 10,
-                background: "#F3F4F6",
+                background: "var(--sidebar-user-bg)",
                 textDecoration: "none",
                 color: "inherit",
                 transition: "background 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#E8EAED";
+                e.currentTarget.style.background = "var(--sidebar-user-bg-hover)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#F3F4F6";
+                e.currentTarget.style.background = "var(--sidebar-user-bg)";
               }}
             >
               <SidebarUserAvatar avatarUrl={user?.avatar_url} initials={userInitials} />
@@ -555,7 +556,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
-                    color: "#111827",
+                    color: "var(--sidebar-logo-text)",
                   }}
                 >
                   {user?.name || "Admin"}
@@ -563,7 +564,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 <div
                   style={{
                     fontSize: 11,
-                    color: "#6B7280",
+                    color: "var(--sidebar-nav-icon)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -572,7 +573,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   {user?.email || "—"}
                 </div>
               </div>
-              <ChevronRight size={18} strokeWidth={1.5} style={{ color: "#9CA3AF", flexShrink: 0 }} aria-hidden />
+              <ChevronRight size={18} strokeWidth={1.5} style={{ color: "var(--sidebar-nav-muted-icon)", flexShrink: 0 }} aria-hidden />
             </Link>
           )}
 
@@ -598,7 +599,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#6B7280",
+                  color: "var(--sidebar-nav-icon)",
                   textDecoration: "none",
                   borderRadius: 6,
                   transition: "color 150ms ease",
@@ -607,12 +608,12 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   e.currentTarget.style.color = "#7C3AED";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#6B7280";
+                  e.currentTarget.style.color = "var(--sidebar-nav-icon)";
                 }}
               >
                 <Settings size={16} strokeWidth={1.75} />
               </Link>
-              {/* <ThemeToggle compact /> */}
+              <ThemeToggle compact />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button
@@ -630,7 +631,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  color: "#6B7280",
+                  color: "var(--sidebar-nav-icon)",
                   padding: 0,
                 }}
                 aria-label="Notifications"
@@ -660,7 +661,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   height: 24,
                   border: "none",
                   background: "transparent",
-                  color: "#6B7280",
+                  color: "var(--sidebar-nav-icon)",
                   borderRadius: 6,
                   display: "flex",
                   alignItems: "center",

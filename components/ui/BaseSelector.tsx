@@ -129,9 +129,9 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               width: "100%",
               padding: collapsed ? 0 : "0 10px",
               borderRadius: 8,
-              border: collapsed ? "none" : "1px solid #E5E7EB",
-              background: collapsed ? "transparent" : "#FFFFFF",
-              color: "#111827",
+              border: collapsed ? "none" : "1px solid var(--color-border)",
+              background: collapsed ? "transparent" : "var(--color-surface)",
+              color: "var(--color-text)",
               fontSize: 14,
               fontWeight: 500,
               cursor: "pointer",
@@ -140,10 +140,10 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               boxShadow: "none",
             }}
             onMouseEnter={(e) => {
-              if (!collapsed) e.currentTarget.style.background = "#F3F4F6";
+              if (!collapsed) e.currentTarget.style.background = "var(--color-surface-secondary)";
             }}
             onMouseLeave={(e) => {
-              if (!collapsed) e.currentTarget.style.background = "#FFFFFF";
+              if (!collapsed) e.currentTarget.style.background = "var(--color-surface)";
             }}
             aria-expanded={dropdownOpen}
             aria-haspopup="listbox"
@@ -181,7 +181,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                 >
                   {label}
                 </span>
-                <ChevronDown size={16} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.45, color: "#6B7280" }} />
+                <ChevronDown size={16} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.45, color: "var(--color-text-muted)" }} />
               </>
             )}
           </button>
@@ -202,10 +202,10 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   marginLeft: collapsed ? 8 : 0,
                   minWidth: collapsed ? 232 : undefined,
                   width: collapsed ? 252 : undefined,
-                  background: "#FFFFFF",
-                  border: "1px solid #E5E7EB",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
                   borderRadius: 10,
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06)",
+                  boxShadow: "var(--elev-shadow-lg)",
                   zIndex: 50,
                   overflow: "hidden",
                 }}
@@ -213,7 +213,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               >
                 <div style={{ maxHeight: 240, overflowY: "auto", padding: 4 }}>
                   {bases.length === 0 ? (
-                    <div style={{ padding: "12px 10px", fontSize: 13, color: "#6B7280", textAlign: "center" }}>
+                    <div style={{ padding: "12px 10px", fontSize: 13, color: "var(--color-text-muted)", textAlign: "center" }}>
                       No workspaces yet
                     </div>
                   ) : (
@@ -231,7 +231,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                           borderRadius: 8,
                           border: "none",
                           background: base.id === activeBaseId ? "rgba(124, 58, 237, 0.1)" : "transparent",
-                          color: base.id === activeBaseId ? "#7C3AED" : "#111827",
+                          color: base.id === activeBaseId ? "#7C3AED" : "var(--color-text)",
                           fontSize: 13,
                           fontWeight: 500,
                           cursor: "pointer",
@@ -239,7 +239,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                           transition: "background 150ms ease",
                         }}
                         onMouseEnter={(e) => {
-                          if (base.id !== activeBaseId) e.currentTarget.style.background = "#F3F4F6";
+                          if (base.id !== activeBaseId) e.currentTarget.style.background = "var(--color-surface-secondary)";
                         }}
                         onMouseLeave={(e) => {
                           if (base.id !== activeBaseId) e.currentTarget.style.background = "transparent";
@@ -255,7 +255,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   )}
                 </div>
                 {!restrictWorkspace ? (
-                  <div style={{ borderTop: "1px solid #E5E7EB", padding: 4 }}>
+                  <div style={{ borderTop: "1px solid var(--color-border)", padding: 4 }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -307,18 +307,18 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
           >
             <div
               style={{
-                background: "#FFFFFF",
+                background: "var(--color-surface)",
                 borderRadius: 12,
                 padding: 24,
                 width: "100%",
                 maxWidth: 400,
                 boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-                border: "1px solid #E5E7EB",
+                border: "1px solid var(--color-border)",
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 style={{ margin: "0 0 16px 0", fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>New workspace</h3>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#6B7280", marginBottom: 6 }}>Name</label>
+              <h3 style={{ margin: "0 0 16px 0", fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-text)" }}>New workspace</h3>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 6 }}>Name</label>
               <input
                 type="text"
                 value={baseName}
@@ -328,10 +328,10 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   width: "100%",
                   padding: "10px 12px",
                   fontSize: 14,
-                  border: "1px solid #E5E7EB",
+                  border: "1px solid var(--color-border)",
                   borderRadius: 8,
-                  background: "#FFFFFF",
-                  color: "#111827",
+                  background: "var(--color-surface)",
+                  color: "var(--color-text)",
                   marginBottom: 20,
                   outline: "none",
                   fontFamily: "Inter, sans-serif",
@@ -349,10 +349,10 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   style={{
                     padding: "8px 16px",
                     fontSize: 13,
-                    border: "1px solid #E5E7EB",
+                    border: "1px solid var(--color-border)",
                     borderRadius: 8,
                     background: "transparent",
-                    color: "#374151",
+                    color: "var(--color-text)",
                     cursor: "pointer",
                     fontWeight: 500,
                   }}

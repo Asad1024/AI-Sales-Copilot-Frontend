@@ -91,7 +91,7 @@ export default function PageHeader({
             style={{
               marginTop: 8,
               marginBottom: 0,
-              color: "#6B7280",
+              color: "var(--color-text-muted)",
               fontSize: 13,
               fontWeight: 400,
               lineHeight: 1.45,

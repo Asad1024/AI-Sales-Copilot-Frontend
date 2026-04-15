@@ -16,8 +16,8 @@ const cardShell: CSSProperties = {
   minHeight: CARD_MIN_HEIGHT,
   padding: 16,
   borderRadius: 12,
-  background: "#ffffff",
-  border: "1px solid #EEECF8",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
@@ -32,8 +32,8 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
           fontSize: 12,
           fontWeight: 500,
           color: "#15803D",
-          background: "#F0FDF4",
-          border: "1px solid #BBF7D0",
+          background: "rgba(34, 197, 94, 0.12)",
+          border: "1px solid rgba(34, 197, 94, 0.35)",
           borderRadius: 9999,
           padding: "2px 10px",
           whiteSpace: "nowrap",
@@ -50,8 +50,8 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
           flexShrink: 0,
           fontSize: 12,
           fontWeight: 500,
-          color: "#9CA3AF",
-          background: "#F3F4F6",
+          color: "var(--color-text-muted)",
+          background: "var(--color-surface-secondary)",
           borderRadius: 9999,
           padding: "2px 10px",
           whiteSpace: "nowrap",
@@ -68,9 +68,9 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
           flexShrink: 0,
           fontSize: 12,
           fontWeight: 500,
-          color: "#1D4ED8",
-          background: "#EFF6FF",
-          border: "1px solid #BFDBFE",
+          color: "#60a5fa",
+          background: "rgba(37, 99, 235, 0.16)",
+          border: "1px solid rgba(96, 165, 250, 0.35)",
           borderRadius: 9999,
           padding: "2px 10px",
           whiteSpace: "nowrap",
@@ -86,9 +86,9 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
         flexShrink: 0,
         fontSize: 12,
         fontWeight: 500,
-        color: "#9CA3AF",
-        background: "#F9FAFB",
-        border: "1px solid #E5E7EB",
+        color: "var(--color-text-muted)",
+        background: "var(--color-surface-secondary)",
+        border: "1px solid var(--color-border)",
         borderRadius: 9999,
         padding: "2px 10px",
         whiteSpace: "nowrap",
@@ -136,11 +136,11 @@ export function IntegrationUniversalCard({ icon, name, subtitle, status, comingS
             {icon}
           </div>
           <div style={{ minWidth: 0, paddingRight: 4, flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "#111827", lineHeight: 1.3 }}>{name}</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text)", lineHeight: 1.3 }}>{name}</div>
             <div
               style={{
                 fontSize: 12,
-                color: "#9CA3AF",
+                color: "var(--color-text-muted)",
                 marginTop: 2,
                 lineHeight: 1.35,
                 whiteSpace: "nowrap",
@@ -294,16 +294,16 @@ export function ConfigureModalShell({ open, onClose, icon, title, children, foot
           maxHeight: "min(90vh, 640px)",
           overflow: "auto",
           borderRadius: 16,
-          border: "1px solid #e5e7eb",
-          background: "#ffffff",
-          boxShadow: "0 24px 64px rgba(15, 23, 42, 0.12)",
+          border: "1px solid var(--color-border)",
+          background: "var(--color-surface)",
+          boxShadow: "0 24px 64px var(--color-shadow)",
           padding: 22,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</div>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em" }}>{title}</h2>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>{title}</h2>
           </div>
           <button type="button" className="icon-btn header-utility-btn" onClick={onClose} aria-label="Close" style={{ flexShrink: 0 }}>
             <Icons.X size={18} />
@@ -318,7 +318,7 @@ export function ConfigureModalShell({ open, onClose, icon, title, children, foot
 
 export function VaultEncryptedNote() {
   return (
-    <p style={{ margin: "14px 0 0", fontSize: 12, color: "#9ca3af", lineHeight: 1.45 }}>
+    <p style={{ margin: "14px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
       ● Vault encrypted — credentials are stored securely on the server.
     </p>
   );

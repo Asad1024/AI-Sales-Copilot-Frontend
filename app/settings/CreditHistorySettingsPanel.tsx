@@ -112,7 +112,7 @@ export function CreditHistorySettingsPanel() {
 
   if (!activeBaseId) {
     return (
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-[var(--color-text-muted)]">
         Select a workspace from the sidebar to see this workspace&apos;s shared credits and history.
       </p>
     );
@@ -132,7 +132,7 @@ export function CreditHistorySettingsPanel() {
   }
 
   if (!data) {
-    return <p className="text-sm text-gray-600">No data for this workspace.</p>;
+    return <p className="text-sm text-[var(--color-text-muted)]">No data for this workspace.</p>;
   }
 
   const entPag = data.entries_pagination;
@@ -146,55 +146,55 @@ export function CreditHistorySettingsPanel() {
   return (
     <div className="max-w-[900px] space-y-5">
       <BaseCard className="p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Workspace credit pool</div>
-        <p className="mt-1 text-sm text-gray-600">
-          Credits are billed to <strong className="text-gray-900">{data.owner.name}</strong> (workspace owner). All members
+        <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Workspace credit pool</div>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          Credits are billed to <strong className="text-[var(--color-text)]">{data.owner.name}</strong> (workspace owner). All members
           share this balance when working in this workspace.
         </p>
         <div className="mt-4 flex flex-wrap gap-8">
           <div>
-            <div className="text-xs font-medium text-gray-500">Balance</div>
+            <div className="text-xs font-medium text-[var(--color-text-muted)]">Balance</div>
             <div className="text-2xl font-extrabold text-[var(--color-primary,#7C3AED)]">{data.credits_balance}</div>
           </div>
           <div>
-            <div className="text-xs font-medium text-gray-500">Monthly allowance</div>
-            <div className="text-2xl font-bold text-gray-900">{data.monthly_lead_credits}</div>
+            <div className="text-xs font-medium text-[var(--color-text-muted)]">Monthly allowance</div>
+            <div className="text-2xl font-bold text-[var(--color-text)]">{data.monthly_lead_credits}</div>
           </div>
           {data.billing_plan_key ? (
             <div>
-              <div className="text-xs font-medium text-gray-500">Plan</div>
-              <div className="text-sm font-semibold text-gray-900">{data.billing_plan_key}</div>
+              <div className="text-xs font-medium text-[var(--color-text-muted)]">Plan</div>
+              <div className="text-sm font-semibold text-[var(--color-text)]">{data.billing_plan_key}</div>
             </div>
           ) : null}
         </div>
       </BaseCard>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">Activity</h3>
-        <p className="mb-3 text-xs text-gray-500">
+        <h3 className="mb-2 text-sm font-semibold text-[var(--color-text)]">Activity</h3>
+        <p className="mb-3 text-xs text-[var(--color-text-muted)]">
           Each row shows who triggered a spend (when known) and the owner&apos;s balance after the change.
         </p>
-        <div className="overflow-x-auto rounded-xl border border-[#E5E3F0] bg-white">
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E5E3F0] bg-gray-50/80">
-                <th className="px-3 py-2.5 font-semibold text-gray-600">When</th>
-                <th className="px-3 py-2.5 font-semibold text-gray-600">By</th>
-                <th className="px-3 py-2.5 font-semibold text-gray-600">What</th>
-                <th className="px-3 py-2.5 text-right font-semibold text-gray-600">Credits</th>
-                <th className="px-3 py-2.5 text-right font-semibold text-gray-600">Balance after</th>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+                <th className="px-3 py-2.5 font-semibold text-[var(--color-text-muted)]">When</th>
+                <th className="px-3 py-2.5 font-semibold text-[var(--color-text-muted)]">By</th>
+                <th className="px-3 py-2.5 font-semibold text-[var(--color-text-muted)]">What</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-[var(--color-text-muted)]">Credits</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-[var(--color-text-muted)]">Balance after</th>
               </tr>
             </thead>
             <tbody>
               {entTotal === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={5} className="px-3 py-8 text-center text-[var(--color-text-muted)]">
                     No credit activity yet for this workspace.
                   </td>
                 </tr>
               ) : data.entries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={5} className="px-3 py-8 text-center text-[var(--color-text-muted)]">
                     No rows on this page.
                   </td>
                 </tr>
@@ -207,17 +207,17 @@ export function CreditHistorySettingsPanel() {
                       ? `${row.reference_type} #${row.reference_id}`
                       : "—";
                   return (
-                    <tr key={row.id} className="border-b border-gray-100 last:border-0">
-                      <td className="whitespace-nowrap px-3 py-2.5 text-gray-700">{when}</td>
-                      <td className="max-w-[200px] truncate px-3 py-2.5 text-gray-800" title={by}>
+                    <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0">
+                      <td className="whitespace-nowrap px-3 py-2.5 text-[var(--color-text)]">{when}</td>
+                      <td className="max-w-[200px] truncate px-3 py-2.5 text-[var(--color-text)]" title={by}>
                         {by}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700">
+                      <td className="px-3 py-2.5 text-[var(--color-text)]">
                         <span className="font-medium">{formatOpLabel(row.operation_type)}</span>
-                        {ref !== "—" ? <span className="ml-1 text-xs text-gray-400">({ref})</span> : null}
+                        {ref !== "—" ? <span className="ml-1 text-xs text-[var(--color-text-muted)]">({ref})</span> : null}
                       </td>
                       <td className="px-3 py-2.5 text-right font-semibold text-rose-600">{row.amount}</td>
-                      <td className="px-3 py-2.5 text-right font-medium text-gray-900">{row.balance_after}</td>
+                      <td className="px-3 py-2.5 text-right font-medium text-[var(--color-text)]">{row.balance_after}</td>
                     </tr>
                   );
                 })
@@ -227,7 +227,7 @@ export function CreditHistorySettingsPanel() {
         </div>
         {entTotalPages > 1 ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--color-text-muted)]">
               Showing {entRangeFrom}–{entRangeTo} of {entTotal} · Page {entPage} of {entTotalPages}
             </p>
             <div className="flex gap-2">
@@ -235,7 +235,7 @@ export function CreditHistorySettingsPanel() {
                 type="button"
                 disabled={entPage <= 1 || loading}
                 onClick={() => setEntriesPage((p) => Math.max(1, p - 1))}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Previous
               </button>
@@ -243,7 +243,7 @@ export function CreditHistorySettingsPanel() {
                 type="button"
                 disabled={entPage >= entTotalPages || loading}
                 onClick={() => setEntriesPage((p) => p + 1)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next
               </button>

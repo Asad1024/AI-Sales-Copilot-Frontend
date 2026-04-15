@@ -155,10 +155,12 @@ export function TestConfigurationSection() {
       </BaseCard>
 
       <div
+        className="test-config-tiles-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
           gap: 14,
+          alignItems: "stretch",
         }}
       >
         {channelTiles.map(({ Icon, label, description, open }) => (
@@ -461,6 +463,18 @@ export function TestConfigurationSection() {
           </div>
         </div>
       )}
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+@media (max-width: 980px) {
+  .test-config-tiles-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+`,
+        }}
+      />
     </div>
   );
 }

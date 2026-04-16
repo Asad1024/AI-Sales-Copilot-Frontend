@@ -128,6 +128,13 @@ type ImportModalFrameProps = {
   closeDisabled?: boolean;
   /** Panel max height (CSV wizard needs more vertical room) */
   maxModalHeight?: string;
+  headerTitleColor?: string;
+  headerSubtitleColor?: string;
+  headerBorderColor?: string;
+  headerIconContainerStyle?: CSSProperties;
+  headerCloseButtonStyle?: CSSProperties;
+  /** Outer dialog corner radius (default 22). */
+  frameBorderRadius?: number;
 };
 
 export function ImportModalFrame({
@@ -143,6 +150,12 @@ export function ImportModalFrame({
   children,
   closeDisabled = false,
   maxModalHeight = "min(90vh, 720px)",
+  headerTitleColor,
+  headerSubtitleColor,
+  headerBorderColor,
+  headerIconContainerStyle,
+  headerCloseButtonStyle,
+  frameBorderRadius = 22,
 }: ImportModalFrameProps) {
   if (!open) return null;
 
@@ -159,7 +172,7 @@ export function ImportModalFrame({
         aria-labelledby="import-modal-frame-title"
         className="card-enhanced"
         style={{
-          borderRadius: 22,
+          borderRadius: frameBorderRadius,
           maxWidth: wide ? Math.max(maxWidth, 900) : maxWidth,
           width: "100%",
           maxHeight: maxModalHeight,
@@ -177,7 +190,7 @@ export function ImportModalFrame({
         <div
           style={{
             padding: "22px 24px 18px",
-            borderBottom: "1px solid var(--color-border-light)",
+            borderBottom: `1px solid ${headerBorderColor || "var(--color-border-light)"}`,
             background: headerTint,
             flexShrink: 0,
           }}
@@ -196,6 +209,7 @@ export function ImportModalFrame({
                   border: "1px solid var(--color-border)",
                   boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
                   flexShrink: 0,
+                  ...headerIconContainerStyle,
                 }}
               >
                 {icon}
@@ -208,14 +222,14 @@ export function ImportModalFrame({
                     fontSize: 20,
                     fontWeight: 700,
                     letterSpacing: "-0.03em",
-                    color: "var(--color-text)",
+                    color: headerTitleColor || "var(--color-text)",
                     lineHeight: 1.25,
                   }}
                 >
                   {title}
                 </h2>
                 {subtitle ? (
-                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.45 }}>{subtitle}</p>
+                  <p style={{ margin: "6px 0 0", fontSize: 13, color: headerSubtitleColor || "var(--color-text-muted)", lineHeight: 1.45 }}>{subtitle}</p>
                 ) : null}
               </div>
             </div>
@@ -238,15 +252,27 @@ export function ImportModalFrame({
                 color: "var(--color-text-muted)",
                 opacity: closeDisabled ? 0.45 : 1,
                 transition: "background 0.15s ease, color 0.15s ease",
+                ...headerCloseButtonStyle,
               }}
               onMouseEnter={(e) => {
                 if (closeDisabled) return;
-                e.currentTarget.style.background = "var(--color-surface-secondary)";
-                e.currentTarget.style.color = "var(--color-text)";
+                if (headerCloseButtonStyle) {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.32)";
+                  e.currentTarget.style.color = "#ffffff";
+                } else {
+                  e.currentTarget.style.background = "var(--color-surface-secondary)";
+                  e.currentTarget.style.color = "var(--color-text)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--color-surface)";
-                e.currentTarget.style.color = "var(--color-text-muted)";
+                if (headerCloseButtonStyle) {
+                  e.currentTarget.style.background =
+                    (headerCloseButtonStyle.background as string) || "rgba(255,255,255,0.18)";
+                  e.currentTarget.style.color = (headerCloseButtonStyle.color as string) || "#f5f3ff";
+                } else {
+                  e.currentTarget.style.background = "var(--color-surface)";
+                  e.currentTarget.style.color = "var(--color-text-muted)";
+                }
               }}
             >
               <Icons.X size={20} strokeWidth={1.75} />

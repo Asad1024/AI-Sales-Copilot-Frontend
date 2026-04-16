@@ -52,6 +52,8 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
     imported?: number;
     updated?: number;
     failed?: number;
+    skipped_duplicate?: number;
+    skipped_notes?: string[];
     errors?: string[];
   } | null>(null);
 
@@ -117,16 +119,30 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
       });
       setImportResult(result);
       setImportProgress({ isImporting: false });
-      if ((result.imported ?? 0) > 0 || (result.updated ?? 0) > 0) {
+      const imp = result.imported ?? 0;
+      const upd = result.updated ?? 0;
+      const skipped = result.skipped_duplicate ?? 0;
+      const failed = result.failed ?? 0;
+
+      if (imp > 0 || upd > 0) {
         showSuccess(
           "Import complete",
-          `Imported ${result.imported ?? 0} lead(s)${(result.updated ?? 0) > 0 ? `, updated ${result.updated}` : ""}.`,
+          `Imported ${imp} lead(s)${upd > 0 ? `, updated ${upd}` : ""}${skipped > 0 ? `, skipped ${skipped} duplicate(s)` : ""}.`,
         );
         onImported();
         setTimeout(() => {
           onClose();
           resetModal();
         }, 1800);
+      } else if (skipped > 0 && failed === 0) {
+        showSuccess(
+          "No new leads",
+          skipped === 1
+            ? (result.skipped_notes?.[0] ??
+              "That row’s email is already a lead in this workspace. Other bases do not block import here.")
+            : `${skipped} row(s) skipped — email(s) already exist in this workspace (add-only). Other bases are unaffected.`,
+        );
+        onImported();
       } else {
         showError("Import", result.errors?.[0] || "No leads were imported.");
       }
@@ -181,8 +197,8 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
       {sheetMeta ? (
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 16px", lineHeight: 1.5 }}>
           Tab <strong style={{ color: "var(--color-text)" }}>{sheetMeta.sheetName}</strong> ·{" "}
-          {rowCount.toLocaleString()} data row{rowCount === 1 ? "" : "s"} · new rows only (skips emails already in this
-          workspace).
+          {rowCount.toLocaleString()} data row{rowCount === 1 ? "" : "s"} · new rows only (skips emails already in{" "}
+          <strong>this</strong> workspace; leads in other bases are not checked).
         </p>
       ) : null}
 
@@ -313,7 +329,7 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
                   marginBottom: 16,
                 }}
               >
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, textAlign: "center" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, textAlign: "center" }}>
                   <div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: "#059669", letterSpacing: "-0.02em" }}>
                       {importResult.imported ?? 0}
@@ -331,6 +347,14 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
                     </div>
                   </div>
                   <div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "#ca8a04", letterSpacing: "-0.02em" }}>
+                      {importResult.skipped_duplicate ?? 0}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+                      Skipped
+                    </div>
+                  </div>
+                  <div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: "#dc2626", letterSpacing: "-0.02em" }}>
                       {importResult.failed ?? 0}
                     </div>
@@ -340,6 +364,25 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
                   </div>
                 </div>
               </div>
+              {importResult.skipped_notes && importResult.skipped_notes.length > 0 ? (
+                <div
+                  style={{
+                    maxHeight: 160,
+                    overflowY: "auto",
+                    padding: 12,
+                    borderRadius: 12,
+                    background: "rgba(202, 138, 4, 0.08)",
+                    border: "1px solid rgba(202, 138, 4, 0.28)",
+                    marginBottom: importResult.errors?.length ? 12 : 0,
+                  }}
+                >
+                  {importResult.skipped_notes.map((note, i) => (
+                    <div key={i} style={{ fontSize: 12, color: "#854d0e", marginBottom: 6, lineHeight: 1.45 }}>
+                      {note}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {importResult.errors && importResult.errors.length > 0 ? (
                 <div
                   style={{

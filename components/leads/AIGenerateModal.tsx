@@ -4,7 +4,6 @@ import { apiRequest, streamGenerateLeads } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
-import { GenerateLeadAIIcon } from "@/app/leads/components/LeadSourceBrandIcons";
 import { ImportModalFrame } from "@/components/leads/ImportModalChrome";
 import { getEmailInfo } from "@/utils/emailNormalization";
 import { getPhoneInfo } from "@/utils/phoneNormalization";
@@ -84,6 +83,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const [generatedLeads, setGeneratedLeads] = useState<any[]>([]);
   const [enrichSubmitting, setEnrichSubmitting] = useState(false);
   const [suggestionLoadingTopic, setSuggestionLoadingTopic] = useState<string | null>(null);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  /** Shown on primary CTA after a successful run (until modal closes or a new run starts). */
+  const [postGenSuccess, setPostGenSuccess] = useState<{ count: number } | null>(null);
   const [speechListening, setSpeechListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const speechRecRef = useRef<{
@@ -115,6 +117,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   ];
 
   const contactGaps = useMemo(() => countContactGapsForLeads(generatedLeads), [generatedLeads]);
+  const hasContactGapsToEnrich = contactGaps.missingEmail > 0 || contactGaps.missingPhone > 0;
 
   const handleEnrichAfterGenerate = useCallback(async () => {
     const leadIds = generatedLeads.map((l) => l?.id).filter((id) => id != null).map(Number);
@@ -213,6 +216,12 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   }, []);
 
   useEffect(() => {
+    if (open) {
+      setPostGenSuccess(null);
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (open) return;
     const rec = speechRecRef.current;
     if (!rec) return;
@@ -269,6 +278,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const genShowCountsExtra =
     genShowCounts &&
     !(typeof genStream.label === "string" && genStream.label.includes(`${genStream.done}/${genStream.total}`));
+  const generationComplete = Boolean(postGenSuccess) && !generating;
+
+  const clampLeadCount = useCallback((value: number) => Math.min(100, Math.max(1, value)), []);
+  const decrementCount = useCallback(() => setCount((v) => clampLeadCount(v - 1)), [clampLeadCount]);
+  const incrementCount = useCallback(() => setCount((v) => clampLeadCount(v + 1)), [clampLeadCount]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -283,6 +297,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
 
     setGenStream({ stage: "extract", done: 0, total: 1, label: "Starting…" });
     setGenerating(true);
+    setPostGenSuccess(null);
     setError("");
     setProgress("");
 
@@ -307,6 +322,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           total: Math.max(rows.length, s.total || rows.length),
           label: "Complete",
         }));
+        setPostGenSuccess({ count: rows.length });
         setProgress(`Successfully generated ${rows.length} leads!`);
         setGeneratedLeads(rows);
         onGenerated(rows);
@@ -314,6 +330,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           setShowEnrichPopup(true);
           setPrompt("");
           setProgress("");
+          setPostGenSuccess(null);
           setCount(10);
           setError("");
         }, 1500);
@@ -360,6 +377,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
 
   const handleSuggestionTopic = async (topic: string) => {
     setError("");
+    setSelectedSuggestion(topic);
     setSuggestionLoadingTopic(topic);
     try {
       const response = await apiRequest("/ai/lead-prompt-from-suggestion", {
@@ -420,109 +438,73 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
         open={open}
         onClose={onClose}
         title="Generate leads with AI"
-        subtitle="Build a clean ICP prompt, then generate qualified contacts for this workspace."
-        headerTint="linear-gradient(165deg, rgba(99, 102, 241, 0.14) 0%, rgba(124, 58, 237, 0.08) 45%, transparent 72%)"
-        icon={<GenerateLeadAIIcon size={36} sparklesSize={18} />}
-        maxWidth={860}
+        subtitle="Build a clean ICP prompt, generate qualified contacts"
+        headerTint="radial-gradient(circle at 92% 8%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 24%), radial-gradient(circle at 12% 10%, rgba(196,181,253,0.25) 0%, rgba(196,181,253,0) 28%), linear-gradient(96deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%)"
+        icon={
+          <span
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              width: 26,
+              height: 26,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-hidden
+          >
+            <Icons.Search size={22} strokeWidth={2} style={{ color: "#ffffff" }} />
+            <Icons.Plus
+              size={11}
+              strokeWidth={2.75}
+              style={{
+                position: "absolute",
+                right: -1,
+                bottom: 0,
+                color: "#ffffff",
+                filter: "drop-shadow(0 0 1px rgba(91, 33, 182, 0.35))",
+              }}
+            />
+          </span>
+        }
+        headerTitleColor="#ffffff"
+        headerSubtitleColor="rgba(255,255,255,0.86)"
+        headerBorderColor="rgba(255,255,255,0.24)"
+        headerIconContainerStyle={{
+          background: "rgba(255,255,255,0.18)",
+          border: "1px solid rgba(255,255,255,0.34)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 6px 16px rgba(49, 11, 115, 0.32)",
+          borderRadius: 14,
+          width: 44,
+          height: 44,
+        }}
+        headerCloseButtonStyle={{
+          background: "rgba(255,255,255,0.18)",
+          border: "1px solid rgba(255,255,255,0.34)",
+          color: "#f5f3ff",
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+        }}
+        frameBorderRadius={12}
+        maxWidth={820}
         maxModalHeight="min(92vh, 900px)"
         closeDisabled={generating || Boolean(suggestionLoadingTopic)}
       >
         <div
           className="persona-ai-panel-reveal"
           style={{
-            border: "1px solid var(--color-border)",
-            borderRadius: 10,
-            padding: "10px 12px",
-            background: "var(--color-surface-secondary)",
             display: "flex",
             flexDirection: "column",
-            gap: 8,
+            gap: 16,
+            background: "#ffffff",
           }}
         >
           <div
             style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 8,
-            }}
-          >
-            <div style={{ minWidth: 0, flex: "1 1 200px" }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 2, lineHeight: 1.3 }}>
-                Generate with AI
-              </div>
-              <p className="text-hint" style={{ margin: 0, fontSize: 11, lineHeight: 1.35, maxWidth: 560 }}>
-                One-click suggestions, or type your full ICP in your own words. Same flow as campaign Knowledge base /
-                Assistant — always open here (no upload step).
-              </p>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              {generating ? (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "var(--color-primary, #7C3AED)",
-                  }}
-                  aria-live="polite"
-                >
-                  <span
-                    style={{
-                      width: 56,
-                      height: 6,
-                      borderRadius: 999,
-                      background: "var(--color-border)",
-                      overflow: "hidden",
-                      display: "inline-block",
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "block",
-                        height: "100%",
-                        width: `${Math.max(4, genPct)}%`,
-                        borderRadius: 999,
-                        background:
-                          "linear-gradient(90deg, #7c3aed 0%, #a78bfa 35%, #c4b5fd 50%, #a78bfa 65%, #7c3aed 100%)",
-                        backgroundSize: "200% 100%",
-                        animation: "generateBarShimmer 1.1s linear infinite",
-                        transition: "width 0.12s ease-out",
-                      }}
-                    />
-                  </span>
-                  Generating
-                </span>
-              ) : null}
-              {!generating && suggestionLoadingTopic ? (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 11,
-                    fontWeight: 500,
-                    color: "var(--color-text-muted)",
-                  }}
-                >
-                  <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>
-                    <Icons.Loader size={12} strokeWidth={2} aria-hidden />
-                  </span>
-                  Crafting…
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: 8,
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
+              padding: "10px 12px 12px",
+              borderRadius: 10,
+              background: "#ffffff",
+              border: "1px solid #e8e4dc",
             }}
           >
             <div
@@ -531,23 +513,23 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 fontWeight: 600,
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                color: "#9ca3af",
+                color: "#a8988e",
                 marginBottom: 6,
               }}
             >
-              Suggestions
+              Quick suggestions
             </div>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gridTemplateRows: "auto auto",
                 gap: 8,
                 paddingTop: 2,
               }}
             >
               {suggestionPrompts.map((item) => {
                 const loadingChip = suggestionLoadingTopic === item;
+                const activeChip = selectedSuggestion === item || loadingChip;
                 const disabled = generating || Boolean(suggestionLoadingTopic);
                 return (
                   <button
@@ -562,11 +544,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                       gap: 4,
                       padding: loadingChip ? "6px 8px" : "4px 8px",
                       borderRadius: 9999,
-                      border: loadingChip ? "1px solid var(--color-primary, #7C3AED)" : "1px solid var(--color-border)",
-                      background: loadingChip ? "rgba(124, 58, 237, 0.14)" : "var(--color-surface)",
-                      color: loadingChip ? "var(--color-primary, #7C3AED)" : "var(--color-text)",
+                      border: activeChip ? "1px solid rgba(124, 58, 237, 0.45)" : "1px solid #e5e0d8",
+                      background: activeChip ? "rgba(124, 58, 237, 0.12)" : "#f5f2ed",
+                      color: activeChip ? "#6d28d9" : "#4b5563",
                       fontSize: 11,
-                      fontWeight: loadingChip ? 600 : 500,
+                      fontWeight: activeChip ? 600 : 500,
                       lineHeight: 1.25,
                       cursor: disabled ? "not-allowed" : "pointer",
                       opacity: disabled ? 0.55 : 1,
@@ -593,7 +575,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                       </span>
                     ) : (
                       <>
-                        <Icons.Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#7C3AED" }} aria-hidden />
+                        {activeChip ? (
+                          <Icons.Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#7C3AED" }} aria-hidden />
+                        ) : null}
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
                       </>
                     )}
@@ -611,19 +595,27 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 fontWeight: 600,
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                color: "#9ca3af",
+                color: "#a8988e",
                 display: "block",
                 marginBottom: 4,
               }}
             >
-              Your words
+              Describe your ideal customer
             </label>
-            <div style={{ position: "relative" }}>
+            <div
+              style={{
+                borderRadius: 10,
+                border: "1px solid #e8e4dc",
+                background: "#faf8f5",
+                overflow: "hidden",
+              }}
+            >
               <textarea
                 id="ai-lead-prompt"
                 value={prompt}
                 onChange={(e) => {
                   setPrompt(e.target.value);
+                  if (selectedSuggestion) setSelectedSuggestion(null);
                   setError("");
                 }}
                 rows={5}
@@ -634,79 +626,109 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                   width: "100%",
                   fontSize: 12,
                   lineHeight: 1.45,
-                  padding: "8px 44px 8px 12px",
+                  padding: "10px 12px",
                   minHeight: 112,
                   maxHeight: 220,
                   resize: "vertical",
-                  borderRadius: 8,
+                  borderRadius: 0,
                   boxSizing: "border-box",
+                  border: "none",
+                  borderBottom: "1px solid #e8e4dc",
+                  background: "transparent",
                 }}
               />
-              <button
-                type="button"
-                onClick={() => void toggleSpeechInput()}
-                disabled={!speechSupported || generating || Boolean(suggestionLoadingTopic)}
-                aria-pressed={speechListening}
-                aria-label={speechListening ? "Stop voice input" : "Start voice input"}
-                title={
-                  !speechSupported
-                    ? "Voice input needs a browser with speech recognition (e.g. Chrome or Edge)."
-                    : speechListening
-                      ? "Stop dictation"
-                      : "Dictate with your voice"
-                }
+              <div
                 style={{
-                  position: "absolute",
-                  right: 8,
-                  bottom: 8,
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  border: speechListening
-                    ? "1px solid var(--color-primary, #7C3AED)"
-                    : "1px solid var(--color-border)",
-                  background: speechListening ? "rgba(124, 58, 237, 0.16)" : "var(--color-surface)",
-                  color: speechListening ? "var(--color-primary, #7C3AED)" : "var(--color-text-muted)",
-                  display: "inline-flex",
+                  borderRadius: 0,
+                  border: "none",
+                  background: "#f3f1ec",
+                  display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  cursor:
-                    !speechSupported || generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
-                  opacity: !speechSupported ? 0.45 : 1,
-                  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "8px 10px",
                 }}
               >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: speechListening ? "#6d28d9" : "#a8a29e",
+                    fontWeight: speechListening ? 600 : 400,
+                    transition: "color 0.2s ease",
+                  }}
                 >
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
-                {speechListening ? (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: -2,
-                      right: -2,
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#ef4444",
-                      animation: "pulse 1.2s ease-in-out infinite",
-                    }}
-                  />
-                ) : null}
-              </button>
+                  {speechListening ? "Speak now — we're listening…" : "Be specific for better results"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void toggleSpeechInput()}
+                  disabled={!speechSupported || generating || Boolean(suggestionLoadingTopic)}
+                  aria-pressed={speechListening}
+                  aria-label={speechListening ? "Stop voice input" : "Start voice input"}
+                  title={
+                    !speechSupported
+                      ? "Voice input needs a browser with speech recognition (e.g. Chrome or Edge)."
+                      : speechListening
+                        ? "Stop dictation"
+                        : "Dictate with your voice"
+                  }
+                  style={{
+                    width: "auto",
+                    minWidth: speechListening ? 88 : 72,
+                    height: 30,
+                    borderRadius: 8,
+                    border: speechListening
+                      ? "1px solid rgba(124, 58, 237, 0.55)"
+                      : "1px solid #e5e0d8",
+                    background: speechListening ? "rgba(124, 58, 237, 0.12)" : "#ffffff",
+                    color: speechListening ? "#6d28d9" : "#78716c",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor:
+                      !speechSupported || generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                    opacity: !speechSupported ? 0.45 : 1,
+                    transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                    position: "relative",
+                    flexShrink: 0,
+                    padding: "0 10px",
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600 }}>
+                    {speechListening ? "Speak…" : "Voice"}
+                  </span>
+                  {speechListening ? (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: -2,
+                        right: -2,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "#ef4444",
+                        animation: "pulse 1.2s ease-in-out infinite",
+                      }}
+                    />
+                  ) : null}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -750,105 +772,158 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             </div>
           ) : null}
 
-          {generating ? (
-            <div style={{ marginTop: 2 }} role="status" aria-live="polite" aria-label="Lead generation progress">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  marginBottom: 6,
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)" }}>
-                  {genStream.label || progress || "Working on your request…"}
-                  {genShowCountsExtra ? (
-                    <span style={{ marginLeft: 6, color: "var(--color-primary, #7C3AED)", fontWeight: 700 }}>
-                      {genStream.done}/{genStream.total}
-                    </span>
-                  ) : null}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-primary, #7C3AED)", fontVariantNumeric: "tabular-nums" }}>
-                  {genPct}%
-                </span>
-              </div>
-              <div
-                style={{
-                  height: 10,
-                  borderRadius: 999,
-                  background: "var(--color-border)",
-                  overflow: "hidden",
-                  border: "1px solid rgba(124, 58, 237, 0.12)",
-                }}
-              >
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${Math.max(2, genPct)}%`,
-                    borderRadius: 999,
-                    background:
-                      "linear-gradient(90deg, #5b21b6 0%, #7c3aed 22%, #a78bfa 45%, #ddd6fe 55%, #a78bfa 68%, #7c3aed 100%)",
-                    backgroundSize: "220% 100%",
-                    animation: "generateBarShimmer 1.05s linear infinite",
-                    boxShadow: "0 0 12px rgba(124, 58, 237, 0.35)",
-                    transition: "width 0.1s ease-out",
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 10,
-              flexWrap: "wrap",
-              paddingTop: 4,
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 4, width: "100%" }}>
             <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                borderRadius: 8,
-                padding: "6px 10px",
+                display: "flex",
+                alignItems: "stretch",
+                gap: 10,
+                flexWrap: "wrap",
+                width: "100%",
               }}
             >
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>Number of leads</span>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={count}
-                onChange={(e) => setCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 10)))}
-                className="input"
+              <div
                 style={{
-                  width: 56,
-                  padding: "4px 6px",
-                  borderRadius: 6,
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-surface-secondary)",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textAlign: "center",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "#faf8f5",
+                  border: "1px solid #e8e4dc",
+                  borderRadius: 999,
+                  padding: "4px 8px",
                 }}
-                disabled={generating || Boolean(suggestionLoadingTopic)}
-              />
+              >
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", padding: "0 4px" }}>
+                  Leads
+                </span>
+                <button
+                  type="button"
+                  onClick={decrementCount}
+                  disabled={generating || Boolean(suggestionLoadingTopic)}
+                  aria-label="Decrease lead count"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    border: "1px solid #e5e0d8",
+                    background: "#f5f2ed",
+                    color: "#374151",
+                    fontSize: 16,
+                    lineHeight: 1,
+                    cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                  }}
+                >
+                  -
+                </button>
+                <span
+                  style={{
+                    minWidth: 32,
+                    textAlign: "center",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--color-text)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {count}
+                </span>
+                <button
+                  type="button"
+                  onClick={incrementCount}
+                  disabled={generating || Boolean(suggestionLoadingTopic)}
+                  aria-label="Increase lead count"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    border: "1px solid #e5e0d8",
+                    background: "#f5f2ed",
+                    color: "#374151",
+                    fontSize: 16,
+                    lineHeight: 1,
+                    cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                  }}
+                >
+                  +
+                </button>
+              </div>
+              {generating ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    flex: "1 1 220px",
+                    minWidth: 200,
+                    borderRadius: 999,
+                    border: "1px solid #e8e4dc",
+                    background: "#faf8f5",
+                    padding: "8px 12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "#78716c", fontWeight: 600 }}>
+                      {genStream.label || "Generating…"}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed" }}>
+                      {genPct}%
+                      {genShowCountsExtra ? ` (${genStream.done}/${genStream.total})` : ""}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: 5,
+                      borderRadius: 999,
+                      background: "#e7e5e4",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${Math.max(2, genPct)}%`,
+                        borderRadius: 999,
+                        background:
+                          "linear-gradient(90deg, #5b21b6 0%, #7c3aed 35%, #a78bfa 65%, #7c3aed 100%)",
+                        backgroundSize: "220% 100%",
+                        animation: "generateBarShimmer 1.05s linear infinite",
+                        transition: "width 0.15s ease-out",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
-            <div style={{ display: "flex", gap: 9 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
               <button
                 type="button"
-                className="btn-ghost"
                 onClick={onClose}
                 disabled={generating || Boolean(suggestionLoadingTopic)}
-                style={{ padding: "10px 16px", borderRadius: 8, fontSize: 13 }}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  minWidth: 96,
+                  border: "1px solid #d6d3d1",
+                  background: "#ffffff",
+                  color: "#1f2937",
+                  fontWeight: 600,
+                  cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                  opacity: generating || suggestionLoadingTopic ? 0.55 : 1,
+                  transition: "background 0.15s ease, border-color 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (generating || suggestionLoadingTopic) return;
+                  e.currentTarget.style.background = "#f9fafb";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.borderColor = "#d6d3d1";
+                }}
               >
                 Cancel
               </button>
@@ -856,18 +931,33 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 type="button"
                 className="btn-primary"
                 onClick={() => void handleGenerate()}
-                disabled={generating || Boolean(suggestionLoadingTopic) || !prompt.trim()}
+                disabled={
+                  generating ||
+                  Boolean(suggestionLoadingTopic) ||
+                  (!postGenSuccess && !prompt.trim())
+                }
                 aria-busy={generating}
                 style={{
                   position: "relative",
                   overflow: "hidden",
-                  padding: "10px 18px",
-                  borderRadius: 8,
+                  padding: "11px 18px",
+                  borderRadius: 10,
                   fontSize: 13,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   display: "inline-flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 8,
+                  flex: 1,
+                  minWidth: 0,
+                  border: "none",
+                  color: "#fff",
+                  background: generationComplete
+                    ? "linear-gradient(135deg, #15803d 0%, #22c55e 55%, #4ade80 100%)"
+                    : "linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #8b5cf6 100%)",
+                  boxShadow: generationComplete
+                    ? "0 10px 24px rgba(34, 197, 94, 0.28)"
+                    : "0 10px 24px rgba(124, 58, 237, 0.28)",
                 }}
               >
                 {generating ? (
@@ -889,6 +979,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                       {genShowCountsExtra ? ` (${genStream.done}/${genStream.total})` : ""}
                     </span>
                   </>
+                ) : generationComplete && postGenSuccess ? (
+                  <>
+                    <Icons.Check size={16} strokeWidth={2.5} />
+                    Done — {postGenSuccess.count} lead{postGenSuccess.count === 1 ? "" : "s"} generated
+                  </>
                 ) : (
                   <>
                     <Icons.Sparkles size={15} />
@@ -907,14 +1002,14 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.62)",
+            background: "rgba(15, 23, 42, 0.65)",
             zIndex: 2000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: 20,
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
             animation: "fadeIn 0.2s ease-out",
           }}
           onClick={() => {
@@ -925,12 +1020,12 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
         >
           <div
             style={{
-              width: "min(520px, 96vw)",
-              background: "var(--color-surface)",
-              border: "1px solid var(--elev-border)",
-              borderRadius: 20,
+              width: "min(560px, 96vw)",
+              background: "#ffffff",
+              border: "1px solid #e8e4dc",
+              borderRadius: 12,
               padding: 0,
-              boxShadow: "0 32px 80px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(124, 58, 237, 0.08)",
+              boxShadow: "0 25px 80px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255,255,255,0.06) inset",
               animation: "slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
               overflow: "hidden",
             }}
@@ -941,155 +1036,256 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           >
             <div
               style={{
-                padding: "22px 24px 18px",
+                padding: "20px 22px 18px",
+                borderBottom: "1px solid rgba(255,255,255,0.24)",
                 background:
-                  "linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(99, 102, 241, 0.06) 50%, transparent 100%)",
-                borderBottom: "1px solid var(--elev-border)",
+                  "radial-gradient(circle at 92% 8%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 24%), radial-gradient(circle at 12% 10%, rgba(196,181,253,0.25) 0%, rgba(196,181,253,0) 28%), linear-gradient(96deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
-                    background: "linear-gradient(145deg, rgba(124, 58, 237, 0.22), rgba(167, 139, 250, 0.12))",
-                    border: "1px solid rgba(124, 58, 237, 0.35)",
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.18)",
+                    border: "1px solid rgba(255,255,255,0.34)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 6px 16px rgba(49, 11, 115, 0.32)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    boxShadow: "0 8px 24px rgba(124, 58, 237, 0.2)",
                   }}
+                  aria-hidden
                 >
-                  <Icons.CheckCircle size={26} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+                  {hasContactGapsToEnrich ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Icons.Mail size={18} strokeWidth={2} style={{ color: "#ffffff" }} />
+                      <Icons.Phone size={16} strokeWidth={2} style={{ color: "#ffffff", marginLeft: -2 }} />
+                    </span>
+                  ) : (
+                    <Icons.CheckCircle size={22} strokeWidth={1.75} style={{ color: "#ffffff" }} />
+                  )}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <h3
                     id="ai-generate-success-title"
                     style={{
                       margin: 0,
-                      fontSize: 20,
-                      fontWeight: 800,
-                      color: "var(--color-text)",
+                      fontSize: 19,
+                      fontWeight: 700,
+                      color: "#ffffff",
                       letterSpacing: "-0.03em",
-                      lineHeight: 1.2,
+                      lineHeight: 1.25,
                     }}
                   >
-                    Leads ready
+                    {hasContactGapsToEnrich ? "Some contact details are missing" : "Contacts look complete"}
                   </h3>
-                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
-                    We added {contactGaps.total} lead{contactGaps.total === 1 ? "" : "s"}. Many records still need verified
-                    email or phone — run enrichment to pull them from FullEnrich, or continue in your table.
+                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "rgba(255,255,255,0.88)", lineHeight: 1.5 }}>
+                    {hasContactGapsToEnrich
+                      ? `We saved ${contactGaps.total} lead${contactGaps.total === 1 ? "" : "s"}. Apollo did not return a usable email or phone for every row — you can run FullEnrich now or finish later in the table.`
+                      : `All ${contactGaps.total} lead${contactGaps.total === 1 ? "" : "s"} already have a verified email and phone on file.`}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div style={{ padding: "22px 24px 24px", background: "var(--color-surface)" }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 18,
-                }}
-              >
+            <div
+              style={{
+                padding: "18px 22px 22px",
+                background: "#faf8f5",
+                borderTop: "1px solid #ede9e4",
+              }}
+            >
+              {hasContactGapsToEnrich ? (
+                <>
+                  <p
+                    style={{
+                      margin: "0 0 14px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      color: "#a8988e",
+                    }}
+                  >
+                    Gaps in this batch
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 10,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        borderRadius: 10,
+                        padding: "12px 14px",
+                        border: "1px solid #e8e4dc",
+                        background: "#ffffff",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: "#a8988e",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Missing email
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: "#1f2937",
+                          marginTop: 4,
+                          fontVariantNumeric: "tabular-nums",
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {contactGaps.missingEmail}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#78716c", marginTop: 6, lineHeight: 1.4 }}>
+                        Leads without a valid address (includes placeholders)
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        borderRadius: 10,
+                        padding: "12px 14px",
+                        border: "1px solid #e8e4dc",
+                        background: "#ffffff",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: "#a8988e",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Missing phone
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: "#1f2937",
+                          marginTop: 4,
+                          fontVariantNumeric: "tabular-nums",
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {contactGaps.missingPhone}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#78716c", marginTop: 6, lineHeight: 1.4 }}>
+                        Leads without a usable phone number
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      background: "rgba(124, 58, 237, 0.08)",
+                      border: "1px solid rgba(124, 58, 237, 0.18)",
+                      fontSize: 12,
+                      color: "#57534e",
+                      lineHeight: 1.55,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <strong style={{ color: "#4c1d95" }}>FullEnrich</strong> runs in the background. Your leads table will
+                    show the same progress banner and row status as when you enrich from the toolbar, until webhooks
+                    finish.
+                  </div>
+                </>
+              ) : (
                 <div
                   style={{
-                    borderRadius: 14,
+                    borderRadius: 10,
                     padding: "14px 16px",
-                    border: "1px solid var(--elev-border)",
-                    background: "var(--color-surface-secondary)",
+                    border: "1px solid #d6d3d1",
+                    background: "#ffffff",
+                    fontSize: 13,
+                    color: "#57534e",
+                    lineHeight: 1.55,
+                    marginBottom: 18,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
                   }}
                 >
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", letterSpacing: "0.06em" }}>
-                    EMAILS TO FETCH
-                  </div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "var(--color-text)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
-                    {contactGaps.missingEmail}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
-                    Missing or placeholder addresses
-                  </div>
+                  <Icons.CheckCircle size={20} strokeWidth={2} style={{ color: "#16a34a", flexShrink: 0, marginTop: 1 }} />
+                  <span>No enrichment step is required for contact fields. You can still use Enrich in the toolbar for
+                    other data later.</span>
                 </div>
-                <div
-                  style={{
-                    borderRadius: 14,
-                    padding: "14px 16px",
-                    border: "1px solid var(--elev-border)",
-                    background: "var(--color-surface-secondary)",
-                  }}
-                >
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", letterSpacing: "0.06em" }}>
-                    PHONES TO FETCH
-                  </div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "var(--color-text)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
-                    {contactGaps.missingPhone}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
-                    Missing or short numbers
-                  </div>
-                </div>
-              </div>
+              )}
 
-              <div
-                style={{
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  background: "rgba(124, 58, 237, 0.06)",
-                  border: "1px solid rgba(124, 58, 237, 0.2)",
-                  fontSize: 12,
-                  color: "var(--color-text-muted)",
-                  lineHeight: 1.55,
-                  marginBottom: 22,
-                }}
-              >
-                <strong style={{ color: "var(--color-text)" }}>After Enrich:</strong> the leads table shows the same
-                progress banner and per-row &quot;Processing&quot; state as when you enrich from the toolbar, until the webhook
-                completes.
-              </div>
-
-              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", alignItems: "center" }}>
                 <button
                   type="button"
-                  className="btn-ghost focus-ring"
                   disabled={enrichSubmitting}
                   onClick={() => {
                     setShowEnrichPopup(false);
                     onClose();
                   }}
-                  style={{ padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600 }}
-                >
-                  Skip for now
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary focus-ring"
-                  disabled={enrichSubmitting || contactGaps.total === 0}
-                  onClick={() => void handleEnrichAfterGenerate()}
                   style={{
-                    padding: "12px 22px",
+                    padding: "10px 18px",
                     borderRadius: 10,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: "1px solid #d6d3d1",
+                    background: "#ffffff",
+                    color: "#1f2937",
+                    cursor: enrichSubmitting ? "not-allowed" : "pointer",
+                    opacity: enrichSubmitting ? 0.55 : 1,
                   }}
                 >
-                  {enrichSubmitting ? (
-                    <>
-                      <Icons.Loader size={16} strokeWidth={2} style={{ animation: "spin 0.85s linear infinite" }} />
-                      Starting…
-                    </>
-                  ) : (
-                    <>
-                      <Icons.Target size={17} strokeWidth={1.5} />
-                      Enrich
-                    </>
-                  )}
+                  {hasContactGapsToEnrich ? "Skip for now" : "Close"}
                 </button>
+                {hasContactGapsToEnrich ? (
+                  <button
+                    type="button"
+                    className="btn-primary focus-ring"
+                    disabled={enrichSubmitting}
+                    onClick={() => void handleEnrichAfterGenerate()}
+                    style={{
+                      padding: "11px 20px",
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      border: "none",
+                      color: "#fff",
+                      background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #8b5cf6 100%)",
+                      boxShadow: "0 10px 24px rgba(124, 58, 237, 0.28)",
+                      cursor: enrichSubmitting ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {enrichSubmitting ? (
+                      <>
+                        <Icons.Loader size={16} strokeWidth={2} style={{ animation: "spin 0.85s linear infinite" }} />
+                        Starting…
+                      </>
+                    ) : (
+                      <>
+                        <Icons.Sparkles size={16} strokeWidth={2} />
+                        Enrich missing contacts
+                      </>
+                    )}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

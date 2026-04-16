@@ -1,50 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { useNotification } from "@/context/NotificationContext";
 import BaseCard from "@/components/ui/BaseCard";
 
+type TestCallConfigResponse = {
+  success?: boolean;
+  message?: string;
+  answered?: boolean;
+  completed?: boolean;
+  recipient_status?: string | null;
+  elevenlabs_conversation_id?: string | null;
+  transcript?: string | null;
+  recording_url?: string | null;
+  poll_attempts?: number;
+  timed_out?: boolean;
+};
+
 export function TestConfigurationSection() {
   const { showSuccess, showError } = useNotification();
 
-  const [showTestEmailModal, setShowTestEmailModal] = useState(false);
   const [showTestWhatsAppModal, setShowTestWhatsAppModal] = useState(false);
   const [showTestLinkedInModal, setShowTestLinkedInModal] = useState(false);
   const [showTestCallModal, setShowTestCallModal] = useState(false);
 
-  const [testingEmail, setTestingEmail] = useState(false);
   const [testingWhatsApp, setTestingWhatsApp] = useState(false);
   const [testingLinkedIn, setTestingLinkedIn] = useState(false);
   const [testingCall, setTestingCall] = useState(false);
 
-  const [testEmailTo, setTestEmailTo] = useState("");
   const [testWhatsAppNumber, setTestWhatsAppNumber] = useState("");
   const [testLinkedInUrl, setTestLinkedInUrl] = useState("");
   const [testCallNumber, setTestCallNumber] = useState("");
-
-  const handleTestEmailConfiguration = async () => {
-    if (!testEmailTo.trim()) {
-      showError("Validation", "Please enter a recipient email address.");
-      return;
-    }
-    setTestingEmail(true);
-    try {
-      const response = await apiRequest("/config/test-email", {
-        method: "POST",
-        body: JSON.stringify({ to: testEmailTo.trim() }),
-      });
-      showSuccess("Test email", response?.message || "Test email sent.");
-      setShowTestEmailModal(false);
-      setTestEmailTo("");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to send test email";
-      showError("Test failed", message);
-    } finally {
-      setTestingEmail(false);
-    }
-  };
+  const [callTestOutcome, setCallTestOutcome] = useState<TestCallConfigResponse | null>(null);
 
   const runChannelTest = async (channel: "linkedin" | "whatsapp") => {
     const endpoint = channel === "linkedin" ? "/config/test-linkedin" : "/config/test-whatsapp";
@@ -89,15 +79,20 @@ export function TestConfigurationSection() {
       showError("Validation", "Please enter a phone number.");
       return;
     }
+    setCallTestOutcome(null);
     setTestingCall(true);
     try {
-      const response = await apiRequest("/config/test-call", {
+      const response = (await apiRequest("/config/test-call", {
         method: "POST",
         body: JSON.stringify({ phone: testCallNumber.trim() }),
-      });
-      showSuccess("Call test", response?.message || "Call configuration test successful.");
-      setShowTestCallModal(false);
-      setTestCallNumber("");
+      })) as TestCallConfigResponse;
+      setCallTestOutcome(response);
+      const okMsg =
+        response?.message ||
+        (response?.timed_out
+          ? "Call submitted; polling timed out before a final status."
+          : "Call configuration test finished.");
+      showSuccess("Call test", okMsg);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to test call configuration";
       showError("Test failed", message);
@@ -107,12 +102,6 @@ export function TestConfigurationSection() {
   };
 
   const channelTiles = [
-    {
-      Icon: Icons.Mail,
-      label: "Email",
-      description: "SMTP / send pipeline",
-      open: () => setShowTestEmailModal(true),
-    },
     {
       Icon: Icons.Linkedin,
       label: "LinkedIn",
@@ -129,7 +118,10 @@ export function TestConfigurationSection() {
       Icon: Icons.Phone,
       label: "Call",
       description: "ElevenLabs batch test call",
-      open: () => setShowTestCallModal(true),
+      open: () => {
+        setCallTestOutcome(null);
+        setShowTestCallModal(true);
+      },
     },
   ] as const;
 
@@ -149,8 +141,8 @@ export function TestConfigurationSection() {
           Integrations
         </div>
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5, maxWidth: 560 }}>
-          Run checks against your current backend configuration. LinkedIn and WhatsApp tests send a real message from
-          your connected Unipile account to the profile or number you enter. Each flow opens a short form.
+          Run checks against your current backend configuration. LinkedIn and WhatsApp tests send a real message from your
+          connected Unipile account. Use the <strong>Test email</strong> tab to verify email delivery and tracking.
         </p>
       </BaseCard>
 
@@ -213,83 +205,6 @@ export function TestConfigurationSection() {
         ))}
       </div>
 
-      {showTestEmailModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.55)",
-            backdropFilter: "blur(6px)",
-            zIndex: 1100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-          }}
-          onClick={() => !testingEmail && setShowTestEmailModal(false)}
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: "rgba(99,102,241,0.12)",
-                    border: "0.5px solid rgba(99,102,241,0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Icons.Mail size={18} strokeWidth={1.5} style={{ color: "#a5b4fc" }} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>Test email</h3>
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--color-text-muted)" }}>
-                    Uses your server SMTP / mail settings.
-                  </p>
-                </div>
-              </div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>Recipient</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={testEmailTo}
-                onChange={(e) => setTestEmailTo(e.target.value)}
-                style={{
-                  width: "100%",
-                  marginTop: 6,
-                  marginBottom: 18,
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: "0.5px solid rgba(255,255,255,0.1)",
-                  background: "rgba(255,255,255,0.03)",
-                  color: "var(--color-text)",
-                  fontSize: 14,
-                  outline: "none",
-                }}
-              />
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" disabled={testingEmail} onClick={() => setShowTestEmailModal(false)}>
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ borderRadius: 8 }}
-                  disabled={testingEmail || !testEmailTo.trim()}
-                  onClick={handleTestEmailConfiguration}
-                >
-                  {testingEmail ? "Sending…" : "Send"}
-                </button>
-              </div>
-            </BaseCard>
-          </div>
-        </div>
-      )}
-
       {showTestLinkedInModal && (
         <div
           style={{
@@ -309,8 +224,8 @@ export function TestConfigurationSection() {
             <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test LinkedIn</h3>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Sends a short test from your Unipile LinkedIn account. If you are not already connected on LinkedIn,
-                the recipient may get a connection invite instead of a DM.
+                Sends a short test from your Unipile LinkedIn account. If you are not already connected on LinkedIn, the
+                recipient may get a connection invite instead of a DM.
               </p>
               <input
                 type="text"
@@ -367,8 +282,8 @@ export function TestConfigurationSection() {
             <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test WhatsApp</h3>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Sends a short test from your Unipile WhatsApp number. Use the full number with country code; the
-                recipient must use WhatsApp on that number.
+                Sends a short test from your Unipile WhatsApp number. Use the full number with country code; the recipient
+                must use WhatsApp on that number.
               </p>
               <input
                 type="text"
@@ -406,33 +321,62 @@ export function TestConfigurationSection() {
         </div>
       )}
 
-      {showTestCallModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.55)",
-            backdropFilter: "blur(6px)",
-            zIndex: 1100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-          }}
-          onClick={() => !testingCall && setShowTestCallModal(false)}
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
-              <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test call</h3>
+      {showTestCallModal &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(6px)",
+              zIndex: 10000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+              boxSizing: "border-box",
+            }}
+            onClick={() => !testingCall && setShowTestCallModal(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="test-call-dialog-title"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "min(720px, calc(100vw - 40px))",
+                maxWidth: "100%",
+                maxHeight: "min(90vh, 800px)",
+                display: "flex",
+                flexDirection: "column",
+                flexShrink: 0,
+              }}
+            >
+              <BaseCard
+                style={{
+                  width: "100%",
+                  padding: 24,
+                  maxHeight: "min(90vh, 800px)",
+                  overflow: "auto",
+                  boxSizing: "border-box",
+                }}
+              >
+              <h3 id="test-call-dialog-title" style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>
+                Test call
+              </h3>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Uses ElevenLabs conversational AI (batch calling). Configure API key, agent ID, and phone number ID in Admin →
-                Users → API credentials for your user, or set ELEVENLABS_* in the server environment.
+                Uses ElevenLabs conversational AI (batch calling). Configure API key, agent ID, and phone number ID in
+                Admin → Users → API credentials for your user, or set ELEVENLABS_* in the server environment. After you
+                run a test, the server waits for the batch recipient to finish (often up to about two minutes) and then
+                returns answered, completed, transcript, and recording when available.
               </p>
               <input
                 type="text"
                 placeholder="+971501234567"
                 value={testCallNumber}
                 onChange={(e) => setTestCallNumber(e.target.value)}
+                disabled={testingCall}
                 style={{
                   width: "100%",
                   padding: "10px 12px",
@@ -442,12 +386,176 @@ export function TestConfigurationSection() {
                   color: "var(--color-text)",
                   fontSize: 14,
                   outline: "none",
-                  marginBottom: 18,
+                  marginBottom: 14,
                 }}
               />
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" disabled={testingCall} onClick={() => setShowTestCallModal(false)}>
-                  Cancel
+              {testingCall && (
+                <p style={{ margin: "0 0 14px", fontSize: 12, color: "var(--color-text-muted)" }}>
+                  Placing call and waiting for outcome (this request can take a couple of minutes)…
+                </p>
+              )}
+              {callTestOutcome && !testingCall && (
+                <div
+                  style={{
+                    marginBottom: 16,
+                    padding: 14,
+                    borderRadius: 10,
+                    border: "0.5px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.02)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+                      Outcome
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: callTestOutcome.answered ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.15)",
+                        color: callTestOutcome.answered ? "#86efac" : "#94a3b8",
+                      }}
+                    >
+                      Answered: {callTestOutcome.answered ? "Yes" : "No"}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: callTestOutcome.completed ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.15)",
+                        color: callTestOutcome.completed ? "#86efac" : "#94a3b8",
+                      }}
+                    >
+                      Completed: {callTestOutcome.completed ? "Yes" : "No"}
+                    </span>
+                    {callTestOutcome.timed_out && (
+                      <span style={{ fontSize: 12, color: "#fbbf24" }}>Polling timed out</span>
+                    )}
+                  </div>
+                  {(callTestOutcome.recipient_status || callTestOutcome.elevenlabs_conversation_id) && (
+                    <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                      {callTestOutcome.recipient_status != null && callTestOutcome.recipient_status !== "" && (
+                        <div>Recipient status: {callTestOutcome.recipient_status}</div>
+                      )}
+                      {callTestOutcome.elevenlabs_conversation_id && (
+                        <div style={{ wordBreak: "break-all" }}>
+                          Conversation id: {callTestOutcome.elevenlabs_conversation_id}
+                        </div>
+                      )}
+                      {typeof callTestOutcome.poll_attempts === "number" && (
+                        <div>Poll attempts: {callTestOutcome.poll_attempts}</div>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "var(--color-text-muted)",
+                        marginBottom: 6,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Text transcript
+                    </div>
+                    {callTestOutcome.transcript != null && String(callTestOutcome.transcript).trim() !== "" ? (
+                      <pre
+                        style={{
+                          margin: 0,
+                          maxHeight: 240,
+                          overflow: "auto",
+                          padding: 12,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          lineHeight: 1.45,
+                          background: "rgba(0,0,0,0.25)",
+                          color: "var(--color-text)",
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                          border: "0.5px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        {callTestOutcome.transcript}
+                      </pre>
+                    ) : (
+                      <p
+                        style={{
+                          margin: 0,
+                          padding: 12,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          lineHeight: 1.5,
+                          color: "var(--color-text-muted)",
+                          background: "rgba(0,0,0,0.12)",
+                          border: "0.5px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        No text transcript was returned for this test. ElevenLabs sometimes finalizes transcripts a few
+                        seconds after the call shows completed—try <strong>Run again</strong>, or open this conversation in
+                        the ElevenLabs dashboard using the conversation id above.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "var(--color-text-muted)",
+                        marginBottom: 6,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Audio recording
+                    </div>
+                    {callTestOutcome.recording_url != null && String(callTestOutcome.recording_url).trim() !== "" ? (
+                      <audio
+                        controls
+                        src={callTestOutcome.recording_url}
+                        style={{ width: "100%", height: 40, verticalAlign: "middle" }}
+                      />
+                    ) : (
+                      <p
+                        style={{
+                          margin: 0,
+                          padding: 12,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          lineHeight: 1.5,
+                          color: "var(--color-text-muted)",
+                          background: "rgba(0,0,0,0.12)",
+                          border: "0.5px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        No recording URL was returned yet. If the call just finished, wait a moment and run the test
+                        again, or use the conversation id in ElevenLabs to download or play the recording there.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={testingCall}
+                  onClick={() => {
+                    setShowTestCallModal(false);
+                    setTestCallNumber("");
+                    setCallTestOutcome(null);
+                  }}
+                >
+                  {callTestOutcome ? "Close" : "Cancel"}
                 </button>
                 <button
                   type="button"
@@ -456,13 +564,14 @@ export function TestConfigurationSection() {
                   disabled={testingCall || !testCallNumber.trim()}
                   onClick={handleTestCallConfiguration}
                 >
-                  {testingCall ? "…" : "Run"}
+                  {testingCall ? "…" : callTestOutcome ? "Run again" : "Run"}
                 </button>
               </div>
             </BaseCard>
-          </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body
+        )}
 
       <style
         dangerouslySetInnerHTML={{

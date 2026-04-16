@@ -4,7 +4,6 @@ import { MoreVertical } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
 import {
   AirtableBrandIcon,
-  GenerateLeadAIIcon,
   GoogleSheetsBrandIcon,
   MenuBrandIconSlot,
   MicrosoftExcelBrandIcon,
@@ -280,20 +279,18 @@ export function LeadsToolbar({
               </button>
               {showAddMenu && (
                 <div style={morePanelStyle}>
-                  {onImportCSV && (
-                    <MenuButton
-                      icon={
-                        <MenuBrandIconSlot>
-                          <MicrosoftExcelBrandIcon size={17} />
-                        </MenuBrandIconSlot>
-                      }
-                      label="Import CSV"
-                      onClick={() => {
-                        onImportCSV();
-                        setShowAddMenu(false);
-                      }}
-                    />
-                  )}
+                  <MenuButton
+                    icon={
+                      <MenuBrandIconSlot>
+                        <Icons.Sparkles size={17} strokeWidth={1.8} style={{ color: "#7C3AED" }} />
+                      </MenuBrandIconSlot>
+                    }
+                    label="Generate Leads with AI"
+                    onClick={() => {
+                      onGenerateAI();
+                      setShowAddMenu(false);
+                    }}
+                  />
                   {onAddFromLinkedIn && (
                     <MenuButton
                       icon={
@@ -304,6 +301,20 @@ export function LeadsToolbar({
                       label="Add from LinkedIn URL"
                       onClick={() => {
                         onAddFromLinkedIn();
+                        setShowAddMenu(false);
+                      }}
+                    />
+                  )}
+                  {onImportCSV && (
+                    <MenuButton
+                      icon={
+                        <MenuBrandIconSlot>
+                          <MicrosoftExcelBrandIcon size={17} />
+                        </MenuBrandIconSlot>
+                      }
+                      label="Import CSV"
+                      onClick={() => {
+                        onImportCSV();
                         setShowAddMenu(false);
                       }}
                     />
@@ -336,18 +347,6 @@ export function LeadsToolbar({
                       }}
                     />
                   )}
-                  <MenuButton
-                    icon={
-                      <MenuBrandIconSlot>
-                        <GenerateLeadAIIcon size={20} sparklesSize={11} />
-                      </MenuBrandIconSlot>
-                    }
-                    label="Generate Leads with AI"
-                    onClick={() => {
-                      onGenerateAI();
-                      setShowAddMenu(false);
-                    }}
-                  />
                 </div>
               )}
             </div>

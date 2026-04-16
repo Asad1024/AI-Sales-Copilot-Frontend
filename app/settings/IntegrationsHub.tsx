@@ -1014,8 +1014,8 @@ export function IntegrationsHub() {
                 <Icons.Mail size={22} strokeWidth={1.75} style={{ color: WIZ_CHANNEL_EMAIL }} aria-hidden />
               </div>
             }
-            name="SendGrid"
-            subtitle="API-based transactional email"
+            name="Resend"
+            subtitle="Transactional email with delivery and engagement webhooks"
             status="coming_soon"
             comingSoon
           />

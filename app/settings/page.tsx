@@ -7,6 +7,7 @@ import { apiRequest, getUser, setUser, type User } from "@/lib/apiClient";
 import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { TestConfigurationSection } from "./TestConfigurationSection";
+import { TestEmailSection } from "./TestEmailSection";
 import { IntegrationsHub } from "./IntegrationsHub";
 import BaseCard from "@/components/ui/BaseCard";
 import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
@@ -35,6 +36,11 @@ const TestConfigTabIcon = ({ active }: { active: boolean }) => (
     <Icons.Zap size={16} strokeWidth={1.5} />
   </span>
 );
+const TestEmailTabIcon = ({ active }: { active: boolean }) => (
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
+    <Icons.Mail size={16} strokeWidth={1.5} />
+  </span>
+);
 const PaymentsTabIcon = ({ active }: { active: boolean }) => (
   <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <CreditCard size={16} strokeWidth={1.5} />
@@ -46,7 +52,13 @@ const CreditHistoryTabIcon = ({ active }: { active: boolean }) => (
   </span>
 );
 
-type SettingsTabId = "profile" | "integrations" | "payments" | "credit-history" | "test-configuration";
+type SettingsTabId =
+  | "profile"
+  | "integrations"
+  | "payments"
+  | "credit-history"
+  | "test-configuration"
+  | "test-email";
 
 function parseSettingsTab(raw: string | null): SettingsTabId {
   if (raw === "integrations" || raw === "connectors") return "integrations";
@@ -54,6 +66,7 @@ function parseSettingsTab(raw: string | null): SettingsTabId {
   if (raw === "credit-history" || raw === "credits") return "credit-history";
   if (raw === "safety") return "profile";
   if (raw === "test-configuration") return "test-configuration";
+  if (raw === "test-email") return "test-email";
   return "profile";
 }
 
@@ -145,7 +158,8 @@ export default function SettingsPage() {
       {
         category: "Tools",
         items: [
-          { id: "test-configuration", label: "Test configuration", hint: "Channels & SMTP", icon: (a) => <TestConfigTabIcon active={a} /> },
+          { id: "test-configuration", label: "Test configuration", hint: "LinkedIn, WhatsApp, call", icon: (a) => <TestConfigTabIcon active={a} /> },
+          { id: "test-email", label: "Test email", hint: "Send tests and see delivery & opens", icon: (a) => <TestEmailTabIcon active={a} /> },
         ],
       },
     ],
@@ -286,6 +300,7 @@ export default function SettingsPage() {
           )}
           {effectiveTab === "credit-history" && <CreditHistorySettingsPanel />}
           {effectiveTab === "test-configuration" && <TestConfigurationSection />}
+          {effectiveTab === "test-email" && <TestEmailSection />}
         </BaseCard>
       </div>
 

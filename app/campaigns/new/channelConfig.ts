@@ -50,7 +50,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
     wizardCardDescription: 'Best open rates',
     icon: Icons.Mail,
     requiresIntegration: true,
-    integrationProvider: 'sendgrid',
+    integrationProvider: 'resend',
     maxThrottle: 100,
     throttleKey: 'email',
     steps: [

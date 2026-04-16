@@ -1002,6 +1002,33 @@ export default function CampaignNew() {
     }
   }, [searchParams]);
 
+  /** Server-side: SMTP / Resend / Unipile / ElevenLabs configured for this workspace (null = still loading) */
+  const [channelAvailability, setChannelAvailability] = useState<Record<ChannelType, boolean> | null>(null);
+
+  useEffect(() => {
+    if (activeBaseId == null || typeof activeBaseId !== "number") {
+      setChannelAvailability(null);
+      return;
+    }
+    let cancelled = false;
+    setChannelAvailability(null);
+    void (async () => {
+      try {
+        const data = (await apiRequest(
+          `/campaigns/wizard/channel-status?base_id=${encodeURIComponent(String(activeBaseId))}`
+        )) as Record<ChannelType, boolean>;
+        if (!cancelled) setChannelAvailability(data);
+      } catch {
+        if (!cancelled) {
+          setChannelAvailability({ email: true, linkedin: true, whatsapp: true, call: true });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeBaseId]);
+
   // Don't render until we have base context
   if (activeBaseId === undefined) {
     return (
@@ -1022,6 +1049,25 @@ export default function CampaignNew() {
   const [channels, setChannels] = useState<string[]>(["email"]);
   const channelsRef = useRef<string[]>(channels);
   channelsRef.current = channels;
+
+  useEffect(() => {
+    if (!channelAvailability) return;
+    // Editing a draft: keep saved channel selections (including disconnected) until the user unchecks on Step 1.
+    if (editParam) return;
+    setChannels((prev) => {
+      const filtered = prev.filter((c) => channelAvailability[c as ChannelType]);
+      if (filtered.length > 0) return filtered;
+      const order: ChannelType[] = ["email", "linkedin", "whatsapp", "call"];
+      const first = order.find((c) => channelAvailability[c]);
+      return first ? [first] : [];
+    });
+  }, [channelAvailability, editParam]);
+
+  const staleChannels = useMemo(() => {
+    if (!channelAvailability) return [];
+    return channels.filter((c) => !channelAvailability[c as ChannelType]);
+  }, [channels, channelAvailability]);
+
   const [segments, setSegments] = useState<string[]>([]);
   /** When non-null, selected leads = this list ∩ channel-eligible leads (fixes checkboxes vs segment-union bug). */
   const [explicitCampaignTargetLeadIds, setExplicitCampaignTargetLeadIds] = useState<number[] | null>(null);
@@ -1922,7 +1968,7 @@ export default function CampaignNew() {
         const data = await apiRequest(`/integrations/${activeBaseId}`);
         const integrations = data?.integrations || [];
         const emailProviderIntegration = integrations.find(
-          (i: any) => i.provider === 'sendgrid' || i.provider === 'smtp'
+          (i: any) => i.provider === 'resend' || i.provider === 'smtp'
         );
         if (emailProviderIntegration) {
           setEmailIntegration(emailProviderIntegration);
@@ -1936,6 +1982,17 @@ export default function CampaignNew() {
             provider: 'smtp',
             config: {
               from_email: providerStatus?.smtp_from_email || undefined
+            },
+            source: 'env'
+          });
+          return;
+        }
+
+        if (providerStatus?.resend_env_configured) {
+          setEmailIntegration({
+            provider: 'resend',
+            config: {
+              from_email: providerStatus?.resend_from_email || undefined
             },
             source: 'env'
           });
@@ -3736,6 +3793,19 @@ export default function CampaignNew() {
     );
   }
 
+  const channelConnectionsPending =
+    typeof activeBaseId === "number" && channelAvailability === null;
+
+  if (channelConnectionsPending) {
+    return (
+      <GlobalPageLoader
+        layout="page"
+        ariaLabel="Checking channel connections"
+        message="Preparing campaign…"
+      />
+    );
+  }
+
   return (
     <>
     <style>{`
@@ -3934,6 +4004,38 @@ export default function CampaignNew() {
           </div>
         </div>
 
+        {staleChannels.length > 0 ? (
+          <div
+            role="alert"
+            style={{
+              margin: "0 0 20px",
+              padding: "12px 16px",
+              borderRadius: 10,
+              border: "1px solid rgba(245, 158, 11, 0.45)",
+              background: "rgba(245, 158, 11, 0.1)",
+              color: "var(--color-text)",
+              fontSize: 14,
+              lineHeight: 1.5,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+            }}
+          >
+            <AlertTriangle size={20} strokeWidth={2} style={{ flexShrink: 0, color: "#d97706", marginTop: 1 }} aria-hidden />
+            <span>
+              <strong style={{ fontWeight: 700 }}>Channel connection required.</strong>{" "}
+              {staleChannels
+                .map(
+                  (c) =>
+                    getAvailableChannels().find((cfg) => cfg.id === c)?.label ?? c
+                )
+                .join(", ")}{" "}
+              {staleChannels.length === 1 ? "is" : "are"} no longer connected. Reconnect in Settings or open Step 1 and remove{" "}
+              {staleChannels.length === 1 ? "this channel" : "these channels"} before launching.
+            </span>
+          </div>
+        ) : null}
+
       {/* Basic Setup - rendered based on stepType */}
       {currentStepInfo?.stepType === 'basic_setup' && (
         <div
@@ -4053,17 +4155,26 @@ export default function CampaignNew() {
                 const ChIcon = meta?.Icon ?? channelConfig.icon;
                 const selected = channels.includes(channelConfig.id);
                 const iconColor = meta?.iconColor ?? WIZ_ACCENT;
+                const showDisconnected =
+                  channelAvailability !== null && !channelAvailability[ch];
+                const cannotSelectDisconnected = showDisconnected && !selected;
                 return (
                   <button
                     type="button"
                     key={channelConfig.id}
-                    onClick={() =>
-                      setChannels((prev) =>
-                        prev.includes(channelConfig.id)
-                          ? prev.filter((x) => x !== channelConfig.id)
-                          : [...prev, channelConfig.id]
-                      )
-                    }
+                    disabled={cannotSelectDisconnected}
+                    aria-disabled={cannotSelectDisconnected}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      if (showDisconnected && !selected) return;
+                      setChannels((prev) => {
+                        if (prev.includes(channelConfig.id)) {
+                          return prev.filter((x) => x !== channelConfig.id);
+                        }
+                        if (showDisconnected) return prev;
+                        return [...prev, channelConfig.id];
+                      });
+                    }}
                     style={{
                       width: 104,
                       minHeight: 112,
@@ -4072,7 +4183,7 @@ export default function CampaignNew() {
                       border: selected ? `2px solid ${WIZ_ACCENT}` : "1px solid var(--color-border)",
                       background: "var(--color-surface)",
                       color: "var(--color-text)",
-                      cursor: "pointer",
+                      cursor: cannotSelectDisconnected ? "not-allowed" : "pointer",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
@@ -4082,8 +4193,10 @@ export default function CampaignNew() {
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
                       boxShadow: selected ? "0 1px 4px rgba(124, 58, 237, 0.12)" : "none",
                       position: "relative",
+                      opacity: showDisconnected && !selected ? 0.55 : 1,
                     }}
                     onMouseEnter={(e) => {
+                      if (cannotSelectDisconnected) return;
                       if (!selected) {
                         e.currentTarget.style.background = "rgba(124, 58, 237, 0.06)";
                         e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.35)";
@@ -4133,7 +4246,11 @@ export default function CampaignNew() {
                         color: "var(--color-text-muted)",
                       }}
                     >
-                      {channelConfig.wizardCardDescription}
+                      {showDisconnected
+                        ? selected
+                          ? "Not connected — click to remove"
+                          : "Not connected"
+                        : channelConfig.wizardCardDescription}
                     </span>
                   </button>
                 );
@@ -13477,7 +13594,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                           {emailIntegration ? (
                             <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
                               <Icons.CheckCircle size={14} />
-                              {emailIntegration.provider === 'smtp' ? 'SMTP Connected' : 'SendGrid Connected'}
+                              {emailIntegration.provider === 'smtp' ? 'SMTP Connected' : 'Resend Connected'}
                               {emailIntegration.config?.from_email && (
                                 <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
                                   ({emailIntegration.config.from_email})
@@ -13638,6 +13755,22 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 className="btn-primary" 
                 onClick={async () => {
                   if (launching) return;
+                  if (channelAvailability) {
+                    const disconnected = channels.filter((c) => !channelAvailability[c as ChannelType]);
+                    if (disconnected.length > 0) {
+                      const names = disconnected
+                        .map(
+                          (c) =>
+                            getAvailableChannels().find((cfg) => cfg.id === c)?.label ?? c
+                        )
+                        .join(", ");
+                      showWarning(
+                        "Channels not connected",
+                        `${names} ${disconnected.length === 1 ? "is" : "are"} not connected. Reconnect in Settings or remove ${disconnected.length === 1 ? "it" : "them"} on Step 1 before launching.`
+                      );
+                      return;
+                    }
+                  }
                   if (channels.includes('linkedin')) {
                     // Check LinkedIn integration
                     try {

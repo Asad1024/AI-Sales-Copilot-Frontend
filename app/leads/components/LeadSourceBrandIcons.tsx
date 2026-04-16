@@ -52,27 +52,16 @@ export function MicrosoftExcelBrandIcon({ size = 32 }: { size?: number }) {
   );
 }
 
-/** Matches empty-state tile: gradient square + sparkles (scales with `size` = box edge length). */
+/** AI mark: plain purple sparkles icon (no background tile). */
 export function GenerateLeadAIIcon({ size = 22, sparklesSize }: { size?: number; sparklesSize?: number }) {
-  const sp = sparklesSize ?? Math.max(10, Math.round(size * 0.48));
-  const shadow =
-    size >= 36 ? "0 6px 20px rgba(124, 58, 237, 0.35)" : "0 2px 8px rgba(124, 58, 237, 0.3)";
+  const sp = sparklesSize ?? size;
   return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        borderRadius: Math.max(8, Math.round(size * 0.27)),
-        background: "linear-gradient(135deg, #6366f1 0%, #7C3AED 45%, #7c3aed 100%)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        boxShadow: shadow,
-      }}
-    >
-      <Icons.Sparkles size={sp} strokeWidth={1.5} color="#fff" />
-    </span>
+    <Icons.Sparkles
+      size={sp}
+      strokeWidth={1.8}
+      style={{ color: "#7C3AED", display: "inline-block", flexShrink: 0 }}
+      aria-hidden
+    />
   );
 }
 

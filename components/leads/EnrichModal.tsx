@@ -214,20 +214,7 @@ export function EnrichModal({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: "rgba(124, 58, 237, 0.14)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Icons.Sparkles size={20} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
-              </div>
+              <Icons.Sparkles size={20} strokeWidth={1.8} style={{ color: "var(--color-primary)", flexShrink: 0 }} />
               <div style={{ minWidth: 0 }}>
                 <h2
                   id="enrich-modal-title"

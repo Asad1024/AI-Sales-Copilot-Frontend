@@ -5,6 +5,9 @@ interface Campaign {
   id: number;
   channel: 'email' | 'linkedin' | 'whatsapp' | 'call';
   sent?: number;
+  email_sent?: number;
+  email_processed?: number;
+  esp_accept_rate?: string;
   delivered?: number;
   opened?: number;
   clicked?: number;
@@ -36,6 +39,7 @@ interface Campaign {
   linkedin_invitations_failed?: number;
   linkedin_invitations_skipped?: number;
   linkedin_invitations_accepted?: number;
+  linkedin_submit_success_rate?: string;
   call_initiated?: number;
   call_answered?: number;
   call_completed?: number;
@@ -52,11 +56,12 @@ interface AnalyticsTabProps {
 }
 
 export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
-  const calculatedOpenRate = campaign.sent && campaign.opened 
-    ? ((campaign.opened / campaign.sent) * 100).toFixed(1) 
+  const emailSent = campaign.email_sent ?? campaign.sent ?? 0;
+  const calculatedOpenRate = emailSent && campaign.opened 
+    ? ((campaign.opened / emailSent) * 100).toFixed(1) 
     : '0';
-  const calculatedReplyRate = campaign.sent && campaign.replied 
-    ? ((campaign.replied / campaign.sent) * 100).toFixed(1) 
+  const calculatedReplyRate = emailSent && campaign.replied 
+    ? ((campaign.replied / emailSent) * 100).toFixed(1) 
     : '0';
   const calculatedConversionRate = campaign.replied && campaign.converted 
     ? ((campaign.converted / campaign.replied) * 100).toFixed(1) 
@@ -106,8 +111,9 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   📤 Sending & Delivery
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                  <MetricCard title="Sent" value={campaign.sent || 0} gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
-                  <MetricCard title="Delivered" value={campaign.delivered || 0} subtitle={campaign.deliveryRate ? `${campaign.deliveryRate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                  <MetricCard title="Emails sent" value={emailSent} gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
+                  <MetricCard title="Resend accepted (processed)" value={campaign.email_processed ?? 0} subtitle={campaign.esp_accept_rate ? `${campaign.esp_accept_rate}% ESP accept rate` : undefined} gradient="linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)" color="#6366f1" />
+                  <MetricCard title="Delivered (inbox)" value={campaign.delivered || 0} subtitle={campaign.deliveryRate ? `${campaign.deliveryRate}% inbox delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
                   {(campaign.bounced || 0) > 0 && (
                     <MetricCard title="Bounced" value={campaign.bounced || 0} subtitle={campaign.bounceRate ? `${campaign.bounceRate}% bounce rate` : undefined} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
                   )}
@@ -175,9 +181,9 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Sent" value={campaign.whatsapp_sent && campaign.whatsapp_sent > 0 ? campaign.whatsapp_sent : '—'} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
-                <MetricCard title="Delivered" value={campaign.whatsapp_delivered && campaign.whatsapp_delivered > 0 ? campaign.whatsapp_delivered : '—'} subtitle={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="Replied" value={campaign.whatsapp_replied && campaign.whatsapp_replied > 0 ? campaign.whatsapp_replied : '—'} subtitle={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
+                <MetricCard title="Sent" value={campaign.whatsapp_sent ?? 0} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
+                <MetricCard title="Delivered" value={campaign.whatsapp_delivered ?? 0} subtitle={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                <MetricCard title="Replied" value={campaign.whatsapp_replied ?? 0} subtitle={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
               </div>
             </div>
           )}
@@ -229,35 +235,12 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                 <MetricCard title="Invitations Sent" value={campaign.linkedin_invitations_sent || 0} gradient="linear-gradient(135deg, rgba(0, 119, 181, 0.1) 0%, rgba(0, 119, 181, 0.05) 100%)" color="#0077b5" />
                 <MetricCard title="Accepted" value={campaign.linkedin_invitations_accepted || 0} subtitle={`${campaign.linkedin_invitations_sent && campaign.linkedin_invitations_accepted ? ((campaign.linkedin_invitations_accepted / campaign.linkedin_invitations_sent) * 100).toFixed(1) : '0'}% acceptance rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
+                <MetricCard title="API success" value={`${campaign.linkedin_submit_success_rate ?? '0'}%`} subtitle="Sent ÷ (sent + failed)" gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
                 {campaign.linkedin_invitations_failed && campaign.linkedin_invitations_failed > 0 && (
                   <MetricCard title="Failed" value={campaign.linkedin_invitations_failed} gradient="linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)" color="#ff6b6b" />
                 )}
                 {campaign.linkedin_invitations_skipped && campaign.linkedin_invitations_skipped > 0 && (
                   <MetricCard title="Skipped" value={campaign.linkedin_invitations_skipped} gradient="linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)" color="#ffc107" />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Call Channel Metrics */}
-          {activeChannels.includes('call') && (
-            <div>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icons.Phone size={18} />
-                  Call Metrics
-                </h3>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Calls Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)" color="#7C3AED" />
-                <MetricCard title="Answered" value={campaign.call_answered || 0} subtitle={`${campaign.call_answer_rate || '0'}% answer rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="Completed" value={campaign.call_completed || 0} subtitle={`${campaign.call_completion_rate || '0'}% completion rate`} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
-                <MetricCard title="Not Answered" value={campaign.call_not_answered || 0} gradient="linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)" color="#ffc107" />
-                {(campaign.call_failed || 0) > 0 && (
-                  <MetricCard title="Failed" value={campaign.call_failed || 0} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
-                )}
-                {(campaign.call_busy || 0) > 0 && (
-                  <MetricCard title="Busy" value={campaign.call_busy || 0} gradient="linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%)" color="#fb923c" />
                 )}
               </div>
             </div>
@@ -278,47 +261,48 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
             </div>
           )}
 
-          {/* Performance Chart */}
-          <div style={{
-            background: 'var(--color-surface-secondary)',
-            borderRadius: 12,
-            padding: 24,
-            border: '1px solid var(--color-border)'
-          }}>
-            <h4 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Performance Over Time</h4>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 200 }}>
-              {[1, 2, 3, 4, 5, 6, 7].map((day, idx) => {
-                const sentHeight = campaign.sent ? Math.min((campaign.sent / 7) * (Math.random() * 0.3 + 0.7), 100) : 0;
-                const openedHeight = campaign.opened ? Math.min((campaign.opened / 7) * (Math.random() * 0.3 + 0.7), sentHeight * 0.8) : 0;
-                const repliedHeight = campaign.replied ? Math.min((campaign.replied / 7) * (Math.random() * 0.3 + 0.7), openedHeight * 0.6) : 0;
-                
+          {/* Campaign totals (real figures — no simulated time series yet) */}
+          {activeChannels.includes('email') && (
+            <div style={{
+              background: 'var(--color-surface-secondary)',
+              borderRadius: 12,
+              padding: 24,
+              border: '1px solid var(--color-border)'
+            }}>
+              <h4 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Email volume snapshot</h4>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
+                Bar heights use your live totals (not random placeholders). Per-day trends require stored time-series.
+              </p>
+              {(() => {
+                const s = emailSent || 0;
+                const o = campaign.opened || 0;
+                const r = campaign.replied || 0;
+                const max = Math.max(s, o, r, 1);
+                const bars = [
+                  { label: 'Sent', value: s, color: '#7C3AED' },
+                  { label: 'Opened', value: o, color: '#A94CFF' },
+                  { label: 'Replied', value: r, color: '#ff6b6b' },
+                ];
                 return (
-                  <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 150, width: '100%' }}>
-                      <div style={{ width: '33%', height: `${sentHeight}%`, background: 'linear-gradient(to top, #7C3AED, rgba(124, 58, 237, 0.3))', borderRadius: '4px 4px 0 0', minHeight: sentHeight > 0 ? 4 : 0 }} />
-                      <div style={{ width: '33%', height: `${openedHeight}%`, background: 'linear-gradient(to top, #A94CFF, rgba(169, 76, 255, 0.3))', borderRadius: '4px 4px 0 0', minHeight: openedHeight > 0 ? 4 : 0 }} />
-                      <div style={{ width: '33%', height: `${repliedHeight}%`, background: 'linear-gradient(to top, #ff6b6b, rgba(255, 107, 107, 0.3))', borderRadius: '4px 4px 0 0', minHeight: repliedHeight > 0 ? 4 : 0 }} />
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>Day {day}</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, height: 160, paddingTop: 8 }}>
+                    {bars.map((b) => (
+                      <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{b.value}</div>
+                        <div style={{
+                          width: '100%',
+                          maxWidth: 56,
+                          height: `${Math.max(8, (b.value / max) * 120)}px`,
+                          background: `linear-gradient(to top, ${b.color}, ${b.color}55)`,
+                          borderRadius: '6px 6px 0 0',
+                        }} />
+                        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{b.label}</div>
+                      </div>
+                    ))}
                   </div>
                 );
-              })}
+              })()}
             </div>
-            <div style={{ display: 'flex', gap: 16, marginTop: 16, justifyContent: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 12, height: 12, background: '#7C3AED', borderRadius: 2 }} />
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Sent</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 12, height: 12, background: '#A94CFF', borderRadius: 2 }} />
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Opened</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 12, height: 12, background: '#ff6b6b', borderRadius: 2 }} />
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Replied</span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* AI Insights */}
           {campaign.ai_insight && (

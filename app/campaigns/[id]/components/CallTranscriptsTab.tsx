@@ -24,8 +24,18 @@ interface CallLog {
   recording_url?: string;
   batch_id?: string;
   call_id?: string;
+  /** ElevenLabs ConvAI conversation id (same as call_id). */
+  elevenlabsConversationId?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+function formatSafeDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 const statusConfig: Record<string, { color: string; bg: string; label: string; icon: any }> = {
@@ -413,12 +423,15 @@ export function CallTranscriptsTab() {
                   color: 'var(--color-text-muted)'
                 }}>
                   <div>
-                    {log.call_id && (
-                      <div>Call ID: {log.call_id.substring(0, 16)}...</div>
+                    {(log.elevenlabsConversationId || log.call_id) && (
+                      <div>
+                        Conversation ID: {(log.elevenlabsConversationId || log.call_id || "").slice(0, 20)}
+                        {(log.elevenlabsConversationId || log.call_id || "").length > 20 ? "…" : ""}
+                      </div>
                     )}
                   </div>
                   <div>
-                    Created: {new Date(log.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                    Created: {formatSafeDate(log.createdAt)}
                   </div>
                 </div>
               </div>

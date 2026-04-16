@@ -25,6 +25,15 @@ interface Campaign {
   base_id: number;
   leads?: number;
   sent?: number;
+  email_sent?: number;
+  email_processed?: number;
+  esp_accept_rate?: string;
+  event_counts?: Record<string, number>;
+  whatsapp_template_preview?: string | null;
+  whatsapp_last_message_preview?: string | null;
+  aggregate_sent?: number;
+  aggregate_replied?: number;
+  aggregate_reply_rate?: string;
   delivered?: number;
   opened?: number;
   clicked?: number;
@@ -54,6 +63,8 @@ interface Campaign {
   linkedin_invitations_failed?: number;
   linkedin_invitations_skipped?: number;
   linkedin_invitations_accepted?: number;
+  linkedin_invitations_attempted?: number;
+  linkedin_submit_success_rate?: string;
   call_attempts?: number;
   call_answered?: number;
   call_answer_rate?: string;

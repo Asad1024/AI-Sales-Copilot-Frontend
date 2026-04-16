@@ -6,9 +6,11 @@ interface Campaign {
   name: string;
   channel: 'email' | 'linkedin' | 'whatsapp' | 'call';
   status: 'running' | 'paused' | 'draft' | 'completed';
-  base_id: number;
   leads?: number;
   sent?: number;
+  email_sent?: number;
+  email_processed?: number;
+  esp_accept_rate?: string;
   delivered?: number;
   opened?: number;
   clicked?: number;
@@ -21,6 +23,9 @@ interface Campaign {
   ai_insight?: string;
   tier_filter?: string;
   channels?: string[];
+  event_counts?: Record<string, number>;
+  whatsapp_template_preview?: string | null;
+  whatsapp_last_message_preview?: string | null;
   whatsapp_sent?: number;
   whatsapp_delivered?: number;
   whatsapp_seen?: number;
@@ -34,6 +39,8 @@ interface Campaign {
   linkedin_invitations_failed?: number;
   linkedin_invitations_skipped?: number;
   linkedin_invitations_accepted?: number;
+  linkedin_invitations_attempted?: number;
+  linkedin_submit_success_rate?: string;
   call_initiated?: number;
   call_answered?: number;
   call_completed?: number;
@@ -53,11 +60,12 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: OverviewTabProps) {
-  const calculatedOpenRate = campaign.sent && campaign.opened 
-    ? ((campaign.opened / campaign.sent) * 100).toFixed(1) 
+  const emailSent = campaign.email_sent ?? campaign.sent ?? 0;
+  const calculatedOpenRate = emailSent && campaign.opened 
+    ? ((campaign.opened / emailSent) * 100).toFixed(1) 
     : '0';
-  const calculatedReplyRate = campaign.sent && campaign.replied 
-    ? ((campaign.replied / campaign.sent) * 100).toFixed(1) 
+  const calculatedReplyRate = emailSent && campaign.replied 
+    ? ((campaign.replied / emailSent) * 100).toFixed(1) 
     : '0';
   const calculatedConversionRate = campaign.replied && campaign.converted 
     ? ((campaign.converted / campaign.replied) * 100).toFixed(1) 
@@ -87,12 +95,23 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         
         // Email Channel Metrics
         if (activeChannels.includes('email')) {
-          const emailDeliveryRate = campaign.sent && campaign.delivered 
-            ? ((campaign.delivered / campaign.sent) * 100).toFixed(1) 
+          const processed = campaign.email_processed ?? 0;
+          const emailDeliveryRate = emailSent && (campaign.delivered || 0) > 0
+            ? (((campaign.delivered || 0) / emailSent) * 100).toFixed(1) 
             : '0';
-          const emailClickRate = campaign.sent && campaign.clicked 
-            ? ((campaign.clicked / campaign.sent) * 100).toFixed(1) 
+          const emailClickRate = emailSent && (campaign.clicked || 0) > 0
+            ? (((campaign.clicked || 0) / emailSent) * 100).toFixed(1) 
             : '0';
+          const espRate = campaign.esp_accept_rate
+            ?? (emailSent && processed > 0 ? ((processed / emailSent) * 100).toFixed(1) : '0');
+          const ec = campaign.event_counts || {};
+          const webhookLine = [
+            `processed ${ec.processed ?? 0}`,
+            `delivered ${ec.delivered ?? 0}`,
+            `opened ${(ec.opened ?? 0) + (ec.email_opened ?? 0)}`,
+            `clicked ${ec.clicked ?? 0}`,
+            `replied ${(ec.replied ?? 0) + (ec.email_reply ?? 0)}`,
+          ].join(' · ');
           
           channelSections.push(
             <div key="email" style={{ 
@@ -111,18 +130,37 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                   Track email delivery, opens, clicks, and replies
                 </p>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
-                <Kpi title="Sent" value={campaign.sent || 0} icon={Icons.Send} />
-                <Kpi title="Delivered" value={campaign.delivered || 0} icon={Icons.CheckCircle} />
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 16 }}>
+                <Kpi title="Leads in campaign" value={totalLeadsKpi} icon={Icons.Users} />
+                <Kpi title="Emails sent" value={emailSent} icon={Icons.Send} />
+                <Kpi title="Resend accepted (email.sent)" value={processed} icon={Icons.CheckCircle} />
+                <Kpi title="Delivered (inbox)" value={campaign.delivered || 0} icon={Icons.CheckCircle} />
                 <Kpi title="Opened" value={campaign.opened || 0} icon={Icons.Eye} />
                 <Kpi title="Clicked" value={campaign.clicked || 0} icon={Icons.ExternalLink} />
                 <Kpi title="Replied" value={campaign.replied || 0} icon={Icons.MessageCircle} />
               </div>
+              <div style={{
+                marginBottom: 20,
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: 'var(--color-surface-secondary)',
+                border: '1px solid var(--elev-border)',
+                fontSize: 12,
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.5,
+              }}>
+                <strong style={{ color: 'var(--color-text)' }}>Webhook / EventLog counts</strong>
+                <div style={{ marginTop: 6 }}>{webhookLine}</div>
+                <div style={{ marginTop: 6, fontSize: 11 }}>
+                  “Resend accepted” counts <code style={{ fontSize: 11 }}>email.sent</code> webhooks. “Delivered (inbox)” needs <code style={{ fontSize: 11 }}>email.delivered</code>.
+                </div>
+              </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
-                <Kpi title="Delivery Rate" value={`${emailDeliveryRate}%`} icon={Icons.Chart} />
-                <Kpi title="Open Rate" value={`${calculatedOpenRate}%`} icon={Icons.Chart} />
-                <Kpi title="Click Rate" value={`${emailClickRate}%`} icon={Icons.Chart} />
-                <Kpi title="Reply Rate" value={`${calculatedReplyRate}%`} icon={Icons.Target} />
+                <Kpi title="Inbox delivery rate" value={`${emailDeliveryRate}%`} icon={Icons.Chart} />
+                <Kpi title="ESP accept rate" value={`${espRate}%`} icon={Icons.Chart} />
+                <Kpi title="Open rate (vs sent)" value={`${calculatedOpenRate}%`} icon={Icons.Chart} />
+                <Kpi title="Click rate (vs sent)" value={`${emailClickRate}%`} icon={Icons.Chart} />
+                <Kpi title="Reply rate (vs sent)" value={`${calculatedReplyRate}%`} icon={Icons.Target} />
               </div>
             </div>
           );
@@ -130,6 +168,15 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         
         // WhatsApp Channel Metrics
         if (activeChannels.includes('whatsapp')) {
+          const waSent = campaign.whatsapp_sent ?? 0;
+          const waDel = campaign.whatsapp_delivered ?? 0;
+          const waRep = campaign.whatsapp_replied ?? 0;
+          const waDelRate = waSent > 0 ? ((waDel / waSent) * 100).toFixed(1) : (campaign.whatsapp_delivery_rate || '0.0');
+          const waRepRate = waSent > 0 ? ((waRep / waSent) * 100).toFixed(1) : (campaign.whatsapp_reply_rate || '0.0');
+          const waMsg =
+            campaign.whatsapp_last_message_preview ||
+            campaign.whatsapp_template_preview ||
+            '';
           channelSections.push(
             <div key="whatsapp" style={{ 
               marginBottom: 40,
@@ -147,17 +194,35 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                   Track messages sent, delivered, and replies for WhatsApp campaigns
                 </p>
               </div>
+              {waMsg ? (
+                <div style={{
+                  marginBottom: 20,
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  background: 'var(--color-surface-secondary)',
+                  border: '1px solid var(--elev-border)',
+                  fontSize: 13,
+                  color: 'var(--color-text)',
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: 1.45,
+                  maxHeight: 220,
+                  overflow: 'auto',
+                }}>
+                  <strong style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Message (last send or template)</strong>
+                  <div style={{ marginTop: 8 }}>{waMsg}</div>
+                </div>
+              ) : null}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
-                <Kpi title="Sent" value={campaign.whatsapp_sent && campaign.whatsapp_sent > 0 ? campaign.whatsapp_sent : '—'} icon={Icons.Send} />
-                <Kpi title="Delivered" value={campaign.whatsapp_delivered && campaign.whatsapp_delivered > 0 ? campaign.whatsapp_delivered : '—'} icon={Icons.CheckCircle} />
-                <Kpi title="Replied" value={campaign.whatsapp_replied && campaign.whatsapp_replied > 0 ? campaign.whatsapp_replied : '—'} icon={Icons.MessageCircle} />
+                <Kpi title="Sent" value={waSent} icon={Icons.Send} />
+                <Kpi title="Delivered" value={waDel} icon={Icons.CheckCircle} />
+                <Kpi title="Replied" value={waRep} icon={Icons.MessageCircle} />
                 {campaign.whatsapp_no_whatsapp && campaign.whatsapp_no_whatsapp > 0 && (
                   <Kpi title="Skipped (No WhatsApp)" value={campaign.whatsapp_no_whatsapp} icon={Icons.AlertCircle} />
                 )}
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
-                <Kpi title="Delivery Rate" value={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}%` : '—'} icon={Icons.Chart} />
-                <Kpi title="Reply Rate" value={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}%` : '—'} icon={Icons.Target} />
+                <Kpi title="Delivery Rate" value={`${waDelRate}%`} icon={Icons.Chart} />
+                <Kpi title="Reply Rate" value={`${waRepRate}%`} icon={Icons.Target} />
               </div>
             </div>
           );
@@ -170,6 +235,11 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
           const linkedinFailed = campaign.linkedin_invitations_failed || 0;
           const linkedinSkipped = campaign.linkedin_invitations_skipped || 0;
           const linkedinAcceptanceRate = linkedinSent > 0 ? ((linkedinAccepted / linkedinSent) * 100).toFixed(1) : '0';
+          const submitOk =
+            campaign.linkedin_submit_success_rate
+            ?? (linkedinSent + linkedinFailed > 0
+              ? ((linkedinSent / (linkedinSent + linkedinFailed)) * 100).toFixed(1)
+              : '0');
           
           channelSections.push(
             <div key="linkedin" style={{ 
@@ -191,15 +261,14 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
                 <Kpi title="Invitations Sent" value={linkedinSent} icon={Icons.Send} />
                 <Kpi title="Accepted" value={linkedinAccepted} icon={Icons.CheckCircle} />
-                {linkedinFailed > 0 && (
-                  <Kpi title="Failed" value={linkedinFailed} icon={Icons.X} />
-                )}
+                <Kpi title="Failed" value={linkedinFailed} icon={Icons.X} />
                 {linkedinSkipped > 0 && (
                   <Kpi title="Skipped" value={linkedinSkipped} icon={Icons.AlertCircle} />
                 )}
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
-                <Kpi title="Acceptance Rate" value={`${linkedinAcceptanceRate}%`} icon={Icons.Chart} />
+                <Kpi title="Acceptance rate" value={linkedinSent > 0 ? `${linkedinAcceptanceRate}%` : '—'} icon={Icons.Chart} />
+                <Kpi title="API success (sent ÷ sent+failed)" value={`${submitOk}%`} icon={Icons.Target} />
               </div>
             </div>
           );

@@ -28,7 +28,7 @@ export default function DemoProgressPage() {
       description: 'Generating and importing leads from multiple sources',
       icon: '👥',
       details: '200 leads generated and imported',
-      color: '#7C3AED'
+      color: '#2563EB'
     },
     {
       id: 'enriched',
@@ -36,7 +36,7 @@ export default function DemoProgressPage() {
       description: 'Adding company data, LinkedIn profiles, and tech stack',
       icon: '🔍',
       details: 'Company data, LinkedIn profiles, tech stack',
-      color: '#A94CFF'
+      color: '#06B6D4'
     },
     {
       id: 'verified',
@@ -139,7 +139,7 @@ export default function DemoProgressPage() {
             fontSize: '48px', 
             fontWeight: '700', 
             margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
@@ -177,12 +177,12 @@ export default function DemoProgressPage() {
                 padding: '20px',
                 borderRadius: '16px',
                 background: isActive 
-                  ? 'rgba(124, 58, 237, 0.1)' 
+                  ? 'rgba(37, 99, 235, 0.1)' 
                   : isCompleted 
                     ? 'rgba(78, 205, 196, 0.1)'
                     : 'rgba(255, 255, 255, 0.02)',
                 border: isActive 
-                  ? '1px solid rgba(124, 58, 237, 0.3)' 
+                  ? '1px solid rgba(37, 99, 235, 0.3)' 
                   : isCompleted 
                     ? '1px solid rgba(78, 205, 196, 0.3)'
                     : '1px solid rgba(255, 255, 255, 0.1)',
@@ -293,10 +293,10 @@ export default function DemoProgressPage() {
         {/* Launch Section */}
         {isComplete && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+            background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
             borderRadius: '20px',
             padding: '40px',
-            border: '1px solid rgba(124, 58, 237, 0.2)',
+            border: '1px solid rgba(37, 99, 235, 0.2)',
             textAlign: 'center',
             marginBottom: '32px'
           }}>
@@ -402,7 +402,7 @@ export default function DemoProgressPage() {
               <button
                 onClick={handleLaunch}
                 style={{
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                  background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                   border: 'none',
                   borderRadius: '16px',
                   padding: '20px 40px',
@@ -413,7 +413,7 @@ export default function DemoProgressPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)'
+                  boxShadow: '0 8px 24px rgba(37, 99, 235, 0.3)'
                 }}
               >
                 🚀 Launch Campaign

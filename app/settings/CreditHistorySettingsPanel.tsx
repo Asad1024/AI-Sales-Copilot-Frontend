@@ -154,7 +154,7 @@ export function CreditHistorySettingsPanel() {
         <div className="mt-4 flex flex-wrap gap-8">
           <div>
             <div className="text-xs font-medium text-[var(--color-text-muted)]">Balance</div>
-            <div className="text-2xl font-extrabold text-[var(--color-primary,#7C3AED)]">{data.credits_balance}</div>
+            <div className="text-2xl font-extrabold text-[var(--color-primary,#2563EB)]">{data.credits_balance}</div>
           </div>
           <div>
             <div className="text-xs font-medium text-[var(--color-text-muted)]">Monthly allowance</div>

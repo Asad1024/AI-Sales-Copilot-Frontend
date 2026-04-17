@@ -105,7 +105,7 @@ export function TestConfigurationSection() {
     {
       Icon: Icons.Linkedin,
       label: "LinkedIn",
-      description: "Real test DM or invite via Unipile",
+      description: "Real test DM or invite from your connected account",
       open: () => setShowTestLinkedInModal(true),
     },
     {
@@ -117,7 +117,7 @@ export function TestConfigurationSection() {
     {
       Icon: Icons.Phone,
       label: "Call",
-      description: "ElevenLabs batch test call",
+      description: "Voice AI batch test call",
       open: () => {
         setCallTestOutcome(null);
         setShowTestCallModal(true);
@@ -142,7 +142,7 @@ export function TestConfigurationSection() {
         </div>
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5, maxWidth: 560 }}>
           Run checks against your current backend configuration. LinkedIn and WhatsApp tests send a real message from your
-          connected Unipile account. Use the <strong>Test email</strong> tab to verify email delivery and tracking.
+          connected messaging account. Use the <strong>Test email</strong> tab to verify email delivery and tracking.
         </p>
       </BaseCard>
 
@@ -160,7 +160,7 @@ export function TestConfigurationSection() {
             key={label}
             type="button"
             onClick={open}
-            className="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(124,58,237,0.35)] focus-visible:ring-offset-2"
+            className="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(37,99,235,0.35)] focus-visible:ring-offset-2"
             aria-label={`Open ${label} test`}
             style={{
               textAlign: "left",
@@ -224,7 +224,7 @@ export function TestConfigurationSection() {
             <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test LinkedIn</h3>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Sends a short test from your Unipile LinkedIn account. If you are not already connected on LinkedIn, the
+                Sends a short test from your connected LinkedIn account. If you are not already connected on LinkedIn, the
                 recipient may get a connection invite instead of a DM.
               </p>
               <input
@@ -282,7 +282,7 @@ export function TestConfigurationSection() {
             <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test WhatsApp</h3>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Sends a short test from your Unipile WhatsApp number. Use the full number with country code; the recipient
+                Sends a short test from your connected WhatsApp number. Use the full number with country code; the recipient
                 must use WhatsApp on that number.
               </p>
               <input
@@ -366,8 +366,8 @@ export function TestConfigurationSection() {
                 Test call
               </h3>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Uses ElevenLabs conversational AI (batch calling). Configure API key, agent ID, and phone number ID in
-                Admin → Users → API credentials for your user, or set ELEVENLABS_* in the server environment. After you
+                Uses conversational voice AI (batch calling). Configure API key, agent ID, and phone number ID in
+                Admin → Users → API credentials for your user, or set the voice provider variables in the server environment. After you
                 run a test, the server waits for the batch recipient to finish (often up to about two minutes) and then
                 returns answered, completed, transcript, and recording when available.
               </p>
@@ -499,9 +499,9 @@ export function TestConfigurationSection() {
                           border: "0.5px solid rgba(255,255,255,0.06)",
                         }}
                       >
-                        No text transcript was returned for this test. ElevenLabs sometimes finalizes transcripts a few
+                        No text transcript was returned for this test. The voice provider sometimes finalizes transcripts a few
                         seconds after the call shows completed—try <strong>Run again</strong>, or open this conversation in
-                        the ElevenLabs dashboard using the conversation id above.
+                        your provider dashboard using the conversation id above.
                       </p>
                     )}
                   </div>
@@ -538,7 +538,7 @@ export function TestConfigurationSection() {
                         }}
                       >
                         No recording URL was returned yet. If the call just finished, wait a moment and run the test
-                        again, or use the conversation id in ElevenLabs to download or play the recording there.
+                        again, or use the conversation id in your provider dashboard to download or play the recording there.
                       </p>
                     )}
                   </div>

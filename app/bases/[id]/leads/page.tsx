@@ -8,6 +8,7 @@ import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
 import { API_BASE } from "@/lib/api";
 import { getToken, apiRequest } from "@/lib/apiClient";
+import { FirstWorkspaceSuccessModal } from "@/components/ui/FirstWorkspaceSuccessModal";
 import { LeadsToolbar } from "@/app/leads/components/LeadsToolbar";
 import { BulkActionsMenu } from "@/app/leads/components/BulkActionsMenu";
 import { DynamicLeadsTable } from "@/app/leads/components/DynamicLeadsTable";
@@ -15,7 +16,6 @@ import { useViewStore } from "@/stores/useViewStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
 import { LeadsImportEmptyGrid } from "@/app/leads/components/LeadsImportEmptyGrid";
-import { LeadsEmptyWorkspaceBanner } from "@/app/leads/components/LeadsEmptyWorkspaceBanner";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import { leadHasAsyncContactEnrichResult } from "@/lib/contactEnrichmentStatus";
 
@@ -30,7 +30,6 @@ const GoogleSheetsImportModal = dynamic(
 const LeadDrawer = dynamic(() => import("@/components/leads/LeadDrawer"), { ssr: false });
 const SchemaSidebar = dynamic(() => import("@/app/leads/components/SchemaSidebar").then(m => ({ default: m.SchemaSidebar })), { ssr: false });
 const EnrichModal = dynamic(() => import("@/components/leads/EnrichModal").then(m => ({ default: m.EnrichModal })), { ssr: false });
-const ScoreModal = dynamic(() => import("@/components/leads/ScoreModal").then(m => ({ default: m.ScoreModal })), { ssr: false });
 const AddLinkedInLeadModal = dynamic(
   () => import("@/components/leads/AddLinkedInLeadModal").then((m) => ({ default: m.AddLinkedInLeadModal })),
   { ssr: false },
@@ -58,6 +57,8 @@ export default function BaseLeadsPage() {
     bulkDeleteLeads,
     updateLead,
     clearCache,
+    setPagination,
+    filters: leadFilters,
   } = useLeadStore();
   const { showSuccess, showError, showWarning, showInfo } = useNotification();
   const { fetchViews } = useViewStore();
@@ -73,7 +74,6 @@ export default function BaseLeadsPage() {
     sheets: false,
   });
   const [showEnrichModal, setShowEnrichModal] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState(false);
   const [linkedInOpen, setLinkedInOpen] = useState(false);
   const [showSchemaSidebar, setShowSchemaSidebar] = useState(false);
   const [pendingEnrichmentLeadIds, setPendingEnrichmentLeadIds] = useState<number[]>([]);
@@ -81,9 +81,15 @@ export default function BaseLeadsPage() {
   const [enrichmentRefreshing, setEnrichmentRefreshing] = useState(false);
   /** Dedupe rapid duplicate socket + window events for the same completion. */
   const lastEnrichmentEventAtRef = useRef(0);
+  /** Debounced toolbar search — server GET /leads?search=… searches all rows, not only the current page. */
+  const [debouncedLeadSearch, setDebouncedLeadSearch] = useState(
+    () => useLeadStore.getState().filters.search?.trim() || ""
+  );
+  const prevDebouncedSearchRef = useRef<string | null>(null);
   /** Wall-clock seconds while any contact enrichment is pending (resets when queue empties). */
   const enrichmentBannerStartedAtRef = useRef<number | null>(null);
   const [enrichmentBannerElapsedSec, setEnrichmentBannerElapsedSec] = useState(0);
+  const [firstWorkspaceModalOpen, setFirstWorkspaceModalOpen] = useState(false);
 
   const enrichmentQueueProgress = useMemo(() => {
     const ids = pendingEnrichmentLeadIds;
@@ -121,9 +127,31 @@ export default function BaseLeadsPage() {
   const filteredLeads = getFilteredLeads();
   const currentBaseId = baseId || activeBaseId;
   const showWelcomeHint = searchParams.get("welcome") === "1";
-  const clearWelcomeHint = () => {
+  const firstWorkspaceCelebration = searchParams.get("first_workspace") === "1";
+
+  useEffect(() => {
+    if (!baseId || !firstWorkspaceCelebration) return;
+    setFirstWorkspaceModalOpen(true);
+  }, [baseId, firstWorkspaceCelebration]);
+
+  const handleFirstWorkspaceModalAddLeads = () => {
+    setFirstWorkspaceModalOpen(false);
     if (!baseId) return;
-    router.replace(`/bases/${baseId}/leads`, { scroll: false });
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("first_workspace");
+    const next = p.toString();
+    router.replace(`/bases/${baseId}/leads${next ? `?${next}` : ""}`, { scroll: false });
+  };
+
+  const handleFirstWorkspaceModalDashboard = () => {
+    setFirstWorkspaceModalOpen(false);
+    if (baseId) {
+      const p = new URLSearchParams(searchParams.toString());
+      p.delete("first_workspace");
+      const next = p.toString();
+      router.replace(`/bases/${baseId}/leads${next ? `?${next}` : ""}`, { scroll: false });
+    }
+    router.push("/dashboard");
   };
   const workspaceName = bases.find((b) => b.id === currentBaseId)?.name ?? "";
   const showZeroLeadsBanner =
@@ -162,11 +190,36 @@ export default function BaseLeadsPage() {
   }, [baseId, activeBaseId, bases, setActiveBaseId, router, refreshBases]);
 
   useEffect(() => {
+    const id = window.setTimeout(() => {
+      setDebouncedLeadSearch((leadFilters.search || "").trim());
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [leadFilters.search]);
+
+  useEffect(() => {
+    if (!currentBaseId) return;
+    if (prevDebouncedSearchRef.current === null) {
+      prevDebouncedSearchRef.current = debouncedLeadSearch;
+      return;
+    }
+    if (prevDebouncedSearchRef.current !== debouncedLeadSearch) {
+      prevDebouncedSearchRef.current = debouncedLeadSearch;
+      setPagination({ currentPage: 1 });
+    }
+  }, [currentBaseId, debouncedLeadSearch, setPagination]);
+
+  useEffect(() => {
+    if (!currentBaseId) return;
+    fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, false, {
+      search: debouncedLeadSearch,
+    });
+  }, [currentBaseId, pagination.currentPage, pagination.leadsPerPage, debouncedLeadSearch, fetchLeads]);
+
+  useEffect(() => {
     if (currentBaseId) {
-      fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
       fetchViews(currentBaseId);
     }
-  }, [currentBaseId, pagination.currentPage, pagination.leadsPerPage, fetchLeads, fetchViews]);
+  }, [currentBaseId, fetchViews]);
 
   /** After connector imports, read fresh pagination from the store (avoids stale closure) and force-fetch page 1 when the table was empty. */
   const refreshLeadsAfterImport = useCallback(async () => {
@@ -300,18 +353,6 @@ export default function BaseLeadsPage() {
       return;
     }
     setShowEnrichModal(true);
-  };
-
-  const handleScore = () => {
-    if (!currentBaseId) {
-      showWarning("Select a workspace", "Choose a base first.");
-      return;
-    }
-    if (leads.length === 0) {
-      showInfo("No leads", "Add leads before scoring.");
-      return;
-    }
-    setShowScoreModal(true);
   };
 
   const handleExportCSV = async () => {
@@ -453,6 +494,12 @@ export default function BaseLeadsPage() {
         boxSizing: "border-box",
       }}
     >
+      <FirstWorkspaceSuccessModal
+        open={firstWorkspaceModalOpen && Boolean(baseId)}
+        workspaceName={workspaceName}
+        onAddLeads={handleFirstWorkspaceModalAddLeads}
+        onViewDashboard={handleFirstWorkspaceModalDashboard}
+      />
       <style jsx global>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -461,20 +508,29 @@ export default function BaseLeadsPage() {
       `}</style>
 
       {showZeroLeadsBanner && (
-        <LeadsEmptyWorkspaceBanner
-          workspaceName={workspaceName}
-          showWelcomeHint={showWelcomeHint}
-          onDismissWelcome={clearWelcomeHint}
-          canCreateLeads={permissions.canCreateLeads}
-          onGenerateAI={() => setGenOpen(true)}
-          onImportCSV={() => setImportOpen(true)}
-          onImportSheets={
-            permissions.canCreateLeads && connectorImportMeta.sheets ? () => setSheetsImportOpen(true) : undefined
-          }
-          onImportAirtable={
-            permissions.canCreateLeads && connectorImportMeta.airtable ? () => setAirtableImportOpen(true) : undefined
-          }
-        />
+        <div className="bases-onboarding-hint" role="status">
+          <Icons.Users size={20} strokeWidth={1.5} className="bases-onboarding-hint-icon" aria-hidden />
+          <div>
+            <p className="bases-onboarding-hint-body">
+              {showWelcomeHint ? (
+                <>
+                  Welcome — add people to <strong>{workspaceName || "this workspace"}</strong> to run campaigns and
+                  enrichment. Use <strong>Add</strong> in the toolbar for generate, import, or LinkedIn.
+                </>
+              ) : (
+                <>
+                  Your workspace is selected, but there are no leads yet. Add or import contacts first — use{" "}
+                  <strong>Add</strong> in the toolbar (Generate with AI, CSV, Sheets, and more).
+                </>
+              )}
+            </p>
+            {permissions.canCreateLeads ? (
+              <button type="button" className="bases-onboarding-hint-link" onClick={() => setGenOpen(true)}>
+                Add leads
+              </button>
+            ) : null}
+          </div>
+        </div>
       )}
 
       {/* Stats */}
@@ -523,7 +579,7 @@ export default function BaseLeadsPage() {
                 width: 40,
                 height: 40,
                 borderRadius: 12,
-                background: "rgba(124, 58, 237, 0.12)",
+                background: "rgba(37, 99, 235, 0.12)",
                 color: "var(--color-primary)",
                 display: "flex",
                 alignItems: "center",
@@ -554,12 +610,12 @@ export default function BaseLeadsPage() {
           style={{
             borderRadius: 14,
             padding: "14px 18px",
-            border: "1px solid rgba(124, 58, 237, 0.35)",
-            background: "linear-gradient(135deg, rgba(124, 58, 237, 0.14) 0%, rgba(169, 76, 255, 0.08) 100%)",
+            border: "1px solid rgba(37, 99, 235, 0.35)",
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(6, 182, 212, 0.08) 100%)",
             display: "flex",
             alignItems: "flex-start",
             gap: 14,
-            boxShadow: "0 8px 30px rgba(124, 58, 237, 0.12)",
+            boxShadow: "0 8px 30px rgba(37, 99, 235, 0.12)",
           }}
         >
           <div
@@ -605,7 +661,6 @@ export default function BaseLeadsPage() {
       <LeadsToolbar
         variant="embedded"
         onEnrich={handleEnrich}
-        onScore={handleScore}
         onImportSheets={
           permissions.canCreateLeads && connectorImportMeta.sheets ? () => setSheetsImportOpen(true) : undefined
         }
@@ -795,16 +850,6 @@ export default function BaseLeadsPage() {
         onEnriched={async () => {
           if (currentBaseId) {
             await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
-          }
-        }}
-      />
-      <ScoreModal
-        open={showScoreModal}
-        onClose={() => setShowScoreModal(false)}
-        onScored={async () => {
-          if (currentBaseId) {
-            clearCache(currentBaseId);
-            await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true);
           }
         }}
       />

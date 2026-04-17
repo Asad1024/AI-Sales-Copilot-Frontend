@@ -7,11 +7,10 @@ import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 interface NextStepsGuidanceProps {
   onEnrich: () => void;
-  onScore: () => void;
   enriching?: boolean;
 }
 
-export function NextStepsGuidance({ onEnrich, onScore, enriching = false }: NextStepsGuidanceProps) {
+export function NextStepsGuidance({ onEnrich, enriching = false }: NextStepsGuidanceProps) {
   const router = useRouter();
   const { activeBaseId } = useBaseStore();
   const { leads } = useLeadStore();
@@ -79,24 +78,16 @@ export function NextStepsGuidance({ onEnrich, onScore, enriching = false }: Next
         {isScored ? (
           <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>✓ Scored</span>
         ) : partiallyScored ? (
-          <button
-            className="btn-ghost ms-hover-scale ms-press focus-ring"
-            onClick={onScore}
-            disabled={enriching}
-            style={{ padding: '6px 12px', fontSize: 12 }}
-            title={`${scoredLeads.length}/${leads.length} leads scored`}
+          <span
+            style={{ fontSize: 12, color: 'var(--color-text-muted)' }}
+            title={`${scoredLeads.length}/${leads.length} leads have a score`}
           >
             Score ({scoredLeads.length}/{leads.length})
-          </button>
+          </span>
         ) : (
-          <button
-            className="btn-ghost ms-hover-scale ms-press focus-ring"
-            onClick={onScore}
-            disabled={enriching}
-            style={{ padding: '6px 12px', fontSize: 12 }}
-          >
-            Score
-          </button>
+          <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }} title="Scores update automatically">
+            Auto score
+          </span>
         )}
         <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>→</span>
         <button

@@ -13,10 +13,8 @@ import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import CampaignCard from "@/app/campaigns/components/CampaignCard";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
-import DashboardOnboardingSteppers from "@/components/ui/DashboardOnboardingSteppers";
 import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
-import { ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
-import { useSparkBarStore } from "@/stores/useSparkBarStore";
+import { Sunrise, Sun, Moon } from "lucide-react";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 
 type StatMetric = {
@@ -70,23 +68,15 @@ export default function Dashboard() {
 
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [dashboardInitialLoadPending, setDashboardInitialLoadPending] = useState(false);
+  const [campaignListTab, setCampaignListTab] = useState<"recent" | "saved">("recent");
+  const [savedCampaignIds, setSavedCampaignIds] = useState<number[]>([]);
 
   const { activeBaseId, bases, setActiveBaseId, refreshBases } = useBase();
   const activeBase = bases.find((b) => b.id === activeBaseId);
   const { campaigns, fetchCampaigns, loading: campaignsLoading } = useCampaignStore();
   const hasLeads = Number(analyticsData?.totalLeads || 0) > 0;
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
-  const setupStepperVisible = useSparkBarStore((s) => s.setupStepperVisible);
-  const toggleSetupStepper = useSparkBarStore((s) => s.toggleSetupStepper);
-  const setSetupStepperVisible = useSparkBarStore((s) => s.setSetupStepperVisible);
-
-  /** Once there is at least one campaign (same condition as hiding “Get started”), collapse the stepper. Users can reopen via “Setup steps”. */
-  useEffect(() => {
-    if (hasCampaigns) {
-      setSetupStepperVisible(false);
-    }
-  }, [hasCampaigns, setSetupStepperVisible]);
-
   useEffect(() => {
     const invited = searchParams.get("invited");
     if (invited === "true") {
@@ -149,6 +139,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!activeBaseId) {
+      setDashboardInitialLoadPending(false);
+      return;
+    }
+    setDashboardInitialLoadPending(true);
+  }, [activeBaseId]);
+
+  useEffect(() => {
+    if (!activeBaseId) return;
+    if (analyticsLoading || campaignsLoading) return;
+    setDashboardInitialLoadPending(false);
+  }, [activeBaseId, analyticsLoading, campaignsLoading]);
+
+  useEffect(() => {
+    if (!activeBaseId) {
       setAnalyticsData(null);
       setAnalyticsLoading(false);
       return;
@@ -176,6 +180,28 @@ export default function Dashboard() {
     fetchCampaigns(activeBaseId ?? null);
   }, [activeBaseId, fetchCampaigns]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("dashboard:saved-campaign-ids");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const normalized = parsed
+          .map((v) => Number(v))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        setSavedCampaignIds(normalized);
+      }
+    } catch {
+      // ignore invalid persisted values
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("dashboard:saved-campaign-ids", JSON.stringify(savedCampaignIds));
+  }, [savedCampaignIds]);
+
   const tourSteps = useMemo(
     () => [
       {
@@ -197,11 +223,11 @@ export default function Dashboard() {
         id: "setup-steps",
         title: "Setup checklist",
         description:
-          "Expand Setup steps when you want a guided path: workspace → leads → first campaign. It stays available whenever you need it.",
-        target: '[data-tour="dashboard-setup-steps"]',
+          "Follow workspace → leads → first campaign from the Get started panel on the dashboard (shown until your first campaign). The vertical timeline matches that order.",
+        target: '[data-tour="dashboard-get-started"]',
         position: "bottom" as const,
         action: () => {
-          const el = document.querySelector('[data-tour="dashboard-setup-steps"]');
+          const el = document.querySelector('[data-tour="dashboard-get-started"]');
           el?.scrollIntoView({ behavior: "smooth", block: "center" });
         },
       },
@@ -275,37 +301,6 @@ export default function Dashboard() {
     },
   ];
 
-  const quickActions = [
-    {
-      key: "leads",
-      title: "Manage leads",
-      desc: "Import, enrich, and score your pipeline",
-      icon: <Icons.Users size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
-      onClick: goToLeads,
-    },
-    {
-      key: "campaigns",
-      title: "Campaigns",
-      desc: "Launch and track outreach",
-      icon: <Icons.Rocket size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
-      onClick: () => router.push("/campaigns"),
-    },
-    {
-      key: "workspaces",
-      title: "Workspaces",
-      desc: "Switch organization context",
-      icon: <Icons.Folder size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
-      onClick: () => router.push("/bases"),
-    },
-    {
-      key: "templates",
-      title: "Templates",
-      desc: "Reusable message blocks",
-      icon: <Icons.FileText size={20} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />,
-      onClick: () => router.push("/templates"),
-    },
-  ];
-
   const dashboardPrimaryAction = (() => {
     if (!activeBaseId) {
       return {
@@ -323,23 +318,23 @@ export default function Dashboard() {
     }
     return {
       label: "Create Campaign",
-      icon: <Icons.Rocket size={16} strokeWidth={1.5} />,
+      icon: <Icons.Send size={16} strokeWidth={1.5} />,
       onClick: goToCreateCampaign,
     };
   })();
 
-  const greetingText = (() => {
+  const greeting = (() => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return { label: "Good morning", Icon: Sunrise };
+    if (hour < 18) return { label: "Good afternoon", Icon: Sun };
+    return { label: "Good evening", Icon: Moon };
   })();
+  const GreetingIcon = greeting.Icon;
   const userName = getUser()?.name || "User";
 
   const setupStepsDone =
     (activeBaseId ? 1 : 0) + (hasLeads ? 1 : 0) + (hasCampaigns ? 1 : 0);
   const setupStepsTotal = 3;
-  const setupProgressPct = Math.round((setupStepsDone / setupStepsTotal) * 100);
 
   const filteredCampaigns = [...(campaigns || [])].sort((a, b) => {
     const aTime = a.updated_at || a.created_at || "";
@@ -350,17 +345,28 @@ export default function Dashboard() {
     return (b.id || 0) - (a.id || 0);
   });
   const recentCampaigns = filteredCampaigns.slice(0, 3);
+  const savedCampaigns = filteredCampaigns.filter((c) => savedCampaignIds.includes(Number(c.id))).slice(0, 3);
+  const visibleCampaigns = campaignListTab === "recent" ? recentCampaigns : savedCampaigns;
+
+  const toggleSavedCampaign = (campaignId: number) => {
+    setSavedCampaignIds((prev) =>
+      prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId]
+    );
+  };
 
   const dashboardBody =
-    activeBaseId && (analyticsLoading || campaignsLoading) ? (
+    activeBaseId && dashboardInitialLoadPending && (analyticsLoading || campaignsLoading) ? (
     <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading dashboard" />
   ) : (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
                 fontSize: 10,
                 fontWeight: 500,
                 color: "var(--color-text-muted)",
@@ -368,52 +374,13 @@ export default function Dashboard() {
                 textTransform: "uppercase",
               }}
             >
-              {greetingText}
+              <GreetingIcon size={15} strokeWidth={2} aria-hidden style={{ flexShrink: 0, opacity: 0.92 }} />
+              {greeting.label}
             </span>
-            <button
-              type="button"
-              className="dashboard-setup-steps-toggle"
-              data-tour="dashboard-setup-steps"
-              onClick={toggleSetupStepper}
-              aria-label={
-                setupStepperVisible
-                  ? "Hide getting started steps (workspace, leads, campaign)"
-                  : "Show getting started steps (workspace, leads, campaign)"
-              }
-              aria-pressed={setupStepperVisible}
-              title={
-                setupStepperVisible
-                  ? "Hide the getting started stepper below"
-                  : "Show the getting started stepper: workspace → leads → campaign"
-              }
-              style={{
-                height: 24,
-                padding: "0 10px 0 12px",
-                borderRadius: 9999,
-                border: setupStepperVisible ? "1px solid transparent" : "1px solid #C7D2FE",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                cursor: "pointer",
-                background: setupStepperVisible ? "#4F46E5" : "#EEF2FF",
-                color: setupStepperVisible ? "#FFFFFF" : "#4F46E5",
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: "Inter, -apple-system, sans-serif",
-                transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
-              }}
-            >
-              Setup steps
-              {setupStepperVisible ? (
-                <ChevronUp size={12} strokeWidth={2.25} aria-hidden />
-              ) : (
-                <ChevronDown size={12} strokeWidth={2.25} aria-hidden />
-              )}
-            </button>
           </div>
           <span
             style={{
-              fontSize: 22,
+              fontSize: 30,
               fontWeight: 600,
               letterSpacing: "-0.03em",
               lineHeight: 1.2,
@@ -431,41 +398,17 @@ export default function Dashboard() {
       </div>
 
       <div
-        className="dashboard-stepper-panel-wrap"
-        style={{
-          overflow: setupStepperVisible ? "visible" : "hidden",
-          maxHeight: setupStepperVisible ? 3200 : 0,
-          opacity: setupStepperVisible ? 1 : 0,
-          transition:
-            "max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
-          pointerEvents: setupStepperVisible ? "auto" : "none",
-        }}
-        aria-hidden={!setupStepperVisible}
-      >
-        <div style={{ paddingBottom: setupStepperVisible ? 2 : 0 }}>
-          <DashboardOnboardingSteppers
-            activeBaseId={activeBaseId}
-            hasLeads={hasLeads}
-            hasCampaigns={hasCampaigns}
-            onGoWorkspace={() => router.push("/bases")}
-            onGoLeads={goToLeads}
-            onGoCampaign={goToCreateCampaign}
-          />
-        </div>
-      </div>
-
-      <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 12,
+          gap: 10,
         }}
       >
         {overviewMetrics.map((card) => {
           const valueMuted = isMutedMetricValue(String(card.value));
           return (
-          <div key={card.title} className="dashboard-stat-card" style={{ padding: "14px 16px 16px" }}>
-            <div style={{ marginBottom: 8 }}>
+          <div key={card.title} className="dashboard-stat-card" style={{ padding: "10px 12px 12px" }}>
+            <div style={{ marginBottom: 6 }}>
               <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block" }}>
                 {card.title}
               </span>
@@ -473,8 +416,8 @@ export default function Dashboard() {
             <div
               className="dashboard-stat-value"
               style={{
-                fontSize: 34,
-                fontWeight: 800,
+                fontSize: 28,
+                fontWeight: card.title === "Active workspace" || card.title === "Total leads" ? 600 : 800,
                 letterSpacing: "-0.035em",
                 lineHeight: 1.12,
                 color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
@@ -484,7 +427,7 @@ export default function Dashboard() {
             >
               {card.value}
             </div>
-            <div style={{ marginTop: 10, minHeight: 28 }}>
+            <div style={{ marginTop: 8, minHeight: 26 }}>
               {card.showTrend ? (
                 <span
                   className="dashboard-stat-trend-pill"
@@ -535,7 +478,7 @@ export default function Dashboard() {
               )}
             </div>
             {card.subline ? (
-              <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 8, lineHeight: 1.35 }}>{card.subline}</div>
+              <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 6, lineHeight: 1.35 }}>{card.subline}</div>
             ) : null}
           </div>
           );
@@ -601,55 +544,106 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div style={sectionLabelStyle}>Campaigns & activity</div>
-
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: hasCampaigns
-            ? "minmax(0, 1fr)"
-            : "minmax(260px, 0.95fr) minmax(0, 1.15fr)",
-          gap: 14,
-          alignItems: "stretch",
-        }}
-        className="dashboard-campaigns-grid"
+        style={
+          hasCampaigns
+            ? {
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr)",
+                gap: 12,
+                alignItems: "stretch",
+              }
+            : undefined
+        }
+        className={
+          hasCampaigns
+            ? "dashboard-campaigns-grid"
+            : "dashboard-campaigns-grid dashboard-campaigns-grid--stat-aligned"
+        }
       >
         {!hasCampaigns ? (
-          <DashboardGetStartedChecklist
-            activeBaseId={activeBaseId}
-            hasLeads={hasLeads}
-            hasCampaigns={hasCampaigns}
-            setupStepsDone={setupStepsDone}
-            setupStepsTotal={setupStepsTotal}
-            setupProgressPct={setupProgressPct}
-            onCreateWorkspace={() => router.push("/bases")}
-            onAddLeads={goToLeads}
-            onCreateCampaign={goToCreateCampaign}
-          />
+          <div className="dashboard-get-started-slot">
+            <DashboardGetStartedChecklist
+              activeBaseId={activeBaseId}
+              hasLeads={hasLeads}
+              hasCampaigns={hasCampaigns}
+              setupStepsDone={setupStepsDone}
+              setupStepsTotal={setupStepsTotal}
+              onCreateWorkspace={() => router.push("/bases")}
+              onAddLeads={goToLeads}
+              onCreateCampaign={goToCreateCampaign}
+            />
+          </div>
         ) : null}
 
-        <div className="dashboard-surface-card dashboard-recent-activity-panel">
+        <div className="dashboard-recent-activity-panel">
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: recentCampaigns.length === 0 ? 0 : 14,
+              justifyContent: "center",
+              marginBottom: visibleCampaigns.length === 0 ? 0 : 14,
               gap: 10,
               width: "100%",
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--color-text)" }}>Recent activity</span>
-            <button
-              type="button"
-              className="dashboard-demo-toggle-badge"
-              onClick={() => router.push("/campaigns")}
+            <div
+              role="tablist"
+              aria-label="Campaign list mode"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: 4,
+                borderRadius: 10,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface-secondary)",
+              }}
             >
-              View all
-            </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={campaignListTab === "recent"}
+                onClick={() => setCampaignListTab("recent")}
+                style={{
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: "inherit",
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  background: campaignListTab === "recent" ? "rgba(37, 99, 235, 0.08)" : "transparent",
+                  color: campaignListTab === "recent" ? "var(--color-primary)" : "var(--color-text-muted)",
+                }}
+              >
+                Recent Campaigns
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={campaignListTab === "saved"}
+                onClick={() => setCampaignListTab("saved")}
+                style={{
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: "inherit",
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  background: campaignListTab === "saved" ? "rgba(37, 99, 235, 0.08)" : "transparent",
+                  color: campaignListTab === "saved" ? "var(--color-primary)" : "var(--color-text-muted)",
+                }}
+              >
+                Saved Campaigns
+              </button>
+            </div>
           </div>
-          {recentCampaigns.length === 0 ? (
+          {visibleCampaigns.length === 0 ? (
             <div
               style={{
                 flex: 1,
@@ -679,17 +673,25 @@ export default function Dashboard() {
               >
                 <Icons.Clock size={22} strokeWidth={1.5} style={{ opacity: 0.6 }} />
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>No recent campaigns</div>
-              <div style={{ fontSize: 12, lineHeight: 1.45, maxWidth: 260 }}>Runs, opens, and replies will appear here once you launch.</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
+                {campaignListTab === "recent" ? "No recent campaigns" : "No saved campaigns"}
+              </div>
+              <div style={{ fontSize: 12, lineHeight: 1.45, maxWidth: 280 }}>
+                {campaignListTab === "recent"
+                  ? "Runs, opens, and replies will appear here once you launch."
+                  : "Save campaigns to pin them here for quick access."}
+              </div>
             </div>
           ) : (
             <div className="campaigns-page-grid">
-              {recentCampaigns.map((c) => (
+              {visibleCampaigns.map((c) => (
                 <CampaignCard
                   key={c.id}
                   campaign={c}
                   baseName={bases.find((b) => b.id === c.base_id)?.name || "Workspace"}
                   onView={() => router.push(`/campaigns/${c.id}`)}
+                  onToggleSave={() => toggleSavedCampaign(Number(c.id))}
+                  isSaved={savedCampaignIds.includes(Number(c.id))}
                   showDeleteAction={false}
                   workspaceStyle
                 />
@@ -697,27 +699,6 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </div>
-
-      <div style={sectionLabelStyle}>Quick actions</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 12,
-        }}
-        className="quick-actions-row dashboard-quick-actions"
-      >
-        {quickActions.map((action) => (
-          <button key={action.key} type="button" className="dashboard-qa-card" onClick={action.onClick}>
-            <span className="dashboard-qa-card-arrow" aria-hidden>
-              <ArrowUpRight size={16} strokeWidth={2} />
-            </span>
-            <div style={{ display: "flex", marginBottom: 8 }}>{action.icon}</div>
-            <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--color-text)", marginBottom: 4 }}>{action.title}</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.4 }}>{action.desc}</div>
-          </button>
-        ))}
       </div>
 
       {activeBase && !copilotBannerDismissed && analyticsData && analyticsData.hotLeads > 0 && (
@@ -765,7 +746,7 @@ export default function Dashboard() {
   return (
     <>
       <ProductTour steps={tourSteps} />
-      <div className="dashboard-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="dashboard-shell" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {dashboardBody}
       </div>
     </>

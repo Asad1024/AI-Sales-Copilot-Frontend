@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useNotification } from "@/context/NotificationContext";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 export default function ContactPage() {
   const { showSuccess } = useNotification();
@@ -35,26 +36,7 @@ export default function ContactPage() {
           marginBottom: '60px'
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <div style={{
-              height: '40px',
-              width: '40px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-              </svg>
-            </div>
-            <span style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>Spark AI</span>
+            <AppBrandLogoLockup height={36} style={{ maxWidth: 180 }} />
           </Link>
           <div style={{ display: 'flex', gap: '12px' }}>
             <Link href="/auth/login" className="btn-ghost">Log in</Link>
@@ -68,7 +50,7 @@ export default function ContactPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
@@ -92,9 +74,9 @@ export default function ContactPage() {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {[
-                  { icon: '📧', label: 'Email', value: 'hello@sparkai.com' },
-                  { icon: '💬', label: 'Support', value: 'support@sparkai.com' },
-                  { icon: '🌐', label: 'Website', value: 'www.sparkai.com' }
+                  { icon: '📧', label: 'Email', value: 'hello@outriva.com' },
+                  { icon: '💬', label: 'Support', value: 'support@outriva.com' },
+                  { icon: '🌐', label: 'Website', value: 'www.outriva.com' }
                 ].map((contact, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ fontSize: '24px' }}>{contact.icon}</div>

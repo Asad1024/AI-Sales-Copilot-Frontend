@@ -321,7 +321,7 @@ const WIZARD_LEAD_STEP_CHECKBOX_STYLE: CSSProperties = {
   cursor: "pointer",
   margin: 0,
   flexShrink: 0,
-  accentColor: "var(--color-primary, #7C3AED)",
+  accentColor: "var(--color-primary, #2563EB)",
 };
 
 function filterLeadsByLeadTableKey(list: Lead[], key: LeadTableFilterKey): Lead[] {
@@ -547,13 +547,13 @@ const isPremadeLibraryVoice = (v: VoiceOption) => {
   return true;
 };
 
-/** Wizard chrome — aligned with app primary (`--color-primary` / #7C3AED) */
-const WIZ_ACCENT = "#7C3AED";
-const WIZ_ACCENT_LINE = "#6D28D9";
-const WIZ_ROW_SELECTED = "rgba(124, 58, 237, 0.07)";
+/** Wizard chrome — aligned with app primary (`--color-primary` / #2563EB) */
+const WIZ_ACCENT = "#2563EB";
+const WIZ_ACCENT_LINE = "#1D4ED8";
+const WIZ_ROW_SELECTED = "rgba(37, 99, 235, 0.07)";
 
-const VOICE_LOAD_MORE_BORDER = "rgba(124, 58, 237, 0.42)";
-const VOICE_LOAD_MORE_BG = "rgba(124, 58, 237, 0.08)";
+const VOICE_LOAD_MORE_BORDER = "rgba(37, 99, 235, 0.42)";
+const VOICE_LOAD_MORE_BG = "rgba(37, 99, 235, 0.08)";
 const VOICE_LOAD_MORE_SHADOW = "0 1px 3px rgba(15, 23, 42, 0.08)";
 
 function voiceLoadMoreButtonSx(marginTop: number): CSSProperties {
@@ -583,9 +583,9 @@ function voiceLoadMoreButtonSx(marginTop: number): CSSProperties {
 
 function voiceLoadMoreHover(el: HTMLButtonElement, on: boolean) {
   if (on) {
-    el.style.background = "rgba(124, 58, 237, 0.16)";
+    el.style.background = "rgba(37, 99, 235, 0.16)";
     el.style.borderColor = WIZ_ACCENT;
-    el.style.boxShadow = "0 6px 22px rgba(124, 58, 237, 0.22)";
+    el.style.boxShadow = "0 6px 22px rgba(37, 99, 235, 0.22)";
     el.style.transform = "translateY(-1px)";
   } else {
     el.style.background = VOICE_LOAD_MORE_BG;
@@ -919,7 +919,7 @@ function WizardScheduleThrottleRow({
                 verticalAlign: "middle",
                 cursor: "pointer",
                 boxSizing: "border-box",
-                accentColor: "var(--color-primary, #7C3AED)",
+                accentColor: "var(--color-primary, #2563EB)",
               }}
             />
           </div>
@@ -1002,7 +1002,7 @@ export default function CampaignNew() {
     }
   }, [searchParams]);
 
-  /** Server-side: SMTP / Resend / Unipile / ElevenLabs configured for this workspace (null = still loading) */
+  /** Server-side: email + messaging + voice providers configured for this workspace (null = still loading) */
   const [channelAvailability, setChannelAvailability] = useState<Record<ChannelType, boolean> | null>(null);
 
   useEffect(() => {
@@ -1321,11 +1321,11 @@ export default function CampaignNew() {
   const [initialPrompt, setInitialPrompt] = useState("");
   const [callOpeningStarterIndex, setCallOpeningStarterIndex] = useState<number | null>(null);
   const initialPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
-  /** One-time ElevenLabs first-message prefill per wizard mount (avoid refetch when user clears textarea). */
+  /** One-time voice first-message prefill per wizard mount (avoid refetch when user clears textarea). */
   const callOpeningElFetchFinishedRef = useRef(false);
   const initialPromptRef = useRef(initialPrompt);
   const [systemPersona, setSystemPersona] = useState("");
-  /** One-time ElevenLabs system-prompt prefill for Step 12. */
+  /** One-time voice system-prompt prefill for Step 12. */
   const callSystemPersonaElFetchFinishedRef = useRef(false);
   const systemPersonaRef = useRef(systemPersona);
   const [systemPersonaGenerating, setSystemPersonaGenerating] = useState(false);
@@ -1734,7 +1734,7 @@ export default function CampaignNew() {
         const msg = (res?.firstMessage ?? "").trim();
         if (msg) setInitialPrompt(msg);
       } catch {
-        /* ElevenLabs missing or error — leave opening line empty */
+        /* Voice provider missing or error — leave opening line empty */
       } finally {
         if (!cancelled) {
           callOpeningElFetchFinishedRef.current = true;
@@ -1767,7 +1767,7 @@ export default function CampaignNew() {
         const text = (res?.systemPrompt ?? "").trim();
         if (text) setSystemPersona(text);
       } catch {
-        /* ElevenLabs missing or error */
+        /* Voice provider missing or error */
       } finally {
         if (!cancelled) {
           callSystemPersonaElFetchFinishedRef.current = true;
@@ -1954,7 +1954,8 @@ export default function CampaignNew() {
       }
     };
     fetchLeads();
-  }, [activeBaseId, step, channels, currentStepInfo?.stepType, segments.length]);
+    // Do not depend on `segments` / selection — updating checkboxes changes segments and would re-fetch and flash the loader.
+  }, [activeBaseId, step, channels, currentStepInfo?.stepType]);
 
   // Fetch email integration when email channel is selected
   useEffect(() => {
@@ -2027,7 +2028,7 @@ export default function CampaignNew() {
         if (data?.voices && Array.isArray(data.voices)) {
           setAvailableVoices(data.voices as VoiceOption[]);
         } else if (data?.error) {
-          console.error("ElevenLabs API error:", data.error);
+          console.error("Voice API error:", data.error);
           setAvailableVoices([
             {
               id: "21m00Tcm4TlvDq8ikWAM",
@@ -2574,9 +2575,9 @@ export default function CampaignNew() {
       { name: 'Hot leads', color: '#ff6b6b' },
       { name: 'Warm leads', color: '#ffa726' },
       { name: 'Cold leads', color: '#38bdf8' },
-      { name: 'Engaged not converted', color: '#7C3AED' },
+      { name: 'Engaged not converted', color: '#2563EB' },
       { name: 'Never opened', color: '#888' },
-      { name: 'High-score low-engagement', color: '#A94CFF' }
+      { name: 'High-score low-engagement', color: '#06B6D4' }
     ].map(s => ({
       ...s,
       count: getSegmentLeads(s.name).length,
@@ -3683,7 +3684,7 @@ export default function CampaignNew() {
         }
         setPreviewingVoiceId(null);
       }
-      showSuccess("Voice deleted", `"${target.name}" was removed from your account and ElevenLabs.`);
+      showSuccess("Voice deleted", `"${target.name}" was removed from your account and the voice provider.`);
       setVoiceDeleteTarget(null);
     } catch (e: any) {
       showError("Delete failed", e?.message || "Could not delete voice.");
@@ -3811,8 +3812,8 @@ export default function CampaignNew() {
     <style>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes voiceRowPlayingPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.12); }
-        50% { box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2); }
+        0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.12); }
+        50% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2); }
       }
       .campaign-wizard-root .voice-row-playing-pulse {
         animation: voiceRowPlayingPulse 1.25s ease-in-out infinite;
@@ -3840,13 +3841,13 @@ export default function CampaignNew() {
         color: var(--color-text);
       }
       .campaign-wizard-root .voice-preview-btn-playing {
-        border: 1px solid var(--color-primary, #7C3AED);
-        color: var(--color-primary, #7C3AED);
-        background: rgba(124, 58, 237, 0.08);
+        border: 1px solid var(--color-primary, #2563EB);
+        color: var(--color-primary, #2563EB);
+        background: rgba(37, 99, 235, 0.08);
       }
       .campaign-wizard-root .voice-preview-btn-playing:hover:not(:disabled) {
-        border-color: #6D28D9;
-        background: rgba(124, 58, 237, 0.12);
+        border-color: #1D4ED8;
+        background: rgba(37, 99, 235, 0.12);
       }
       .campaign-wizard-root .voice-preview-btn:disabled {
         opacity: 0.55;
@@ -3874,7 +3875,7 @@ export default function CampaignNew() {
       }
       .campaign-wizard-root .wizard-footer-back:hover:not(:disabled):not(.wizard-footer-back--saving) {
         background: var(--color-surface-secondary);
-        border-color: rgba(124, 58, 237, 0.35);
+        border-color: rgba(37, 99, 235, 0.35);
       }
       .campaign-wizard-root .wizard-footer-back:disabled:not(.wizard-footer-back--saving) {
         opacity: 0.45;
@@ -3884,8 +3885,8 @@ export default function CampaignNew() {
         opacity: 1 !important;
         cursor: wait !important;
         pointer-events: none;
-        border-color: rgba(124, 58, 237, 0.45);
-        background: rgba(124, 58, 237, 0.08);
+        border-color: rgba(37, 99, 235, 0.45);
+        background: rgba(37, 99, 235, 0.08);
       }
       .campaign-wizard-root .wizard-footer-btn-spinner {
         animation: spin 0.75s linear infinite;
@@ -3906,15 +3907,15 @@ export default function CampaignNew() {
         align-items: center;
         justify-content: center;
         gap: 10px;
-        background: var(--color-primary, #7C3AED);
+        background: var(--color-primary, #2563EB);
         color: #ffffff;
         cursor: pointer;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
       }
       .campaign-wizard-root .wizard-footer-next:hover:not(:disabled):not(.wizard-footer-next--saving) {
-        background: #6D28D9;
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.22);
+        background: #1D4ED8;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
         transform: translateY(-1px);
       }
       .campaign-wizard-root .wizard-footer-next:active:not(:disabled):not(.wizard-footer-next--saving) {
@@ -3924,7 +3925,7 @@ export default function CampaignNew() {
         opacity: 0.5;
         cursor: not-allowed;
         box-shadow: none;
-        background: rgba(124, 58, 237, 0.38);
+        background: rgba(37, 99, 235, 0.38);
         color: rgba(255, 255, 255, 0.92);
       }
       .campaign-wizard-root .wizard-footer-next[disabled].wizard-footer-next--saving,
@@ -3932,7 +3933,7 @@ export default function CampaignNew() {
         opacity: 1 !important;
         cursor: wait !important;
         pointer-events: none;
-        background: var(--color-primary, #7C3AED) !important;
+        background: var(--color-primary, #2563EB) !important;
         color: #fff !important;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
       }
@@ -3965,7 +3966,7 @@ export default function CampaignNew() {
                 color: "var(--color-text)",
               }}
             >
-              <span style={{ fontWeight: 700, color: "var(--color-primary, #7C3AED)" }}>Step {step} of {totalSteps}</span>
+              <span style={{ fontWeight: 700, color: "var(--color-primary, #2563EB)" }}>Step {step} of {totalSteps}</span>
               <span
                 style={{
                   color: "var(--color-text-muted)",
@@ -4191,17 +4192,17 @@ export default function CampaignNew() {
                       gap: 6,
                       textAlign: "center",
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
-                      boxShadow: selected ? "0 1px 4px rgba(124, 58, 237, 0.12)" : "none",
+                      boxShadow: selected ? "0 1px 4px rgba(37, 99, 235, 0.12)" : "none",
                       position: "relative",
                       opacity: showDisconnected && !selected ? 0.55 : 1,
                     }}
                     onMouseEnter={(e) => {
                       if (cannotSelectDisconnected) return;
                       if (!selected) {
-                        e.currentTarget.style.background = "rgba(124, 58, 237, 0.06)";
-                        e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.35)";
+                        e.currentTarget.style.background = "rgba(37, 99, 235, 0.06)";
+                        e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
                       } else {
-                        e.currentTarget.style.background = "rgba(124, 58, 237, 0.04)";
+                        e.currentTarget.style.background = "rgba(37, 99, 235, 0.04)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -4288,7 +4289,7 @@ export default function CampaignNew() {
                   textTransform: "uppercase",
                   color: WIZ_ACCENT_LINE,
                   background: WIZ_ROW_SELECTED,
-                  border: "1px solid rgba(124, 58, 237, 0.22)",
+                  border: "1px solid rgba(37, 99, 235, 0.22)",
                   padding: "4px 10px",
                   borderRadius: 999,
                 }}
@@ -4490,7 +4491,7 @@ export default function CampaignNew() {
               <div
                 style={{
                   background: "#F9F8FF",
-                  border: "1px solid rgba(124, 58, 237, 0.12)",
+                  border: "1px solid rgba(37, 99, 235, 0.12)",
                   borderRadius: 10,
                   padding: 16,
                   display: "flex",
@@ -4534,7 +4535,7 @@ export default function CampaignNew() {
                     className="input"
                     value={senderCompany}
                     onChange={(e) => setSenderCompany(e.target.value)}
-                    placeholder="e.g., Spark AI"
+                    placeholder="e.g., Outriva"
                     style={{
                       width: "100%",
                       padding: "12px 16px",
@@ -5110,7 +5111,7 @@ export default function CampaignNew() {
                               }}
                               onMouseEnter={(e) => {
                                 (e.currentTarget as HTMLTableRowElement).style.background =
-                                  "rgba(124, 58, 237, 0.04)";
+                                  "rgba(37, 99, 235, 0.04)";
                               }}
                               onMouseLeave={(e) => {
                                 (e.currentTarget as HTMLTableRowElement).style.background = "transparent";
@@ -5221,9 +5222,9 @@ export default function CampaignNew() {
                         justifyContent: "space-between",
                         gap: 12,
                         padding: "10px 14px 10px 12px",
-                        borderTop: "1px solid rgba(124, 58, 237, 0.22)",
-                        borderLeft: "4px solid #7C3AED",
-                        background: "rgba(124, 58, 237, 0.09)",
+                        borderTop: "1px solid rgba(37, 99, 235, 0.22)",
+                        borderLeft: "4px solid #2563EB",
+                        background: "rgba(37, 99, 235, 0.09)",
                         boxShadow: "0 -2px 10px rgba(15, 23, 42, 0.05)",
                       }}
                     >
@@ -5231,7 +5232,7 @@ export default function CampaignNew() {
                         style={{
                           fontSize: 14,
                           fontWeight: 500,
-                          color: "#7C3AED",
+                          color: "#2563EB",
                           lineHeight: "20px",
                           display: "flex",
                           flexDirection: "column",
@@ -5259,7 +5260,7 @@ export default function CampaignNew() {
                           fontSize: 14,
                           fontWeight: 500,
                           lineHeight: "20px",
-                          color: "#7C3AED",
+                          color: "#2563EB",
                           border: "none",
                           background: "none",
                           cursor: "pointer",
@@ -5461,8 +5462,8 @@ export default function CampaignNew() {
                     minHeight: 96,
                     padding: "16px 14px",
                     borderRadius: 12,
-                    border: selected ? "2px solid #7C3AED" : "1px solid #e5e7eb",
-                    background: selected ? "rgba(124, 58, 237, 0.09)" : "#fff",
+                    border: selected ? "2px solid #2563EB" : "1px solid #e5e7eb",
+                    background: selected ? "rgba(37, 99, 235, 0.09)" : "#fff",
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
@@ -5486,7 +5487,7 @@ export default function CampaignNew() {
                         width: 20,
                         height: 20,
                         borderRadius: "50%",
-                        background: "#7C3AED",
+                        background: "#2563EB",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -5496,12 +5497,12 @@ export default function CampaignNew() {
                       <Icons.Check size={12} style={{ color: "#fff" }} strokeWidth={3} />
                     </span>
                   ) : null}
-                  <CardIcon size={22} style={{ color: selected ? "#7C3AED" : "#6b7280" }} />
+                  <CardIcon size={22} style={{ color: selected ? "#2563EB" : "#6b7280" }} />
                   <span
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: selected ? "#6D28D9" : "#374151",
+                      color: selected ? "#1D4ED8" : "#374151",
                       lineHeight: 1.35,
                     }}
                   >
@@ -5547,7 +5548,7 @@ export default function CampaignNew() {
                         borderRadius: 9999,
                         border: active ? "none" : "1px solid #d1d5db",
                         background: active
-                          ? "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)"
+                          ? "linear-gradient(135deg, #0EA5E9 0%, #2563EB 48%, #1D4ED8 100%)"
                           : "#fff",
                         color: active ? "#fff" : "#4b5563",
                         fontSize: 14,
@@ -5613,11 +5614,11 @@ export default function CampaignNew() {
                         gap: 6,
                         padding: "6px 12px",
                         borderRadius: 999,
-                        background: "rgba(124, 58, 237, 0.07)",
-                        border: "1px solid rgba(124, 58, 237, 0.28)",
+                        background: "rgba(37, 99, 235, 0.07)",
+                        border: "1px solid rgba(37, 99, 235, 0.28)",
                         fontSize: 12,
                         fontWeight: 600,
-                        color: "#6D28D9",
+                        color: "#1D4ED8",
                       }}
                     >
                       <span aria-hidden>📧</span> Follow-up {fu}
@@ -5693,19 +5694,19 @@ export default function CampaignNew() {
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 600,
-                  border: "none",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   ...(emailTemplateTab === "library"
                     ? {
-                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
-                        color: "#fff",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
+                        background: "var(--color-surface)",
+                        color: "var(--color-primary)",
+                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
                         background: "transparent",
                         color: "var(--color-text-muted)",
+                        border: "1px solid transparent",
                         boxShadow: "none",
                       }),
                   transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
@@ -5725,19 +5726,19 @@ export default function CampaignNew() {
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 600,
-                  border: "none",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   ...(emailTemplateTab === "ai"
                     ? {
-                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
-                        color: "#fff",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
+                        background: "var(--color-surface)",
+                        color: "var(--color-primary)",
+                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
                         background: "transparent",
                         color: "var(--color-text-muted)",
+                        border: "1px solid transparent",
                         boxShadow: "none",
                       }),
                   transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
@@ -6031,8 +6032,8 @@ export default function CampaignNew() {
                       style={{
                         marginTop: 4,
                         padding: "12px 14px",
-                        background: "rgba(124, 58, 237, 0.09)",
-                        borderLeft: "4px solid #7C3AED",
+                        background: "rgba(37, 99, 235, 0.09)",
+                        borderLeft: "4px solid #2563EB",
                         borderRadius: 8,
                         fontSize: 14,
                         color: "var(--color-text)",
@@ -6066,7 +6067,7 @@ export default function CampaignNew() {
                     gap: 16,
                   }}
                 >
-                  <Icons.Loader size={40} style={{ color: "#7C3AED", animation: "spin 1s linear infinite" }} />
+                  <Icons.Loader size={40} style={{ color: "#2563EB", animation: "spin 1s linear infinite" }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Writing your email drafts…</div>
                   <div style={{ fontSize: 13 }}>
                     Using your campaign details, target segments, and ICP profile to create tailored messages
@@ -6155,10 +6156,10 @@ export default function CampaignNew() {
                         marginTop: 12,
                         padding: "12px 14px",
                         background:
-                          selectedMessageIndices.length > 0 ? "rgba(124, 58, 237, 0.09)" : "var(--color-surface-secondary)",
+                          selectedMessageIndices.length > 0 ? "rgba(37, 99, 235, 0.09)" : "var(--color-surface-secondary)",
                         borderLeft:
                           selectedMessageIndices.length > 0
-                            ? "4px solid #7C3AED"
+                            ? "4px solid #2563EB"
                             : "4px solid var(--color-border)",
                         borderRadius: 8,
                         fontSize: 14,
@@ -6215,7 +6216,7 @@ export default function CampaignNew() {
             ).map((opt) => {
               const selected = linkedInStepConfig?.action === opt.key;
               const iconColor =
-                opt.icon === "userplus" ? "#0A66C2" : "#7C3AED";
+                opt.icon === "userplus" ? "#0A66C2" : "#2563EB";
               return (
                 <div
                   key={opt.key}
@@ -6263,7 +6264,7 @@ export default function CampaignNew() {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          background: "#7C3AED",
+                          background: "#2563EB",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -6384,19 +6385,19 @@ export default function CampaignNew() {
                     borderRadius: 10,
                     fontSize: 14,
                     fontWeight: 600,
-                    border: "none",
                     cursor: "pointer",
                     fontFamily: "inherit",
                     ...(linkedInTemplateTab === "library"
                       ? {
-                          background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
-                          color: "#fff",
-                          boxShadow:
-                            "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
+                          background: "var(--color-surface)",
+                          color: "var(--color-primary)",
+                          border: "1px solid rgba(37, 99, 235, 0.22)",
+                          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                         }
                       : {
                           background: "transparent",
                           color: "var(--color-text-muted)",
+                          border: "1px solid transparent",
                           boxShadow: "none",
                         }),
                     transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
@@ -6416,19 +6417,19 @@ export default function CampaignNew() {
                     borderRadius: 10,
                     fontSize: 14,
                     fontWeight: 600,
-                    border: "none",
                     cursor: "pointer",
                     fontFamily: "inherit",
                     ...(linkedInTemplateTab === "ai"
                       ? {
-                          background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
-                          color: "#fff",
-                          boxShadow:
-                            "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
+                          background: "var(--color-surface)",
+                          color: "var(--color-primary)",
+                          border: "1px solid rgba(37, 99, 235, 0.22)",
+                          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                         }
                       : {
                           background: "transparent",
                           color: "var(--color-text-muted)",
+                          border: "1px solid transparent",
                           boxShadow: "none",
                         }),
                     transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
@@ -6629,7 +6630,7 @@ export default function CampaignNew() {
                       color: "var(--color-text-muted)",
                     }}
                   >
-                    <Icons.Loader size={18} style={{ animation: "spin 1s linear infinite", color: "#7C3AED" }} />
+                    <Icons.Loader size={18} style={{ animation: "spin 1s linear infinite", color: "#2563EB" }} />
                     Suggesting connection notes…
                   </div>
                 ) : null}
@@ -6748,15 +6749,16 @@ export default function CampaignNew() {
             </div>
           ) : (
             <div
-              className="persona-ai-panel-reveal"
+              className="persona-ai-panel-reveal call-kb-ai-panel"
               style={{
                 border: "1px solid var(--color-border)",
-                borderRadius: 10,
-                padding: "10px 12px",
-                background: "var(--color-surface-secondary)",
+                borderRadius: 12,
+                padding: "18px 18px 16px",
+                background: "linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-secondary) 100%)",
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: 18,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               }}
             >
               <div
@@ -6765,25 +6767,35 @@ export default function CampaignNew() {
                   flexWrap: "wrap",
                   alignItems: "flex-start",
                   justifyContent: "space-between",
-                  gap: 8,
+                  gap: 12,
+                  paddingBottom: 2,
+                  borderBottom: "1px solid var(--color-border)",
                 }}
               >
-                <div style={{ minWidth: 0, flex: "1 1 200px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 2, lineHeight: 1.3 }}>
+                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "var(--color-text)",
+                      marginBottom: 8,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.25,
+                    }}
+                  >
                     AI knowledge document
                   </div>
                   <p
-                    className="text-hint"
                     style={{
                       margin: 0,
-                      fontSize: 11,
-                      lineHeight: 1.35,
-                      maxWidth: "100%",
-                      whiteSpace: "nowrap",
-                      overflowX: "auto",
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                      color: "var(--color-text-muted)",
+                      maxWidth: "52ch",
                     }}
                   >
-                    Pick a topic or describe your own. We ask a few questions, then generate a PDF and attach it like a normal upload.
+                    Choose a starter topic below, or type your own. We&apos;ll ask a few quick questions, then build a PDF you
+                    can attach like any other file.
                   </p>
                 </div>
                 <button
@@ -6792,12 +6804,13 @@ export default function CampaignNew() {
                   onClick={() => setKbAiGeneratorExpanded(false)}
                   className="btn-ghost"
                   style={{
-                    padding: "4px 8px",
-                    fontSize: 12,
+                    padding: "8px 12px",
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "var(--color-text-muted)",
-                    border: "none",
-                    background: "transparent",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 8,
+                    background: "var(--color-surface)",
                     cursor:
                       uploadingFile || kbAiPhase === "loading" || kbAiPhase === "generating"
                         ? "not-allowed"
@@ -6810,27 +6823,28 @@ export default function CampaignNew() {
                 </button>
               </div>
 
-              <div
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
+              <div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
-                    letterSpacing: "0.05em",
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    color: "#9ca3af",
-                    marginBottom: 6,
+                    color: "var(--color-text-muted)",
+                    marginBottom: 10,
                   }}
                 >
-                  Suggestions
+                  Suggested topics
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", paddingTop: 2 }}>
+                <div
+                  style={{
+                    padding: "14px 14px 12px",
+                    borderRadius: 10,
+                    background: "var(--color-surface)",
+                    border: "1px solid var(--color-border)",
+                  }}
+                >
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
                   {KB_SUGGESTIONS.map((s) => {
                     const isSel = selectedKbTopicId === s.id;
                     const disabled =
@@ -6839,19 +6853,19 @@ export default function CampaignNew() {
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 4,
-                      padding: "6px 11px",
+                      gap: 5,
+                      padding: "8px 14px",
                       borderRadius: 9999,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: isSel ? 600 : 500,
                       fontFamily: "inherit",
-                      lineHeight: 1.25,
+                      lineHeight: 1.35,
                       boxSizing: "border-box",
                       cursor: disabled ? "not-allowed" : "pointer",
                       opacity: disabled ? 0.55 : 1,
-                      border: isSel ? "1px solid #7C3AED" : "1px solid var(--color-border)",
-                      background: isSel ? "rgba(139, 92, 246, 0.14)" : "var(--color-surface)",
-                      color: isSel ? "#7C3AED" : "var(--color-text)",
+                      border: isSel ? "1px solid #2563EB" : "1px solid var(--color-border)",
+                      background: isSel ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface-secondary)",
+                      color: isSel ? "#2563EB" : "var(--color-text)",
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
                     };
                     return (
@@ -6876,7 +6890,7 @@ export default function CampaignNew() {
                         }}
                         onMouseLeave={(e) => {
                           if (disabled || isSel) return;
-                          e.currentTarget.style.background = "var(--color-surface)";
+                          e.currentTarget.style.background = "var(--color-surface-secondary)";
                           e.currentTarget.style.borderColor = "";
                           e.currentTarget.style.border = "1px solid var(--color-border)";
                         }}
@@ -6891,24 +6905,32 @@ export default function CampaignNew() {
                     );
                   })}
                 </div>
+                </div>
               </div>
 
               <div>
                 <label
                   htmlFor="kb-ai-generator-custom-brief"
                   style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
-                    letterSpacing: "0.05em",
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    color: "#9ca3af",
+                    color: "var(--color-text-muted)",
                     display: "block",
-                    marginBottom: 4,
+                    marginBottom: 10,
                   }}
                 >
-                  Your words
+                  Or describe your own topic
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    alignItems: "stretch",
+                  }}
+                >
                   <input
                     id="kb-ai-generator-custom-brief"
                     type="text"
@@ -6930,8 +6952,15 @@ export default function CampaignNew() {
                       }
                     }}
                     disabled={uploadingFile || kbAiPhase === "loading" || kbAiPhase === "generating"}
-                    placeholder="e.g. dental practice scheduling & insurance FAQs"
-                    style={{ flex: "1 1 180px", minWidth: 0, fontSize: 12, padding: "6px 10px", minHeight: 32 }}
+                    placeholder="Short description, e.g. dental scheduling & insurance FAQs"
+                    style={{
+                      flex: "1 1 220px",
+                      minWidth: 0,
+                      fontSize: 14,
+                      padding: "10px 14px",
+                      minHeight: 42,
+                      borderRadius: 10,
+                    }}
                   />
                   <button
                     type="button"
@@ -6951,15 +6980,18 @@ export default function CampaignNew() {
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
+                      justifyContent: "center",
+                      gap: 8,
                       flexShrink: 0,
-                      padding: "0 12px",
-                      minHeight: 32,
-                      fontSize: 12,
+                      padding: "0 18px",
+                      minHeight: 42,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      borderRadius: 10,
                       opacity: kbAiPhase === "loading" || kbAiPhase === "generating" ? 0.55 : 1,
                     }}
                   >
-                    <Sparkles size={13} strokeWidth={2} aria-hidden />
+                    <Sparkles size={16} strokeWidth={2} aria-hidden />
                     Generate
                   </button>
                 </div>
@@ -6984,8 +7016,8 @@ export default function CampaignNew() {
               onDragOver={(e) => {
                 e.preventDefault();
                 if (uploadingFile) return;
-                e.currentTarget.style.borderColor = "#7C3AED";
-                e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+                e.currentTarget.style.borderColor = "#2563EB";
+                e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
               }}
               onDragLeave={(e) => {
                 e.currentTarget.style.borderColor = "var(--color-border)";
@@ -7032,7 +7064,7 @@ export default function CampaignNew() {
                       style={{
                         height: 4,
                         borderRadius: 9999,
-                        background: "#7C3AED",
+                        background: "#2563EB",
                         width: `${uploadProgress ?? 0}%`,
                         transition: "width 0.25s ease-out",
                       }}
@@ -7044,7 +7076,7 @@ export default function CampaignNew() {
                 </div>
               ) : (
                 <>
-                  <Icons.Upload size={48} style={{ color: "#7C3AED", marginBottom: 16 }} />
+                  <Icons.Upload size={48} style={{ color: "#2563EB", marginBottom: 16 }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Click to upload or drag and drop</div>
                   <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Knowledge base files only (max 10MB)</div>
                 </>
@@ -7198,19 +7230,19 @@ export default function CampaignNew() {
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 600,
-                  border: "none",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   ...(whatsAppTemplateTab === "library"
                     ? {
-                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
-                        color: "#fff",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
+                        background: "var(--color-surface)",
+                        color: "var(--color-primary)",
+                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
                         background: "transparent",
                         color: "var(--color-text-muted)",
+                        border: "1px solid transparent",
                         boxShadow: "none",
                       }),
                   transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
@@ -7230,19 +7262,19 @@ export default function CampaignNew() {
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 600,
-                  border: "none",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   ...(whatsAppTemplateTab === "ai"
                     ? {
-                        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 48%, #6D28D9 100%)",
-                        color: "#fff",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 14px rgba(79, 70, 229, 0.28)",
+                        background: "var(--color-surface)",
+                        color: "var(--color-primary)",
+                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
                         background: "transparent",
                         color: "var(--color-text-muted)",
+                        border: "1px solid transparent",
                         boxShadow: "none",
                       }),
                   transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
@@ -7479,8 +7511,8 @@ export default function CampaignNew() {
                       style={{
                         marginTop: 4,
                         padding: "12px 14px",
-                        background: "rgba(124, 58, 237, 0.09)",
-                        borderLeft: "4px solid #7C3AED",
+                        background: "rgba(37, 99, 235, 0.09)",
+                        borderLeft: "4px solid #2563EB",
                         borderRadius: 8,
                         fontSize: 14,
                         color: "var(--color-text)",
@@ -7515,7 +7547,7 @@ export default function CampaignNew() {
                     gap: 16,
                   }}
                 >
-                  <Icons.Loader size={40} style={{ color: "#7C3AED", animation: "spin 1s linear infinite" }} />
+                  <Icons.Loader size={40} style={{ color: "#2563EB", animation: "spin 1s linear infinite" }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Writing your WhatsApp drafts…</div>
                   <div style={{ fontSize: 13 }}>
                     Using your campaign details, target segments, and sample leads with phone numbers
@@ -7571,11 +7603,11 @@ export default function CampaignNew() {
                         padding: "12px 14px",
                         background:
                           selectedWhatsAppMessageIndices.length > 0
-                            ? "rgba(124, 58, 237, 0.09)"
+                            ? "rgba(37, 99, 235, 0.09)"
                             : "var(--color-surface-secondary)",
                         borderLeft:
                           selectedWhatsAppMessageIndices.length > 0
-                            ? "4px solid #7C3AED"
+                            ? "4px solid #2563EB"
                             : "4px solid var(--color-border)",
                         borderRadius: 8,
                         fontSize: 14,
@@ -7634,7 +7666,7 @@ export default function CampaignNew() {
             >
               <Icons.AlertCircle size={28} style={{ color: "#f59e0b" }} />
               <div style={{ fontWeight: 600, color: "var(--color-text)" }}>No voices available</div>
-              <div style={{ fontSize: 14 }}>Check your ElevenLabs API key, or clone a voice once the API is configured.</div>
+              <div style={{ fontSize: 14 }}>Check your voice API key, or clone a voice once the API is configured.</div>
               <button type="button" className="btn-primary" onClick={() => setVoiceCloneOpen(true)} style={{ marginTop: 8 }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                   <Icons.UserPlus size={18} />
@@ -7766,9 +7798,9 @@ export default function CampaignNew() {
                                   padding: "6px 12px",
                                   borderRadius: 999,
                                   fontSize: 12,
-                                  border: active ? "1px solid #7C3AED" : "1px solid var(--color-border)",
+                                  border: active ? "1px solid #2563EB" : "1px solid var(--color-border)",
                                   background: active ? "rgba(139, 92, 246, 0.12)" : "var(--color-surface-secondary)",
-                                  color: active ? "#7C3AED" : "var(--color-text-muted)",
+                                  color: active ? "#2563EB" : "var(--color-text-muted)",
                                   cursor: "pointer",
                                 }}
                               >
@@ -7809,8 +7841,8 @@ export default function CampaignNew() {
                                   padding: "12px 14px",
                                   borderRadius: 8,
                                   border: "1px solid var(--color-border)",
-                                  borderLeft: sel ? "4px solid #7C3AED" : "1px solid var(--color-border)",
-                                  background: sel ? "rgba(124, 58, 237, 0.09)" : "var(--color-surface)",
+                                  borderLeft: sel ? "4px solid #2563EB" : "1px solid var(--color-border)",
+                                  background: sel ? "rgba(37, 99, 235, 0.09)" : "var(--color-surface)",
                                   cursor: "pointer",
                                   transition: "background 0.15s ease, border-color 0.15s ease",
                                   minWidth: 0,
@@ -7822,8 +7854,8 @@ export default function CampaignNew() {
                                     width: 18,
                                     height: 18,
                                     borderRadius: "50%",
-                                    border: sel ? "2px solid #7C3AED" : "2px solid #d1d5db",
-                                    background: sel ? "#7C3AED" : "transparent",
+                                    border: sel ? "2px solid #2563EB" : "2px solid #d1d5db",
+                                    background: sel ? "#2563EB" : "transparent",
                                     flexShrink: 0,
                                     display: "flex",
                                     alignItems: "center",
@@ -7970,8 +8002,8 @@ export default function CampaignNew() {
                                 padding: "12px 14px",
                                 borderRadius: 8,
                                 border: "1px solid var(--color-border)",
-                                borderLeft: sel ? "4px solid #7C3AED" : "1px solid var(--color-border)",
-                                background: sel ? "rgba(124, 58, 237, 0.09)" : "var(--color-surface)",
+                                borderLeft: sel ? "4px solid #2563EB" : "1px solid var(--color-border)",
+                                background: sel ? "rgba(37, 99, 235, 0.09)" : "var(--color-surface)",
                                 cursor: "pointer",
                                 transition: "background 0.15s ease, border-color 0.15s ease",
                                 minWidth: 0,
@@ -7983,8 +8015,8 @@ export default function CampaignNew() {
                                   width: 18,
                                   height: 18,
                                   borderRadius: "50%",
-                                  border: sel ? "2px solid #7C3AED" : "2px solid #d1d5db",
-                                  background: sel ? "#7C3AED" : "transparent",
+                                  border: sel ? "2px solid #2563EB" : "2px solid #d1d5db",
+                                  background: sel ? "#2563EB" : "transparent",
                                   flexShrink: 0,
                                   display: "flex",
                                   alignItems: "center",
@@ -8185,20 +8217,20 @@ export default function CampaignNew() {
                       fontWeight: 500,
                       fontFamily:
                         'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                      background: "rgba(124, 58, 237, 0.09)",
-                      color: "#7C3AED",
-                      border: "1px solid rgba(124, 58, 237, 0.22)",
+                      background: "rgba(37, 99, 235, 0.09)",
+                      color: "#2563EB",
+                      border: "1px solid rgba(37, 99, 235, 0.22)",
                       cursor: "pointer",
                       boxSizing: "border-box",
                       transition: "background 0.15s ease, border-color 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(124, 58, 237, 0.14)";
-                      e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.35)";
+                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.14)";
+                      e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(124, 58, 237, 0.09)";
-                      e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.22)";
+                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.09)";
+                      e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.22)";
                     }}
                   >
                     {`{{${variable.key}}}`}
@@ -8363,7 +8395,7 @@ export default function CampaignNew() {
                       boxSizing: "border-box",
                       minHeight: 0,
                       transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                      boxShadow: selected ? "0 1px 4px rgba(124, 58, 237, 0.12)" : "none",
+                      boxShadow: selected ? "0 1px 4px rgba(37, 99, 235, 0.12)" : "none",
                     }}
                   >
                     <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text)", marginBottom: 4 }}>
@@ -8396,7 +8428,7 @@ export default function CampaignNew() {
           <div>
             <h2 style={{ marginTop: 0, marginBottom: 6, fontSize: 20, fontWeight: 600 }}>Assistant behavior</h2>
             <p className="text-hint" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
-              This is your ElevenLabs <strong style={{ fontWeight: 600, color: "var(--color-text)" }}>system prompt</strong>
+              This is your voice agent <strong style={{ fontWeight: 600, color: "var(--color-text)" }}>system prompt</strong>
               —how the agent thinks, speaks, and handles the rest of the call after the opening line.
             </p>
           </div>
@@ -8525,7 +8557,7 @@ export default function CampaignNew() {
                         maxWidth: "100%",
                       }}
                     >
-                      <Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#7C3AED" }} aria-hidden />
+                      <Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#2563EB" }} aria-hidden />
                       {s.label}
                     </button>
                   ))}
@@ -8626,7 +8658,7 @@ export default function CampaignNew() {
                 Last assistant style
               </span>
               <span className="text-hint" style={{ fontSize: 12, lineHeight: 1.4 }}>
-                Saved with your campaign and pushed to your ElevenLabs agent when you continue or launch.
+                Saved with your campaign and pushed to your voice agent when you continue or launch.
               </span>
             </div>
 
@@ -9392,7 +9424,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: "none",
                     background: "none",
                     cursor: "pointer",
-                    color: "#6D28D9",
+                    color: "#1D4ED8",
                     fontWeight: 600,
                     textDecoration: "underline",
                     fontSize: "inherit",
@@ -9448,7 +9480,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#7C3AED", flexShrink: 0 }} />
+                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#2563EB", flexShrink: 0 }} />
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Campaign Overview</h4>
                   </div>
                   <button
@@ -9458,7 +9490,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       flexShrink: 0,
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#6D28D9",
+                      color: "#1D4ED8",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -9566,7 +9598,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#7C3AED", flexShrink: 0 }} />
+                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#2563EB", flexShrink: 0 }} />
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{"Schedule & Settings"}</h4>
                   </div>
                   <button
@@ -9576,7 +9608,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       flexShrink: 0,
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#6D28D9",
+                      color: "#1D4ED8",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -9798,7 +9830,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                      <Icons.Mail size={20} style={{ color: "#7C3AED", flexShrink: 0 }} />
+                      <Icons.Mail size={20} style={{ color: "#2563EB", flexShrink: 0 }} />
                       <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Email Configuration</h4>
                     </div>
                     <button
@@ -9808,7 +9840,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#6D28D9",
+                        color: "#1D4ED8",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -9961,7 +9993,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#6D28D9",
+                        color: "#1D4ED8",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10067,7 +10099,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#6D28D9",
+                        color: "#1D4ED8",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10201,7 +10233,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#6D28D9",
+                        color: "#1D4ED8",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10245,7 +10277,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             gap: 6,
                             fontSize: 13,
                             fontWeight: 600,
-                            color: "#6D28D9",
+                            color: "#1D4ED8",
                             padding: "6px 12px",
                             borderRadius: 8,
                             border: "1px solid var(--color-border)",
@@ -10337,7 +10369,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                                     padding: 0,
                                     borderRadius: 8,
                                     border: "1px solid var(--color-border)",
-                                    color: "#6D28D9",
+                                    color: "#1D4ED8",
                                   }}
                                 >
                                   {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "view" ? (
@@ -10369,7 +10401,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                                     padding: 0,
                                     borderRadius: 8,
                                     border: "1px solid var(--color-border)",
-                                    color: "#6D28D9",
+                                    color: "#1D4ED8",
                                   }}
                                 >
                                   {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "download" ? (
@@ -10460,7 +10492,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 >
                   {wizardNavBusy === "back" ? (
                     <>
-                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #7C3AED)" }} aria-hidden />
+                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #2563EB)" }} aria-hidden />
                       <span>Saving…</span>
                     </>
                   ) : (
@@ -10518,7 +10550,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 >
                   {wizardNavBusy === "back" ? (
                     <>
-                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #7C3AED)" }} aria-hidden />
+                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #2563EB)" }} aria-hidden />
                       <span>Saving…</span>
                     </>
                   ) : (
@@ -12416,7 +12448,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 style={{
                   animation: "spin 1s linear infinite",
                   marginBottom: 10,
-                  color: "#7C3AED",
+                  color: "#2563EB",
                 }}
               />
               <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 6 }}>Preparing questions…</div>
@@ -12492,7 +12524,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
 
           {kbAiPhase === 'generating' && (
             <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              <Icons.Sparkles size={32} style={{ color: '#7C3AED', marginBottom: 8 }} />
+              <Icons.Sparkles size={32} style={{ color: '#2563EB', marginBottom: 8 }} />
               <div style={{ fontWeight: 600, marginBottom: 4 }}>Generating your knowledge base…</div>
               <div style={{ fontSize: 13 }}>This may take up to a minute.</div>
             </div>
@@ -12699,7 +12731,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             Clone a voice
           </h4>
           <p className="text-hint" style={{ marginTop: 0, marginBottom: 18, fontSize: 14, lineHeight: 1.55 }}>
-            Upload one or more short, clear recordings (about 30–120 seconds total works well). ElevenLabs creates the voice on
+            Upload one or more short, clear recordings (about 30–120 seconds total works well). The voice service creates the voice on
             your account; it will show under <strong style={{ color: "var(--color-text)" }}>My voices</strong>.
           </p>
           <label style={{ display: "block", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Voice name *</label>
@@ -12716,7 +12748,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             className="input"
             value={voiceCloneDescription}
             onChange={(e) => setVoiceCloneDescription(e.target.value)}
-            placeholder="Short note for ElevenLabs (e.g. English sales tone)"
+            placeholder="Short note for the voice service (e.g. English sales tone)"
             disabled={cloningVoice}
             style={{ width: "100%", marginBottom: 16, boxSizing: "border-box" }}
           />
@@ -12762,10 +12794,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               setVoiceCloneFiles((prev) => mergeVoiceCloneFiles(dropped, prev));
             }}
             style={{
-              border: `2px dashed ${voiceCloneDragOver ? "#7C3AED" : "var(--color-border)"}`,
+              border: `2px dashed ${voiceCloneDragOver ? "#2563EB" : "var(--color-border)"}`,
               borderRadius: 14,
               padding: "22px 18px",
-              background: voiceCloneDragOver ? "rgba(124, 58, 237, 0.08)" : "var(--color-surface-secondary)",
+              background: voiceCloneDragOver ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface-secondary)",
               marginBottom: 10,
               textAlign: "center",
               transition: "border-color 0.15s, background 0.15s",
@@ -12778,12 +12810,12 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 height: 52,
                 margin: "0 auto 12px",
                 borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.12) 100%)",
-                border: "1px solid rgba(124, 58, 237, 0.25)",
+                background: "linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.12) 100%)",
+                border: "1px solid rgba(37, 99, 235, 0.25)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#7C3AED",
+                color: "#2563EB",
               }}
             >
               <Icons.Upload size={26} />
@@ -12863,11 +12895,11 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         width: 36,
                         height: 36,
                         borderRadius: 8,
-                        background: "rgba(124, 58, 237, 0.12)",
+                        background: "rgba(37, 99, 235, 0.12)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#7C3AED",
+                        color: "#2563EB",
                         flexShrink: 0,
                       }}
                     >
@@ -13000,7 +13032,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             Delete cloned voice?
           </h4>
           <p className="text-hint" style={{ marginTop: 0, marginBottom: 20, fontSize: 14, lineHeight: 1.5, overflowWrap: "anywhere" }}>
-            This removes <strong style={{ color: "var(--color-text)" }}>{voiceDeleteTarget.name}</strong> from ElevenLabs and your
+            This removes <strong style={{ color: "var(--color-text)" }}>{voiceDeleteTarget.name}</strong> from the voice provider and your
             account. Campaigns using this voice may need a new selection.
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -13104,13 +13136,13 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: 'rgba(124, 58, 237, 0.12)',
-                border: '1px solid rgba(124, 58, 237, 0.2)',
+                background: 'rgba(37, 99, 235, 0.12)',
+                border: '1px solid rgba(37, 99, 235, 0.2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Icons.Users size={16} style={{ color: '#7C3AED' }} />
+                <Icons.Users size={16} style={{ color: '#2563EB' }} />
               </div>
               <div>
                 <h3 style={{ margin:0, fontSize: 18, fontWeight: 700 }}>
@@ -13153,7 +13185,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               padding: '0 24px 24px 24px',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(124, 58, 237, 0.4) rgba(0, 0, 0, 0.08)'
+              scrollbarColor: 'rgba(37, 99, 235, 0.4) rgba(0, 0, 0, 0.08)'
             }}
           >
               {viewingLeads.length === 0 ? (
@@ -13197,7 +13229,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         title={isDisabled ? 'This lead does not have a LinkedIn URL and cannot be used for LinkedIn campaigns' : ''}
                         onMouseEnter={(e) => {
                           if (!isDisabled) {
-                            e.currentTarget.style.background = 'rgba(124, 58, 237, 0.05)';
+                            e.currentTarget.style.background = 'rgba(37, 99, 235, 0.05)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -13243,10 +13275,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             <span style={{
                               padding: '4px 10px',
                               borderRadius: 6,
-                              background: (lead.score || 0) > 80 ? 'rgba(124, 58, 237, 0.2)' : 
+                              background: (lead.score || 0) > 80 ? 'rgba(37, 99, 235, 0.2)' : 
                                          (lead.score || 0) > 60 ? 'rgba(255, 167, 38, 0.2)' : 
                                          'rgba(128, 128, 128, 0.2)',
-                              color: (lead.score || 0) > 80 ? '#7C3AED' : 
+                              color: (lead.score || 0) > 80 ? '#2563EB' : 
                                      (lead.score || 0) > 60 ? '#ffa726' : '#888',
                               fontWeight: 600,
                               fontSize: 12
@@ -13432,7 +13464,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             <div style={{
               padding: '24px 28px',
               borderBottom: '1px solid var(--elev-border)',
-              background: 'rgba(124, 58, 237, 0.08)',
+              background: 'rgba(37, 99, 235, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -13442,7 +13474,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: 'var(--color-primary, #7C3AED)',
+                  background: 'var(--color-primary, #2563EB)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -13506,7 +13538,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icons.Target size={16} style={{ color: '#7C3AED' }} />
+                      <Icons.Target size={16} style={{ color: '#2563EB' }} />
                       <span style={{ fontWeight: 600, fontSize: 15 }}>{name}</span>
                     </div>
                     <div style={{ 
@@ -13585,7 +13617,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       border: '1px solid var(--elev-border)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <Icons.Mail size={18} style={{ color: '#7C3AED' }} />
+                        <Icons.Mail size={18} style={{ color: '#2563EB' }} />
                         <span style={{ fontWeight: 600, fontSize: 14 }}>Email Configuration</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
@@ -13708,7 +13740,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: '1px solid var(--elev-border)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                      <Icons.Clock size={18} style={{ color: '#7C3AED' }} />
+                      <Icons.Clock size={18} style={{ color: '#2563EB' }} />
                       <span style={{ fontWeight: 600, fontSize: 14 }}>Schedule</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
@@ -14135,9 +14167,9 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               <div style={{
                 marginTop: 24,
                 padding: 20,
-                background: 'rgba(124, 58, 237, 0.05)',
+                background: 'rgba(37, 99, 235, 0.05)',
                 borderRadius: 12,
-                border: '1px solid rgba(124, 58, 237, 0.2)'
+                border: '1px solid rgba(37, 99, 235, 0.2)'
               }}>
                 <div style={{ marginBottom: 16 }}>
                   <h4 style={{ margin: 0, marginBottom: 4, fontSize: 16, fontWeight: 600 }}>

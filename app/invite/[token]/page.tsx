@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
-import { AppBrandLogoMark, appBrandWordmarkStyle } from "@/components/ui/AppBrandLogo";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import BaseCard from "@/components/ui/BaseCard";
 import { Icons } from "@/components/ui/Icons";
@@ -54,8 +54,7 @@ function InvitePublicHeader() {
       }}
     >
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-        <AppBrandLogoMark size={36} />
-        <span style={appBrandWordmarkStyle(18)}>Sales Co-Pilot</span>
+        <AppBrandLogoLockup height={32} style={{ maxWidth: 160 }} />
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Link
@@ -241,7 +240,7 @@ export default function InvitePage() {
                 width: 56,
                 height: 56,
                 borderRadius: "50%",
-                background: "rgba(124, 58, 237, 0.15)",
+                background: "rgba(37, 99, 235, 0.15)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

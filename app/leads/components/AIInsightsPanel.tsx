@@ -6,23 +6,20 @@ export function AIInsightsPanel() {
   const { leads, filters } = useLeadStore();
 
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
-      const matchesSearch = !filters.search || 
-        `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''}`
-          .toLowerCase()
-          .includes(filters.search.toLowerCase());
-      
-      if (filters.segment !== 'All') {
-        if (filters.segment === 'Hot' && lead.tier !== 'Hot') return false;
-        if (filters.segment === 'Warm' && lead.tier !== 'Warm') return false;
-        if (filters.segment === 'Cold' && lead.tier !== 'Cold') return false;
+    return leads.filter((lead) => {
+      // Search is server-side on GET /leads; `leads` are already search-filtered for this page.
+
+      if (filters.segment !== "All") {
+        if (filters.segment === "Hot" && lead.tier !== "Hot") return false;
+        if (filters.segment === "Warm" && lead.tier !== "Warm") return false;
+        if (filters.segment === "Cold" && lead.tier !== "Cold") return false;
       }
-      
+
       if (filters.aiFilters.highIntent && (!lead.score || lead.score < 70)) return false;
       if (filters.aiFilters.recentlyActive && !lead.enrichment?.recent_activity) return false;
       if (filters.aiFilters.needsFollowUp && !lead.enrichment?.needs_followup) return false;
-      
-      return matchesSearch;
+
+      return true;
     });
   }, [leads, filters]);
 
@@ -39,12 +36,12 @@ export function AIInsightsPanel() {
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
         <div style={{
-          background: 'rgba(124, 58, 237, 0.1)',
+          background: 'rgba(37, 99, 235, 0.1)',
           borderRadius: '12px',
           padding: '16px',
-          border: '1px solid rgba(124, 58, 237, 0.3)'
+          border: '1px solid rgba(37, 99, 235, 0.3)'
         }}>
-          <h4 style={{ fontSize: '14px', fontWeight: '600', margin: '0 0 8px 0', color: '#7C3AED' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: '600', margin: '0 0 8px 0', color: '#2563EB' }}>
             High-Intent Leads
           </h4>
           <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>

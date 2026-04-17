@@ -182,8 +182,8 @@ export function PaymentSettingsPanel() {
           style={{
             padding: "12px 14px",
             borderRadius: 10,
-            background: "rgba(124, 58, 237, 0.08)",
-            border: "1px solid rgba(124, 58, 237, 0.25)",
+            background: "rgba(37, 99, 235, 0.08)",
+            border: "1px solid rgba(37, 99, 235, 0.25)",
             fontSize: 14,
             color: "var(--color-text)",
           }}
@@ -219,7 +219,7 @@ export function PaymentSettingsPanel() {
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
                 Credits balance
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "#7C3AED" }}>{summary.credits_balance}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "#2563EB" }}>{summary.credits_balance}</div>
             </div>
             <div className="card-enhanced" style={{ padding: 16, borderRadius: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
@@ -341,7 +341,7 @@ export function PaymentSettingsPanel() {
             ) : (
               <>
                 Open{" "}
-                <a href="/upgrade" style={{ color: "#7C3AED", fontWeight: 600 }}>
+                <a href="/upgrade" style={{ color: "#2563EB", fontWeight: 600 }}>
                   Upgrade
                 </a>{" "}
                 to change plan.

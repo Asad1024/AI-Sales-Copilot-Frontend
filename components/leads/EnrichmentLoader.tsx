@@ -36,9 +36,9 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
   const getPhaseColor = () => {
     switch (phase) {
       case 'validation':
-        return '#7C3AED';
+        return '#2563EB';
       case 'enrichment':
-        return '#A94CFF';
+        return '#06B6D4';
       case 'phone_enrichment':
         return '#FF6B35';
       case 'complete':
@@ -109,10 +109,10 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
           style={{ 
             width:'min(600px, 90vw)', 
             background:'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', 
-            border:'2px solid rgba(124, 58, 237, 0.4)', 
+            border:'2px solid rgba(37, 99, 235, 0.4)', 
             borderRadius:24, 
             padding:0,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(124, 58, 237, 0.2)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(37, 99, 235, 0.2)',
             animation: 'slideUp 0.4s ease-out',
             overflow: 'hidden',
             position: 'relative'
@@ -122,15 +122,15 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: `radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
-                         radial-gradient(circle at 80% 70%, rgba(169, 76, 255, 0.15) 0%, transparent 50%)`,
+            background: `radial-gradient(circle at 20% 30%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+                         radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.15) 0%, transparent 50%)`,
             animation: 'pulse 3s ease-in-out infinite',
             pointerEvents: 'none'
           }} />
           
           {/* Header */}
           <div style={{
-            background: `linear-gradient(135deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#A94CFF' : phase === 'complete' ? '#4CAF50' : '#7C3AED'} 100%)`,
+            background: `linear-gradient(135deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#06B6D4' : phase === 'complete' ? '#4CAF50' : '#2563EB'} 100%)`,
             padding: '32px 40px',
             borderBottom: '1px solid rgba(255,255,255,0.1)',
             position: 'relative',
@@ -201,7 +201,7 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
               marginBottom: 32,
               position: 'relative'
             }}>
-              {/* Phase 1: Finding contact information (Apollo) */}
+              {/* Phase 1: Finding contact information */}
               <div style={{ 
                 flex: 1, 
                 display: 'flex', 
@@ -363,7 +363,7 @@ export default function EnrichmentLoader({ phase, progress, message, onComplete 
                 <div style={{
                   width: `${progress}%`,
                   height: '100%',
-                  background: `linear-gradient(90deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#A94CFF' : phase === 'complete' ? '#4CAF50' : '#7C3AED'} 100%)`,
+                  background: `linear-gradient(90deg, ${getPhaseColor()} 0%, ${phase === 'enrichment' ? '#06B6D4' : phase === 'complete' ? '#4CAF50' : '#2563EB'} 100%)`,
                   borderRadius: 4,
                   transition: 'width 0.5s ease-out',
                   position: 'relative',

@@ -666,7 +666,7 @@ export default function TemplatesPage() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "none",
-                      background: selectedCategory === category ? "rgba(124, 58, 237,0.12)" : "transparent",
+                      background: selectedCategory === category ? "rgba(37, 99, 235,0.12)" : "transparent",
                       color: "var(--color-text)",
                       padding: "9px 10px",
                       borderRadius: 8,
@@ -824,7 +824,7 @@ export default function TemplatesPage() {
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -835,7 +835,7 @@ export default function TemplatesPage() {
                 fontSize: '24px', 
                 fontWeight: '700', 
                 margin: 0,
-                background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -966,12 +966,12 @@ export default function TemplatesPage() {
               />
 
               <div style={{ 
-                background: 'rgba(124, 58, 237, 0.1)', 
+                background: 'rgba(37, 99, 235, 0.1)', 
                 borderRadius: '8px', 
                 padding: '12px', 
                 fontSize: '12px', 
                 color: 'var(--color-text-muted)',
-                border: '1px solid rgba(124, 58, 237, 0.3)'
+                border: '1px solid rgba(37, 99, 235, 0.3)'
               }}>
                 <strong>Tip:</strong> Use variables like {`{{first_name}}`}, {`{{company_name}}`}, {`{{industry}}`} to personalize your messages. AI will automatically fill these in based on lead data.
               </div>
@@ -982,7 +982,7 @@ export default function TemplatesPage() {
                 onClick={handleSaveTemplate}
                 disabled={saving || !formData.name.trim() || !formData.content.trim()}
                 style={{
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                  background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                   border: 'none',
                   borderRadius: '10px',
                   padding: '12px 24px',

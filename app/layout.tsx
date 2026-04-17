@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import ClientRootLayout from "./ClientRootLayout";
 import "../styles/globals.css";
+import { APP_BRAND_META_DESCRIPTION, APP_BRAND_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: {
-    default: "Sales Co-Pilot",
-    template: "%s · Sales Co-Pilot",
-  },
-  description: "Premium AI-native sales workspace.",
+  title: APP_BRAND_NAME,
+  description: APP_BRAND_META_DESCRIPTION,
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
   },
 };
 

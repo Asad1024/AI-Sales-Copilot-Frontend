@@ -24,7 +24,7 @@ type LeadsEmptyWorkspaceBannerProps = {
 };
 
 /**
- * Same visual pattern as Workspaces `bases-onboarding-hint` (flat lavender tint, icon, 13px body, purple links).
+ * Empty-state banner for workspace leads: clear hierarchy, primary “Generate” CTA, compact import options.
  */
 export function LeadsEmptyWorkspaceBanner({
   workspaceName,
@@ -38,67 +38,94 @@ export function LeadsEmptyWorkspaceBanner({
 }: LeadsEmptyWorkspaceBannerProps) {
   const router = useRouter();
   const name = workspaceName || "this workspace";
-  const importExtras: string[] = [];
-  if (onImportSheets) importExtras.push("Google Sheets");
-  if (onImportAirtable) importExtras.push("Airtable");
-  const importExtrasPhrase =
-    importExtras.length === 2
-      ? "Google Sheets or Airtable"
-      : importExtras.length === 1
-        ? importExtras[0]
-        : "";
 
   return (
     <div
-      className={`bases-onboarding-hint leads-empty-workspace-banner${
+      className={`leads-empty-workspace-banner leads-empty-workspace-banner--sheet${
         showWelcomeHint ? " leads-empty-workspace-banner--welcome" : ""
       }`}
       role="region"
       aria-label="Getting started on Leads"
     >
-      {showWelcomeHint && (
-        <button
-          type="button"
-          className="leads-empty-workspace-banner-dismiss"
-          onClick={onDismissWelcome}
-          aria-label="Dismiss welcome message"
-        >
-          <Icons.X size={18} strokeWidth={1.5} />
-        </button>
-      )}
+      {showWelcomeHint ? (
+        <div className="leads-empty-workspace-banner__topbar">
+          <div className="leads-empty-workspace-banner__topbar-actions">
+            {canCreateLeads ? (
+              <button
+                type="button"
+                className="leads-empty-workspace-banner__dashboard"
+                onClick={() => router.push("/dashboard")}
+              >
+                View dashboard
+                <Icons.ChevronRight size={16} strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="leads-empty-workspace-banner-dismiss"
+              onClick={onDismissWelcome}
+              aria-label="Dismiss welcome message"
+            >
+              <Icons.X size={18} strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
-      <Icons.Users size={20} strokeWidth={1.5} className="bases-onboarding-hint-icon" />
+      <div className="leads-empty-workspace-banner__body">
+        <div className="leads-empty-workspace-banner__icon" aria-hidden>
+          <Icons.Users size={22} strokeWidth={1.5} />
+        </div>
 
-      <div className="leads-empty-workspace-banner-text">
-        {showWelcomeHint ? (
-          <p className="bases-onboarding-hint-body">
-            <strong>Welcome</strong> — <strong>{name}</strong> is ready. Use <strong>Generate with AI</strong> or{" "}
-            <strong>Import CSV</strong>
-            {importExtrasPhrase ? (
-              <>
-                , or import from <strong>{importExtrasPhrase}</strong>
-              </>
-            ) : null}{" "}
-            below to add contacts, then start a campaign when you&apos;re set. The dashboard checklist also tracks these
-            steps.
-          </p>
-        ) : (
-          <p className="bases-onboarding-hint-body">
-            You&apos;re on <strong>Leads</strong> for <strong>{name}</strong>. Use <strong>Generate with AI</strong> or{" "}
-            <strong>Import CSV</strong>
-            {importExtrasPhrase ? (
-              <>
-                , or import from <strong>{importExtrasPhrase}</strong>
-              </>
-            ) : null}{" "}
-            to add contacts — you&apos;ll use them for campaigns and enrichment.
-          </p>
-        )}
+        <div className="leads-empty-workspace-banner__main">
+          <div className="leads-empty-workspace-banner__head">
+            <div className="leads-empty-workspace-banner__titles">
+              <p className="leads-empty-workspace-banner__eyebrow">
+                {showWelcomeHint ? "First steps" : "Leads"}
+              </p>
+              {showWelcomeHint ? (
+                <h3 className="leads-empty-workspace-banner__title">
+                  Welcome — <span className="leads-empty-workspace-banner__name">{name}</span> is ready
+                </h3>
+              ) : (
+                <h3 className="leads-empty-workspace-banner__title">Add contacts to get started</h3>
+              )}
+              <p className="leads-empty-workspace-banner__lede">
+                {showWelcomeHint ? (
+                  <>
+                    Choose a way to add people to <strong className="leads-empty-workspace-banner__name-inline">{name}</strong>.
+                    You can use more than one method.
+                  </>
+                ) : (
+                  <>
+                    You&apos;re on <strong>Leads</strong> for{" "}
+                    <strong className="leads-empty-workspace-banner__name-inline">{name}</strong>. Bring in contacts to run
+                    campaigns and enrichment.
+                  </>
+                )}
+              </p>
+            </div>
+            {!showWelcomeHint && canCreateLeads ? (
+              <button
+                type="button"
+                className="leads-empty-workspace-banner__dashboard"
+                onClick={() => router.push("/dashboard")}
+              >
+                View dashboard
+                <Icons.ChevronRight size={16} strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+          </div>
 
         {canCreateLeads ? (
           <>
+            <p className="leads-empty-workspace-banner__actions-label">Add contacts</p>
             <div className="leads-empty-workspace-banner-actions">
-              <button type="button" className="leads-empty-hint-btn leads-empty-hint-btn--secondary" onClick={onGenerateAI}>
+              <button
+                type="button"
+                className="leads-empty-hint-btn leads-empty-hint-btn--primary"
+                onClick={onGenerateAI}
+              >
                 <GenerateLeadAIIcon size={20} sparklesSize={11} />
                 Generate with AI
               </button>
@@ -127,15 +154,13 @@ export function LeadsEmptyWorkspaceBanner({
                 </button>
               ) : null}
             </div>
-            <button type="button" className="bases-onboarding-hint-link" onClick={() => router.push("/dashboard")}>
-              Go to dashboard
-            </button>
           </>
         ) : (
-          <p className="bases-onboarding-hint-body" style={{ marginTop: 8, marginBottom: 0 }}>
+          <p className="leads-empty-workspace-banner__lede leads-empty-workspace-banner__lede--solo">
             You have view-only access. Ask a workspace admin to add leads.
           </p>
         )}
+        </div>
       </div>
     </div>
   );

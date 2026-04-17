@@ -116,9 +116,9 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
         <div style={{ 
           padding: 40, 
           textAlign: 'center',
-          background: 'rgba(124, 58, 237, 0.05)',
+          background: 'rgba(37, 99, 235, 0.05)',
           borderRadius: 12,
-          border: '1px dashed rgba(124, 58, 237, 0.3)',
+          border: '1px dashed rgba(37, 99, 235, 0.3)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -128,12 +128,12 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
             width: 64, 
             height: 64, 
             borderRadius: '50%', 
-            background: 'rgba(124, 58, 237, 0.1)',
+            background: 'rgba(37, 99, 235, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Icons.FileText size={32} style={{ color: '#7C3AED' }} />
+            <Icons.FileText size={32} style={{ color: '#2563EB' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No sequence steps yet</div>
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>
@@ -164,7 +164,7 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
                     width: 32,
                     height: 32,
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                    background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -323,8 +323,8 @@ export function SequenceTab({ campaignId, templates, sequenceSteps, onRefresh }:
                   flex: 1,
                   padding: '12px 24px',
                   background: !newStep.templateId 
-                    ? 'rgba(124, 58, 237, 0.3)' 
-                    : 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                    ? 'rgba(37, 99, 235, 0.3)' 
+                    : 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                   border: 'none',
                   borderRadius: 10,
                   color: !newStep.templateId ? 'var(--color-text-muted)' : 'var(--color-text)',

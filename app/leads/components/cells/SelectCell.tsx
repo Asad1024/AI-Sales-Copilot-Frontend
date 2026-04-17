@@ -21,7 +21,7 @@ export function SelectCell({ value, onUpdate, editable = true, options }: Select
   const normalizeOptions = () => {
     return options.map((opt) => {
       if (typeof opt === "string") {
-        return { value: opt, label: opt, color: "#7C3AED" };
+        return { value: opt, label: opt, color: "#2563EB" };
       }
       const value = opt.id !== undefined ? String(opt.id) : (opt.value || opt.label);
       return { ...opt, value };
@@ -48,8 +48,8 @@ export function SelectCell({ value, onUpdate, editable = true, options }: Select
     return (
       <span
         style={{
-          background: selectedOption.color ? `${selectedOption.color}20` : "rgba(124, 58, 237, 0.1)",
-          color: selectedOption.color || "#7C3AED",
+          background: selectedOption.color ? `${selectedOption.color}20` : "rgba(37, 99, 235, 0.1)",
+          color: selectedOption.color || "#2563EB",
           padding: "4px 10px",
           borderRadius: "6px",
           fontSize: "12px",
@@ -72,7 +72,7 @@ export function SelectCell({ value, onUpdate, editable = true, options }: Select
           width: "100%",
           padding: "4px 8px",
           borderRadius: "4px",
-          border: "1px solid #7C3AED",
+          border: "1px solid #2563EB",
           background: "var(--color-surface)",
           color: "var(--color-text)",
           fontSize: "13px",
@@ -102,7 +102,7 @@ export function SelectCell({ value, onUpdate, editable = true, options }: Select
         alignItems: "center",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+        e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";
@@ -111,8 +111,8 @@ export function SelectCell({ value, onUpdate, editable = true, options }: Select
       {selectedOption ? (
         <span
           style={{
-            background: selectedOption.color ? `${selectedOption.color}20` : "rgba(124, 58, 237, 0.1)",
-            color: selectedOption.color || "#7C3AED",
+            background: selectedOption.color ? `${selectedOption.color}20` : "rgba(37, 99, 235, 0.1)",
+            color: selectedOption.color || "#2563EB",
             padding: "4px 10px",
             borderRadius: "6px",
             fontSize: "12px",

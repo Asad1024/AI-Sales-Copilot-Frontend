@@ -14,7 +14,7 @@ const getChannelIcon = (channel: string) => {
     case 'linkedin': return Icons.Linkedin;
     case 'whatsapp': return Icons.MessageCircle;
     case 'call': return Icons.Phone;
-    default: return Icons.Rocket;
+    default: return Icons.Send;
   }
 };
 
@@ -60,7 +60,7 @@ export function CampaignHeader() {
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {(['all','email','linkedin','whatsapp','call'] as const).map(ch => {
-            const IconComponent = ch === 'all' ? Icons.Rocket : getChannelIcon(ch);
+            const IconComponent = ch === 'all' ? Icons.Send : getChannelIcon(ch);
             return (
               <button 
                 key={ch}
@@ -78,7 +78,7 @@ export function CampaignHeader() {
         <button 
           onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
           style={{
-            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
             border: 'none',
             borderRadius: '12px',
             padding: '12px 24px',

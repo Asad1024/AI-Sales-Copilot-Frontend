@@ -46,7 +46,7 @@ const LEAD_TABLE_CHECKBOX_STYLE: React.CSSProperties = {
   cursor: "pointer",
   margin: 0,
   flexShrink: 0,
-  accentColor: "var(--color-primary, #7C3AED)",
+  accentColor: "var(--color-primary, #2563EB)",
 };
 
 /** Campaign wizard (lead step) datatable chrome — shared with `app/campaigns/new/page.tsx` lead picker */
@@ -98,6 +98,7 @@ function getLeadColumnMinWidth(column: { id?: string | number; name?: string; sy
     owner: 204,
     score: 96,
     tier: 108,
+    generation_prompt: 200,
     company: 168,
     lead_status: 188,
   };
@@ -113,6 +114,7 @@ const SYSTEM_COLUMNS = [
   { id: 'owner', name: 'Owner', type: 'text' as const, visible: true, system: true },
   { id: 'score', name: 'AI Score', type: 'number' as const, visible: true, system: true },
   { id: 'tier', name: 'Tier', type: 'select' as const, visible: true, system: true },
+  { id: 'generation_prompt', name: 'AI prompt', type: 'text' as const, visible: true, system: true },
   { id: 'lead_status', name: 'Lead status', type: 'status' as const, visible: true, system: true },
 ];
 
@@ -212,6 +214,10 @@ export function DynamicLeadsTable({
       // Check if it's a system column or custom field
       const isSystemColumn = SYSTEM_COLUMNS.some(col => col.id === columnName);
 
+      if (isSystemColumn && columnName === "generation_prompt") {
+        return;
+      }
+
       if (isSystemColumn && columnName === "lead_status") {
         const customFields = { ...(lead.custom_fields || {}), [LEAD_STATUS_STORAGE_KEY]: value };
         await updateLead(leadId, { custom_fields: customFields });
@@ -247,6 +253,8 @@ export function DynamicLeadsTable({
           return lead.score;
         case 'tier':
           return lead.tier;
+        case 'generation_prompt':
+          return (lead.enrichment as { generation_prompt?: string } | undefined)?.generation_prompt ?? null;
         case 'lead_status':
           return lead.custom_fields?.[LEAD_STATUS_STORAGE_KEY] ?? null;
         case 'company':
@@ -311,7 +319,7 @@ export function DynamicLeadsTable({
         return 'transparent';
       case 'score':
         const score = lead.score ?? 0;
-        if (score >= 80) return 'rgba(124, 58, 237, 0.08)';
+        if (score >= 80) return 'rgba(37, 99, 235, 0.08)';
         if (score >= 60) return 'rgba(255, 167, 38, 0.08)';
         return 'rgba(158, 158, 158, 0.05)';
       case 'owner':
@@ -353,8 +361,8 @@ export function DynamicLeadsTable({
                   alignItems: "center",
                   gap: 5,
                   borderRadius: 9999,
-                  border: "1px solid rgba(124, 58, 237, 0.28)",
-                  background: "rgba(124, 58, 237, 0.08)",
+                  border: "1px solid rgba(37, 99, 235, 0.28)",
+                  background: "rgba(37, 99, 235, 0.08)",
                   color: "var(--color-primary)",
                   fontSize: 10,
                   fontWeight: 600,
@@ -443,6 +451,23 @@ export function DynamicLeadsTable({
           >
             <TierIcon size={13} strokeWidth={2} style={{ color: tierColor, flexShrink: 0 }} aria-hidden />
             {t}
+          </span>
+        );
+      }
+
+      case "generation_prompt": {
+        const raw = (lead.enrichment as { generation_prompt?: string } | undefined)?.generation_prompt;
+        if (!raw || typeof raw !== "string" || !raw.trim()) {
+          return <span className="text-[12px] font-medium italic text-slate-400 dark:text-slate-500">—</span>;
+        }
+        const trimmed = raw.trim();
+        const short = trimmed.length > 56 ? `${trimmed.slice(0, 56)}…` : trimmed;
+        return (
+          <span
+            className="block max-w-[min(260px,32vw)] truncate text-[12px] leading-snug text-slate-600 dark:text-slate-300"
+            title={trimmed}
+          >
+            {short}
           </span>
         );
       }

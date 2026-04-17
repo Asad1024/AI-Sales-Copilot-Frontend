@@ -97,11 +97,11 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
       alignItems: 'center', 
       gap: 8,
       padding: '6px 12px',
-      background: 'rgba(124, 58, 237, 0.1)',
+      background: 'rgba(37, 99, 235, 0.1)',
       borderRadius: 8,
       fontSize: 13,
       fontWeight: 600,
-      color: '#7C3AED',
+      color: '#2563EB',
       position: 'relative'
     }}>
       <span>{selectedLeads.length} selected</span>
@@ -113,10 +113,10 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
         disabled={bulkUpdating}
         style={{
           padding: '4px 12px',
-          background: 'rgba(124, 58, 237, 0.2)',
-          border: '1px solid rgba(124, 58, 237, 0.5)',
+          background: 'rgba(37, 99, 235, 0.2)',
+          border: '1px solid rgba(37, 99, 235, 0.5)',
           borderRadius: 6,
-          color: '#7C3AED',
+          color: '#2563EB',
           fontSize: 12,
           fontWeight: 600,
           cursor: bulkUpdating ? 'not-allowed' : 'pointer',
@@ -179,10 +179,10 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
                 onClick={() => setBulkActionType('assign')}
                 style={{
                   padding: '8px 12px',
-                  background: 'rgba(124, 58, 237, 0.1)',
-                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  border: '1px solid rgba(37, 99, 235, 0.3)',
                   borderRadius: 8,
-                  color: '#7C3AED',
+                  color: '#2563EB',
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -195,10 +195,10 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
                 onClick={() => setBulkActionType('tag')}
                 style={{
                   padding: '8px 12px',
-                  background: 'rgba(124, 58, 237, 0.1)',
-                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  border: '1px solid rgba(37, 99, 235, 0.3)',
                   borderRadius: 8,
-                  color: '#7C3AED',
+                  color: '#2563EB',
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -211,10 +211,10 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
                 onClick={() => setBulkActionType('update')}
                 style={{
                   padding: '8px 12px',
-                  background: 'rgba(124, 58, 237, 0.1)',
-                  border: '1px solid rgba(124, 58, 237, 0.3)',
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  border: '1px solid rgba(37, 99, 235, 0.3)',
                   borderRadius: 8,
-                  color: '#7C3AED',
+                  color: '#2563EB',
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -261,7 +261,7 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
                       disabled={bulkUpdating}
                       style={{
                         padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                        background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                         border: 'none',
                         borderRadius: 8,
                         color: '#000000',
@@ -321,7 +321,7 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
                   disabled={bulkUpdating || !bulkTagValue.trim()}
                   style={{
                     padding: '8px 16px',
-                    background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                    background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                     border: 'none',
                     borderRadius: 8,
                     color: '#000000',
@@ -392,7 +392,7 @@ export function BulkActionsBar({ onBulkDelete, onBulkUpdate, deleting = false, b
                   disabled={bulkUpdating || !bulkUpdateValue.trim()}
                   style={{
                     padding: '8px 16px',
-                    background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                    background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                     border: 'none',
                     borderRadius: 8,
                     color: '#000000',

@@ -108,7 +108,7 @@ export function getEmailSourceBadge(emailInfo: EmailInfo): string | null {
     return null;
   }
 
-  // Show "verified" for any valid email (from Apollo or Anymail Finder)
+  // Show "verified" for any valid email from enrichment
   if (emailInfo.source === 'apollo' || emailInfo.source === 'anymail_finder') {
     return 'verified';
   }

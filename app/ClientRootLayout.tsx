@@ -14,6 +14,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
+import { APP_BRAND_NAME, APP_BRAND_TAGLINE } from "@/lib/brand";
 
 export default function ClientRootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -45,7 +46,7 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
       return { title: "Dashboard", description: "Track performance and run your sales engine." };
     }
     if (pathname === "/") {
-      return { title: "Sales Co-Pilot", description: "Premium AI-native sales workspace." };
+      return { title: APP_BRAND_NAME, description: `${APP_BRAND_NAME} — ${APP_BRAND_TAGLINE}` };
     }
     if (pathname.startsWith("/dashboard")) {
       return { title: "Dashboard", description: "Track performance and run your sales engine." };
@@ -101,16 +102,19 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
     if (pathname.startsWith("/team")) {
       return { title: "Team", description: "Manage collaborators and permissions." };
     }
+    if (pathname.startsWith("/integration")) {
+      return { title: "Integration", description: "Connect messaging, CRM, and data sources." };
+    }
     if (pathname.startsWith("/upgrade")) {
       return {
         title: "Plans & upgrade",
-        description: "Sales Co-Pilot pricing and Stripe checkout (when configured).",
+        description: "Outriva pricing and Stripe checkout (when configured).",
       };
     }
     if (pathname.startsWith("/pricing")) {
       return {
         title: "Pricing",
-        description: "Sales Co-Pilot plans in AED and Stripe-powered checkout when enabled.",
+        description: "Outriva plans in AED and Stripe-powered checkout when enabled.",
       };
     }
     if (pathname.startsWith("/notifications")) {
@@ -122,17 +126,14 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
     if (pathname.startsWith("/settings")) {
       return { title: "Settings", description: "Profile, integrations, payments, and workspace tools." };
     }
-    return { title: "Sales Co-Pilot", description: "Premium AI-native sales workspace." };
+    return { title: APP_BRAND_NAME, description: `${APP_BRAND_NAME} — ${APP_BRAND_TAGLINE}` };
   };
 
   const pageMeta = getPageMeta();
 
   React.useEffect(() => {
-    document.title =
-      pageMeta.title === "Sales Co-Pilot"
-        ? "Sales Co-Pilot"
-        : `${pageMeta.title} · Sales Co-Pilot`;
-  }, [pageMeta.title]);
+    document.title = APP_BRAND_NAME;
+  }, [pathname]);
 
   const mainSidebarWidthPx = getSidebarWidthPx(sidebarCollapsed, isMobile);
   const mainContentPadding =

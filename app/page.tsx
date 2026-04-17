@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
-import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_META_DESCRIPTION, APP_BRAND_TAGLINE } from "@/lib/brand";
 import SalesCopilotPricingSection from "@/components/pricing/SalesCopilotPricingSection";
 import LandingThemeToggle from "@/components/ui/LandingThemeToggle";
 import "@/styles/landing-theme-light.css";
@@ -99,7 +100,7 @@ function AppMockup() {
         </div>
         <div className="mockup-url">
           <Icons.Lock size={12} />
-          <span>app.salescopilot.io/dashboard</span>
+          <span>app.outriva.com/dashboard</span>
         </div>
       </div>
       <div className="mockup-content">
@@ -269,7 +270,7 @@ const PlatformIcons = {
       <path fill="#FCB400" d="M24,6L6,14v20l18,8l18-8V14L24,6z"/>
       <path fill="#18BFFF" d="M24,6L6,14l18,8l18-8L24,6z"/>
       <path fill="#F82B60" d="M24,22L6,14v20l18,8V22z"/>
-      <path fill="#7C3AED" d="M24,22l18-8v20l-18,8V22z"/>
+      <path fill="#2563EB" d="M24,22l18-8v20l-18,8V22z"/>
     </svg>
   )
 };
@@ -370,14 +371,14 @@ export default function LandingPage() {
       icon: <Icons.Robot size={28} />, 
       title: 'AI Lead Generation', 
       desc: 'Find perfect prospects with natural language queries. Simply describe your ideal customer, and our AI finds thousands of qualified leads automatically.',
-      color: '#7C3AED',
+      color: '#2563EB',
       highlight: 'Generate 10K+ leads in minutes'
     },
     { 
       icon: <Icons.Mail size={28} />, 
       title: 'Multi-Channel Outreach', 
       desc: 'Email, LinkedIn, WhatsApp, and cold calls in one unified platform. Orchestrate personalized campaigns across every channel.',
-      color: '#A94CFF',
+      color: '#06B6D4',
       highlight: '4x higher response rates'
     },
     { 
@@ -415,22 +416,22 @@ export default function LandingPage() {
       name: 'Sarah Chen',
       role: 'VP of Sales',
       company: 'TechCorp',
-      quote: "Sales Co-Pilot transformed our outbound process. We went from 50 meetings/month to 200+ while our team actually got smaller. The AI personalization is incredible.",
-      avatar: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      quote: "Outriva transformed our outbound process. We went from 50 meetings/month to 200+ while our team actually got smaller. The AI personalization is incredible.",
+      avatar: '#2563EB'
     },
     {
       name: 'Michael Rodriguez',
       role: 'Growth Lead',
       company: 'ScaleUp',
       quote: "The multi-channel orchestration is a game-changer. Our reply rates jumped 4x because prospects hear from us on their preferred channel at the right time.",
-      avatar: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+      avatar: '#1D4ED8'
     },
     {
       name: 'Emma Watson',
       role: 'SDR Manager',
       company: 'CloudBase',
       quote: "My team of 5 SDRs now outperforms teams of 20. The AI handles the grunt work while we focus on actual conversations and closing deals.",
-      avatar: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+      avatar: '#0EA5E9'
     }
   ];
 
@@ -444,7 +445,7 @@ export default function LandingPage() {
       answer: "Yes! We offer a 14-day free trial with full access to all features. No credit card required. You can generate up to 1,000 leads and send 500 emails during your trial to see real results."
     },
     {
-      question: "How does Sales Co-Pilot prevent emails from going to spam?",
+      question: "How does Outriva prevent emails from going to spam?",
       answer: "We use AI-powered deliverability optimization including inbox warming, domain health monitoring, sending pattern analysis, and content optimization. Our customers see 98%+ inbox placement rates."
     },
     {
@@ -453,7 +454,7 @@ export default function LandingPage() {
     },
     {
       question: "What integrations are available?",
-      answer: "Sales Co-Pilot integrates with all major CRMs (Salesforce, HubSpot, Pipedrive, Zoho), email providers (Gmail, Outlook, SMTP), LinkedIn, Slack, Zapier, and 100+ other tools via our API."
+      answer: "Outriva integrates with all major CRMs (Salesforce, HubSpot, Pipedrive, Zoho), email providers (Gmail, Outlook, SMTP), LinkedIn, Slack, Zapier, and 100+ other tools via our API."
     }
   ];
   
@@ -463,9 +464,9 @@ export default function LandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
         .landing-page {
-          --gradient-primary: linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%);
-          --gradient-dark: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
-          --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+          --gradient-primary: #2563EB;
+          --gradient-dark: #0a0a0f;
+          --gradient-card: rgba(255,255,255,0.04);
           --glass-bg: rgba(255, 255, 255, 0.03);
           --glass-border: rgba(255, 255, 255, 0.08);
           font-family: 'Inter', sans-serif;
@@ -485,7 +486,7 @@ export default function LandingPage() {
           position: absolute;
           width: 4px;
           height: 4px;
-          background: rgba(124, 58, 237, 0.3);
+          background: rgba(37, 99, 235, 0.3);
           border-radius: 50%;
           animation: float-particle 5s ease-in-out infinite;
         }
@@ -521,7 +522,7 @@ export default function LandingPage() {
         .logo-text {
           font-size: 22px;
           font-weight: 800;
-          background: var(--gradient-primary);
+          background: #2563EB;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           letter-spacing: -0.5px;
@@ -549,7 +550,7 @@ export default function LandingPage() {
           left: 0;
           width: 0;
           height: 2px;
-          background: var(--gradient-primary);
+          background: #2563EB;
           transition: width 0.3s ease;
         }
         .nav-link:hover::after {
@@ -578,18 +579,18 @@ export default function LandingPage() {
         .btn-cta {
           padding: 10px 24px;
           color: #000;
-          background: var(--gradient-primary);
+          background: #2563EB;
           border: none;
           border-radius: 10px;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
-          box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+          box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
         }
         .btn-cta:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+          box-shadow: 0 8px 30px rgba(37, 99, 235, 0.5);
         }
 
         /* Hero Section */
@@ -607,7 +608,7 @@ export default function LandingPage() {
           position: absolute;
           width: 800px;
           height: 800px;
-          background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
           top: -200px;
           left: 50%;
           transform: translateX(-50%);
@@ -617,7 +618,7 @@ export default function LandingPage() {
           position: absolute;
           width: 600px;
           height: 600px;
-          background: radial-gradient(circle, rgba(169, 76, 255, 0.1) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
           bottom: -100px;
           right: -200px;
           pointer-events: none;
@@ -627,19 +628,19 @@ export default function LandingPage() {
           align-items: center;
           gap: 8px;
           padding: 8px 16px;
-          background: rgba(124, 58, 237, 0.1);
-          border: 1px solid rgba(124, 58, 237, 0.2);
+          background: rgba(37, 99, 235, 0.1);
+          border: 1px solid rgba(37, 99, 235, 0.2);
           border-radius: 100px;
           font-size: 13px;
           font-weight: 600;
-          color: #7C3AED;
+          color: #2563EB;
           margin-bottom: 24px;
           animation: fade-in-up 0.6s ease forwards;
         }
         .badge-dot {
           width: 8px;
           height: 8px;
-          background: #7C3AED;
+          background: #2563EB;
           border-radius: 50%;
           animation: pulse-dot 2s ease-in-out infinite;
         }
@@ -658,7 +659,7 @@ export default function LandingPage() {
           opacity: 0;
         }
         .hero-title .gradient {
-          background: var(--gradient-primary);
+          background: #2563EB;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -684,7 +685,7 @@ export default function LandingPage() {
           font-size: 16px;
           font-weight: 700;
           color: #000;
-          background: var(--gradient-primary);
+          background: #2563EB;
           border: none;
           border-radius: 9999px;
           cursor: pointer;
@@ -692,11 +693,11 @@ export default function LandingPage() {
           align-items: center;
           gap: 10px;
           transition: all 0.3s ease;
-          box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+          box-shadow: 0 8px 32px rgba(37, 99, 235, 0.4);
         }
         .btn-hero-primary:hover {
           transform: translateY(-3px) scale(1.02);
-          box-shadow: 0 12px 40px rgba(124, 58, 237, 0.5);
+          box-shadow: 0 12px 40px rgba(37, 99, 235, 0.5);
         }
         .btn-hero-secondary {
           padding: 18px 36px;
@@ -740,7 +741,7 @@ export default function LandingPage() {
         .stat-value {
           font-size: 36px;
           font-weight: 800;
-          background: var(--gradient-primary);
+          background: #2563EB;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -793,12 +794,12 @@ export default function LandingPage() {
           align-items: center;
           gap: 8px;
           padding: 6px 14px;
-          background: rgba(169, 76, 255, 0.1);
-          border: 1px solid rgba(169, 76, 255, 0.2);
+          background: rgba(6, 182, 212, 0.1);
+          border: 1px solid rgba(6, 182, 212, 0.2);
           border-radius: 100px;
           font-size: 12px;
           font-weight: 600;
-          color: #A94CFF;
+          color: #06B6D4;
           margin-bottom: 16px;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -819,7 +820,7 @@ export default function LandingPage() {
           position: relative;
           width: 100%;
           aspect-ratio: 16/9;
-          background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+          background: #111827;
           border-radius: 24px;
           overflow: hidden;
           cursor: pointer;
@@ -828,7 +829,7 @@ export default function LandingPage() {
         .video-gradient-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(45deg, rgba(124, 58, 237, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%);
+          background: rgba(37, 99, 235, 0.16);
         }
         .video-play-btn {
           position: absolute;
@@ -837,19 +838,19 @@ export default function LandingPage() {
           transform: translate(-50%, -50%);
           width: 80px;
           height: 80px;
-          background: var(--gradient-primary);
+          background: #2563EB;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #000;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
-          box-shadow: 0 8px 32px rgba(124, 58, 237, 0.5);
+          box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5);
           z-index: 3;
         }
         .video-play-btn:hover {
           transform: translate(-50%, -50%) scale(1.08);
-          box-shadow: 0 10px 36px rgba(124, 58, 237, 0.55);
+          box-shadow: 0 10px 36px rgba(37, 99, 235, 0.55);
         }
         .video-info {
           position: absolute;
@@ -871,7 +872,7 @@ export default function LandingPage() {
         .video-shimmer {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+          background: rgba(255, 255, 255, 0.03);
           animation: shimmer 3s infinite;
         }
         @keyframes shimmer {
@@ -905,8 +906,8 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .feature-item.active {
-          background: rgba(124, 58, 237, 0.08);
-          border-color: rgba(124, 58, 237, 0.3);
+          background: rgba(37, 99, 235, 0.08);
+          border-color: rgba(37, 99, 235, 0.3);
         }
         .feature-item:hover {
           border-color: rgba(255, 255, 255, 0.15);
@@ -932,11 +933,11 @@ export default function LandingPage() {
         .feature-highlight {
           display: inline-block;
           padding: 4px 10px;
-          background: rgba(124, 58, 237, 0.15);
+          background: rgba(37, 99, 235, 0.15);
           border-radius: 6px;
           font-size: 12px;
           font-weight: 600;
-          color: #7C3AED;
+          color: #2563EB;
           margin-left: auto;
         }
         .feature-desc {
@@ -1012,8 +1013,8 @@ export default function LandingPage() {
           transition: all 0.2s ease;
         }
         .sidebar-item.active {
-          background: rgba(124, 58, 237, 0.2);
-          color: #7C3AED;
+          background: rgba(37, 99, 235, 0.2);
+          color: #2563EB;
         }
         .mockup-main {
           flex: 1;
@@ -1041,8 +1042,8 @@ export default function LandingPage() {
           align-items: center;
           justify-content: center;
         }
-        .stat-icon.blue { background: rgba(124, 58, 237, 0.2); color: #7C3AED; }
-        .stat-icon.purple { background: rgba(169, 76, 255, 0.2); color: #A94CFF; }
+        .stat-icon.blue { background: rgba(37, 99, 235, 0.2); color: #2563EB; }
+        .stat-icon.purple { background: rgba(6, 182, 212, 0.2); color: #06B6D4; }
         .stat-icon.green { background: rgba(107, 207, 127, 0.2); color: #6BCF7F; }
         .stat-info {
           display: flex;
@@ -1073,7 +1074,7 @@ export default function LandingPage() {
         }
         .chart-bar {
           flex: 1;
-          background: var(--gradient-primary);
+          background: #2563EB;
           border-radius: 6px 6px 0 0;
           animation: grow-bar 1s ease forwards;
         }
@@ -1097,7 +1098,7 @@ export default function LandingPage() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%);
+          background: #2563EB;
         }
         .lead-info {
           flex: 1;
@@ -1127,7 +1128,7 @@ export default function LandingPage() {
         /* How It Works */
         .how-section {
           padding: 120px 24px;
-          background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.03) 50%, transparent 100%);
+          background: rgba(37, 99, 235, 0.03);
         }
         .how-container {
           max-width: 1200px;
@@ -1150,8 +1151,8 @@ export default function LandingPage() {
         }
         .step-card:hover {
           transform: translateY(-8px);
-          border-color: rgba(124, 58, 237, 0.3);
-          box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+          border-color: rgba(37, 99, 235, 0.3);
+          box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
         }
         .step-number {
           position: absolute;
@@ -1160,7 +1161,7 @@ export default function LandingPage() {
           transform: translateX(-50%);
           width: 48px;
           height: 48px;
-          background: var(--gradient-primary);
+          background: #2563EB;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -1168,18 +1169,18 @@ export default function LandingPage() {
           font-size: 20px;
           font-weight: 800;
           color: #000;
-          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
+          box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
         }
         .step-icon {
           width: 80px;
           height: 80px;
           margin: 24px auto;
-          background: rgba(124, 58, 237, 0.1);
+          background: rgba(37, 99, 235, 0.1);
           border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #7C3AED;
+          color: #2563EB;
         }
         .step-title {
           font-size: 22px;
@@ -1223,7 +1224,7 @@ export default function LandingPage() {
           position: absolute;
           top: -8px;
           left: -8px;
-          color: #7C3AED;
+          color: #2563EB;
         }
         .testimonial-quote p {
           font-size: 15px;
@@ -1290,9 +1291,9 @@ export default function LandingPage() {
         }
         .integration-card:hover {
           transform: translateY(-4px);
-          border-color: rgba(124, 58, 237, 0.3);
-          box-shadow: 0 12px 32px rgba(124, 58, 237, 0.15);
-          background: rgba(124, 58, 237, 0.05);
+          border-color: rgba(37, 99, 235, 0.3);
+          box-shadow: 0 12px 32px rgba(37, 99, 235, 0.15);
+          background: rgba(37, 99, 235, 0.05);
         }
         .integration-icon {
           width: 48px;
@@ -1337,7 +1338,7 @@ export default function LandingPage() {
           transition: transform 0.3s ease;
         }
         .faq-item.open .faq-toggle {
-          color: #7C3AED;
+          color: #2563EB;
         }
         .faq-answer {
           overflow: hidden;
@@ -1361,7 +1362,7 @@ export default function LandingPage() {
         .cta-bg {
           position: absolute;
           inset: 0;
-          background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%);
+          background: rgba(37, 99, 235, 0.1);
           border-radius: 40px;
           margin: 0 24px;
         }
@@ -1431,9 +1432,9 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .social-link:hover {
-          background: rgba(124, 58, 237, 0.2);
-          border-color: rgba(124, 58, 237, 0.3);
-          color: #7C3AED;
+          background: rgba(37, 99, 235, 0.2);
+          border-color: rgba(37, 99, 235, 0.3);
+          color: #2563EB;
         }
         .footer-column h4 {
           font-size: 14px;
@@ -1521,7 +1522,7 @@ export default function LandingPage() {
           font-weight: 800;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #A94CFF;
+          color: #06B6D4;
           margin-bottom: 10px;
         }
         .scp-setup-top-name {
@@ -1578,7 +1579,7 @@ export default function LandingPage() {
           display: flex;
           flex-direction: column;
           border-style: dashed;
-          border-color: rgba(169, 76, 255, 0.38);
+          border-color: rgba(6, 182, 212, 0.38);
           background: rgba(255, 255, 255, 0.025);
           min-height: 0;
         }
@@ -1652,8 +1653,8 @@ export default function LandingPage() {
           font-weight: 600;
           padding: 6px 11px;
           border-radius: 999px;
-          background: rgba(124, 58, 237, 0.16);
-          border: 1px solid rgba(124, 58, 237, 0.28);
+          background: rgba(37, 99, 235, 0.16);
+          border: 1px solid rgba(37, 99, 235, 0.28);
           color: rgba(255, 255, 255, 0.88);
           line-height: 1.35;
         }
@@ -1669,12 +1670,12 @@ export default function LandingPage() {
         }
         .pricing-card:hover {
           transform: translateY(-8px);
-          border-color: rgba(124, 58, 237, 0.3);
-          box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+          border-color: rgba(37, 99, 235, 0.3);
+          box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
         }
         .pricing-card.featured {
-          background: linear-gradient(145deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.1) 100%);
-          border-color: rgba(124, 58, 237, 0.4);
+          background: rgba(37, 99, 235, 0.14);
+          border-color: rgba(37, 99, 235, 0.4);
           transform: scale(1.02);
         }
         .pricing-card.featured:hover {
@@ -1686,7 +1687,7 @@ export default function LandingPage() {
           left: 50%;
           transform: translateX(-50%);
           padding: 6px 16px;
-          background: var(--gradient-primary);
+          background: #2563EB;
           border-radius: 100px;
           font-size: 12px;
           font-weight: 700;
@@ -1718,7 +1719,7 @@ export default function LandingPage() {
         .pricing-amount {
           font-size: 48px;
           font-weight: 800;
-          background: var(--gradient-primary);
+          background: #2563EB;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -1734,13 +1735,13 @@ export default function LandingPage() {
         .pricing-custom {
           font-size: 36px;
           font-weight: 800;
-          background: var(--gradient-primary);
+          background: #2563EB;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
         .pricing-highlight {
-          background: rgba(124, 58, 237, 0.1);
-          border: 1px solid rgba(124, 58, 237, 0.2);
+          background: rgba(37, 99, 235, 0.1);
+          border: 1px solid rgba(37, 99, 235, 0.2);
           border-radius: 12px;
           padding: 16px;
           margin-bottom: 24px;
@@ -1749,7 +1750,7 @@ export default function LandingPage() {
         .pricing-highlight-text {
           font-size: 18px;
           font-weight: 700;
-          color: #7C3AED;
+          color: #2563EB;
           margin: 0;
         }
         .pricing-highlight-sub {
@@ -1782,11 +1783,11 @@ export default function LandingPage() {
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: rgba(124, 58, 237, 0.2);
+          background: rgba(37, 99, 235, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #7C3AED;
+          color: #2563EB;
         }
         .pricing-feature-text {
           line-height: 1.5;
@@ -1794,7 +1795,7 @@ export default function LandingPage() {
         .pricing-section-title {
           font-size: 13px;
           font-weight: 600;
-          color: #A94CFF;
+          color: #06B6D4;
           margin: 20px 0 12px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -1809,14 +1810,14 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .pricing-cta-primary {
-          background: var(--gradient-primary);
+          background: #2563EB;
           border: none;
           color: #000;
-          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+          box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
         }
         .pricing-cta-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(124, 58, 237, 0.4);
+          box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
         }
         .pricing-cta-secondary {
           background: transparent;
@@ -1825,7 +1826,7 @@ export default function LandingPage() {
         }
         .pricing-cta-secondary:hover {
           background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(124, 58, 237, 0.4);
+          border-color: rgba(37, 99, 235, 0.4);
         }
         .pricing-note {
           margin-top: 16px;
@@ -1836,8 +1837,8 @@ export default function LandingPage() {
         .pricing-enterprise-note {
           margin-top: 24px;
           padding: 16px;
-          background: rgba(169, 76, 255, 0.1);
-          border: 1px solid rgba(169, 76, 255, 0.2);
+          background: rgba(6, 182, 212, 0.1);
+          border: 1px solid rgba(6, 182, 212, 0.2);
           border-radius: 12px;
           font-size: 13px;
           color: rgba(255, 255, 255, 0.7);
@@ -2093,8 +2094,7 @@ export default function LandingPage() {
               <Menu size={22} strokeWidth={1.75} />
             </button>
             <div className="logo-container">
-              <AppBrandLogoMark size={44} />
-              <span className="logo-text">Sales Co-Pilot</span>
+              <AppBrandLogoLockup theme={landingAppearance} height={38} style={{ maxWidth: 200 }} />
             </div>
           </div>
           <nav className="nav-links landing-nav-desktop" aria-label="Primary">
@@ -2166,7 +2166,7 @@ export default function LandingPage() {
         
         <div className="hero-badge">
           <span className="badge-dot" />
-          AI-Powered Sales Automation
+          {APP_BRAND_TAGLINE}
         </div>
         
         <h1 className="hero-title">
@@ -2229,12 +2229,12 @@ export default function LandingPage() {
             <Icons.Play size={14} />
             Product Demo
           </div>
-          <h2 className="section-title">See Spark AI in Action</h2>
+          <h2 className="section-title">See Outriva in Action</h2>
           <p className="section-subtitle">
             Watch how our AI transforms your sales workflow in under 3 minutes
           </p>
         </div>
-        <VideoPlaceholder title="Product Demo: AI-Powered Sales Automation" duration="2:47" />
+        <VideoPlaceholder title={`Product Demo: ${APP_BRAND_META_DESCRIPTION}`} duration="2:47" />
       </section>
 
       {/* Features Section */}
@@ -2338,7 +2338,7 @@ export default function LandingPage() {
           </div>
           <h2 className="section-title">Loved by Sales Teams</h2>
           <p className="section-subtitle">
-            See what our customers have to say about Sales Co-Pilot
+            See what our customers have to say about Outriva
           </p>
         </div>
         
@@ -2358,7 +2358,7 @@ export default function LandingPage() {
           </div>
           <h2 className="section-title">Works With Your Stack</h2>
           <p className="section-subtitle">
-            Connect Sales Co-Pilot with your favorite tools
+            Connect Outriva with your favorite tools
           </p>
         </div>
         
@@ -2383,7 +2383,7 @@ export default function LandingPage() {
           </div>
           <h2 className="section-title">Frequently Asked Questions</h2>
           <p className="section-subtitle">
-            Everything you need to know about Sales Co-Pilot
+            Everything you need to know about Outriva
           </p>
         </div>
         
@@ -2421,10 +2421,9 @@ export default function LandingPage() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="logo-container">
-              <AppBrandLogoMark size={44} />
-              <span className="logo-text">Sales Co-Pilot</span>
+              <AppBrandLogoLockup theme={landingAppearance} height={38} style={{ maxWidth: 200 }} />
             </div>
-            <p>Your AI-powered sales co-pilot that helps you scale outreach and close more deals.</p>
+            <p>Your AI-powered workspace to scale outreach and close more deals.</p>
             <div className="footer-social">
               <a href="#" className="social-link"><Icons.Linkedin size={18} /></a>
               <a href="#" className="social-link"><Icons.MessageCircle size={18} /></a>
@@ -2458,7 +2457,7 @@ export default function LandingPage() {
         </div>
         
         <div className="footer-bottom">
-          <span className="footer-copyright">© 2026 Sales Co-Pilot. All rights reserved.</span>
+          <span className="footer-copyright">© 2026 Outriva. All rights reserved.</span>
           <div className="footer-links">
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms of Service</Link>

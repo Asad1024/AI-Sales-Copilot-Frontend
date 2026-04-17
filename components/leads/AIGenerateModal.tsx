@@ -105,19 +105,35 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   } | null>(null);
   const speechPrefixRef = useRef("");
   const speechAccumulatedFinalRef = useRef("");
+  const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const leadGenProgressRef = useRef<HTMLDivElement | null>(null);
+  const handleGenerateRef = useRef<() => void>(() => {});
+  const modalKeyboardRef = useRef({
+    generating: false,
+    suggestionLoadingTopic: null as string | null,
+    prompt: "",
+    activeBaseId: null as number | null,
+  });
   const suggestionPrompts = [
     "SaaS Founders",
     "Marketing Directors",
-    "VP Sales in FinTech",
+    "Product Managers",
     "HR Leaders in IT Services",
     "Ecommerce Growth Managers",
     "Real Estate Brokerage Owners",
     "Healthcare Operations Heads",
-    "Logistics Decision Makers",
+    "Sales Directors",
   ];
 
   const contactGaps = useMemo(() => countContactGapsForLeads(generatedLeads), [generatedLeads]);
   const hasContactGapsToEnrich = contactGaps.missingEmail > 0 || contactGaps.missingPhone > 0;
+
+  modalKeyboardRef.current = {
+    generating,
+    suggestionLoadingTopic,
+    prompt,
+    activeBaseId,
+  };
 
   const handleEnrichAfterGenerate = useCallback(async () => {
     const leadIds = generatedLeads.map((l) => l?.id).filter((id) => id != null).map(Number);
@@ -405,6 +421,46 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     }
   };
 
+  handleGenerateRef.current = () => {
+    void handleGenerate();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => {
+      promptInputRef.current?.focus({ preventScroll: true });
+    }, 90);
+    return () => window.clearTimeout(id);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !generating) return;
+    const id = window.setTimeout(() => {
+      leadGenProgressRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [open, generating]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      const m = modalKeyboardRef.current;
+      if (e.key === "Escape") {
+        if (m.generating || m.suggestionLoadingTopic) return;
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        if (m.generating || m.suggestionLoadingTopic || !m.prompt.trim() || !m.activeBaseId) return;
+        e.preventDefault();
+        void handleGenerateRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, onClose]);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: `
@@ -428,102 +484,83 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           0% { background-position: -240px 0; }
           100% { background-position: 240px 0; }
         }
-        @keyframes generateBarShimmer {
-          0% { background-position: 0% 50%; }
-          100% { background-position: 200% 50%; }
-        }
       `}} />
 
       <ImportModalFrame
         open={open}
         onClose={onClose}
         title="Generate leads with AI"
-        subtitle="Build a clean ICP prompt, generate qualified contacts"
-        headerTint="radial-gradient(circle at 92% 8%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 24%), radial-gradient(circle at 12% 10%, rgba(196,181,253,0.25) 0%, rgba(196,181,253,0) 28%), linear-gradient(96deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%)"
-        icon={
-          <span
-            style={{
-              position: "relative",
-              display: "inline-flex",
-              width: 26,
-              height: 26,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            aria-hidden
-          >
-            <Icons.Search size={22} strokeWidth={2} style={{ color: "#ffffff" }} />
-            <Icons.Plus
-              size={11}
-              strokeWidth={2.75}
-              style={{
-                position: "absolute",
-                right: -1,
-                bottom: 0,
-                color: "#ffffff",
-                filter: "drop-shadow(0 0 1px rgba(91, 33, 182, 0.35))",
-              }}
-            />
-          </span>
-        }
+        subtitle="Describe your ideal customer — we'll add qualified rows to this workspace"
+        headerTint="var(--color-primary, #2563eb)"
+        icon={<Icons.Sun size={22} strokeWidth={2} style={{ color: "#ffffff" }} />}
         headerTitleColor="#ffffff"
         headerSubtitleColor="rgba(255,255,255,0.86)"
         headerBorderColor="rgba(255,255,255,0.24)"
+        hideHeaderBottomBorder
         headerIconContainerStyle={{
-          background: "rgba(255,255,255,0.18)",
-          border: "1px solid rgba(255,255,255,0.34)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 6px 16px rgba(49, 11, 115, 0.32)",
-          borderRadius: 14,
+          background: "rgba(255,255,255,0.2)",
+          border: "1px solid rgba(255,255,255,0.45)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0, 0, 0, 0.12)",
+          borderRadius: 12,
           width: 44,
           height: 44,
         }}
         headerCloseButtonStyle={{
-          background: "rgba(255,255,255,0.18)",
-          border: "1px solid rgba(255,255,255,0.34)",
-          color: "#f5f3ff",
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
+          background: "rgba(255,255,255,0.2)",
+          border: "1px solid rgba(255,255,255,0.38)",
+          color: "#f8fafc",
+          width: 40,
+          height: 40,
+          borderRadius: 12,
         }}
         frameBorderRadius={12}
         maxWidth={820}
         maxModalHeight="min(92vh, 900px)"
         closeDisabled={generating || Boolean(suggestionLoadingTopic)}
+        dialogBackground="var(--color-surface)"
       >
         <div
-          className="persona-ai-panel-reveal"
+          className="persona-ai-panel-reveal ai-generate-modal-body"
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 16,
-            background: "#ffffff",
+            gap: 14,
+            background: "transparent",
           }}
         >
+          {!activeBaseId ? (
+            <div className="ai-generate-workspace-alert" role="alert">
+              <Icons.AlertCircle size={18} strokeWidth={2} aria-hidden />
+              <span>Select a workspace in the header before generating leads.</span>
+            </div>
+          ) : null}
+
           <div
             style={{
-              padding: "10px 12px 12px",
-              borderRadius: 10,
-              background: "#ffffff",
-              border: "1px solid #e8e4dc",
+              padding: "0 0 4px",
+              borderRadius: 0,
+              background: "transparent",
+              border: "none",
             }}
           >
             <div
               style={{
                 fontSize: 10,
                 fontWeight: 600,
-                letterSpacing: "0.05em",
+                letterSpacing: "0.06em",
                 textTransform: "uppercase",
-                color: "#a8988e",
-                marginBottom: 6,
+                color: "var(--color-text-muted)",
+                marginBottom: 8,
               }}
             >
               Quick suggestions
             </div>
             <div
+              className="ai-generate-suggestions-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 8,
+                gap: 10,
                 paddingTop: 2,
               }}
             >
@@ -537,38 +574,21 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     type="button"
                     onClick={() => handleSuggestionTopic(item)}
                     disabled={disabled}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 4,
-                      padding: loadingChip ? "6px 8px" : "4px 8px",
-                      borderRadius: 9999,
-                      border: activeChip ? "1px solid rgba(124, 58, 237, 0.45)" : "1px solid #e5e0d8",
-                      background: activeChip ? "rgba(124, 58, 237, 0.12)" : "#f5f2ed",
-                      color: activeChip ? "#6d28d9" : "#4b5563",
-                      fontSize: 11,
-                      fontWeight: activeChip ? 600 : 500,
-                      lineHeight: 1.25,
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      opacity: disabled ? 0.55 : 1,
-                      textAlign: "center",
-                      minWidth: 0,
-                      width: "100%",
-                      boxSizing: "border-box",
-                    }}
+                    className={`ai-generate-suggestion-pill${activeChip ? " ai-generate-suggestion-pill--active" : ""}${
+                      loadingChip ? " ai-generate-suggestion-pill--loading" : ""
+                    }`}
                   >
                     {loadingChip ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                         <span
                           style={{
-                            width: 12,
-                            height: 12,
+                            width: 14,
+                            height: 14,
                             borderRadius: 999,
                             background:
-                              "linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(167,139,250,0.35) 50%, rgba(99,102,241,0.14) 100%)",
+                              "linear-gradient(90deg, rgba(37,99,235,0.15) 0%, rgba(37,99,235,0.45) 50%, rgba(37,99,235,0.15) 100%)",
                             backgroundSize: "200px 100%",
-                            animation: "shimmer 1.15s linear infinite",
+                            animation: "shimmer 1.1s linear infinite",
                           }}
                         />
                         <span style={{ fontWeight: 600 }}>Crafting…</span>
@@ -576,7 +596,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     ) : (
                       <>
                         {activeChip ? (
-                          <Icons.Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#7C3AED" }} aria-hidden />
+                          <Icons.Sparkles size={12} strokeWidth={2} style={{ flexShrink: 0, color: "var(--color-primary)" }} aria-hidden />
                         ) : null}
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
                       </>
@@ -593,24 +613,29 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
               style={{
                 fontSize: 10,
                 fontWeight: 600,
-                letterSpacing: "0.05em",
+                letterSpacing: "0.06em",
                 textTransform: "uppercase",
-                color: "#a8988e",
+                color: "var(--color-text-muted)",
                 display: "block",
-                marginBottom: 4,
+                marginBottom: 6,
               }}
             >
               Describe your ideal customer
             </label>
+            <p id="ai-lead-prompt-hint" className="ai-generate-hint">
+              Name the role, industry, region, and company size (e.g. 50–500 employees). More detail usually means better
+              matches.
+            </p>
             <div
               style={{
-                borderRadius: 10,
-                border: "1px solid #e8e4dc",
-                background: "#faf8f5",
+                borderRadius: 12,
+                border: "1px solid var(--color-border)",
+                background: "transparent",
                 overflow: "hidden",
               }}
             >
               <textarea
+                ref={promptInputRef}
                 id="ai-lead-prompt"
                 value={prompt}
                 onChange={(e) => {
@@ -618,22 +643,22 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                   if (selectedSuggestion) setSelectedSuggestion(null);
                   setError("");
                 }}
-                rows={5}
-                placeholder="Short idea or full ICP — e.g. marketing directors, B2B SaaS, 50–200 employees, North America"
+                rows={4}
+                placeholder="Example: VP Marketing at B2B SaaS in North America, 50–200 employees, buying intent for sales tools"
                 disabled={generating || Boolean(suggestionLoadingTopic)}
-                className="input"
+                className="input ai-generate-prompt-textarea"
+                aria-describedby="ai-lead-prompt-hint"
                 style={{
                   width: "100%",
-                  fontSize: 12,
-                  lineHeight: 1.45,
-                  padding: "10px 12px",
-                  minHeight: 112,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  padding: "10px 14px",
+                  minHeight: 100,
                   maxHeight: 220,
                   resize: "vertical",
                   borderRadius: 0,
                   boxSizing: "border-box",
                   border: "none",
-                  borderBottom: "1px solid #e8e4dc",
                   background: "transparent",
                 }}
               />
@@ -641,24 +666,29 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 style={{
                   borderRadius: 0,
                   border: "none",
-                  background: "#f3f1ec",
+                  borderTop: "1px solid var(--color-border)",
+                  background: "transparent",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: 10,
-                  padding: "8px 10px",
+                  gap: 12,
+                  padding: "10px 14px",
+                  flexWrap: "wrap",
                 }}
               >
                 <span
                   style={{
-                    fontSize: 11,
-                    color: speechListening ? "#6d28d9" : "#a8a29e",
-                    fontWeight: speechListening ? 600 : 400,
+                    fontSize: 12,
+                    color: speechListening ? "var(--color-primary)" : "var(--color-text-muted)",
+                    fontWeight: speechListening ? 600 : 500,
                     transition: "color 0.2s ease",
+                    flex: "1 1 160px",
+                    minWidth: 0,
                   }}
                 >
-                  {speechListening ? "Speak now — we're listening…" : "Be specific for better results"}
+                  {speechListening ? "Speak now — we're listening…" : "Tip: mention seniority, geography, and firmographics."}
                 </span>
+                <span className="ai-generate-char-count">{prompt.length.toLocaleString()} characters</span>
                 <button
                   type="button"
                   onClick={() => void toggleSpeechInput()}
@@ -678,10 +708,10 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     height: 30,
                     borderRadius: 8,
                     border: speechListening
-                      ? "1px solid rgba(124, 58, 237, 0.55)"
-                      : "1px solid #e5e0d8",
-                    background: speechListening ? "rgba(124, 58, 237, 0.12)" : "#ffffff",
-                    color: speechListening ? "#6d28d9" : "#78716c",
+                      ? "1px solid rgba(37, 99, 235, 0.45)"
+                      : "1px solid var(--color-border)",
+                    background: speechListening ? "rgba(37, 99, 235, 0.1)" : "var(--color-surface)",
+                    color: speechListening ? "var(--color-primary)" : "var(--color-text-muted)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -694,22 +724,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     padding: "0 10px",
                   }}
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
+                  <Icons.Sun size={18} strokeWidth={2} />
                   <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600 }}>
                     {speechListening ? "Speak…" : "Voice"}
                   </span>
@@ -772,164 +787,48 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             </div>
           ) : null}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 4, width: "100%" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "stretch",
-                gap: 10,
-                flexWrap: "wrap",
-                width: "100%",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  background: "#faf8f5",
-                  border: "1px solid #e8e4dc",
-                  borderRadius: 999,
-                  padding: "4px 8px",
-                }}
-              >
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", padding: "0 4px" }}>
-                  Leads
-                </span>
+          <div
+            className="ai-generate-actions-wrap"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              marginTop: -4,
+              paddingTop: 0,
+              width: "100%",
+            }}
+          >
+            <p className="ai-generate-target-line">
+              We&apos;ll request up to <strong>{count}</strong> new {count === 1 ? "lead" : "leads"} and add them to your
+              list (subject to availability).
+            </p>
+
+            <div className="ai-generate-primary-row">
+              <div className="ai-generate-qty-stepper" style={generating ? { opacity: 0.75 } : undefined}>
+                <span className="ai-generate-qty-label">How many leads</span>
                 <button
                   type="button"
                   onClick={decrementCount}
-                  disabled={generating || Boolean(suggestionLoadingTopic)}
+                  disabled={Boolean(suggestionLoadingTopic) || generating}
                   aria-label="Decrease lead count"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 6,
-                    border: "1px solid #e5e0d8",
-                    background: "#f5f2ed",
-                    color: "#374151",
-                    fontSize: 16,
-                    lineHeight: 1,
-                    cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
-                  }}
+                  className="ai-generate-qty-btn"
                 >
                   -
                 </button>
-                <span
-                  style={{
-                    minWidth: 32,
-                    textAlign: "center",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "var(--color-text)",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {count}
-                </span>
+                <span className="ai-generate-qty-value">{count}</span>
                 <button
                   type="button"
                   onClick={incrementCount}
-                  disabled={generating || Boolean(suggestionLoadingTopic)}
+                  disabled={Boolean(suggestionLoadingTopic) || generating}
                   aria-label="Increase lead count"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 6,
-                    border: "1px solid #e5e0d8",
-                    background: "#f5f2ed",
-                    color: "#374151",
-                    fontSize: 16,
-                    lineHeight: 1,
-                    cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
-                  }}
+                  className="ai-generate-qty-btn"
                 >
                   +
                 </button>
               </div>
-              {generating ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  style={{
-                    flex: "1 1 220px",
-                    minWidth: 200,
-                    borderRadius: 999,
-                    border: "1px solid #e8e4dc",
-                    background: "#faf8f5",
-                    padding: "8px 12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: "#78716c", fontWeight: 600 }}>
-                      {genStream.label || "Generating…"}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed" }}>
-                      {genPct}%
-                      {genShowCountsExtra ? ` (${genStream.done}/${genStream.total})` : ""}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      height: 5,
-                      borderRadius: 999,
-                      background: "#e7e5e4",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${Math.max(2, genPct)}%`,
-                        borderRadius: 999,
-                        background:
-                          "linear-gradient(90deg, #5b21b6 0%, #7c3aed 35%, #a78bfa 65%, #7c3aed 100%)",
-                        backgroundSize: "220% 100%",
-                        animation: "generateBarShimmer 1.05s linear infinite",
-                        transition: "width 0.15s ease-out",
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
               <button
                 type="button"
-                onClick={onClose}
-                disabled={generating || Boolean(suggestionLoadingTopic)}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  minWidth: 96,
-                  border: "1px solid #d6d3d1",
-                  background: "#ffffff",
-                  color: "#1f2937",
-                  fontWeight: 600,
-                  cursor: generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
-                  opacity: generating || suggestionLoadingTopic ? 0.55 : 1,
-                  transition: "background 0.15s ease, border-color 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (generating || suggestionLoadingTopic) return;
-                  e.currentTarget.style.background = "#f9fafb";
-                  e.currentTarget.style.borderColor = "#d1d5db";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#ffffff";
-                  e.currentTarget.style.borderColor = "#d6d3d1";
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
+                className={`btn-primary ai-generate-generate-btn${generationComplete ? " ai-generate-success-cta" : ""}`}
                 onClick={() => void handleGenerate()}
                 disabled={
                   generating ||
@@ -937,47 +836,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                   (!postGenSuccess && !prompt.trim())
                 }
                 aria-busy={generating}
-                style={{
-                  position: "relative",
-                  overflow: "hidden",
-                  padding: "11px 18px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  flex: 1,
-                  minWidth: 0,
-                  border: "none",
-                  color: "#fff",
-                  background: generationComplete
-                    ? "linear-gradient(135deg, #15803d 0%, #22c55e 55%, #4ade80 100%)"
-                    : "linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #8b5cf6 100%)",
-                  boxShadow: generationComplete
-                    ? "0 10px 24px rgba(34, 197, 94, 0.28)"
-                    : "0 10px 24px rgba(124, 58, 237, 0.28)",
-                }}
               >
                 {generating ? (
                   <>
-                    <span
-                      aria-hidden
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        width: `${Math.max(0, genPct)}%`,
-                        background: "linear-gradient(90deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%)",
-                        transition: "width 0.12s ease-out",
-                        pointerEvents: "none",
-                      }}
-                    />
-                    <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: 8 }}>
-                      <Icons.Sparkles size={15} />
-                      Generating {genPct}%
-                      {genShowCountsExtra ? ` (${genStream.done}/${genStream.total})` : ""}
-                    </span>
+                    <Icons.Loader size={16} strokeWidth={2} className="animate-spin" aria-hidden />
+                    Generating…
                   </>
                 ) : generationComplete && postGenSuccess ? (
                   <>
@@ -992,6 +855,33 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 )}
               </button>
             </div>
+
+            {generating ? (
+              <div
+                ref={leadGenProgressRef}
+                className="ai-generate-progress-panel"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="ai-generate-progress-panel__top">
+                  <span className="ai-generate-progress-panel__label">
+                    {genStream.label || "Generating leads…"}
+                  </span>
+                  <span className="ai-generate-progress-panel__pct">
+                    {genPct}%
+                    {genShowCountsExtra ? ` (${genStream.done}/${genStream.total})` : ""}
+                  </span>
+                </div>
+                <div className="ai-generate-progress-track">
+                  <div
+                    className="ai-generate-progress-fill"
+                    style={{
+                      width: `${Math.max(3, genPct)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </ImportModalFrame>
@@ -1002,15 +892,15 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.65)",
+            background: "rgba(15, 23, 42, 0.52)",
             zIndex: 2000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 20,
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            animation: "fadeIn 0.2s ease-out",
+            padding: 24,
+            backdropFilter: "blur(12px) saturate(1.1)",
+            WebkitBackdropFilter: "blur(12px) saturate(1.1)",
+            animation: "fadeIn 0.22s ease-out",
           }}
           onClick={() => {
             if (enrichSubmitting) return;
@@ -1020,13 +910,15 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
         >
           <div
             style={{
-              width: "min(560px, 96vw)",
-              background: "#ffffff",
-              border: "1px solid #e8e4dc",
-              borderRadius: 12,
+              width: "min(520px, 96vw)",
+              background: hasContactGapsToEnrich ? "#ffffff" : "linear-gradient(180deg, #ffffff 0%, #f8fffc 100%)",
+              border: hasContactGapsToEnrich ? "1px solid rgba(148, 163, 184, 0.25)" : "1px solid rgba(16, 185, 129, 0.18)",
+              borderRadius: 18,
               padding: 0,
-              boxShadow: "0 25px 80px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255,255,255,0.06) inset",
-              animation: "slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+              boxShadow: hasContactGapsToEnrich
+                ? "0 24px 64px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255,255,255,0.5) inset"
+                : "0 28px 72px rgba(5, 150, 105, 0.12), 0 16px 40px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255,255,255,0.6) inset",
+              animation: "slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
               overflow: "hidden",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1036,21 +928,24 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           >
             <div
               style={{
-                padding: "20px 22px 18px",
-                borderBottom: "1px solid rgba(255,255,255,0.24)",
-                background:
-                  "radial-gradient(circle at 92% 8%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 24%), radial-gradient(circle at 12% 10%, rgba(196,181,253,0.25) 0%, rgba(196,181,253,0) 28%), linear-gradient(96deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%)",
+                padding: hasContactGapsToEnrich ? "22px 24px 20px" : "28px 26px 24px",
+                borderBottom: hasContactGapsToEnrich ? "1px solid rgba(255,255,255,0.2)" : "none",
+                background: hasContactGapsToEnrich
+                  ? "linear-gradient(135deg, #1d4ed8 0%, #2563eb 48%, #3b82f6 100%)"
+                  : "linear-gradient(145deg, #047857 0%, #059669 38%, #10b981 72%, #34d399 100%)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: "rgba(255,255,255,0.18)",
-                    border: "1px solid rgba(255,255,255,0.34)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 6px 16px rgba(49, 11, 115, 0.32)",
+                    width: hasContactGapsToEnrich ? 44 : 52,
+                    height: hasContactGapsToEnrich ? 44 : 52,
+                    borderRadius: 14,
+                    background: hasContactGapsToEnrich
+                      ? "rgba(255,255,255,0.22)"
+                      : "rgba(255,255,255,0.25)",
+                    border: "1px solid rgba(255,255,255,0.42)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35), 0 8px 24px rgba(0, 0, 0, 0.1)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1059,12 +954,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                   aria-hidden
                 >
                   {hasContactGapsToEnrich ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <Icons.Mail size={18} strokeWidth={2} style={{ color: "#ffffff" }} />
-                      <Icons.Phone size={16} strokeWidth={2} style={{ color: "#ffffff", marginLeft: -2 }} />
-                    </span>
+                    <Icons.User size={24} strokeWidth={2} style={{ color: "#ffffff" }} aria-hidden />
                   ) : (
-                    <Icons.CheckCircle size={22} strokeWidth={1.75} style={{ color: "#ffffff" }} />
+                    <Icons.CheckCircle size={26} strokeWidth={1.85} style={{ color: "#ffffff" }} />
                   )}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -1072,19 +964,28 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     id="ai-generate-success-title"
                     style={{
                       margin: 0,
-                      fontSize: 19,
+                      fontSize: hasContactGapsToEnrich ? 19 : 20,
                       fontWeight: 700,
                       color: "#ffffff",
-                      letterSpacing: "-0.03em",
-                      lineHeight: 1.25,
+                      letterSpacing: "-0.035em",
+                      lineHeight: 1.22,
+                      textShadow: hasContactGapsToEnrich ? "none" : "0 1px 2px rgba(0,0,0,0.08)",
                     }}
                   >
-                    {hasContactGapsToEnrich ? "Some contact details are missing" : "Contacts look complete"}
+                    {hasContactGapsToEnrich ? "Some contact details are missing" : "You’re all set"}
                   </h3>
-                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "rgba(255,255,255,0.88)", lineHeight: 1.5 }}>
+                  <p
+                    style={{
+                      margin: "8px 0 0",
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.92)",
+                      lineHeight: 1.55,
+                      fontWeight: 500,
+                    }}
+                  >
                     {hasContactGapsToEnrich
-                      ? `We saved ${contactGaps.total} lead${contactGaps.total === 1 ? "" : "s"}. Apollo did not return a usable email or phone for every row — you can run FullEnrich now or finish later in the table.`
-                      : `All ${contactGaps.total} lead${contactGaps.total === 1 ? "" : "s"} already have a verified email and phone on file.`}
+                      ? `We saved ${contactGaps.total} lead${contactGaps.total === 1 ? "" : "s"}. Enrichment did not return a usable email or phone for every row — you can run FullEnrich now or finish later in the table.`
+                      : `All ${contactGaps.total} lead${contactGaps.total === 1 ? "" : "s"} have verified email and phone — nothing else is needed for contacts.`}
                   </p>
                 </div>
               </div>
@@ -1092,9 +993,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
 
             <div
               style={{
-                padding: "18px 22px 22px",
-                background: "#faf8f5",
-                borderTop: "1px solid #ede9e4",
+                padding: hasContactGapsToEnrich ? "18px 22px 22px" : "8px 24px 26px",
+                background: hasContactGapsToEnrich
+                  ? "var(--color-surface-secondary, #f8fafc)"
+                  : "linear-gradient(180deg, rgba(236, 253, 245, 0.65) 0%, #ffffff 55%)",
+                borderTop: hasContactGapsToEnrich ? "1px solid var(--color-border)" : "none",
               }}
             >
               {hasContactGapsToEnrich ? (
@@ -1195,8 +1098,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     style={{
                       borderRadius: 10,
                       padding: "12px 14px",
-                      background: "rgba(124, 58, 237, 0.08)",
-                      border: "1px solid rgba(124, 58, 237, 0.18)",
+                      background: "rgba(37, 99, 235, 0.08)",
+                      border: "1px solid rgba(37, 99, 235, 0.18)",
                       fontSize: 12,
                       color: "#57534e",
                       lineHeight: 1.55,
@@ -1211,26 +1114,57 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
               ) : (
                 <div
                   style={{
-                    borderRadius: 10,
-                    padding: "14px 16px",
-                    border: "1px solid #d6d3d1",
-                    background: "#ffffff",
-                    fontSize: 13,
-                    color: "#57534e",
-                    lineHeight: 1.55,
-                    marginBottom: 18,
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
+                    textAlign: "center",
+                    padding: "20px 8px 12px",
+                    marginBottom: 4,
                   }}
                 >
-                  <Icons.CheckCircle size={20} strokeWidth={2} style={{ color: "#16a34a", flexShrink: 0, marginTop: 1 }} />
-                  <span>No enrichment step is required for contact fields. You can still use Enrich in the toolbar for
-                    other data later.</span>
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      margin: "0 auto 16px",
+                      borderRadius: "50%",
+                      background: "linear-gradient(145deg, rgba(16, 185, 129, 0.18) 0%, rgba(52, 211, 153, 0.12) 100%)",
+                      border: "1px solid rgba(16, 185, 129, 0.22)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 12px 32px rgba(5, 150, 105, 0.12)",
+                    }}
+                    aria-hidden
+                  >
+                    <Icons.Sparkles size={28} strokeWidth={1.75} style={{ color: "#059669" }} />
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      color: "#475569",
+                      lineHeight: 1.65,
+                      fontWeight: 500,
+                      maxWidth: 400,
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                    }}
+                  >
+                    Contact fields are complete. You can use{" "}
+                    <strong style={{ color: "#0f766e", fontWeight: 600 }}>Enrich</strong> in the toolbar anytime for
+                    deeper company or role data.
+                  </p>
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", alignItems: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  justifyContent: "flex-end",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  paddingTop: hasContactGapsToEnrich ? 0 : 8,
+                }}
+              >
                 <button
                   type="button"
                   disabled={enrichSubmitting}
@@ -1239,18 +1173,35 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     onClose();
                   }}
                   style={{
-                    padding: "10px 18px",
-                    borderRadius: 10,
+                    borderRadius: 12,
                     fontSize: 13,
                     fontWeight: 600,
-                    border: "1px solid #d6d3d1",
-                    background: "#ffffff",
-                    color: "#1f2937",
                     cursor: enrichSubmitting ? "not-allowed" : "pointer",
                     opacity: enrichSubmitting ? 0.55 : 1,
+                    padding: "11px 22px",
+                    border: hasContactGapsToEnrich
+                      ? "1px solid var(--color-border)"
+                      : "1px solid rgba(16, 185, 129, 0.35)",
+                    background: hasContactGapsToEnrich ? "var(--color-surface)" : "rgba(255, 255, 255, 0.95)",
+                    color: hasContactGapsToEnrich ? "var(--color-text)" : "#047857",
+                    boxShadow: hasContactGapsToEnrich ? "none" : "0 4px 14px rgba(5, 150, 105, 0.12)",
+                    transition: "background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (enrichSubmitting) return;
+                    if (!hasContactGapsToEnrich) {
+                      e.currentTarget.style.background = "rgba(236, 253, 245, 0.95)";
+                      e.currentTarget.style.boxShadow = "0 6px 20px rgba(5, 150, 105, 0.16)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!hasContactGapsToEnrich) {
+                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.95)";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(5, 150, 105, 0.12)";
+                    }
                   }}
                 >
-                  {hasContactGapsToEnrich ? "Skip for now" : "Close"}
+                  {hasContactGapsToEnrich ? "Skip for now" : "Done"}
                 </button>
                 {hasContactGapsToEnrich ? (
                   <button
@@ -1259,17 +1210,13 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     disabled={enrichSubmitting}
                     onClick={() => void handleEnrichAfterGenerate()}
                     style={{
-                      padding: "11px 20px",
                       borderRadius: 10,
                       fontSize: 13,
-                      fontWeight: 700,
+                      fontWeight: 600,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 8,
-                      border: "none",
-                      color: "#fff",
-                      background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #8b5cf6 100%)",
-                      boxShadow: "0 10px 24px rgba(124, 58, 237, 0.28)",
+                      padding: "10px 18px",
                       cursor: enrichSubmitting ? "not-allowed" : "pointer",
                     }}
                   >

@@ -10,7 +10,7 @@ module.exports = {
     extend: {
       colors: {
         spark: {
-          green: "#4C67FF",
+          green: "#2563EB",
           orange: "#FF4A00",
           ink: "#0B1020",
           gray: "#0F172A"

@@ -209,7 +209,7 @@ export function TestEmailSection() {
                         padding: "12px 16px",
                         border: "none",
                         borderBottom: "1px solid var(--color-border)",
-                        background: active ? "rgba(124, 58, 237, 0.08)" : "transparent",
+                        background: active ? "rgba(37, 99, 235, 0.08)" : "transparent",
                         cursor: "pointer",
                         fontFamily: "inherit",
                       }}

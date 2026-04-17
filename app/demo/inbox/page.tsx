@@ -173,10 +173,10 @@ export default function DemoInboxPage() {
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
           borderRadius: '20px',
           padding: '32px',
-          border: '1px solid rgba(124, 58, 237, 0.2)',
+          border: '1px solid rgba(37, 99, 235, 0.2)',
           marginBottom: '32px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -199,7 +199,7 @@ export default function DemoInboxPage() {
             </div>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#7C3AED' }}>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#2563EB' }}>
                   {stats.totalReplies}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -207,7 +207,7 @@ export default function DemoInboxPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#A94CFF' }}>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#06B6D4' }}>
                   {stats.replyRate}%
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -225,7 +225,7 @@ export default function DemoInboxPage() {
               padding: '16px',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '20px', fontWeight: '600', color: '#7C3AED' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', color: '#2563EB' }}>
                 {stats.hotLeads}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -238,7 +238,7 @@ export default function DemoInboxPage() {
               padding: '16px',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '20px', fontWeight: '600', color: '#A94CFF' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', color: '#06B6D4' }}>
                 {stats.avgResponseTime}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -285,10 +285,10 @@ export default function DemoInboxPage() {
                   onClick={() => setSelectedLead(reply)}
                   style={{
                     background: selectedLead?.id === reply.id 
-                      ? 'rgba(124, 58, 237, 0.1)' 
+                      ? 'rgba(37, 99, 235, 0.1)' 
                       : 'rgba(255, 255, 255, 0.02)',
                     border: selectedLead?.id === reply.id 
-                      ? '1px solid rgba(124, 58, 237, 0.3)' 
+                      ? '1px solid rgba(37, 99, 235, 0.3)' 
                       : '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '12px',
                     padding: '16px',
@@ -329,8 +329,8 @@ export default function DemoInboxPage() {
                         {reply.status}
                       </span>
                       <span style={{
-                        background: 'rgba(124, 58, 237, 0.2)',
-                        color: '#7C3AED',
+                        background: 'rgba(37, 99, 235, 0.2)',
+                        color: '#2563EB',
                         padding: '4px 8px',
                         borderRadius: '12px',
                         fontSize: '10px',
@@ -361,7 +361,7 @@ export default function DemoInboxPage() {
                       width: '8px',
                       height: '8px',
                       borderRadius: '50%',
-                      background: '#7C3AED'
+                      background: '#2563EB'
                     }} />
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                       AI has suggestions ready
@@ -410,8 +410,8 @@ export default function DemoInboxPage() {
                     {selectedLead.status}
                   </span>
                   <span style={{
-                    background: 'rgba(124, 58, 237, 0.2)',
-                    color: '#7C3AED',
+                    background: 'rgba(37, 99, 235, 0.2)',
+                    color: '#2563EB',
                     padding: '4px 12px',
                     borderRadius: '16px',
                     fontSize: '12px',
@@ -446,7 +446,7 @@ export default function DemoInboxPage() {
                         width: '6px',
                         height: '6px',
                         borderRadius: '50%',
-                        background: event.type === 'reply' ? '#7C3AED' : '#A94CFF'
+                        background: event.type === 'reply' ? '#2563EB' : '#06B6D4'
                       }} />
                       <span style={{ fontSize: '12px', color: 'var(--color-text)', flex: 1 }}>
                         {event.action}
@@ -475,8 +475,8 @@ export default function DemoInboxPage() {
                       key={index}
                       onClick={() => handleAISuggestion(selectedLead.id, suggestion)}
                       style={{
-                        background: 'rgba(124, 58, 237, 0.1)',
-                        border: '1px solid rgba(124, 58, 237, 0.3)',
+                        background: 'rgba(37, 99, 235, 0.1)',
+                        border: '1px solid rgba(37, 99, 235, 0.3)',
                         borderRadius: '8px',
                         padding: '12px',
                         color: 'var(--color-text)',
@@ -520,12 +520,12 @@ export default function DemoInboxPage() {
                   background: insight.type === 'success' 
                     ? 'rgba(78, 205, 196, 0.1)'
                     : insight.type === 'suggestion'
-                      ? 'rgba(124, 58, 237, 0.1)'
+                      ? 'rgba(37, 99, 235, 0.1)'
                       : 'rgba(255, 167, 38, 0.1)',
                   border: insight.type === 'success' 
                     ? '1px solid rgba(78, 205, 196, 0.3)'
                     : insight.type === 'suggestion'
-                      ? '1px solid rgba(124, 58, 237, 0.3)'
+                      ? '1px solid rgba(37, 99, 235, 0.3)'
                       : '1px solid rgba(255, 167, 38, 0.3)',
                   borderRadius: '12px',
                   padding: '16px',
@@ -547,7 +547,7 @@ export default function DemoInboxPage() {
                     onClick={() => handleInsightAction(insight)}
                     style={{
                       background: insight.type === 'suggestion' 
-                        ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)'
+                        ? 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)'
                         : 'rgba(255, 167, 38, 0.2)',
                       border: 'none',
                       borderRadius: '6px',

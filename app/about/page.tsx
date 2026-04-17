@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 export default function AboutPage() {
   return (
@@ -18,26 +19,7 @@ export default function AboutPage() {
           marginBottom: '60px'
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <div style={{
-              height: '40px',
-              width: '40px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-              </svg>
-            </div>
-            <span style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>Spark AI</span>
+            <AppBrandLogoLockup height={36} style={{ maxWidth: 180 }} />
           </Link>
           <div style={{ display: 'flex', gap: '12px' }}>
             <Link href="/auth/login" className="btn-ghost">Log in</Link>
@@ -51,11 +33,11 @@ export default function AboutPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 24px 0',
-            background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
-            About Spark AI
+            About Outriva
           </h1>
           <p style={{ fontSize: '20px', color: 'var(--color-text-muted)', maxWidth: '700px', margin: '0 auto', lineHeight: '1.7' }}>
             We're building the future of sales automation, making AI-powered outreach accessible to teams of all sizes.
@@ -68,7 +50,7 @@ export default function AboutPage() {
             Our Mission
           </h2>
           <p style={{ fontSize: '18px', color: 'var(--color-text-muted)', lineHeight: '1.8', margin: 0 }}>
-            At Spark AI, we believe that every sales team deserves access to enterprise-grade AI tools. 
+            At Outriva, we believe that every sales team deserves access to enterprise-grade AI tools. 
             Our mission is to democratize AI-powered sales automation, helping businesses of all sizes 
             scale their outreach, find better leads, and close more deals—without the complexity.
           </p>
@@ -123,7 +105,7 @@ export default function AboutPage() {
         <div style={{
           textAlign: 'center',
           padding: '60px',
-          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
           borderRadius: '24px'
         }}>
           <h2 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 16px 0' }}>

@@ -339,7 +339,7 @@ export function GoogleSheetsImportModal({ open, onClose, onImported, targetBaseI
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: "#7C3AED", letterSpacing: "-0.02em" }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "#2563EB", letterSpacing: "-0.02em" }}>
                       {importResult.updated ?? 0}
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>

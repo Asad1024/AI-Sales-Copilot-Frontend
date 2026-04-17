@@ -4,6 +4,7 @@ import { useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authAPI } from "@/lib/apiClient";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -48,20 +49,8 @@ function ResetPasswordContent() {
       }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "16px",
-            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 16px",
-            boxShadow: "0 8px 24px rgba(124, 58, 237, 0.3)"
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+            <AppBrandLogoLockup height={48} style={{ maxWidth: 220 }} />
           </div>
           <h1 style={{
             fontSize: "26px",
@@ -70,10 +59,10 @@ function ResetPasswordContent() {
             margin: "0 0 8px 0",
             letterSpacing: "-0.02em"
           }}>
-            Sales Co-Pilot
+            Set your new password
           </h1>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
-            Set your new password
+            Choose a strong password for your account.
           </p>
         </div>
 
@@ -126,13 +115,13 @@ function ResetPasswordContent() {
                   padding: "12px 20px",
                   borderRadius: "10px",
                   border: "none",
-                  background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+                  background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
                   color: "#fff",
                   fontSize: "14px",
                   fontWeight: "600",
                   textAlign: "center",
                   textDecoration: "none",
-                  boxShadow: "0 4px 14px rgba(124, 58, 237, 0.4)"
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)"
                 }}
               >
                 Request new link
@@ -230,7 +219,7 @@ function ResetPasswordContent() {
                         outline: "none",
                         transition: "all 0.2s ease"
                       }}
-                      onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
+                      onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
                       onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                     />
                     <button
@@ -291,7 +280,7 @@ function ResetPasswordContent() {
                         outline: "none",
                         transition: "all 0.2s ease"
                       }}
-                      onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124, 58, 237,0.1)"; }}
+                      onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
                       onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                     />
                     <button
@@ -339,13 +328,13 @@ function ResetPasswordContent() {
                     border: "none",
                     background: loading || !canSubmit
                       ? "#cbd5e1"
-                      : "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+                      : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
                     color: "#fff",
                     fontSize: "14px",
                     fontWeight: "600",
                     cursor: loading || !canSubmit ? "not-allowed" : "pointer",
                     transition: "all 0.2s ease",
-                    boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(124, 58, 237, 0.4)"
+                    boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)"
                   }}
                 >
                   {loading ? (
@@ -420,7 +409,7 @@ export default function ResetPasswordPage() {
             width: "56px",
             height: "56px",
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+            background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

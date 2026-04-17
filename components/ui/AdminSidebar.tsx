@@ -19,7 +19,7 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react";
-import { AppBrandLogoMark } from "@/components/ui/AppBrandLogo";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 import { getUser, clearAuth, type User } from "@/lib/apiClient";
 import ThemeToggle from "./ThemeToggle";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
@@ -28,8 +28,8 @@ import { useNotificationStore } from "@/stores/useNotificationStore";
 const iconStroke = 1.5;
 const iconSize = 16;
 const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
-const ACTIVE_NAV_TEXT = "#7C3AED";
-const ACTIVE_NAV_ACCENT = "#7C3AED";
+const ACTIVE_NAV_TEXT = "#2563EB";
+const ACTIVE_NAV_ACCENT = "#2563EB";
 
 function CollapsedHoverTip({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -108,7 +108,7 @@ function SidebarUserAvatar({ avatarUrl, initials }: { avatarUrl?: string | null;
         borderRadius: 999,
         overflow: "hidden",
         flexShrink: 0,
-        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 55%, #6D28D9 100%)",
+        background: "linear-gradient(135deg, #0EA5E9 0%, #2563EB 55%, #1D4ED8 100%)",
       }}
     >
       {showImg ? (
@@ -389,7 +389,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               overflow: "hidden",
             }}
           >
-            <AppBrandLogoMark size={collapsed && !isMobile ? 30 : 40} />
+            <AppBrandLogoLockup
+              collapsed={collapsed && !isMobile}
+              height={collapsed && !isMobile ? 32 : 34}
+              style={{ maxWidth: collapsed && !isMobile ? 44 : 140 }}
+            />
             {!(collapsed && !isMobile) && (
               <span
                 style={{
@@ -428,7 +432,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 transition: "color 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#7C3AED";
+                e.currentTarget.style.color = "#2563EB";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = "var(--sidebar-nav-muted-icon)";
@@ -605,7 +609,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   transition: "color 150ms ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#7C3AED";
+                  e.currentTarget.style.color = "#2563EB";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.color = "var(--sidebar-nav-icon)";

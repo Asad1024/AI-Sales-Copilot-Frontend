@@ -86,7 +86,7 @@ const getChannelIcon = (channel: string) => {
     case "call":
       return Icons.Phone;
     default:
-      return Icons.Rocket;
+      return Icons.Send;
   }
 };
 
@@ -128,6 +128,8 @@ interface CampaignCardProps {
   baseName: string;
   onView: () => void;
   onDelete?: () => void;
+  onToggleSave?: () => void;
+  isSaved?: boolean;
   deleting?: boolean;
   showDeleteAction?: boolean;
   /** Smaller padding/type for dense grids (e.g. dashboard) */
@@ -202,6 +204,8 @@ export default function CampaignCard({
   baseName,
   onView,
   onDelete,
+  onToggleSave,
+  isSaved = false,
   deleting = false,
   showDeleteAction = true,
   compact = false,
@@ -249,8 +253,19 @@ export default function CampaignCard({
   const campaignChannelsOrdered = orderedCampaignChannels(campaign);
 
   if (workspaceStyle) {
-    const metricItems = [
-      { label: "Leads", value: actualLeadCount ? String(actualLeadCount) : "—" },
+    const hasHotLeads = campaign.tier_filter === "Hot";
+    const metricItems: Array<{ label: string; value: ReactNode }> = [
+      {
+        label: "Leads",
+        value: (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            {hasHotLeads ? (
+              <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
+            ) : null}
+            <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
+          </span>
+        ),
+      },
       {
         label: "Sent",
         value: campaign.channel === "whatsapp" ? String(campaign.sent ?? "—") : String(campaign.sent ?? 0),
@@ -368,12 +383,14 @@ export default function CampaignCard({
                   Updated {new Date(campaign.updated_at).toLocaleDateString()}
                 </div>
               )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <div
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
-                  marginTop: 8,
                   padding: "4px 10px",
                   borderRadius: 999,
                   fontSize: 11,
@@ -386,32 +403,30 @@ export default function CampaignCard({
                 <span style={{ width: 6, height: 6, borderRadius: 999, background: statusMeta.dot }} />
                 {campaign.status}
               </div>
-            </div>
-
-            <div ref={menuWrapRef} onClick={(e) => e.stopPropagation()} style={{ position: "relative", flexShrink: 0 }}>
-              <button
-                type="button"
-                className="bases-workspace-card-menu-trigger"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                title="Campaign actions"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen((v) => !v);
-                }}
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
-                }}
-              >
-                <MoreVertical size={18} strokeWidth={2} />
-              </button>
+              <div ref={menuWrapRef} onClick={(e) => e.stopPropagation()} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  className="bases-workspace-card-menu-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  title="Campaign actions"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen((v) => !v);
+                  }}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                  }}
+                >
+                  <MoreVertical size={18} strokeWidth={2} />
+                </button>
               {menuOpen && (
                 <div
                   className="bases-workspace-card-menu-panel"
@@ -449,6 +464,22 @@ export default function CampaignCard({
                     <Share2 size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
                     Share
                   </button>
+                  {onToggleSave && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      style={campaignWorkspaceMenuItemBase}
+                      className="bases-workspace-card-menu-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onToggleSave();
+                      }}
+                    >
+                      <Icons.Star size={16} strokeWidth={2} style={{ opacity: 0.85 }} />
+                      {isSaved ? "Remove from saved" : "Save campaign"}
+                    </button>
+                  )}
                   {showDeleteAction && onDelete && (
                     <button
                       type="button"
@@ -464,29 +495,9 @@ export default function CampaignCard({
                   )}
                 </div>
               )}
+              </div>
             </div>
           </div>
-
-          {campaign.tier_filter && (
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: "var(--color-text-muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 14,
-              }}
-            >
-              {campaign.tier_filter === "Hot" && <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.9 }} />}
-              {campaign.tier_filter === "Warm" && <Icons.Thermometer size={12} strokeWidth={1.5} style={{ color: "#fbbf24", opacity: 0.9 }} />}
-              {(campaign.tier_filter === "Cold" || !["Hot", "Warm"].includes(campaign.tier_filter)) && (
-                <Icons.Snowflake size={12} strokeWidth={1.5} style={{ color: "#94a3b8" }} />
-              )}
-              <span style={{ letterSpacing: "0.02em" }}>{campaign.tier_filter} tier</span>
-            </div>
-          )}
 
           <div
             style={{
@@ -508,7 +519,7 @@ export default function CampaignCard({
     );
   }
 
-  const metricCell = (icon: ReactNode, label: string, value: string) => (
+  const metricCell = (icon: ReactNode, label: string, value: ReactNode) => (
     <div
       key={label}
       style={{
@@ -566,6 +577,15 @@ export default function CampaignCard({
   );
 
   const actionIcon = { ...PORTAL_ACTION_ICON, size: sc.actionIcon };
+  const hasHotLeads = campaign.tier_filter === "Hot";
+  const leadsMetricValue: ReactNode = (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      {hasHotLeads ? (
+        <Icons.Flame size={compact ? 11 : 12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
+      ) : null}
+      <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
+    </span>
+  );
 
   return (
     <BaseCard
@@ -680,27 +700,6 @@ export default function CampaignCard({
         </div>
       </div>
 
-      {campaign.tier_filter && (
-        <div
-          style={{
-            fontSize: sc.tierFont,
-            fontWeight: 500,
-            color: "var(--color-text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "6px 0 0",
-          }}
-        >
-          {campaign.tier_filter === "Hot" && <Icons.Flame size={sc.tierIcon} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.9 }} />}
-          {campaign.tier_filter === "Warm" && <Icons.Thermometer size={sc.tierIcon} strokeWidth={1.5} style={{ color: "#fbbf24", opacity: 0.9 }} />}
-          {(campaign.tier_filter === "Cold" || !["Hot", "Warm"].includes(campaign.tier_filter)) && (
-            <Icons.Snowflake size={sc.tierIcon} strokeWidth={1.5} style={{ color: "#94a3b8" }} />
-          )}
-          <span style={{ letterSpacing: "0.02em" }}>{campaign.tier_filter} tier</span>
-        </div>
-      )}
-
       <div
         style={{
           display: "grid",
@@ -708,7 +707,7 @@ export default function CampaignCard({
           gap: sc.metricGap,
         }}
       >
-        {metricCell(<Icons.Users size={sc.metricIconGlyph} strokeWidth={1.5} />, "Leads", actualLeadCount ? String(actualLeadCount) : "—")}
+        {metricCell(<Icons.Users size={sc.metricIconGlyph} strokeWidth={1.5} />, "Leads", leadsMetricValue)}
         {metricCell(<Icons.Send size={sc.metricIconGlyph} strokeWidth={1.5} />, "Sent", campaign.channel === "whatsapp" ? String(campaign.sent ?? "—") : String(campaign.sent ?? 0))}
         {campaign.channel !== "whatsapp" && metricCell(<Icons.Mail size={sc.metricIconGlyph} strokeWidth={1.5} />, "Open", openDisplay)}
         {metricCell(<Icons.MessageCircle size={sc.metricIconGlyph} strokeWidth={1.5} />, "Reply", replyDisplay)}

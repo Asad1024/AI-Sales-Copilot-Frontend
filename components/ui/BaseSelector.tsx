@@ -34,7 +34,7 @@ function workspaceAvatarColor(name: string): string {
 
 export default function BaseSelector({ variant = "default", collapsed = false }: BaseSelectorProps) {
   const router = useRouter();
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
   const { bases, activeBaseId, setActiveBaseId, refreshBases } = useBase();
   const basesFromStore = useBaseStore((s) => s.bases);
   const basesLoading = useBaseStore((s) => s.loading);
@@ -72,6 +72,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
       return;
     }
     if (!baseName.trim()) return;
+    const isFirstWorkspace = basesFromStore.length === 0;
     try {
       setLoading(true);
       const data = await apiRequest("/bases", {
@@ -82,7 +83,12 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
       if (data?.base?.id) {
         const nm = typeof data.base.name === "string" ? data.base.name : "";
         setActiveBaseId(data.base.id, nm ? { name: nm } : undefined);
-        router.push(`/bases/${data.base.id}/leads?welcome=1`);
+        if (isFirstWorkspace) {
+          showSuccess("Workspace created", "Here's what to do next.");
+          router.push(`/bases/${data.base.id}/leads?welcome=1&first_workspace=1`);
+        } else {
+          router.push(`/bases/${data.base.id}/leads?welcome=1`);
+        }
       }
       setBaseName("");
       setModalOpen(false);
@@ -123,12 +129,12 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               display: "flex",
               alignItems: "center",
               justifyContent: collapsed ? "center" : "flex-start",
-              gap: collapsed ? 0 : 10,
-              height: collapsed ? 36 : 40,
-              maxHeight: collapsed ? 36 : 40,
+              gap: collapsed ? 0 : 12,
+              height: collapsed ? 38 : 44,
+              maxHeight: collapsed ? 38 : 44,
               width: "100%",
-              padding: collapsed ? 0 : "0 10px",
-              borderRadius: 8,
+              padding: collapsed ? 0 : "0 12px",
+              borderRadius: 10,
               border: collapsed ? "none" : "1px solid var(--color-border)",
               background: collapsed ? "transparent" : "var(--color-surface)",
               color: "var(--color-text)",
@@ -151,15 +157,15 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
           >
             <span
               style={{
-                width: collapsed ? 32 : 28,
-                height: collapsed ? 32 : 28,
+                width: collapsed ? 33 : 30,
+                height: collapsed ? 33 : 30,
                 borderRadius: 8,
                 background: bg,
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: collapsed ? 10 : 11,
+                fontSize: collapsed ? 10 : 12,
                 fontWeight: 700,
                 flexShrink: 0,
                 letterSpacing: "-0.02em",
@@ -196,7 +202,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
               <div
                 style={{
                   position: "absolute",
-                  top: "calc(100% + 4px)",
+                  bottom: "calc(100% + 6px)",
                   left: collapsed ? "100%" : 0,
                   right: collapsed ? "auto" : 0,
                   marginLeft: collapsed ? 8 : 0,
@@ -230,8 +236,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                           padding: "8px 10px",
                           borderRadius: 8,
                           border: "none",
-                          background: base.id === activeBaseId ? "rgba(124, 58, 237, 0.1)" : "transparent",
-                          color: base.id === activeBaseId ? "#7C3AED" : "var(--color-text)",
+                          background: base.id === activeBaseId ? "rgba(37, 99, 235, 0.1)" : "transparent",
+                          color: base.id === activeBaseId ? "#2563EB" : "var(--color-text)",
                           fontSize: 13,
                           fontWeight: 500,
                           cursor: "pointer",
@@ -249,7 +255,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                           {base.name}
                         </span>
-                        {base.id === activeBaseId && <Check size={16} strokeWidth={1.5} style={{ flexShrink: 0, color: "#7C3AED" }} />}
+                        {base.id === activeBaseId && <Check size={16} strokeWidth={1.5} style={{ flexShrink: 0, color: "#2563EB" }} />}
                       </button>
                     ))
                   )}
@@ -271,14 +277,14 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                         borderRadius: 8,
                         border: "none",
                         background: "transparent",
-                        color: "#7C3AED",
+                        color: "#2563EB",
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: "pointer",
                         textAlign: "left",
                         transition: "background 150ms ease",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 58, 237, 0.08)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <Plus size={16} strokeWidth={1.5} />
@@ -368,7 +374,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                     fontSize: 13,
                     border: "none",
                     borderRadius: 8,
-                    background: loading || !baseName.trim() ? "#C4B5FD" : "#7C3AED",
+                    background: loading || !baseName.trim() ? "#C4B5FD" : "#2563EB",
                     color: "#fff",
                     cursor: loading || !baseName.trim() ? "not-allowed" : "pointer",
                     fontWeight: 600,
@@ -474,7 +480,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                       padding: "8px 10px",
                       borderRadius: 4,
                       border: "none",
-                      background: base.id === activeBaseId ? "rgba(124, 58, 237,0.08)" : "transparent",
+                      background: base.id === activeBaseId ? "rgba(37, 99, 235,0.08)" : "transparent",
                       color: "var(--color-text)",
                       fontSize: 13,
                       cursor: "pointer",

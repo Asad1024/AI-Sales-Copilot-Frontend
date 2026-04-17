@@ -28,10 +28,10 @@ export default function ThemeToggle({ compact }: { compact?: boolean }) {
     root.style.setProperty('--color-border', isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1');
     root.style.setProperty('--color-border-light', isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0');
     root.style.setProperty('--color-shadow', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
-    root.style.setProperty('--color-primary', '#7C3AED');
-    root.style.setProperty('--color-accent', '#A94CFF');
-    root.style.setProperty('--color-success', '#7C3AED');
-    root.style.setProperty('--color-info', '#A94CFF');
+    root.style.setProperty('--color-primary', '#2563EB');
+    root.style.setProperty('--color-accent', '#06B6D4');
+    root.style.setProperty('--color-success', '#2563EB');
+    root.style.setProperty('--color-info', '#06B6D4');
   };
 
   const toggleTheme = () => {
@@ -41,8 +41,8 @@ export default function ThemeToggle({ compact }: { compact?: boolean }) {
     applyTheme(newTheme);
   };
 
-  const btn = compact ? 24 : 30;
-  const iconSz = compact ? 14 : 18;
+  const btn = compact ? 28 : 34;
+  const iconSz = compact ? 16 : 18;
 
   if (!mounted) {
     return (

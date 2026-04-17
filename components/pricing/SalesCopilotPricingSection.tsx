@@ -56,9 +56,9 @@ function PortalPlanCard({
       style={{
         padding: pad,
         borderRadius: 20,
-        border: plan.featured ? "2px solid rgba(124, 58, 237, 0.45)" : "1px solid var(--color-border, #e5e7eb)",
+        border: plan.featured ? "2px solid rgba(37, 99, 235, 0.45)" : "1px solid var(--color-border, #e5e7eb)",
         background: plan.featured
-          ? "linear-gradient(145deg, rgba(124, 58, 237, 0.06) 0%, rgba(169, 76, 255, 0.04) 100%)"
+          ? "linear-gradient(145deg, rgba(37, 99, 235, 0.06) 0%, rgba(6, 182, 212, 0.04) 100%)"
           : "var(--color-surface, #fff)",
         display: "flex",
         flexDirection: "column",
@@ -79,7 +79,7 @@ function PortalPlanCard({
             letterSpacing: "0.04em",
             padding: "4px 9px",
             borderRadius: 999,
-            background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
+            background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
             color: "#fff",
           }}
         >
@@ -109,7 +109,7 @@ function PortalPlanCard({
         {plan.headline}
       </p>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <span style={{ fontSize: priceSize, fontWeight: 800, color: "#7C3AED" }}>{plan.priceDisplay}</span>
+        <span style={{ fontSize: priceSize, fontWeight: 800, color: "#2563EB" }}>{plan.priceDisplay}</span>
         {plan.priceSub ? (
           <span style={{ fontSize: compact ? 13 : 15, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
         ) : null}
@@ -158,7 +158,7 @@ function PortalPlanCard({
                   <Check
                     size={compact ? 15 : 18}
                     strokeWidth={2.25}
-                    style={{ flexShrink: 0, color: "#7C3AED", marginTop: 2 }}
+                    style={{ flexShrink: 0, color: "#2563EB", marginTop: 2 }}
                   />
                   <span>{b}</span>
                 </li>
@@ -200,8 +200,8 @@ function PortalPlanCard({
             fontWeight: 700,
             textAlign: "center",
             fontSize: compact ? 14 : undefined,
-            border: "1px solid rgba(124, 58, 237, 0.4)",
-            background: "rgba(124, 58, 237, 0.1)",
+            border: "1px solid rgba(37, 99, 235, 0.4)",
+            background: "rgba(37, 99, 235, 0.1)",
             color: "#5b21b6",
           }}
         >
@@ -267,13 +267,13 @@ function PortalSetupPairCard({
       className="card-enhanced"
       style={{
         borderRadius: 16,
-        border: "1px solid rgba(124, 58, 237, 0.32)",
+        border: "1px solid rgba(37, 99, 235, 0.32)",
         background: "var(--color-surface, #fff)",
         padding: "16px 18px 18px",
         display: "flex",
         flexDirection: "column",
         minHeight: "100%",
-        boxShadow: "0 10px 24px rgba(124, 58, 237, 0.06)",
+        boxShadow: "0 10px 24px rgba(37, 99, 235, 0.06)",
       }}
     >
       <span
@@ -282,7 +282,7 @@ function PortalSetupPairCard({
           fontWeight: 800,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "#A94CFF",
+          color: "#06B6D4",
           marginBottom: 8,
         }}
       >
@@ -295,7 +295,7 @@ function PortalSetupPairCard({
         {plan.headline} Monthly plans and add-ons below activate after setup.
       </p>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <span style={{ fontSize: 26, fontWeight: 800, color: "#7C3AED" }}>{plan.priceDisplay}</span>
+        <span style={{ fontSize: 26, fontWeight: 800, color: "#2563EB" }}>{plan.priceDisplay}</span>
         {plan.priceSub ? (
           <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
         ) : null}
@@ -303,7 +303,7 @@ function PortalSetupPairCard({
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
         {bullets.map((b) => (
           <div key={b} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "var(--color-text)", lineHeight: 1.4 }}>
-            <Check size={15} strokeWidth={2.25} style={{ flexShrink: 0, color: "#7C3AED", marginTop: 2 }} />
+            <Check size={15} strokeWidth={2.25} style={{ flexShrink: 0, color: "#2563EB", marginTop: 2 }} />
             <span>{b}</span>
           </div>
         ))}
@@ -353,7 +353,7 @@ function PortalCustomPairCard({ plan }: { plan: SalesCopilotPricingPlan }) {
       style={{
         borderRadius: 16,
         padding: "16px 18px 18px",
-        border: "1px dashed rgba(124, 58, 237, 0.38)",
+        border: "1px dashed rgba(37, 99, 235, 0.38)",
         background: "var(--color-surface, #fff)",
         display: "flex",
         flexDirection: "column",
@@ -387,9 +387,9 @@ function PortalCustomPairCard({ plan }: { plan: SalesCopilotPricingPlan }) {
               fontWeight: 600,
               padding: "4px 9px",
               borderRadius: 999,
-              background: "rgba(124, 58, 237, 0.08)",
+              background: "rgba(37, 99, 235, 0.08)",
               color: "var(--color-text)",
-              border: "1px solid rgba(124, 58, 237, 0.14)",
+              border: "1px solid rgba(37, 99, 235, 0.14)",
               lineHeight: 1.35,
             }}
           >
@@ -504,7 +504,7 @@ export default function SalesCopilotPricingSection({
             <Icons.Sparkles size={14} />
             Pricing
           </div>
-          <h2 className="section-title">Sales Co-Pilot Plans</h2>
+          <h2 className="section-title">Outriva Plans</h2>
           <p className="section-subtitle">
             Start with one-time setup. Then choose a monthly tier or the calling add-on. Enterprise teams can go custom.
             Card payments will run on Stripe when checkout is enabled.
@@ -646,8 +646,8 @@ export default function SalesCopilotPricingSection({
             marginBottom: 20,
             padding: "12px 16px",
             borderRadius: 12,
-            background: "rgba(124, 58, 237, 0.08)",
-            border: "1px solid rgba(124, 58, 237, 0.25)",
+            background: "rgba(37, 99, 235, 0.08)",
+            border: "1px solid rgba(37, 99, 235, 0.25)",
             fontSize: 14,
             color: "var(--color-text)",
           }}
@@ -699,7 +699,7 @@ export default function SalesCopilotPricingSection({
 
       <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 24, lineHeight: 1.5 }}>
         Secured by Stripe when checkout is live. Until then, use{" "}
-        <Link href="/contact" style={{ color: "#7C3AED", fontWeight: 600 }}>
+        <Link href="/contact" style={{ color: "#2563EB", fontWeight: 600 }}>
           Contact
         </Link>{" "}
         for enterprise or custom quotes.

@@ -218,7 +218,7 @@ export function AICommandCenter() {
         right: '-50%',
         width: '200px',
         height: '200px',
-        background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%)',
         borderRadius: '50%'
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -226,14 +226,14 @@ export function AICommandCenter() {
           fontSize: '32px', 
           fontWeight: '700', 
           margin: '0 0 8px 0',
-          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+          background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
           AI Command Center
         </h1>
         <p style={{ fontSize: '16px', color: 'var(--color-text-muted)', margin: '0 0 24px 0' }}>
-          Tell Spark AI what you want to achieve and watch it build your entire outreach strategy.
+          Tell Outriva what you want to achieve and watch it build your entire outreach strategy.
         </p>
         
         <form onSubmit={handleQuickGoalSubmit} style={{
@@ -285,11 +285,11 @@ export function AICommandCenter() {
                     top: '8px',
                     background: isListening 
                       ? 'rgba(255, 107, 107, 0.12)' 
-                      : 'rgba(124, 58, 237, 0.12)',
+                      : 'rgba(37, 99, 235, 0.12)',
                     border: '1px solid var(--elev-border)',
                     borderRadius: '6px',
                     padding: '6px',
-                    color: isListening ? '#ff6b6b' : '#7C3AED',
+                    color: isListening ? '#ff6b6b' : '#2563EB',
                     cursor: 'pointer',
                     fontSize: '16px',
                     transition: 'all 0.3s ease'
@@ -313,7 +313,7 @@ export function AICommandCenter() {
                       <div style={{
                         width: `${goalValidation.score}%`,
                         height: '100%',
-                        background: goalValidation.score >= 80 ? '#7C3AED' : goalValidation.score >= 60 ? '#ffa500' : '#ff6b6b',
+                        background: goalValidation.score >= 80 ? '#2563EB' : goalValidation.score >= 60 ? '#ffa500' : '#ff6b6b',
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
@@ -347,7 +347,7 @@ export function AICommandCenter() {
               style={{
                 background: isSubmittingGoal || !quickGoal.trim() 
                   ? 'var(--color-surface-secondary)' 
-                  : 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                  : 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                 border: isSubmittingGoal || !quickGoal.trim() ? '1px solid var(--color-border)' : 'none',
                 borderRadius: '10px',
                 padding: '12px 20px',
@@ -358,7 +358,7 @@ export function AICommandCenter() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
                 transition: 'all 0.3s ease',
                 whiteSpace: 'nowrap'
               }}
@@ -428,7 +428,7 @@ export function AICommandCenter() {
             background: 'rgba(0, 0, 0, 0.4)',
             borderRadius: '12px',
             padding: '16px',
-            border: '1px solid rgba(124, 58, 237, 0.3)',
+            border: '1px solid rgba(37, 99, 235, 0.3)',
             marginBottom: '24px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -436,7 +436,7 @@ export function AICommandCenter() {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: '#7C3AED',
+                background: '#2563EB',
                 animation: 'pulse 1s infinite'
               }} />
               <span style={{ fontSize: '14px', color: 'var(--color-text)', fontWeight: '600' }}>
@@ -453,7 +453,7 @@ export function AICommandCenter() {
               <div style={{
                 width: `${(progress.step / progressSteps.length) * 100}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)',
+                background: 'linear-gradient(90deg, #2563EB 0%, #06B6D4 100%)',
                 transition: 'width 0.5s ease'
               }} />
             </div>
@@ -478,7 +478,7 @@ export function AICommandCenter() {
             background: 'rgb(243 240 255)',
             borderRadius: '12px',
             padding: '16px',
-            border: '1px solid rgba(124, 58, 237, 0.3)',
+            border: '1px solid rgba(37, 99, 235, 0.3)',
             marginBottom: '24px'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)', margin: '0 0 12px 0' }}>
@@ -487,7 +487,7 @@ export function AICommandCenter() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>
               {goalTemplates.map((template) => (
                 <div key={template.category}>
-                  <h4 style={{ fontSize: '12px', fontWeight: 600, color: '#7C3AED', margin: '0 0 8px 0' }}>
+                  <h4 style={{ fontSize: '12px', fontWeight: 600, color: '#2563EB', margin: '0 0 8px 0' }}>
                     {template.category}
                   </h4>
                   {template.goals.map((goal, i) => (
@@ -495,8 +495,8 @@ export function AICommandCenter() {
                       key={`${template.category}-${i}`}
                       onClick={() => selectTemplate(goal)}
                       style={{
-                        background: 'rgba(124, 58, 237, 0.1)',
-                        border: '1px solid rgba(124, 58, 237, 0.3)',
+                        background: 'rgba(37, 99, 235, 0.1)',
+                        border: '1px solid rgba(37, 99, 235, 0.3)',
                         borderRadius: '8px',
                         padding: '8px 12px',
                         color: 'var(--color-text)',
@@ -507,8 +507,8 @@ export function AICommandCenter() {
                         textAlign: 'left',
                         transition: '0.3s'
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(124, 58, 237, 0.2)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(124, 58, 237, 0.1)')}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(37, 99, 235, 0.2)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)')}
                     >
                       {goal}
                     </button>
@@ -524,7 +524,7 @@ export function AICommandCenter() {
             background: 'rgba(0, 0, 0, 0.4)',
             borderRadius: '12px',
             padding: '16px',
-            border: '1px solid rgba(124, 58, 237, 0.3)',
+            border: '1px solid rgba(37, 99, 235, 0.3)',
             marginBottom: '24px'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text)', margin: '0 0 12px 0' }}>
@@ -536,8 +536,8 @@ export function AICommandCenter() {
                   key={index}
                   onClick={() => selectHistoryGoal(goal)}
                   style={{
-                    background: 'rgba(124, 58, 237, 0.1)',
-                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    background: 'rgba(37, 99, 235, 0.1)',
+                    border: '1px solid rgba(37, 99, 235, 0.3)',
                     borderRadius: '8px',
                     padding: '10px 12px',
                     color: 'var(--color-text)',
@@ -547,10 +547,10 @@ export function AICommandCenter() {
                     transition: 'all 0.3s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(124, 58, 237, 0.2)';
+                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.2)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(124, 58, 237, 0.1)';
+                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
                   }}
                 >
                   {goal}
@@ -581,7 +581,7 @@ export function AICommandCenter() {
             background: 'rgb(243, 240, 255)',
             borderRadius: '12px',
             padding: '16px',
-            border: '1px solid rgba(124, 58, 237, 0.3)'
+            border: '1px solid rgba(37, 99, 235, 0.3)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{

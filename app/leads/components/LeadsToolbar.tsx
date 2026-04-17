@@ -20,7 +20,6 @@ import { FilterPanel } from "./FilterPanel";
 interface LeadsToolbarProps {
   variant?: "default" | "embedded";
   onEnrich: () => void;
-  onScore: () => void;
   /** Add → Import Sheets when Google Sheets is configured (Settings → Connectors). */
   onImportSheets?: () => void;
   /** Add → Import Airtable when Airtable integration is connected. */
@@ -37,7 +36,6 @@ interface LeadsToolbarProps {
 export function LeadsToolbar({
   variant = "default",
   onEnrich,
-  onScore,
   onImportSheets,
   onImportAirtable,
   onGenerateAI,
@@ -208,9 +206,9 @@ export function LeadsToolbar({
         <div
           style={{
             ...row,
-            minHeight: 40,
+            minHeight: 44,
             flexShrink: 0,
-            gap: 8,
+            gap: 10,
             marginLeft: 12,
             position: "relative",
             zIndex: 2,
@@ -221,13 +219,10 @@ export function LeadsToolbar({
             <>
               <button
                 type="button"
-                className="btn-primary focus-ring h-10 min-h-10 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
+                className="btn-primary focus-ring inline-flex h-11 min-h-[44px] items-center justify-center rounded-[10px] px-[18px] text-[13px] font-semibold shadow-sm transition-[transform,box-shadow] disabled:opacity-50"
                 disabled={!hasAnyLeads}
                 onClick={() => onEnrich()}
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   gap: 8,
                   flexShrink: 0,
                   whiteSpace: "nowrap",
@@ -235,36 +230,17 @@ export function LeadsToolbar({
                   cursor: hasAnyLeads ? "pointer" : "not-allowed",
                 }}
               >
-                <Icons.Sparkles size={16} strokeWidth={1.5} />
+                <Icons.Sparkles size={18} strokeWidth={1.75} aria-hidden />
                 Enrich Leads
-              </button>
-              <button
-                type="button"
-                className="btn-primary focus-ring h-10 min-h-10 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
-                disabled={!hasAnyLeads}
-                onClick={() => onScore()}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  flexShrink: 0,
-                  whiteSpace: "nowrap",
-                  opacity: hasAnyLeads ? 1 : 0.45,
-                  cursor: hasAnyLeads ? "pointer" : "not-allowed",
-                }}
-              >
-                <Icons.Chart size={16} strokeWidth={1.5} />
-                Score Leads
               </button>
             </>
           )}
 
           {permissions.canCreateLeads && (
-            <div ref={addMenuRef} style={{ ...row, position: "relative", minHeight: 40, flexShrink: 0 }}>
+            <div ref={addMenuRef} style={{ ...row, position: "relative", minHeight: 44, flexShrink: 0 }}>
               <button
                 type="button"
-                className="btn-dashboard-outline focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-1.5 rounded-[10px] px-3 text-[13px] font-medium"
+                className="btn-dashboard-outline focus-ring inline-flex h-11 min-h-[44px] items-center justify-center rounded-[10px] px-[18px] text-[13px] font-semibold transition-[background,border-color,transform]"
                 aria-expanded={showAddMenu}
                 aria-label="Add leads"
                 onClick={() => {
@@ -273,8 +249,9 @@ export function LeadsToolbar({
                   setShowColumnMenu(false);
                   setShowMoreMenu(false);
                 }}
+                style={{ gap: 8 }}
               >
-                <Icons.Plus size={16} strokeWidth={1.5} />
+                <Icons.Plus size={18} strokeWidth={1.75} aria-hidden />
                 Add
               </button>
               {showAddMenu && (
@@ -282,7 +259,7 @@ export function LeadsToolbar({
                   <MenuButton
                     icon={
                       <MenuBrandIconSlot>
-                        <Icons.Sparkles size={17} strokeWidth={1.8} style={{ color: "#7C3AED" }} />
+                        <Icons.Sparkles size={17} strokeWidth={1.8} style={{ color: "#2563EB" }} />
                       </MenuBrandIconSlot>
                     }
                     label="Generate Leads with AI"
@@ -642,7 +619,7 @@ function DropdownMenu({
               alignItems: "center",
               justifyContent: "space-between",
               gap: "8px",
-              background: selected === option.value ? "rgba(124, 58, 237, 0.12)" : "transparent",
+              background: selected === option.value ? "rgba(37, 99, 235, 0.12)" : "transparent",
               border: "none",
               borderRadius: "6px",
               color: selected === option.value ? "var(--color-primary)" : "var(--color-text)",

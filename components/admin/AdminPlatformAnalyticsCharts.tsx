@@ -22,7 +22,7 @@ import type { AdminAnalyticsPayload, AdminStatusSlice, AdminWorkspaceLeadRow } f
 
 const CHART_MUTED = "var(--color-text-muted, #64748b)";
 const CHART_GRID = "var(--color-border, #e2e8f0)";
-const PALETTE = ["#7C3AED", "#A94CFF", "#f97316", "#14b8a6", "#ec4899", "#eab308", "#6366f1"];
+const PALETTE = ["#2563EB", "#06B6D4", "#f97316", "#14b8a6", "#ec4899", "#eab308", "#6366f1"];
 
 function formatShortDate(iso: string) {
   const d = new Date(`${iso}T12:00:00`);

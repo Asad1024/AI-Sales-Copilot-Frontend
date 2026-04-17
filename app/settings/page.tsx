@@ -8,7 +8,6 @@ import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { TestConfigurationSection } from "./TestConfigurationSection";
 import { TestEmailSection } from "./TestEmailSection";
-import { IntegrationsHub } from "./IntegrationsHub";
 import BaseCard from "@/components/ui/BaseCard";
 import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
 import { PaymentSettingsPanel } from "./PaymentSettingsPanel";
@@ -17,18 +16,13 @@ import { CreditCard, Coins } from "lucide-react";
 
 /** Match `components/ui/Sidebar.tsx` nav links: 16px icon, stroke 1.5 */
 const navIconBox = { width: 16, height: 16, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const };
-const ACTIVE_NAV_BG = "rgba(124, 58, 237, 0.09)";
-const ACTIVE_NAV_TEXT = "#7C3AED";
-const ACTIVE_NAV_ACCENT = "#7C3AED";
+const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
+const ACTIVE_NAV_TEXT = "#2563EB";
+const ACTIVE_NAV_ACCENT = "#2563EB";
 
 const UserIcon = ({ active }: { active: boolean }) => (
   <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <Icons.User size={16} strokeWidth={1.5} />
-  </span>
-);
-const PlugTabIcon = ({ active }: { active: boolean }) => (
-  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
-    <Icons.Plug size={16} strokeWidth={1.5} />
   </span>
 );
 const TestConfigTabIcon = ({ active }: { active: boolean }) => (
@@ -54,14 +48,12 @@ const CreditHistoryTabIcon = ({ active }: { active: boolean }) => (
 
 type SettingsTabId =
   | "profile"
-  | "integrations"
   | "payments"
   | "credit-history"
   | "test-configuration"
   | "test-email";
 
 function parseSettingsTab(raw: string | null): SettingsTabId {
-  if (raw === "integrations" || raw === "connectors") return "integrations";
   if (raw === "payments" || raw === "billing") return "payments";
   if (raw === "credit-history" || raw === "credits") return "credit-history";
   if (raw === "safety") return "profile";
@@ -121,8 +113,7 @@ export default function SettingsPage() {
   const selectTab = (id: SettingsTabId) => {
     setTab(id);
     const p = new URLSearchParams(searchParams?.toString() || "");
-    p.set("tab", id === "integrations" ? "integrations" : id);
-    if (id !== "integrations") p.delete("connect");
+    p.set("tab", id);
     if (id !== "payments") p.delete("session_id");
     router.replace(`/settings?${p.toString()}`);
   };
@@ -139,17 +130,16 @@ export default function SettingsPage() {
       {
         category: "Account",
         items: [
-          { id: "profile", label: "Profile", hint: "Identity, password & account", icon: (a) => <UserIcon active={a} /> },
+          { id: "profile", label: "Account & Settings", hint: "Identity, password & account", icon: (a) => <UserIcon active={a} /> },
         ],
       },
       {
         category: "Workspace",
         items: [
-          { id: "integrations", label: "Integrations", hint: "CRM & messaging", icon: (a) => <PlugTabIcon active={a} /> },
-          { id: "payments", label: "Payments", hint: "Stripe receipts & plan", icon: (a) => <PaymentsTabIcon active={a} /> },
+          { id: "payments", label: "Plan & Billing", hint: "Stripe receipts & plan", icon: (a) => <PaymentsTabIcon active={a} /> },
           {
             id: "credit-history",
-            label: "Credit history",
+            label: "Credits & Usage",
             hint: "Shared workspace credits & who spent them",
             icon: (a) => <CreditHistoryTabIcon active={a} />,
           },
@@ -158,8 +148,8 @@ export default function SettingsPage() {
       {
         category: "Tools",
         items: [
-          { id: "test-configuration", label: "Test configuration", hint: "LinkedIn, WhatsApp, call", icon: (a) => <TestConfigTabIcon active={a} /> },
-          { id: "test-email", label: "Test email", hint: "Send tests and see delivery & opens", icon: (a) => <TestEmailTabIcon active={a} /> },
+          { id: "test-configuration", label: "Integration Tests", hint: "LinkedIn, WhatsApp, call", icon: (a) => <TestConfigTabIcon active={a} /> },
+          { id: "test-email", label: "Email Tests", hint: "Send tests and see delivery & opens", icon: (a) => <TestEmailTabIcon active={a} /> },
         ],
       },
     ],
@@ -239,20 +229,20 @@ export default function SettingsPage() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 10,
-                      minHeight: active ? 42 : 34,
-                      padding: active ? "10px 14px" : "7px 11px",
+                      gap: 12,
+                      minHeight: active ? 44 : 42,
+                      padding: active ? "12px 14px" : "10px 12px",
                       boxSizing: "border-box",
-                      borderLeft: active ? `3px solid ${ACTIVE_NAV_ACCENT}` : "3px solid transparent",
-                      borderRadius: active ? 0 : 8,
+                      borderLeft: "none",
+                      borderRadius: 12,
                       cursor: "pointer",
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: active ? 600 : 500,
                       fontFamily: "Inter, sans-serif",
                       color: active ? ACTIVE_NAV_TEXT : "var(--sidebar-nav-text)",
                       background: active ? ACTIVE_NAV_BG : "transparent",
-                      transition: "background 150ms ease, color 150ms ease, min-height 150ms ease, border-radius 150ms ease",
-                      marginBottom: 5,
+                      transition: "background 150ms ease, color 150ms ease, min-height 150ms ease",
+                      marginBottom: 8,
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
@@ -284,15 +274,13 @@ export default function SettingsPage() {
         <BaseCard
           style={{
             borderRadius: 16,
-            padding:
-              effectiveTab === "integrations" ? 18 : effectiveTab === "payments" || effectiveTab === "credit-history" ? 20 : 22,
+            padding: effectiveTab === "payments" || effectiveTab === "credit-history" ? 20 : 22,
             minHeight: 400,
             border: "1px solid var(--color-border)",
             boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
           }}
         >
           {effectiveTab === "profile" && <ProfileSettingsPanel />}
-          {effectiveTab === "integrations" && <IntegrationsHub />}
           {effectiveTab === "payments" && (
             <Suspense fallback={<p style={{ color: "var(--color-text-muted)" }}>Loading…</p>}>
               <PaymentSettingsPanel />

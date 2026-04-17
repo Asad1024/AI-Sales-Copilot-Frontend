@@ -242,8 +242,8 @@ export function MappingStep({ csvHeaders, csvRows, baseColumns, onMappingComplet
                   <td style={{ padding: "12px", fontSize: "12px", color: "var(--color-text-muted)" }}>
                     {showTypeSelector ? (
                       <span style={{
-                        background: "rgba(124, 58, 237, 0.1)",
-                        color: "#7C3AED",
+                        background: "rgba(37, 99, 235, 0.1)",
+                        color: "#2563EB",
                         padding: "4px 8px",
                         borderRadius: "4px",
                         fontSize: "11px",

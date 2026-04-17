@@ -129,7 +129,7 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
   const normalizeOptions = () => {
     return options.map((opt) => {
       if (typeof opt === "string") {
-        return { value: opt, label: opt, color: "#7C3AED" };
+        return { value: opt, label: opt, color: "#2563EB" };
       }
       const value = opt.id !== undefined ? String(opt.id) : (opt.value || opt.label);
       return { ...opt, value };
@@ -163,8 +163,8 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
           <span
             key={opt.value}
             style={{
-              background: opt.color ? `${opt.color}20` : "rgba(124, 58, 237, 0.1)",
-              color: opt.color || "#7C3AED",
+              background: opt.color ? `${opt.color}20` : "rgba(37, 99, 235, 0.1)",
+              color: opt.color || "#2563EB",
               padding: "2px 8px",
               borderRadius: "4px",
               fontSize: "11px",
@@ -194,7 +194,7 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
             position: "fixed",
             zIndex: 1000,
             background: "var(--color-surface)",
-            border: "1px solid #7C3AED",
+            border: "1px solid #2563EB",
             borderRadius: "6px",
             minWidth: "180px",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -215,7 +215,7 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
                   borderRadius: "4px",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+                  e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
@@ -237,7 +237,7 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
               marginTop: "8px",
               padding: "4px 12px",
               fontSize: "12px",
-              background: "#7C3AED",
+              background: "#2563EB",
               color: "#000",
               border: "none",
               borderRadius: "4px",
@@ -266,7 +266,7 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
         gap: "4px",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+        e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";
@@ -277,8 +277,8 @@ export function MultiSelectCell({ value, onUpdate, editable = true, options }: M
           <span
             key={opt.value}
             style={{
-              background: opt.color ? `${opt.color}20` : "rgba(124, 58, 237, 0.1)",
-              color: opt.color || "#7C3AED",
+              background: opt.color ? `${opt.color}20` : "rgba(37, 99, 235, 0.1)",
+              color: opt.color || "#2563EB",
               padding: "2px 8px",
               borderRadius: "4px",
               fontSize: "11px",

@@ -24,7 +24,7 @@ interface CallLog {
   recording_url?: string;
   batch_id?: string;
   call_id?: string;
-  /** ElevenLabs ConvAI conversation id (same as call_id). */
+  /** Voice provider conversation id (same as call_id). */
   elevenlabsConversationId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -180,7 +180,7 @@ export function CallTranscriptsTab() {
             Call Transcripts & Recordings ({filteredCallLogs.length})
           </h3>
           <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: 0 }}>
-            View detailed call logs with transcripts and recordings from ElevenLabs
+            View detailed call logs with transcripts and recordings from your voice provider
           </p>
         </div>
         <button

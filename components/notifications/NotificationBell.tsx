@@ -84,23 +84,27 @@ export function NotificationBell() {
         onClick={() => setShowDropdown(!showDropdown)}
         style={{
           position: 'relative',
-          padding: '6px',
-          background: 'transparent',
-          border: 'none',
+          width: '34px',
+          height: '34px',
+          padding: '0',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           cursor: 'pointer',
-          borderRadius: '6px',
+          borderRadius: '999px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'background 0.15s',
+          transition: 'background 0.15s, border-color 0.15s, color 0.15s',
           color: 'var(--color-text-muted)',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'var(--color-surface-secondary)';
-          e.currentTarget.style.color = 'var(--color-text)';
+          e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.35)';
+          e.currentTarget.style.color = 'var(--color-primary)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.background = 'var(--color-surface)';
+          e.currentTarget.style.borderColor = 'var(--color-border)';
           e.currentTarget.style.color = 'var(--color-text-muted)';
         }}
       >
@@ -202,10 +206,10 @@ function NotificationDropdown({
             onClick={onMarkAllAsRead}
             style={{
               padding: '4px 12px',
-              background: 'rgba(124, 58, 237, 0.1)',
-              border: '1px solid rgba(124, 58, 237, 0.3)',
+              background: 'rgba(37, 99, 235, 0.1)',
+              border: '1px solid rgba(37, 99, 235, 0.3)',
               borderRadius: '6px',
-              color: '#7C3AED',
+              color: '#2563EB',
               fontSize: '12px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -270,7 +274,7 @@ function NotificationItem({
         padding: '16px',
         borderBottom: '1px solid var(--color-border)',
         cursor: 'pointer',
-        background: isUnread ? 'rgba(124, 58, 237, 0.05)' : 'transparent',
+        background: isUnread ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
         transition: 'all 0.2s',
         display: 'flex',
         gap: '12px',
@@ -278,12 +282,12 @@ function NotificationItem({
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = isUnread
-          ? 'rgba(124, 58, 237, 0.1)'
+          ? 'rgba(37, 99, 235, 0.1)'
           : 'rgba(255, 255, 255, 0.05)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = isUnread
-          ? 'rgba(124, 58, 237, 0.05)'
+          ? 'rgba(37, 99, 235, 0.05)'
           : 'transparent';
       }}
     >
@@ -292,7 +296,7 @@ function NotificationItem({
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+          background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -338,7 +342,7 @@ function NotificationItem({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: '#7C3AED',
+            background: '#2563EB',
             flexShrink: 0,
             marginTop: '4px',
           }}

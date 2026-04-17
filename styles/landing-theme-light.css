@@ -11,7 +11,7 @@
 }
 
 .landing-page.landing-theme-light .particle {
-  background: rgba(124, 58, 237, 0.15);
+  background: rgba(37, 99, 235, 0.15);
 }
 
 .landing-page.landing-theme-light .landing-header,
@@ -101,8 +101,8 @@
 }
 
 .landing-page.landing-theme-light .feature-item.active {
-  background: rgba(124, 58, 237, 0.08) !important;
-  border-color: rgba(124, 58, 237, 0.25) !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
 }
 
 .landing-page.landing-theme-light .btn-hero-secondary {
@@ -190,7 +190,7 @@
 }
 
 .landing-page.landing-theme-light .pricing-card.featured {
-  background: linear-gradient(145deg, rgba(124, 58, 237, 0.08) 0%, rgba(169, 76, 255, 0.06) 100%) !important;
+  background: linear-gradient(145deg, rgba(37, 99, 235, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%) !important;
 }
 
 .landing-page.landing-theme-light .pricing-card.scp-custom-top {
@@ -227,8 +227,8 @@
 
 .landing-page.landing-theme-light .scp-custom-chip {
   color: #5b21b6 !important;
-  background: rgba(124, 58, 237, 0.12) !important;
-  border-color: rgba(124, 58, 237, 0.3) !important;
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(37, 99, 235, 0.3) !important;
 }
 
 .landing-page.landing-theme-light .pricing-cta-primary {
@@ -345,7 +345,7 @@
 }
 
 .landing-page.landing-theme-light .landing-mobile-panel a:hover {
-  background: rgba(124, 58, 237, 0.08);
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .landing-mobile-panel-close {

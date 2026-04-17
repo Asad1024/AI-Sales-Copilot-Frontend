@@ -7,6 +7,8 @@ import { getToken, clearAuth, getUser, apiRequest } from "@/lib/apiClient";
 import { rememberTeamWorkspaceAfterInvite, readRememberedTeamWorkspaceId } from "@/lib/focusTeamWorkspace";
 import { userNeedsOnboarding } from "@/lib/authRouting";
 import { API_BASE } from "@/lib/api";
+import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_TAGLINE } from "@/lib/brand";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -133,12 +135,12 @@ function VerifyRequiredContent() {
               width: "56px",
               height: "56px",
               borderRadius: "16px",
-              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              boxShadow: "0 8px 24px rgba(124, 58, 237, 0.3)",
+              boxShadow: "0 8px 24px rgba(37, 99, 235, 0.3)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -154,7 +156,7 @@ function VerifyRequiredContent() {
             height="28"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#7C3AED"
+            stroke="#2563EB"
             strokeWidth="2"
             style={{ animation: "verifySpin 1s linear infinite", margin: "0 auto", display: "block" }}
           >
@@ -179,7 +181,7 @@ function VerifyRequiredContent() {
     <div
       style={{
         flex: 1,
-        background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+        background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -214,28 +216,9 @@ function VerifyRequiredContent() {
       />
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "48px" }}>
-          <div
-            style={{
-              width: "52px",
-              height: "52px",
-              borderRadius: "14px",
-              background: "rgba(255,255,255,0.2)",
-              backdropFilter: "blur(10px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-            }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: "26px", fontWeight: "800", color: "#fff", letterSpacing: "-0.02em" }}>Sales Co-Pilot</div>
-            <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "2px" }}>AI-Powered Sales Automation</div>
-          </div>
+        <div style={{ marginBottom: "48px" }}>
+          <AppBrandLogoLockup height={44} style={{ maxWidth: 220 }} />
+          <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "12px" }}>{APP_BRAND_TAGLINE}</div>
         </div>
 
         <h1
@@ -338,12 +321,12 @@ function VerifyRequiredContent() {
               width: "56px",
               height: "56px",
               borderRadius: "14px",
-              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: "20px",
-              boxShadow: "0 10px 40px rgba(124, 58, 237, 0.3)",
+              boxShadow: "0 10px 40px rgba(37, 99, 235, 0.3)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -447,12 +430,12 @@ function VerifyRequiredContent() {
                 padding: "12px 20px",
                 borderRadius: "10px",
                 border: "none",
-                background: canClickResend ? "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)" : "#cbd5e1",
+                background: canClickResend ? "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)" : "#cbd5e1",
                 color: "#fff",
                 fontSize: "14px",
                 fontWeight: "600",
                 cursor: canClickResend ? "pointer" : "not-allowed",
-                boxShadow: canClickResend ? "0 4px 14px rgba(124, 58, 237, 0.4)" : "none",
+                boxShadow: canClickResend ? "0 4px 14px rgba(37, 99, 235, 0.4)" : "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

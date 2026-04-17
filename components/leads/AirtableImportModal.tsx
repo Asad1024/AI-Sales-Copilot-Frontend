@@ -196,7 +196,7 @@ function Stepper({ activeStep }: { activeStep: Step }) {
                   fontSize: 13,
                   fontWeight: 700,
                   background: active
-                    ? "linear-gradient(135deg, #18BFFF 0%, #7C3AED 100%)"
+                    ? "linear-gradient(135deg, #18BFFF 0%, #2563EB 100%)"
                     : done
                       ? "rgba(24, 191, 255, 0.2)"
                       : "var(--color-surface-secondary)",
@@ -613,7 +613,7 @@ export function AirtableImportModal({ open, onClose, onImported, targetBaseId }:
                       href="https://airtable.com/create/tokens"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: "#7C3AED", fontWeight: 600 }}
+                      style={{ color: "#2563EB", fontWeight: 600 }}
                     >
                       Airtable token settings
                     </a>{" "}
@@ -840,7 +840,7 @@ export function AirtableImportModal({ open, onClose, onImported, targetBaseId }:
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: "#7C3AED", letterSpacing: "-0.02em" }}>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: "#2563EB", letterSpacing: "-0.02em" }}>
                           {importResult.updated || 0}
                         </div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>

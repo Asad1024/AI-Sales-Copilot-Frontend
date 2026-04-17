@@ -325,7 +325,7 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         <div style={{ 
           marginTop: 40,
           padding: '24px',
-          background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)',
           borderRadius: '16px',
           border: '1px solid rgba(78, 205, 196, 0.2)'
         }}>
@@ -347,11 +347,11 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         <div style={{
           marginTop: 24,
           padding: 20,
-          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
           borderRadius: 12,
-          border: '1px solid rgba(124, 58, 237, 0.2)'
+          border: '1px solid rgba(37, 99, 235, 0.2)'
         }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#7C3AED', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#2563EB', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icons.Robot size={18} />
             AI Insight
           </div>

@@ -65,14 +65,14 @@ export function getPhoneInfo(
 }
 
 /**
- * Get phone source badge text - shows "verified" for phone from FullEnrich or Apollo
+ * Get phone source badge text - shows "verified" for phone from enrichment providers
  */
 export function getPhoneSourceBadge(phoneInfo: PhoneInfo): string | null {
   if (!phoneInfo.isValid) {
     return null;
   }
 
-  // Show "verified" for phone from FullEnrich or Apollo
+  // Show "verified" for phone from trusted enrichment sources
   if (phoneInfo.source === 'fullenrich' || phoneInfo.source === 'apollo') {
     return 'verified';
   }

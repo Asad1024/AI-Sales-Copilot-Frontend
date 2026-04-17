@@ -12,12 +12,18 @@ export function ChangePasswordModal({ open, onClose }: Props) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleClose = () => {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
     onClose();
   };
 
@@ -108,43 +114,115 @@ export function ChangePasswordModal({ open, onClose }: Props) {
             <label className="text-hint" style={{ display: "block", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
               Current password
             </label>
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              disabled={loading}
-              style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "10px 12px", fontSize: 14 }}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                className="input"
+                type={showCurrentPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                disabled={loading}
+                style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "10px 40px 10px 12px", fontSize: 14 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword((v) => !v)}
+                disabled={loading}
+                aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--color-text-muted)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 4,
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                {showCurrentPassword ? <Icons.EyeOff size={16} /> : <Icons.Eye size={16} />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-hint" style={{ display: "block", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
               New password
             </label>
-            <input
-              className="input"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              disabled={loading}
-              style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "10px 12px", fontSize: 14 }}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                className="input"
+                type={showNewPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={loading}
+                style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "10px 40px 10px 12px", fontSize: 14 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword((v) => !v)}
+                disabled={loading}
+                aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--color-text-muted)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 4,
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                {showNewPassword ? <Icons.EyeOff size={16} /> : <Icons.Eye size={16} />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-hint" style={{ display: "block", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
               Confirm new password
             </label>
-            <input
-              className="input"
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={loading}
-              style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "10px 12px", fontSize: 14 }}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                className="input"
+                type={showConfirmPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "10px 40px 10px 12px", fontSize: 14 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                disabled={loading}
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--color-text-muted)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 4,
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                {showConfirmPassword ? <Icons.EyeOff size={16} /> : <Icons.Eye size={16} />}
+              </button>
+            </div>
           </div>
         </div>
 

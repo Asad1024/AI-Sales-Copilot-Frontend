@@ -19,12 +19,12 @@ export default function OAuthCompletingScreen() {
             width: "56px",
             height: "56px",
             borderRadius: "16px",
-            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+            background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 24px",
-            boxShadow: "0 12px 40px rgba(124, 58, 237, 0.25)",
+            boxShadow: "0 12px 40px rgba(37, 99, 235, 0.25)",
           }}
         >
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +52,7 @@ export default function OAuthCompletingScreen() {
             margin: "0 auto",
             borderRadius: "50%",
             border: "3px solid #e2e8f0",
-            borderTopColor: "#7C3AED",
+            borderTopColor: "#2563EB",
             animation: "oauthCompletingSpin 0.75s linear infinite",
           }}
         />

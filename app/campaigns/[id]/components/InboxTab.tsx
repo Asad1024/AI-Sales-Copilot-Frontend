@@ -44,7 +44,7 @@ export function InboxTab() {
   if (loading) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <Icons.Loader size={32} style={{ animation: 'spin 1s linear infinite', color: '#7C3AED' }} />
+        <Icons.Loader size={32} style={{ animation: 'spin 1s linear infinite', color: '#2563EB' }} />
       </div>
     );
   }
@@ -62,9 +62,9 @@ export function InboxTab() {
         <div style={{ 
           padding: 40, 
           textAlign: 'center',
-          background: 'rgba(124, 58, 237, 0.05)',
+          background: 'rgba(37, 99, 235, 0.05)',
           borderRadius: 12,
-          border: '1px dashed rgba(124, 58, 237, 0.3)',
+          border: '1px dashed rgba(37, 99, 235, 0.3)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -74,12 +74,12 @@ export function InboxTab() {
             width: 64, 
             height: 64, 
             borderRadius: '50%', 
-            background: 'rgba(124, 58, 237, 0.1)',
+            background: 'rgba(37, 99, 235, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Icons.Mail size={32} style={{ color: '#7C3AED' }} />
+            <Icons.Mail size={32} style={{ color: '#2563EB' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No replies yet</div>
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -111,14 +111,14 @@ export function InboxTab() {
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(169, 76, 255, 0.1) 100%)',
-                    border: '1px solid rgba(124, 58, 237, 0.2)',
+                    background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+                    border: '1px solid rgba(37, 99, 235, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    <ChannelIcon size={18} style={{ color: '#7C3AED' }} />
+                    <ChannelIcon size={18} style={{ color: '#2563EB' }} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 4 }}>
@@ -137,7 +137,7 @@ export function InboxTab() {
                     <div style={{ 
                       marginTop: 12,
                       padding: 12,
-                      background: 'rgba(124, 58, 237, 0.05)',
+                      background: 'rgba(37, 99, 235, 0.05)',
                       borderRadius: 8,
                       fontSize: 14,
                       lineHeight: 1.5,

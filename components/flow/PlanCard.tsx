@@ -23,7 +23,7 @@ export default function PlanCard({ title, items = [], badge, onEdit }: PlanCardP
       onMouseEnter={(e) => {
         if (onEdit) {
           e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 12px 32px rgba(124, 58, 237, 0.2)';
+          e.currentTarget.style.boxShadow = '0 12px 32px rgba(37, 99, 235, 0.2)';
         }
       }}
       onMouseLeave={(e) => {
@@ -41,7 +41,7 @@ export default function PlanCard({ title, items = [], badge, onEdit }: PlanCardP
         left: 0,
         right: 0,
         height: '3px',
-        background: 'linear-gradient(90deg, #7C3AED 0%, #A94CFF 100%)',
+        background: 'linear-gradient(90deg, #2563EB 0%, #06B6D4 100%)',
         opacity: 0.6
       }} />
       
@@ -65,15 +65,15 @@ export default function PlanCard({ title, items = [], badge, onEdit }: PlanCardP
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {badge && (
             <span style={{
-              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(169, 76, 255, 0.15) 100%)',
-              color: '#7C3AED',
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+              color: '#2563EB',
               padding: '5px 12px',
               borderRadius: '20px',
               fontSize: '11px',
               fontWeight: '700',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
-              border: '1px solid rgba(124, 58, 237, 0.2)'
+              border: '1px solid rgba(37, 99, 235, 0.2)'
             }}>
               {badge}
             </span>
@@ -85,9 +85,9 @@ export default function PlanCard({ title, items = [], badge, onEdit }: PlanCardP
                 onEdit();
               }}
               style={{
-                background: 'rgba(124, 58, 237, 0.08)',
-                border: '1px solid rgba(124, 58, 237, 0.2)',
-                color: '#7C3AED',
+                background: 'rgba(37, 99, 235, 0.08)',
+                border: '1px solid rgba(37, 99, 235, 0.2)',
+                color: '#2563EB',
                 fontSize: '12px',
                 cursor: 'pointer',
                 padding: '6px 12px',
@@ -99,13 +99,13 @@ export default function PlanCard({ title, items = [], badge, onEdit }: PlanCardP
                 gap: '6px'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(124, 58, 237, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)';
+                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.4)';
                 e.currentTarget.style.transform = 'scale(1.05)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(124, 58, 237, 0.08)';
-                e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.2)';
+                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.2)';
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
@@ -150,7 +150,7 @@ export default function PlanCard({ title, items = [], badge, onEdit }: PlanCardP
                 }}
               >
                 <span style={{ 
-                  color: '#7C3AED', 
+                  color: '#2563EB', 
                   marginTop: '4px',
                   fontSize: '16px',
                   fontWeight: '700',

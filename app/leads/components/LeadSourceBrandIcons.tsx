@@ -59,7 +59,7 @@ export function GenerateLeadAIIcon({ size = 22, sparklesSize }: { size?: number;
     <Icons.Sparkles
       size={sp}
       strokeWidth={1.8}
-      style={{ color: "#7C3AED", display: "inline-block", flexShrink: 0 }}
+      style={{ color: "#2563EB", display: "inline-block", flexShrink: 0 }}
       aria-hidden
     />
   );

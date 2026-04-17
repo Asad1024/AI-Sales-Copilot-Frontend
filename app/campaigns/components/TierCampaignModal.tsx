@@ -145,8 +145,8 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
                     style={{
                       padding: '16px',
                       borderRadius: 12,
-                      border: isSelected ? '2px solid #7C3AED' : '1px solid var(--elev-border)',
-                      background: isSelected ? 'rgba(124, 58, 237, 0.1)' : 'var(--elev-bg)',
+                      border: isSelected ? '2px solid #2563EB' : '1px solid var(--elev-border)',
+                      background: isSelected ? 'rgba(37, 99, 235, 0.1)' : 'var(--elev-bg)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -155,7 +155,7 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <IconComponent size={24} style={{ color: isSelected ? '#7C3AED' : 'var(--color-text)' }} />
+                    <IconComponent size={24} style={{ color: isSelected ? '#2563EB' : 'var(--color-text)' }} />
                     <span style={{ fontSize: 14, fontWeight: 600, textTransform: 'capitalize' }}>{ch}</span>
                   </button>
                 );

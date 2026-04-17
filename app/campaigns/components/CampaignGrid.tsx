@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
@@ -13,9 +12,11 @@ import CampaignCard from "./CampaignCard";
 interface CampaignGridProps {
   campaigns: Campaign[];
   onDelete?: (id: number) => void;
+  /** False when the workspace has no leads yet — hide "Create campaign" until leads exist */
+  allowCreateCampaign?: boolean;
 }
 
-export function CampaignGrid({ campaigns, onDelete }: CampaignGridProps) {
+export function CampaignGrid({ campaigns, onDelete, allowCreateCampaign = true }: CampaignGridProps) {
   const router = useRouter();
   const { showError, showSuccess } = useNotification();
   const confirm = useConfirm();
@@ -47,11 +48,15 @@ export function CampaignGrid({ campaigns, onDelete }: CampaignGridProps) {
     <div>
       {campaigns.length === 0 && (
         <EmptyStateBanner
-          icon={<Icons.Rocket size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
+          icon={<Icons.Send size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />}
           title="No campaigns yet"
-          description="Create a campaign to reach leads across email, LinkedIn, WhatsApp, or calls."
+          description={
+            allowCreateCampaign
+              ? "Create a campaign to reach leads across email, LinkedIn, WhatsApp, or calls."
+              : "Add leads to this workspace first — then you can create a campaign and reach them across email, LinkedIn, WhatsApp, or calls."
+          }
           actions={
-            <>
+            allowCreateCampaign ? (
               <button
                 type="button"
                 onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
@@ -60,29 +65,16 @@ export function CampaignGrid({ campaigns, onDelete }: CampaignGridProps) {
                 <Icons.Plus size={16} strokeWidth={1.5} />
                 Create Campaign
               </button>
-              <Link
-                href="/flow/new-goal"
-                className="focus-ring campaigns-ai-flow-link"
-                style={{
-                  borderRadius: 10,
-                  padding: "10px 18px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  border: "1px solid #c7d2fe",
-                  background: "linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%)",
-                  color: "#3730a3",
-                  textDecoration: "none",
-                  boxShadow: "0 1px 2px rgba(79, 70, 229, 0.08)",
-                  transition: "border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease",
-                }}
+            ) : activeBaseId ? (
+              <button
+                type="button"
+                className="btn-dashboard-outline focus-ring"
+                onClick={() => router.push(`/bases/${activeBaseId}/leads?welcome=1`)}
               >
-                <Icons.Sparkles size={16} strokeWidth={1.5} style={{ color: "#4f46e5" }} />
-                AI flow
-              </Link>
-            </>
+                <Icons.Users size={16} strokeWidth={1.5} />
+                Add leads
+              </button>
+            ) : null
           }
         />
       )}

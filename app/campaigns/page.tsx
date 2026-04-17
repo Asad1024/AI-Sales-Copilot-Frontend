@@ -30,6 +30,7 @@ export default function CampaignsPage() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   /** One gate for campaigns list + stats + tier insights (avoids a second loader after fetchCampaigns). */
   const [campaignsPageReady, setCampaignsPageReady] = useState(() => !activeBaseId);
+  const [leadsReady, setLeadsReady] = useState(() => !activeBaseId);
   const [tierLeadsForInsights, setTierLeadsForInsights] = useState<any[]>([]);
   
   const socket = useSocket();
@@ -43,11 +44,13 @@ export default function CampaignsPage() {
   useEffect(() => {
     if (!activeBaseId) {
       setCampaignsPageReady(true);
+      setLeadsReady(true);
       setTierLeadsForInsights([]);
       return;
     }
     let cancelled = false;
     setCampaignsPageReady(false);
+    setLeadsReady(false);
     (async () => {
       try {
         const [leadsPayload] = await Promise.all([
@@ -73,7 +76,10 @@ export default function CampaignsPage() {
         console.error("[CampaignsPage] initial load:", e);
         if (!cancelled) setTierLeadsForInsights([]);
       } finally {
-        if (!cancelled) setCampaignsPageReady(true);
+        if (!cancelled) {
+          setLeadsReady(true);
+          setCampaignsPageReady(true);
+        }
       }
     })();
     return () => {
@@ -105,7 +111,7 @@ export default function CampaignsPage() {
 
   const filteredCampaigns = getFilteredCampaigns();
   const totalLeads = pagination?.totalLeads ?? 0;
-  const showNoLeadsBanner = Boolean(activeBaseId) && totalLeads === 0;
+  const showNoLeadsBanner = Boolean(activeBaseId) && campaignsPageReady && leadsReady && totalLeads === 0;
 
   if (!activeBaseId) {
     return (
@@ -210,7 +216,7 @@ export default function CampaignsPage() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "none",
-                      background: filters.status === item.id ? "rgba(124, 58, 237,0.12)" : "transparent",
+                      background: filters.status === item.id ? "rgba(37, 99, 235,0.12)" : "transparent",
                       color: "var(--color-text)",
                       padding: "9px 10px",
                       borderRadius: 8,
@@ -227,14 +233,16 @@ export default function CampaignsPage() {
             )}
           </div>
         </div>
-        <button
-          type="button"
-          className="btn-dashboard-outline"
-          onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
-        >
-          <Icons.Plus size={16} strokeWidth={1.5} />
-          Create Campaign
-        </button>
+        {!showNoLeadsBanner ? (
+          <button
+            type="button"
+            className="btn-dashboard-outline"
+            onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
+          >
+            <Icons.Plus size={16} strokeWidth={1.5} />
+            Create Campaign
+          </button>
+        ) : null}
       </div>
       {showNoLeadsBanner && (
         <div className="bases-onboarding-hint" role="status">
@@ -260,7 +268,7 @@ export default function CampaignsPage() {
         <>
           <CampaignStats />
           <TierBreakdown leadsForTiers={tierLeadsForInsights} />
-          <CampaignGrid campaigns={filteredCampaigns} />
+          <CampaignGrid campaigns={filteredCampaigns} allowCreateCampaign={!showNoLeadsBanner} />
         </>
       )}
     </div>

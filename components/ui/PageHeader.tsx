@@ -15,7 +15,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({
   title,
-  description,
+  description: _description,
   onAddLead: _onAddLead,
   onNewCampaign: _onNewCampaign,
   onWatchDemo: _onWatchDemo,
@@ -35,6 +35,7 @@ export default function PageHeader({
   const isTemplatesRoute = pathname?.startsWith("/templates");
   const isReportsRoute = pathname?.startsWith("/reports");
   const isTeamRoute = pathname?.startsWith("/team");
+  const isIntegrationRoute = pathname?.startsWith("/integration");
   const isNotificationsRoute = pathname?.startsWith("/notifications");
   const isAdminRoute = pathname?.startsWith("/admin");
 
@@ -47,6 +48,7 @@ export default function PageHeader({
     !isTemplatesRoute &&
     !isReportsRoute &&
     !isTeamRoute &&
+    !isIntegrationRoute &&
     !isNotificationsRoute &&
     !isAdminRoute;
 
@@ -76,8 +78,8 @@ export default function PageHeader({
             style={{
               margin: 0,
               marginTop: 0,
-              fontSize: 30,
-              fontWeight: 800,
+              fontSize: 26,
+              fontWeight: 600,
               letterSpacing: "-0.04em",
               lineHeight: 1.08,
               fontFamily: "Inter, -apple-system, sans-serif",
@@ -86,19 +88,6 @@ export default function PageHeader({
           >
             {title}
           </h1>
-          <p
-            className="app-page-header-description"
-            style={{
-              marginTop: 8,
-              marginBottom: 0,
-              color: "var(--color-text-muted)",
-              fontSize: 13,
-              fontWeight: 400,
-              lineHeight: 1.45,
-            }}
-          >
-            {description}
-          </p>
         </div>
         <div
           style={{

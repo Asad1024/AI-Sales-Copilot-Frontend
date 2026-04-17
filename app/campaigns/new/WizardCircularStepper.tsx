@@ -5,9 +5,9 @@ import { Icons } from "@/components/ui/Icons";
 import type { StepInfo } from "./stepFlowCalculator";
 import { WIZARD_STEP_SHORT_LABEL } from "./wizardStepLabels";
 
-/** Matches app `--color-primary` (#7C3AED) */
-const ACCENT = "var(--color-primary, #7C3AED)";
-const ACCENT_SOFT = "rgba(124, 58, 237, 0.45)";
+/** Matches app `--color-primary` (#2563EB) */
+const ACCENT = "var(--color-primary, #2563EB)";
+const ACCENT_SOFT = "rgba(37, 99, 235, 0.45)";
 const TRACK_INCOMPLETE = "#cbd5e1";
 const LABEL_INACTIVE = "#9ca3af";
 

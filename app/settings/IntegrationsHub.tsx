@@ -99,7 +99,7 @@ function UnipileSuccessModal({ onClose }: { onClose: () => void }) {
             height: 64,
             margin: "0 auto 18px",
             borderRadius: 20,
-            background: "linear-gradient(145deg, rgba(124, 58, 237, 0.2) 0%, rgba(34, 197, 94, 0.18) 100%)",
+            background: "linear-gradient(145deg, rgba(37, 99, 235, 0.2) 0%, rgba(34, 197, 94, 0.18) 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -111,7 +111,7 @@ function UnipileSuccessModal({ onClose }: { onClose: () => void }) {
           You&apos;re connected
         </h3>
         <p style={{ margin: "0 0 22px", fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
-          Unipile finished linking your account. Messaging integrations are refreshed below — use them in campaigns with this workspace selected.
+          Your account is linked. Messaging integrations are refreshed below — use them in campaigns with this workspace selected.
         </p>
         <button type="button" className="btn-primary" onClick={onClose} style={{ width: "100%" }}>
           Continue
@@ -365,14 +365,14 @@ function WhatsAppConnectModal({ onClose, onContinue }: { onClose: () => void; on
       <div className="card-enhanced" style={{ ...cardStyle, maxWidth: 480, width: "100%" }} onMouseDown={(e) => e.stopPropagation()}>
         <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700 }}>Connect WhatsApp</h3>
         <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-          You will be sent to Unipile&apos;s secure page to link your WhatsApp Business number. No API keys are entered here.
+          You will be sent to a secure page to link your WhatsApp Business number. No API keys are entered here.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button type="button" className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
           <button type="button" className="btn-primary" onClick={onContinue}>
-            Continue to Unipile
+            Continue
           </button>
         </div>
       </div>
@@ -539,7 +539,7 @@ export function IntegrationsHub() {
     if (c === "airtable") {
       setAtConfigureOpen(true);
       if (typeof window !== "undefined") {
-        window.history.replaceState({}, "", "/settings?tab=integrations");
+        window.history.replaceState({}, "", "/integration");
       }
     }
   }, [searchParams]);
@@ -559,14 +559,14 @@ export function IntegrationsHub() {
       void loadAll({ silent: true });
     }
     if (err) {
-      showError("Connection failed", "Unipile could not finish linking. Try again or pick another workspace.");
+      showError("Connection failed", "We could not finish linking. Try again or pick another workspace.");
     }
 
     const p = new URLSearchParams(searchParams?.toString() || "");
     p.delete("unipile_success");
     p.delete("unipile_error");
     const qs = p.toString();
-    router.replace(qs ? `/settings?${qs}` : "/settings");
+    router.replace(qs ? `/integration?${qs}` : "/integration");
   }, [searchParams, router, loadAll, showError]);
 
   const linkedin = integrations.find((i) => i.provider === "unipile_linkedin");
@@ -609,7 +609,7 @@ export function IntegrationsHub() {
         showError("Connect failed", "No auth URL returned.");
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unipile error";
+      const msg = e instanceof Error ? e.message : "Connection error";
       showError("Connect failed", msg);
     } finally {
       setUnipileBusy(null);
@@ -908,12 +908,12 @@ export function IntegrationsHub() {
           }}
         >
           <AlertCircle size={22} color="#ca8a04" />
-          <span style={{ fontSize: 14, color: "var(--color-text)" }}>Select a workspace to connect LinkedIn and WhatsApp via Unipile.</span>
+          <span style={{ fontSize: 14, color: "var(--color-text)" }}>Select a workspace to connect LinkedIn and WhatsApp.</span>
         </div>
       ) : null}
 
       <div>
-        <SectionHeader>Messaging (Unipile)</SectionHeader>
+        <SectionHeader>Messaging</SectionHeader>
         <div
           style={{
             display: "grid",
@@ -930,7 +930,7 @@ export function IntegrationsHub() {
               </div>
             }
             name="LinkedIn"
-            subtitle={liUserConnected ? "Hosted messaging via Unipile" : "Secure hosted login"}
+            subtitle={liUserConnected ? "Hosted messaging" : "Secure hosted login"}
             status={liUserConnected ? "connected" : "not_connected"}
             actionRow={
               <>
@@ -967,7 +967,7 @@ export function IntegrationsHub() {
               </div>
             }
             name="WhatsApp"
-            subtitle={waUserConnected ? "Hosted messaging via Unipile" : "Secure hosted login"}
+            subtitle={waUserConnected ? "Hosted messaging" : "Secure hosted login"}
             status={waUserConnected ? "connected" : "not_connected"}
             actionRow={
               <>

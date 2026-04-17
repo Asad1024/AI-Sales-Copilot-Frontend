@@ -38,7 +38,7 @@ export default function AdminUserAvatar({
         borderRadius: 999,
         overflow: "hidden",
         flexShrink: 0,
-        background: "linear-gradient(135deg, #9333EA 0%, #7C3AED 55%, #6D28D9 100%)",
+        background: "linear-gradient(135deg, #0EA5E9 0%, #2563EB 55%, #1D4ED8 100%)",
       }}
     >
       {showImg ? (

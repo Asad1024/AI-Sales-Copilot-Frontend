@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
+import { ImportModalFrame } from "@/components/leads/ImportModalChrome";
 
 interface EnrichModalProps {
   open: boolean;
@@ -31,10 +32,21 @@ export function EnrichModal({
   const { selectedLeads, leads } = useLeadStore();
   const { showSuccess, showError } = useNotification();
 
-  const [enrichmentType, setEnrichmentType] = useState<"contact" | "deep_research">("deep_research");
+  const [enrichmentType, setEnrichmentType] = useState<"contact" | "deep_research">("contact");
+  const [additionalOpen, setAdditionalOpen] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [progress, setProgress] = useState("");
   const [enrichScope, setEnrichScope] = useState<"selected" | "all">("selected");
+
+  useEffect(() => {
+    if (!open) return;
+    setEnrichmentType("contact");
+    setAdditionalOpen(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (enrichmentType === "deep_research") setAdditionalOpen(true);
+  }, [enrichmentType]);
 
   const pendingSet = useMemo(() => new Set(pendingLeadIds), [pendingLeadIds]);
 
@@ -49,8 +61,6 @@ export function EnrichModal({
       rawTotal: raw.length,
     };
   }, [enrichScope, selectedLeads, leads, pendingSet]);
-
-  if (!open) return null;
 
   const canSubmit =
     leadsToRequest.length > 0 &&
@@ -141,18 +151,24 @@ export function EnrichModal({
     }
   };
 
-  const chipActive = (on: boolean) =>
+  const typePrimary = (on: boolean) =>
     ({
-      flex: 1,
-      padding: "11px 14px",
-      borderRadius: 10,
-      border: on ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-      background: on ? "rgba(124, 58, 237, 0.1)" : "var(--color-surface-secondary)",
+      width: "100%",
+      padding: "14px 16px",
+      borderRadius: 12,
+      border: on ? "1.5px solid var(--color-primary)" : "1px solid var(--color-border)",
+      background: on ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface-secondary)",
       color: "var(--color-text)",
-      fontSize: 13,
-      fontWeight: 500,
+      fontSize: 14,
+      fontWeight: 600,
       cursor: "pointer",
-      transition: "border-color 0.15s ease, background 0.15s ease",
+      textAlign: "left" as const,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      transition: "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
+      boxShadow: on ? "0 1px 0 rgba(255,255,255,0.05) inset" : "none",
     }) as const;
 
   return (
@@ -160,103 +176,57 @@ export function EnrichModal({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes enrichModalIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes enrichPanelIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes enrichSpin { to { transform: rotate(360deg); } }
+        .enrich-additional-panel {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .enrich-additional-panel.is-open {
+          grid-template-rows: 1fr;
+        }
+        .enrich-additional-inner {
+          overflow: hidden;
+          min-height: 0;
+        }
       `,
         }}
       />
 
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 1000,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 20,
-          background: "rgba(0, 0, 0, 0.55)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          animation: "enrichModalIn 0.2s ease-out",
+      <ImportModalFrame
+        open={open}
+        onClose={onClose}
+        title="Enrich leads"
+        subtitle="Add or refresh contact and research data"
+        headerTint="var(--color-primary, #2563eb)"
+        icon={<Icons.Sparkles size={22} strokeWidth={2} style={{ color: "#ffffff" }} />}
+        headerTitleColor="#ffffff"
+        headerSubtitleColor="rgba(255,255,255,0.86)"
+        headerBorderColor="rgba(255,255,255,0.24)"
+        hideHeaderBottomBorder
+        headerIconContainerStyle={{
+          background: "rgba(255,255,255,0.2)",
+          border: "1px solid rgba(255,255,255,0.45)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0, 0, 0, 0.12)",
+          borderRadius: 12,
+          width: 44,
+          height: 44,
         }}
-        onClick={onClose}
-        role="presentation"
+        headerCloseButtonStyle={{
+          background: "rgba(255,255,255,0.2)",
+          border: "1px solid rgba(255,255,255,0.38)",
+          color: "#f8fafc",
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+        }}
+        frameBorderRadius={12}
+        maxWidth={520}
+        maxModalHeight="min(90vh, 720px)"
+        closeDisabled={enriching}
+        dialogBackground="var(--color-surface)"
       >
-        <div
-          style={{
-            width: "min(520px, 96vw)",
-            maxHeight: "90vh",
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: 16,
-            boxShadow: "0 24px 64px var(--color-shadow)",
-            animation: "enrichPanelIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-          onClick={e => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="enrich-modal-title"
-        >
-          <div
-            style={{
-              padding: "18px 20px",
-              borderBottom: "1px solid var(--color-border)",
-              background: "var(--color-surface-secondary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-              <Icons.Sparkles size={20} strokeWidth={1.8} style={{ color: "var(--color-primary)", flexShrink: 0 }} />
-              <div style={{ minWidth: 0 }}>
-                <h2
-                  id="enrich-modal-title"
-                  style={{
-                    margin: 0,
-                    fontSize: 17,
-                    fontWeight: 700,
-                    color: "var(--color-text)",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Enrich leads
-                </h2>
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
-                  Add or refresh contact and research data
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              style={{
-                width: 36,
-                height: 36,
-                padding: 0,
-                borderRadius: 10,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                color: "var(--color-text-muted)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Icons.X size={18} strokeWidth={1.5} />
-            </button>
-          </div>
-
-          <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {enriching ? (
               <div style={{ textAlign: "center", padding: "36px 16px 28px" }}>
                 <div
@@ -304,15 +274,15 @@ export function EnrichModal({
                   </div>
                 )}
 
-                <div style={{ marginBottom: 18 }}>
+                <div style={{ marginBottom: 22 }}>
                   <label
                     style={{
                       display: "block",
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: "0.06em",
                       textTransform: "uppercase",
-                      marginBottom: 10,
+                      marginBottom: 8,
                       color: "var(--color-text-muted)",
                     }}
                   >
@@ -323,69 +293,180 @@ export function EnrichModal({
                       type="button"
                       onClick={() => setEnrichScope("selected")}
                       disabled={selectedLeads.length === 0}
+                      className={`ai-generate-suggestion-pill${enrichScope === "selected" ? " ai-generate-suggestion-pill--active" : ""}`}
                       style={{
-                        ...chipActive(enrichScope === "selected"),
+                        flex: 1,
                         opacity: selectedLeads.length === 0 ? 0.5 : 1,
                         cursor: selectedLeads.length === 0 ? "not-allowed" : "pointer",
                       }}
                     >
                       Selected ({selectedLeads.length})
                     </button>
-                    <button type="button" onClick={() => setEnrichScope("all")} style={chipActive(enrichScope === "all")}>
+                    <button
+                      type="button"
+                      onClick={() => setEnrichScope("all")}
+                      className={`ai-generate-suggestion-pill${enrichScope === "all" ? " ai-generate-suggestion-pill--active" : ""}`}
+                      style={{ flex: 1 }}
+                    >
                       All ({leads.length})
                     </button>
                   </div>
                   {rawTotal > 0 && leadsToRequest.length < rawTotal && (
-                    <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
-                      This run will update <strong>{leadsToRequest.length}</strong> of {rawTotal} lead(s).
+                    <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
+                      This run will update <strong style={{ color: "var(--color-text)" }}>{leadsToRequest.length}</strong> of{" "}
+                      {rawTotal} lead(s).
                     </p>
                   )}
                 </div>
 
-                <div style={{ marginBottom: 18 }}>
+                <div style={{ marginBottom: 22 }}>
                   <label
                     style={{
                       display: "block",
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: "0.06em",
                       textTransform: "uppercase",
-                      marginBottom: 10,
+                      marginBottom: 8,
                       color: "var(--color-text-muted)",
                     }}
                   >
                     Type
                   </label>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button type="button" onClick={() => setEnrichmentType("contact")} style={chipActive(enrichmentType === "contact")}>
-                      Contact only
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEnrichmentType("deep_research")}
-                      style={chipActive(enrichmentType === "deep_research")}
-                    >
-                      Deep research
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEnrichmentType("contact");
+                      setAdditionalOpen(false);
+                    }}
+                    style={typePrimary(enrichmentType === "contact")}
+                  >
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minWidth: 0 }}>
+                      <span>Contact only</span>
+                      <span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+                        Email, phone, and profile fields when available
+                      </span>
+                    </span>
+                    {enrichmentType === "contact" ? (
+                      <span
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: "var(--color-primary)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icons.Check size={14} strokeWidth={2.5} style={{ color: "#fff" }} />
+                      </span>
+                    ) : (
+                      <span style={{ width: 22, height: 22, flexShrink: 0 }} aria-hidden />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAdditionalOpen(o => !o)}
+                    aria-expanded={additionalOpen}
+                    style={{
+                      width: "100%",
+                      marginTop: 10,
+                      padding: "11px 14px",
+                      borderRadius: 12,
+                      border: "1px dashed var(--color-border)",
+                      background: additionalOpen ? "var(--color-surface-secondary)" : "transparent",
+                      color: "var(--color-text)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      transition: "background 0.2s ease, border-color 0.2s ease",
+                    }}
+                  >
+                    <span style={{ color: "var(--color-text-muted)", fontWeight: 500 }}>Additional</span>
+                    <Icons.ChevronDown
+                      size={18}
+                      strokeWidth={2}
+                      style={{
+                        color: "var(--color-text-muted)",
+                        transform: additionalOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  </button>
+
+                  <div className={`enrich-additional-panel ${additionalOpen ? "is-open" : ""}`}>
+                    <div className="enrich-additional-inner">
+                      <div style={{ paddingTop: 10 }}>
+                        <button
+                          type="button"
+                          onClick={() => setEnrichmentType("deep_research")}
+                          style={{
+                            ...typePrimary(enrichmentType === "deep_research"),
+                            marginTop: 0,
+                          }}
+                        >
+                          <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minWidth: 0 }}>
+                            <span>Deep research</span>
+                            <span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
+                              Company and person context for smarter outreach — slower than contact-only
+                            </span>
+                          </span>
+                          {enrichmentType === "deep_research" ? (
+                            <span
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: "50%",
+                                background: "var(--color-primary)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Icons.Check size={14} strokeWidth={2.5} style={{ color: "#fff" }} />
+                            </span>
+                          ) : (
+                            <span style={{ width: 22, height: 22, flexShrink: 0 }} aria-hidden />
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-                    {enrichmentType === "contact"
-                      ? "Looks up email and phone when possible. New details appear in the table when we receive them."
-                      : "Adds company and person context for smarter outreach."}
-                  </p>
                 </div>
 
-                <div style={{ display: "flex", gap: 10 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    marginTop: 8,
+                    paddingTop: 4,
+                  }}
+                >
                   <button
                     type="button"
                     onClick={onClose}
-                    className="btn-ghost"
+                    disabled={enriching}
                     style={{
                       flex: 1,
-                      padding: "12px 16px",
+                      padding: "10px 16px",
                       borderRadius: 10,
                       border: "1px solid var(--color-border)",
-                      fontWeight: 500,
+                      background: "var(--color-surface)",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      color: "var(--color-text)",
+                      cursor: enriching ? "not-allowed" : "pointer",
+                      opacity: enriching ? 0.6 : 1,
+                      transition: "background 0.15s ease, border-color 0.15s ease",
                     }}
                   >
                     Cancel
@@ -394,29 +475,31 @@ export function EnrichModal({
                     type="button"
                     onClick={handleEnrich}
                     disabled={enriching || !canSubmit}
-                    className="btn-primary"
+                    className="btn-primary ai-generate-generate-btn"
                     style={{
                       flex: 1,
-                      padding: "12px 16px",
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      background: "var(--color-primary)",
-                      border: "none",
+                      justifyContent: "center",
                       opacity: !canSubmit ? 0.45 : 1,
-                      cursor: !canSubmit ? "not-allowed" : "pointer",
-                      boxShadow: !canSubmit ? "none" : "0 8px 22px rgba(124, 58, 237, 0.28)",
+                      cursor: !canSubmit || enriching ? "not-allowed" : "pointer",
                     }}
                   >
-                    {enriching
-                      ? "Please wait…"
-                      : `Enrich ${leadsToRequest.length || 0} lead(s)`}
+                    {enriching ? (
+                      <>
+                        <Icons.Loader size={16} strokeWidth={2} style={{ animation: "enrichSpin 0.85s linear infinite" }} />
+                        Please wait…
+                      </>
+                    ) : (
+                      <>
+                        <Icons.Sparkles size={15} strokeWidth={2} aria-hidden />
+                        Enrich {leadsToRequest.length || 0} lead{leadsToRequest.length === 1 ? "" : "s"}
+                      </>
+                    )}
                   </button>
                 </div>
               </>
             )}
-          </div>
         </div>
-      </div>
+      </ImportModalFrame>
     </>
   );
 }

@@ -105,8 +105,8 @@ export function AddLinkedInLeadModal({ open, onClose, baseId, onCreated }: AddLi
                 Add from LinkedIn
               </h2>
               <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-                Paste a profile URL. We match it with Apollo, then add research insights (same pipeline as AI-generated
-                leads). Requires an Apollo API key for this workspace.
+                Paste a profile URL. We match it with your lead database, then add research insights (same pipeline as AI-generated
+                leads). Requires a lead search API key for this workspace.
               </p>
             </div>
           </div>

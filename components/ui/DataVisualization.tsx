@@ -5,7 +5,7 @@ import React from "react";
 export const ProgressBar = ({ 
   value, 
   max = 100, 
-  color = "#7C3AED", 
+  color = "#2563EB", 
   label, 
   showPercentage = true 
 }: {
@@ -56,7 +56,7 @@ export const CircularProgress = ({
   max = 100, 
   size = 80, 
   strokeWidth = 8, 
-  color = "#7C3AED",
+  color = "#2563EB",
   label 
 }: {
   value: number;
@@ -134,7 +134,7 @@ export const CircularProgress = ({
 // Mini Chart Component
 export const MiniChart = ({ 
   data, 
-  color = "#7C3AED", 
+  color = "#2563EB", 
   height = 40 
 }: {
   data: number[];
@@ -180,7 +180,7 @@ export const StatCard = ({
   change, 
   trend, 
   icon, 
-  color = "#7C3AED",
+  color = "#2563EB",
   chartData,
   loading = false 
 }: {
@@ -242,7 +242,7 @@ export const StatCard = ({
         </h3>
         {change && (
           <span style={{ 
-            background: trend === 'up' ? '#7C3AED' : trend === 'down' ? '#ff6b6b' : '#888',
+            background: trend === 'up' ? '#2563EB' : trend === 'down' ? '#ff6b6b' : '#888',
             color: '#000000',
             padding: '4px 12px', 
             borderRadius: '20px', 

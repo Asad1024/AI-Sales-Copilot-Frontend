@@ -67,12 +67,12 @@ function OAuthCallbackContent() {
               width: "56px",
               height: "56px",
               borderRadius: "16px",
-              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              boxShadow: "0 8px 24px rgba(124, 58, 237, 0.2)",
+              boxShadow: "0 8px 24px rgba(37, 99, 235, 0.2)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
@@ -105,12 +105,12 @@ function OAuthCallbackContent() {
               display: "inline-block",
               padding: "12px 24px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 48%, #A94CFF 100%)",
+              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
               color: "#fff",
               fontSize: "14px",
               fontWeight: "600",
               textDecoration: "none",
-              boxShadow: "0 4px 14px rgba(124, 58, 237, 0.35)",
+              boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
             }}
           >
             Back to sign in

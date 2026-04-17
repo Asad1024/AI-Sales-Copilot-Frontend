@@ -83,7 +83,7 @@ interface LeadStore {
     page?: number,
     limit?: number,
     force?: boolean,
-    opts?: { quiet?: boolean }
+    opts?: { quiet?: boolean; search?: string }
   ) => Promise<void>;
   createLead: (lead: Partial<Lead>) => Promise<Lead | null>;
   updateLead: (id: number, updates: Partial<Lead>) => Promise<void>;
@@ -183,15 +183,20 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       set({ leads: [], loading: false });
       return;
     }
-    
-    const fetchKey = `${baseId}:${page}:${limit}`;
+
+    const searchQ =
+      opts?.search !== undefined
+        ? String(opts.search || "").trim()
+        : String(get().filters.search || "").trim();
+
+    const fetchKey = `${baseId}:${page}:${limit}:${searchQ}`;
     const state = get();
     
     // Prevent duplicate concurrent calls
     if (!force && state.lastFetchKey === fetchKey && state.loading) {
       return;
     }
-    
+
     // Check cache first
     if (!force) {
       const cached = state.leadCache[fetchKey];
@@ -219,6 +224,9 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
         page: String(page),
         limit: String(limit),
       });
+      if (searchQ) {
+        params.set("search", searchQ);
+      }
       if (force) {
         params.append("_cb", String(Date.now()));
       }
@@ -370,26 +378,22 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
   
   getFilteredLeads: () => {
     const { leads, filters } = get();
-    let filtered = leads.filter(lead => {
-      const statusStr = String(lead.custom_fields?.[LEAD_STATUS_STORAGE_KEY] ?? '');
-      const matchesSearch = !filters.search || 
-        `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''} ${statusStr}`
-          .toLowerCase()
-          .includes(filters.search.toLowerCase());
-      
+    let filtered = leads.filter((lead) => {
+      // Search is applied server-side in GET /leads (all pages); do not filter again here.
+
       // Segment filtering
-      if (filters.segment !== 'All') {
-        if (filters.segment === 'Hot' && lead.tier !== 'Hot') return false;
-        if (filters.segment === 'Warm' && lead.tier !== 'Warm') return false;
-        if (filters.segment === 'Cold' && lead.tier !== 'Cold') return false;
+      if (filters.segment !== "All") {
+        if (filters.segment === "Hot" && lead.tier !== "Hot") return false;
+        if (filters.segment === "Warm" && lead.tier !== "Warm") return false;
+        if (filters.segment === "Cold" && lead.tier !== "Cold") return false;
       }
-      
+
       // AI filters
       if (filters.aiFilters.highIntent && (!lead.score || lead.score < 70)) return false;
       if (filters.aiFilters.recentlyActive && !lead.enrichment?.recent_activity) return false;
       if (filters.aiFilters.needsFollowUp && !lead.enrichment?.needs_followup) return false;
-      
-      return matchesSearch;
+
+      return true;
     });
 
     // Apply sorting
@@ -433,6 +437,11 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
 
         if (aValue < bValue) return filters.sortOrder === 'asc' ? -1 : 1;
         if (aValue > bValue) return filters.sortOrder === 'asc' ? 1 : -1;
+        const aid = a.id ?? 0;
+        const bid = b.id ?? 0;
+        if (aid !== bid) {
+          return filters.sortOrder === 'asc' ? aid - bid : bid - aid;
+        }
         return 0;
       });
     }

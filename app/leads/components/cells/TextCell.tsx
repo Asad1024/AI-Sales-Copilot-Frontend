@@ -65,7 +65,7 @@ export function TextCell({ value, onUpdate, editable = true, type = "text", mute
           width: "100%",
           padding: "4px 8px",
           borderRadius: "4px",
-          border: "1px solid #7C3AED",
+          border: "1px solid #2563EB",
           background: "var(--color-surface)",
           color: "var(--color-text)",
           fontSize: "11px",
@@ -90,7 +90,7 @@ export function TextCell({ value, onUpdate, editable = true, type = "text", mute
         alignItems: "center",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+        e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";

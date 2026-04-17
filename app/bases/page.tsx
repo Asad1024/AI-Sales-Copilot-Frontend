@@ -60,6 +60,7 @@ export default function BasesPage() {
       return;
     }
     if (!name.trim()) return;
+    const isFirstWorkspace = basesFromStore.length === 0;
     try {
       setLoadingCreate(true);
       const data = await apiRequest("/bases", {
@@ -73,8 +74,13 @@ export default function BasesPage() {
       if (typeof newId === "number" && newId > 0) {
         const nm = typeof data?.base?.name === "string" ? data.base.name.trim() : "";
         setActiveBaseId(newId, nm ? { name: nm } : undefined);
-        showSuccess("Workspace created", "Opening Leads — add your first contacts here.");
-        router.push(`/bases/${newId}/leads?welcome=1`);
+        if (isFirstWorkspace) {
+          showSuccess("Workspace created", "Here's what to do next.");
+          router.push(`/bases/${newId}/leads?welcome=1&first_workspace=1`);
+        } else {
+          showSuccess("Workspace created", "Opening Leads — add your contacts here.");
+          router.push(`/bases/${newId}/leads?welcome=1`);
+        }
       } else {
         showSuccess("Workspace created", "Your new workspace is ready. Open it below to add leads.");
       }
@@ -257,7 +263,7 @@ export default function BasesPage() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         border: "none",
-                        background: filter === item.id ? "rgba(124, 58, 237,0.12)" : "transparent",
+                        background: filter === item.id ? "rgba(37, 99, 235,0.12)" : "transparent",
                         color: "var(--color-text)",
                         padding: "9px 10px",
                         borderRadius: 8,
@@ -436,7 +442,7 @@ export default function BasesPage() {
                 style={{ 
                   padding: '8px 20px', 
                   fontSize: '14px', 
-                  background: loadingCreate || !name.trim() ? 'rgba(124, 58, 237,0.45)' : 'var(--color-primary)', 
+                  background: loadingCreate || !name.trim() ? 'rgba(37, 99, 235,0.45)' : 'var(--color-primary)', 
                   color: 'var(--color-text-inverse)', 
                   border: 'none', 
                   borderRadius: '6px', 

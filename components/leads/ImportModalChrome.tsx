@@ -12,7 +12,8 @@ export const importModalOverlayStyle: CSSProperties = {
   justifyContent: "center",
   zIndex: 1000,
   padding: 20,
-  backdropFilter: "blur(8px)",
+  backdropFilter: "blur(12px) saturate(1.1)",
+  WebkitBackdropFilter: "blur(12px) saturate(1.1)",
 };
 
 export function ImportModalLoadingPanel({ title }: { title: string }) {
@@ -68,13 +69,13 @@ export function ImportModalStepper({ steps, activeKey }: { steps: ImportStepDef[
                   fontSize: 13,
                   fontWeight: 700,
                   background: active
-                    ? "linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)"
+                    ? "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)"
                     : done
-                      ? "rgba(124, 58, 237, 0.2)"
+                      ? "rgba(37, 99, 235, 0.2)"
                       : "var(--color-surface-secondary)",
                   color: active ? "#fff" : done ? "var(--color-primary)" : "var(--color-text-muted)",
                   border: active || done ? "none" : "1px solid var(--color-border)",
-                  boxShadow: active ? "0 4px 14px rgba(124, 58, 237, 0.3)" : "none",
+                  boxShadow: active ? "0 4px 14px rgba(37, 99, 235, 0.3)" : "none",
                 }}
               >
                 {done ? <Icons.Check size={16} strokeWidth={2.5} /> : i + 1}
@@ -97,7 +98,7 @@ export function ImportModalStepper({ steps, activeKey }: { steps: ImportStepDef[
                   height: 2,
                   margin: "0 6px 22px",
                   borderRadius: 1,
-                  background: done ? "linear-gradient(90deg, rgba(99,102,241,0.45), rgba(124, 58, 237,0.25))" : "var(--color-border)",
+                  background: done ? "linear-gradient(90deg, rgba(99,102,241,0.45), rgba(37, 99, 235,0.25))" : "var(--color-border)",
                   minWidth: 8,
                 }}
               />
@@ -135,6 +136,10 @@ type ImportModalFrameProps = {
   headerCloseButtonStyle?: CSSProperties;
   /** Outer dialog corner radius (default 22). */
   frameBorderRadius?: number;
+  /** Panel fill behind header + body (default elevated surface). */
+  dialogBackground?: string;
+  /** When true, no border under the header strip (avoids a double line with body chrome). */
+  hideHeaderBottomBorder?: boolean;
 };
 
 export function ImportModalFrame({
@@ -156,6 +161,8 @@ export function ImportModalFrame({
   headerIconContainerStyle,
   headerCloseButtonStyle,
   frameBorderRadius = 22,
+  dialogBackground,
+  hideHeaderBottomBorder = false,
 }: ImportModalFrameProps) {
   if (!open) return null;
 
@@ -170,7 +177,7 @@ export function ImportModalFrame({
         role="dialog"
         aria-modal="true"
         aria-labelledby="import-modal-frame-title"
-        className="card-enhanced"
+        className="import-modal-frame-dialog"
         style={{
           borderRadius: frameBorderRadius,
           maxWidth: wide ? Math.max(maxWidth, 900) : maxWidth,
@@ -179,7 +186,8 @@ export function ImportModalFrame({
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          backgroundColor: "var(--elev-bg)",
+          padding: 0,
+          backgroundColor: dialogBackground ?? "var(--elev-bg)",
           border: "1px solid var(--elev-border)",
           boxShadow: "0 25px 80px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255,255,255,0.06) inset",
           position: "relative",
@@ -189,13 +197,16 @@ export function ImportModalFrame({
       >
         <div
           style={{
-            padding: "22px 24px 18px",
-            borderBottom: `1px solid ${headerBorderColor || "var(--color-border-light)"}`,
+            padding: "20px 22px 18px",
+            borderBottom: hideHeaderBottomBorder
+              ? "none"
+              : `1px solid ${headerBorderColor || "var(--color-border-light)"}`,
             background: headerTint,
             flexShrink: 0,
+            overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
               <div
                 style={{

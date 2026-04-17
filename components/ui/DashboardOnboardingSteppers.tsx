@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
-import { Zap, PlayCircle, ChevronRight, ChevronLeft, ArrowUpRight } from "lucide-react";
+import { Zap, PlayCircle, ChevronRight, ChevronLeft, ArrowUpRight, Lock } from "lucide-react";
+import { getSetupStepVisualStates } from "@/components/ui/dashboardSetupProgressUtils";
 
 type StepStatus = "complete" | "current" | "upcoming";
 
-const DOT = 28;
-const RING = 2;
-const RING_PAD = 6;
-const FONT = 12;
-const CHECK = 14;
+const DOT = 30;
+const RING = 3;
+const RING_PAD = 4;
+const FONT = 13;
+const CHECK = 15;
 const LABEL = 11;
-const GAP = 6;
+const GAP = 4;
 
 function StepDot({ status, label, stepNumber }: { status: StepStatus; label: string; stepNumber: 1 | 2 | 3 }) {
   const isComplete = status === "complete";
@@ -58,14 +59,20 @@ function StepDot({ status, label, stepNumber }: { status: StepStatus; label: str
             border: isComplete
               ? "none"
               : isCurrent
-                ? `${RING}px solid #4F46E5`
+                ? `${RING}px solid var(--color-primary, #2563EB)`
                 : "1px solid #E5E7EB",
-            background: isComplete ? "#059669" : isCurrent ? "#EEF2FF" : "#F9FAFB",
-            color: isComplete ? "#FFFFFF" : isCurrent ? "#4F46E5" : "#9CA3AF",
-            boxShadow: isCurrent ? "0 0 0 3px rgba(79, 70, 229, 0.2)" : "none",
+            background: isComplete ? "#059669" : isCurrent ? "rgba(37, 99, 235, 0.08)" : "#F9FAFB",
+            color: isComplete ? "#FFFFFF" : isCurrent ? "var(--color-primary, #2563EB)" : "#9CA3AF",
+            boxShadow: isCurrent ? "0 0 0 4px rgba(37, 99, 235, 0.2)" : "none",
           }}
         >
-          {isComplete ? <Icons.Check size={CHECK} strokeWidth={2.5} /> : stepNumber}
+          {isComplete ? (
+            <Icons.Check size={CHECK} strokeWidth={2.5} />
+          ) : status === "upcoming" ? (
+            <Lock size={14} strokeWidth={2.25} color="#9CA3AF" aria-hidden />
+          ) : (
+            stepNumber
+          )}
         </div>
       </div>
       <span
@@ -127,18 +134,17 @@ export default function DashboardOnboardingSteppers({
 }: DashboardOnboardingSteppersProps) {
   const router = useRouter();
 
-  const workspaceStatus: StepStatus = activeBaseId ? "complete" : "current";
-  const leadsStatus: StepStatus = !activeBaseId
-    ? "upcoming"
-    : hasLeads
-      ? "complete"
-      : "current";
-  const campaignStatus: StepStatus = !activeBaseId || !hasLeads ? "upcoming" : hasCampaigns ? "complete" : "current";
+  const v = getSetupStepVisualStates(activeBaseId, hasLeads, hasCampaigns);
+  const toDot = (s: "complete" | "current" | "locked"): StepStatus =>
+    s === "complete" ? "complete" : s === "current" ? "current" : "upcoming";
+  const workspaceStatus: StepStatus = toDot(v.workspace);
+  const leadsStatus: StepStatus = toDot(v.leads);
+  const campaignStatus: StepStatus = toDot(v.campaign);
 
   const [demoCardOpen, setDemoCardOpen] = useState(false);
 
   const sectionTitle = {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 500 as const,
     letterSpacing: "0.08em",
     textTransform: "uppercase" as const,
@@ -149,8 +155,8 @@ export default function DashboardOnboardingSteppers({
   const cardShell = {
     background: "#FFFFFF",
     border: "1px solid #E5E7EB",
-    borderRadius: 12,
-    padding: "14px 16px 16px",
+    borderRadius: 10,
+    padding: "10px 12px 12px",
     boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
     width: "100%",
     maxWidth: "100%",
@@ -164,7 +170,7 @@ export default function DashboardOnboardingSteppers({
       style={{
         display: "flex",
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "stretch",
         gap: 12,
         width: "100%",
         minWidth: 0,
@@ -178,7 +184,7 @@ export default function DashboardOnboardingSteppers({
             justifyContent: "space-between",
             gap: 10,
             flexWrap: "wrap",
-            marginBottom: 10,
+            marginBottom: 6,
           }}
         >
           <div style={sectionTitle}>Getting started</div>
@@ -192,8 +198,8 @@ export default function DashboardOnboardingSteppers({
             title={demoCardOpen ? "Hide demo shortcuts" : "Show demo and learning shortcuts"}
             style={{
               borderRadius: 9999,
-              height: 34,
-              minHeight: 34,
+              height: 30,
+              minHeight: 30,
               boxSizing: "border-box",
             }}
           >
@@ -220,11 +226,11 @@ export default function DashboardOnboardingSteppers({
             gap: 0,
             width: "100%",
             flexWrap: "wrap",
-            rowGap: 10,
+            rowGap: 6,
             minWidth: 0,
             overflow: "visible",
-            paddingTop: 4,
-            paddingBottom: 6,
+            paddingTop: 2,
+            paddingBottom: 3,
           }}
         >
           <button
@@ -281,8 +287,8 @@ export default function DashboardOnboardingSteppers({
         </div>
         <p
           style={{
-            margin: "12px 0 0",
-            fontSize: 12,
+            margin: "8px 0 0",
+            fontSize: 11,
             color: "#6B7280",
             lineHeight: 1.45,
             textAlign: "center",
@@ -308,11 +314,15 @@ export default function DashboardOnboardingSteppers({
           className="dashboard-surface-card dashboard-spark-learn-inner"
           style={{
             ...cardShell,
-            background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+            background: "#ffffff",
             width: "100%",
             minWidth: 0,
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 4px 24px rgba(15, 23, 42, 0.06)",
+            height: "100%",
+            minHeight: 0,
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <div
@@ -321,7 +331,7 @@ export default function DashboardOnboardingSteppers({
               alignItems: "center",
               justifyContent: "space-between",
               gap: 8,
-              marginBottom: 14,
+              marginBottom: 8,
             }}
           >
             <div style={{ ...sectionTitle, marginBottom: 0, letterSpacing: "0.1em" }}>Spark &amp; learn</div>
@@ -340,7 +350,7 @@ export default function DashboardOnboardingSteppers({
             </span>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, flex: 1 }}>
             <button
               type="button"
               onClick={() => router.push("/flow/new-goal")}
@@ -348,13 +358,14 @@ export default function DashboardOnboardingSteppers({
               style={{
                 width: "100%",
                 margin: 0,
-                borderRadius: 12,
+                borderRadius: 10,
                 border: "1px solid #e2e8f0",
                 background: "#fff",
-                padding: "14px 14px",
-                display: "flex",
+                padding: "9px 10px",
+                display: "grid",
+                gridTemplateColumns: "28px 1fr 12px",
                 alignItems: "center",
-                gap: 12,
+                columnGap: 8,
                 cursor: "pointer",
                 textAlign: "left",
                 fontFamily: "inherit",
@@ -364,10 +375,10 @@ export default function DashboardOnboardingSteppers({
             >
               <span
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 10,
-                  background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: "#eef2ff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -375,17 +386,14 @@ export default function DashboardOnboardingSteppers({
                   border: "1px solid #c7d2fe",
                 }}
               >
-                <Zap size={20} strokeWidth={2} color="#4f46e5" aria-hidden />
+                <Zap size={14} strokeWidth={2} color="#4f46e5" aria-hidden />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
+                <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
                   Set a goal
                 </span>
-                <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2, lineHeight: 1.35 }}>
-                  Describe an outcome and preview an AI-built plan.
-                </span>
               </span>
-              <ArrowUpRight size={18} strokeWidth={2} color="#94a3b8" className="dashboard-spark-action-chevron" aria-hidden />
+              <ArrowUpRight size={12} strokeWidth={2} color="#94a3b8" className="dashboard-spark-action-chevron" aria-hidden />
             </button>
 
             <button
@@ -395,13 +403,14 @@ export default function DashboardOnboardingSteppers({
               style={{
                 width: "100%",
                 margin: 0,
-                borderRadius: 12,
+                borderRadius: 10,
                 border: "1px solid #e2e8f0",
                 background: "#fff",
-                padding: "14px 14px",
-                display: "flex",
+                padding: "9px 10px",
+                display: "grid",
+                gridTemplateColumns: "28px 1fr 12px",
                 alignItems: "center",
-                gap: 12,
+                columnGap: 8,
                 cursor: "pointer",
                 textAlign: "left",
                 fontFamily: "inherit",
@@ -411,10 +420,10 @@ export default function DashboardOnboardingSteppers({
             >
               <span
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 10,
-                  background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: "#f1f5f9",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -422,61 +431,17 @@ export default function DashboardOnboardingSteppers({
                   border: "1px solid #cbd5e1",
                 }}
               >
-                <PlayCircle size={20} strokeWidth={2} color="#475569" aria-hidden />
+                <PlayCircle size={14} strokeWidth={2} color="#475569" aria-hidden />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
+                <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
                   Watch demo
                 </span>
-                <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2, lineHeight: 1.35 }}>
-                  Walk through the product in a guided, interactive tour.
-                </span>
               </span>
-              <ArrowUpRight size={18} strokeWidth={2} color="#94a3b8" className="dashboard-spark-action-chevron" aria-hidden />
+              <ArrowUpRight size={12} strokeWidth={2} color="#94a3b8" className="dashboard-spark-action-chevron" aria-hidden />
             </button>
           </div>
 
-          <div
-            style={{
-              marginTop: 14,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
-              paddingTop: 12,
-              borderTop: "1px solid #f1f5f9",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#4f46e5",
-                background: "#eef2ff",
-                padding: "4px 10px",
-                borderRadius: 9999,
-                border: "1px solid #e0e7ff",
-              }}
-            >
-              1 · Plan
-            </span>
-            <span style={{ color: "#cbd5e1", fontSize: 12 }} aria-hidden>
-              →
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#475569",
-                background: "#f8fafc",
-                padding: "4px 10px",
-                borderRadius: 9999,
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              2 · Demo
-            </span>
-          </div>
         </div>
       </div>
     </div>

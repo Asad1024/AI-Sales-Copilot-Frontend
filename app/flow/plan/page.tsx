@@ -25,7 +25,7 @@ type SequenceStep = {
 
 type CardType = "audience" | "lead" | "sequence" | "safety";
 
-type ApolloFilterChip = {
+type LeadFilterChip = {
   key: string;
   label: string;
   value: string[];
@@ -93,8 +93,8 @@ export default function PlanPage() {
         const data = await fetchPlanPreviewLeads(planId, 15);
         setPreviewLeads(Array.isArray(data?.leads) ? data.leads : []);
       } catch (error: any) {
-        console.error("Failed to preview Apollo leads:", error);
-        setPreviewError(error?.message || "Failed to preview Apollo leads");
+        console.error("Failed to preview leads:", error);
+        setPreviewError(error?.message || "Failed to preview leads");
       } finally {
         setPreviewLoading(false);
       }
@@ -158,7 +158,7 @@ export default function PlanPage() {
     }
   }
 
-  const apolloFilters = useMemo<ApolloFilterChip[]>(() => {
+  const leadFilters = useMemo<LeadFilterChip[]>(() => {
     if (!plan?.apollo_filters) return [];
     return Object.entries(plan.apollo_filters)
       .filter(([, value]) => Array.isArray(value) && value.length > 0)
@@ -502,8 +502,8 @@ export default function PlanPage() {
               <div style={{
                 padding: '20px',
                 borderRadius: '16px',
-                border: '1px solid rgba(124, 58, 237, 0.2)',
-                background: 'rgba(124, 58, 237, 0.05)'
+                border: '1px solid rgba(37, 99, 235, 0.2)',
+                background: 'rgba(37, 99, 235, 0.05)'
               }}>
                 <h3 style={{
                   fontSize: '15px',
@@ -511,15 +511,15 @@ export default function PlanPage() {
                   margin: '0 0 12px 0',
                   color: 'var(--color-text)'
                 }}>
-                  Apollo Filters
+                  Lead filters
                 </h3>
-                {apolloFilters.length === 0 ? (
+                {leadFilters.length === 0 ? (
                   <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
-                    No Apollo filters available for this plan.
+                    No lead filters saved for this plan.
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {apolloFilters.map((filter) => (
+                    {leadFilters.map((filter) => (
                       <div key={filter.key}>
                         <div style={{
                           fontSize: '12px',
@@ -538,10 +538,10 @@ export default function PlanPage() {
                               style={{
                                 padding: '6px 12px',
                                 borderRadius: '999px',
-                                background: 'rgba(124, 58, 237, 0.12)',
-                                border: '1px solid rgba(124, 58, 237, 0.25)',
+                                background: 'rgba(37, 99, 235, 0.12)',
+                                border: '1px solid rgba(37, 99, 235, 0.25)',
                                 fontSize: '12px',
-                                color: '#7C3AED',
+                                color: '#2563EB',
                                 fontWeight: 600
                               }}
                             >
@@ -574,7 +574,7 @@ export default function PlanPage() {
                     fontSize: '12px',
                     color: 'var(--color-text-muted)'
                   }}>
-                    Preview from Apollo • {previewLeads.length} shown
+                    Preview • {previewLeads.length} shown
                   </span>
                 </div>
 
@@ -873,10 +873,10 @@ function CardContent({
                   alignItems: 'flex-start',
                   gap: '16px',
                   padding: '16px 20px',
-                  background: isEditing ? 'rgba(124, 58, 237, 0.05)' : 'var(--color-surface-secondary)',
+                  background: isEditing ? 'rgba(37, 99, 235, 0.05)' : 'var(--color-surface-secondary)',
                   borderRadius: '12px',
                   border: isEditing 
-                    ? '2px solid rgba(124, 58, 237, 0.3)' 
+                    ? '2px solid rgba(37, 99, 235, 0.3)' 
                     : '1px solid var(--elev-border)',
                   transition: 'all 0.2s ease',
                   position: 'relative'
@@ -886,7 +886,7 @@ function CardContent({
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                  background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                   marginTop: '8px',
                   flexShrink: 0
                 }} />
@@ -919,7 +919,7 @@ function CardContent({
                             padding: '10px 14px',
                             fontSize: '15px',
                             fontWeight: '500',
-                            border: '1px solid rgba(124, 58, 237, 0.3)',
+                            border: '1px solid rgba(37, 99, 235, 0.3)',
                             background: 'var(--elev-bg)'
                           }}
                           placeholder="Enter value..."
@@ -938,7 +938,7 @@ function CardContent({
                           padding: '10px 14px',
                           fontSize: '14px',
                           fontWeight: '500',
-                          border: '1px solid rgba(124, 58, 237, 0.3)',
+                          border: '1px solid rgba(37, 99, 235, 0.3)',
                           background: 'var(--elev-bg)'
                         }}
                         placeholder={placeholder || "Enter item..."}
@@ -1012,9 +1012,9 @@ function CardContent({
                   padding: '12px 20px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  color: '#7C3AED',
-                  background: 'rgba(124, 58, 237, 0.1)',
-                  border: '1px dashed rgba(124, 58, 237, 0.4)',
+                  color: '#2563EB',
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  border: '1px dashed rgba(37, 99, 235, 0.4)',
                   borderRadius: '12px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1024,12 +1024,12 @@ function CardContent({
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(124, 58, 237, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.6)';
+                  e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.6)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(124, 58, 237, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)';
+                  e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.4)';
                 }}
               >
                 <span>+</span>
@@ -1158,13 +1158,13 @@ function SequenceCardContent({
                   width: '36px',
                   height: '36px',
                   borderRadius: '8px',
-                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)',
+                  background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '14px',
                   fontWeight: '700',
-                  color: '#7C3AED',
+                  color: '#2563EB',
                   flexShrink: 0
                 }}>
                   {idx + 1}
@@ -1242,13 +1242,13 @@ function SequenceCardContent({
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(169, 76, 255, 0.2) 100%)',
+                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '14px',
                 fontWeight: '700',
-                color: '#7C3AED',
+                color: '#2563EB',
                 flexShrink: 0
               }}>
                 {idx + 1}

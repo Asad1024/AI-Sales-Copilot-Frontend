@@ -14,7 +14,7 @@ const PAGE_CANVAS: CSSProperties = {
   boxSizing: "border-box",
 };
 
-const LOADER_GLYPH_SIZE = 40;
+const LOADER_GLYPH_SIZE = 28;
 
 export type GlobalPageLoaderProps = {
   /** Accessible status label */
@@ -34,8 +34,8 @@ export type GlobalPageLoaderProps = {
 };
 
 /**
- * Central loading UI used app-wide: blue radial-dash icon (rotating) + status text.
- * Animation is defined in `globals.css` (`.global-page-loader-spinner`).
+ * Central loading UI used app-wide: smooth plane loader + styled status text.
+ * Animation is defined in `globals.css` (`.global-page-loader-plane*`).
  */
 export function GlobalPageLoader({
   ariaLabel = "Loading",
@@ -56,8 +56,11 @@ export function GlobalPageLoader({
     return (
       <div style={PAGE_CANVAS} className={className} aria-busy="true" aria-live="polite" role="status" aria-label={ariaLabel}>
         <div className={innerClass}>
-          <span className="global-page-loader-spinner">
-            <Icons.Loader size={LOADER_GLYPH_SIZE} strokeWidth={2} aria-hidden />
+          <span className="global-page-loader-plane" aria-hidden>
+            <span className="global-page-loader-plane-trail" />
+            <span className="global-page-loader-plane-glyph">
+              <Icons.Send size={LOADER_GLYPH_SIZE} strokeWidth={2} />
+            </span>
           </span>
           {label}
         </div>
@@ -78,8 +81,11 @@ export function GlobalPageLoader({
       role="status"
       aria-label={ariaLabel}
     >
-      <span className="global-page-loader-spinner">
-        <Icons.Loader size={LOADER_GLYPH_SIZE} strokeWidth={2} aria-hidden />
+      <span className="global-page-loader-plane" aria-hidden>
+        <span className="global-page-loader-plane-trail" />
+        <span className="global-page-loader-plane-glyph">
+          <Icons.Send size={LOADER_GLYPH_SIZE} strokeWidth={2} />
+        </span>
       </span>
       {label}
     </div>

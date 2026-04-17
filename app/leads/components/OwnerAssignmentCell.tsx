@@ -44,7 +44,7 @@ function OwnerAvatar({
         borderRadius: "50%",
         flexShrink: 0,
         overflow: "hidden",
-        background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
+        background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -277,13 +277,13 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
                   alignItems: "center",
                   gap: "8px",
                   opacity: assigning ? 0.6 : 1,
-                  background: !lead.owner_id ? "rgba(124, 58, 237, 0.1)" : "transparent",
+                  background: !lead.owner_id ? "rgba(37, 99, 235, 0.1)" : "transparent",
                 }}
                 onMouseEnter={(e) => {
-                  if (!assigning) e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+                  if (!assigning) e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = !lead.owner_id ? "rgba(124, 58, 237, 0.1)" : "transparent";
+                  e.currentTarget.style.background = !lead.owner_id ? "rgba(37, 99, 235, 0.1)" : "transparent";
                 }}
               >
                 <Icons.X size={14} style={{ color: "var(--color-text-muted)" }} />
@@ -301,13 +301,13 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
                     alignItems: "center",
                     gap: 10,
                     opacity: assigning ? 0.6 : 1,
-                    background: lead.owner_id === member.id ? "rgba(124, 58, 237, 0.1)" : "transparent",
+                    background: lead.owner_id === member.id ? "rgba(37, 99, 235, 0.1)" : "transparent",
                   }}
                   onMouseEnter={(e) => {
-                    if (!assigning) e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+                    if (!assigning) e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = lead.owner_id === member.id ? "rgba(124, 58, 237, 0.1)" : "transparent";
+                    e.currentTarget.style.background = lead.owner_id === member.id ? "rgba(37, 99, 235, 0.1)" : "transparent";
                   }}
                 >
                   <OwnerAvatar name={member.name} avatarUrl={member.avatar_url} size={28} />
@@ -317,7 +317,7 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
                     </div>
                     <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>{member.email}</div>
                   </div>
-                  {lead.owner_id === member.id && <Icons.Check size={14} style={{ color: "#7C3AED" }} />}
+                  {lead.owner_id === member.id && <Icons.Check size={14} style={{ color: "#2563EB" }} />}
                 </div>
               ))}
             </>
@@ -350,7 +350,7 @@ export function OwnerAssignmentCell({ lead, editable = true }: OwnerAssignmentCe
           boxSizing: "border-box",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(124, 58, 237, 0.05)";
+          e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = "transparent";

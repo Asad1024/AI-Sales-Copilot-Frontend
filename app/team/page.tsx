@@ -813,7 +813,7 @@ export default function TeamPage() {
               label="Total Members"
               value={totalMembers}
               description="People with access to this base"
-              accent="#7C3AED"
+              accent="#2563EB"
             />
             <StatCard
               icon={<Icons.Key size={24} />}
@@ -827,7 +827,7 @@ export default function TeamPage() {
               label="Collaborators"
               value={totalMembersWithoutOwners}
               description="Members without owner privileges"
-              accent="#A94CFF"
+              accent="#06B6D4"
             />
             <StatCard
               icon={<Icons.Shield size={24} />}

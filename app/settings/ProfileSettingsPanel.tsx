@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
-import { AlertTriangle, LogOut } from "lucide-react";
-import { apiRequest, getUser, clearAuth, setUser } from "@/lib/apiClient";
+import { useState, useEffect, useCallback } from "react";
+import { apiRequest, getUser, setUser } from "@/lib/apiClient";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import AdminUserAvatar from "@/components/admin/AdminUserAvatar";
@@ -11,12 +9,17 @@ import { Icons } from "@/components/ui/Icons";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 
 const fieldShellClass =
-  "w-full box-border rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition-shadow focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[rgba(124,58,237,0.22)]";
+  "w-full box-border rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition-shadow focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[rgba(37,99,235,0.22)]";
 
-const closureNotes = [
-  "Platform administrators are notified in-app when you submit a request.",
-  "Only an admin can remove or deactivate your account (Admin → Users).",
-  "You can keep using the app until an administrator completes the change.",
+const onboardingTimezones = [
+  "UTC",
+  "US/Eastern",
+  "US/Pacific",
+  "Europe/London",
+  "Europe/Berlin",
+  "Asia/Dubai",
+  "Asia/Singapore",
+  "Asia/Tokyo",
 ];
 
 export function ProfileSettingsPanel() {
@@ -25,9 +28,7 @@ export function ProfileSettingsPanel() {
   const user = getUser();
   const [name, setName] = useState(user?.name || "");
   const [company, setCompany] = useState(user?.company || "");
-  const initialDobSnapshot = (user?.dob && String(user.dob).slice(0, 10)) || "";
-  const initialDobRef = useRef(initialDobSnapshot);
-  const [dob, setDob] = useState(initialDobSnapshot);
+  const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [closureSubmitting, setClosureSubmitting] = useState(false);
@@ -35,13 +36,7 @@ export function ProfileSettingsPanel() {
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const body: { name: string; company: string; dob?: string | null } = { name, company };
-      const trimmed = dob.trim();
-      if (trimmed) {
-        body.dob = trimmed;
-      } else if (initialDobRef.current.trim()) {
-        body.dob = null;
-      }
+      const body = { name, company, timezone };
 
       const res = await apiRequest("/auth/profile", {
         method: "PUT",
@@ -59,7 +54,7 @@ export function ProfileSettingsPanel() {
     } finally {
       setSaving(false);
     }
-  }, [name, company, dob, showSuccess, showError]);
+  }, [name, company, timezone, showSuccess, showError]);
 
   useEffect(() => {
     const onGlobalSave = () => {
@@ -70,17 +65,16 @@ export function ProfileSettingsPanel() {
   }, [handleSave]);
 
   const displayName = user?.name?.trim() || "Your account";
-  const isAdmin = user?.role === "admin";
 
   const handleRequestAccountClosure = async () => {
     const ok = await confirm({
-      title: "Request account closure?",
+      title: "Delete account?",
       message: (
         <span>
-          This sends a notification to platform administrators. They will remove or deactivate your account when they process the request — you cannot delete the account yourself.
+          You cannot delete your account directly here. This will send a closure request to administrators, and they will remove or deactivate your account.
         </span>
       ),
-      confirmLabel: "Notify administrators",
+      confirmLabel: "Send request",
       variant: "danger",
     });
     if (!ok) return;
@@ -89,7 +83,7 @@ export function ProfileSettingsPanel() {
       const data = (await apiRequest("/auth/account/deletion-request", { method: "POST" })) as {
         message?: string;
       };
-      showSuccess("Request sent", data?.message || "Administrators have been notified.");
+      showSuccess("Request sent to admins", data?.message || "Your account closure request was sent successfully. An administrator will review it soon.");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Could not send request.";
       showError("Request failed", msg);
@@ -114,76 +108,91 @@ export function ProfileSettingsPanel() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            clearAuth();
-            window.location.href = "/auth/login";
-          }}
-          className="inline-flex shrink-0 items-center gap-2 rounded-[22px] border-0 bg-rose-500 px-6 py-2.5 text-[13px] font-medium text-white shadow-[0_4px_14px_-4px_rgba(225,29,72,0.45)] outline-none transition-all duration-200 ease-out hover:-translate-y-px hover:bg-rose-600 hover:shadow-[0_6px_18px_-4px_rgba(225,29,72,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/90 focus-visible:ring-offset-0 active:translate-y-0 active:shadow-[0_2px_10px_-4px_rgba(225,29,72,0.4)]"
+          onClick={() => void handleSave()}
+          disabled={saving}
+          className="btn-dashboard-outline"
         >
-          <LogOut className="h-[17px] w-[17px] shrink-0 opacity-95" strokeWidth={1.75} aria-hidden />
-          Log out
+          {saving ? "Saving…" : "Save changes"}
         </button>
       </div>
 
       <div className="my-5 h-px w-full bg-[var(--color-border)]" role="separator" aria-hidden />
 
       <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-full-name">
+              Full name
+            </label>
+            <input
+              id="profile-full-name"
+              className={fieldShellClass}
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-company">
+              Company
+            </label>
+            <input
+              id="profile-company"
+              className={fieldShellClass}
+              placeholder="Company or team"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-full-name">
-            Full name
+          <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-email">
+            Email
           </label>
           <input
-            id="profile-full-name"
-            className={fieldShellClass}
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            id="profile-email"
+            className={`${fieldShellClass} cursor-not-allowed bg-[#e5e7eb] text-[#6b7280] border-[#d1d5db] opacity-100`}
+            value={user?.email || ""}
+            disabled
+            readOnly
+            aria-readonly="true"
+            title="Email cannot be changed here"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-company">
-            Company
+          <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-timezone">
+            Time zone
           </label>
-          <input
-            id="profile-company"
+          <select
+            id="profile-timezone"
             className={fieldShellClass}
-            placeholder="Company or team"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-          />
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+          >
+            {onboardingTimezones.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-text-muted)]" htmlFor="profile-dob">
-            Date of birth <span className="font-normal text-[var(--color-text-muted)]">(optional)</span>
-          </label>
-          <input
-            id="profile-dob"
-            type="date"
-            className={fieldShellClass}
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
-            max={new Date().toISOString().slice(0, 10)}
-          />
-        </div>
       </div>
 
       <div className="my-5 h-px w-full bg-[var(--color-border)]" role="separator" aria-hidden />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className="btn-primary"
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4">
+        <div className="mb-3">
+          <h3 className="text-[14px] font-semibold text-[var(--color-text)]">Security</h3>
+          <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">Use a strong password and rotate it regularly.</p>
+        </div>
         <button
           type="button"
           onClick={() => setPasswordModalOpen(true)}
-          className="btn-dashboard-outline rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(124,58,237,0.45)] focus-visible:ring-offset-0"
+          className="btn-dashboard-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(37,99,235,0.45)] focus-visible:ring-offset-0"
           style={{ paddingLeft: 20, paddingRight: 20 }}
         >
           <span className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center [&>svg]:block" aria-hidden>
@@ -195,39 +204,29 @@ export function ProfileSettingsPanel() {
 
       <div className="my-5 h-px w-full bg-[var(--color-border)]" role="separator" aria-hidden />
 
-      <div className="rounded-xl border border-rose-300/50 bg-rose-500/10 px-4 py-4">
-        <h3 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--color-text)]">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" aria-hidden />
-          Account closure
-        </h3>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
-          You cannot delete your own account here. Request closure to alert administrators; only they can remove or deactivate accounts.
-        </p>
-        <ul className="mt-3 list-none space-y-2 p-0">
-          {closureNotes.map((text) => (
-            <li key={text} className="flex gap-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-rose-400" aria-hidden />
-              <span>{text}</span>
-            </li>
-          ))}
-        </ul>
-        {isAdmin ? (
-          <p className="mt-3 text-[12px] text-[var(--color-text-muted)]">
-            As an admin, you can manage users in{" "}
-            <Link href="/admin/users" className="font-medium text-[var(--color-primary)] underline-offset-2 hover:underline">
-              Admin → Users
-            </Link>
-            .
-          </p>
-        ) : null}
-        <button
-          type="button"
-          disabled={closureSubmitting}
-          onClick={() => void handleRequestAccountClosure()}
-          className="mt-4 rounded-[10px] border border-rose-400/70 bg-[var(--color-surface)] px-[18px] py-2.5 text-[13px] font-semibold text-rose-500 transition-colors hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {closureSubmitting ? "Sending…" : "Request account closure"}
-        </button>
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-semibold text-[var(--color-text)]">Delete Account</h3>
+            <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
+              You cannot delete your own account here. Request closure to alert administrators; only they can remove or deactivate accounts.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={closureSubmitting}
+            onClick={() => void handleRequestAccountClosure()}
+            className="btn-dashboard-outline inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              borderColor: "#ef4444",
+              color: "#dc2626",
+              background: "#fff5f5",
+            }}
+          >
+            <Icons.Trash size={15} strokeWidth={2} />
+            {closureSubmitting ? "Sending…" : "Delete account"}
+          </button>
+        </div>
       </div>
     </div>
   );

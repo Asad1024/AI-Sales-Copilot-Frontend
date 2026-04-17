@@ -45,18 +45,18 @@ type CredKey =
   | "elevenlabsWebhookSecret";
 
 const CRED_FIELDS: { key: CredKey; label: string; hint: string; inputType?: "text" | "password" }[] = [
-  { key: "apolloApiKey", label: "Apollo API key", hint: "Lead search / enrichment" },
+  { key: "apolloApiKey", label: "Lead search API key", hint: "Lead search / enrichment" },
   { key: "openaiApiKey", label: "OpenAI API key", hint: "AI scoring & generation" },
   { key: "geminiApiKey", label: "Gemini API key", hint: "Optional alternate LLM" },
-  { key: "tavilyApiKey", label: "Tavily API key", hint: "Research" },
+  { key: "tavilyApiKey", label: "Web research API key", hint: "Company & person research" },
   { key: "anymailFinderApiKey", label: "Anymail finder API key", hint: "Email discovery" },
   { key: "fullEnrichApiKey", label: "FullEnrich API key", hint: "Deep enrichment" },
-  { key: "unipileApiUrl", label: "Unipile API URL", hint: "e.g. https://api13.unipile.com:14348", inputType: "text" },
-  { key: "unipileApiKey", label: "Unipile API key", hint: "LinkedIn & WhatsApp messaging (Unipile)" },
-  { key: "elevenlabsApiKey", label: "ElevenLabs API key", hint: "Voice / conversational API" },
-  { key: "elevenlabsAgentId", label: "ElevenLabs agent ID", hint: "e.g. agent_…", inputType: "text" },
-  { key: "elevenlabsPhoneNumberId", label: "ElevenLabs phone number ID", hint: "e.g. phnum_…", inputType: "text" },
-  { key: "elevenlabsWebhookSecret", label: "ElevenLabs webhook secret", hint: "Webhook signature verification" },
+  { key: "unipileApiUrl", label: "Messaging API URL", hint: "Provider base URL", inputType: "text" },
+  { key: "unipileApiKey", label: "Messaging API key", hint: "LinkedIn & hosted WhatsApp" },
+  { key: "elevenlabsApiKey", label: "Voice API key", hint: "Voice / conversational calls" },
+  { key: "elevenlabsAgentId", label: "Voice agent ID", hint: "e.g. agent_…", inputType: "text" },
+  { key: "elevenlabsPhoneNumberId", label: "Outbound phone number ID", hint: "e.g. phnum_…", inputType: "text" },
+  { key: "elevenlabsWebhookSecret", label: "Voice webhook secret", hint: "Webhook signature verification" },
 ];
 
 export default function AdminUsersPage() {
@@ -418,8 +418,8 @@ export default function AdminUsersPage() {
                         borderRadius: 12,
                         fontSize: 12,
                         fontWeight: 600,
-                        background: row.role === "admin" ? "rgba(169, 76, 255, 0.2)" : "rgba(124, 58, 237, 0.2)",
-                        color: row.role === "admin" ? "#A94CFF" : "#7C3AED",
+                        background: row.role === "admin" ? "rgba(6, 182, 212, 0.2)" : "rgba(37, 99, 235, 0.2)",
+                        color: row.role === "admin" ? "#06B6D4" : "#2563EB",
                       }}
                     >
                       {row.role}

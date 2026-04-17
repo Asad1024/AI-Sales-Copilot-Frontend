@@ -30,7 +30,7 @@ export default function PricingPage() {
                 height: "40px",
                 width: "40px",
                 borderRadius: "12px",
-                background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
+                background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -44,12 +44,12 @@ export default function PricingPage() {
               style={{
                 fontSize: "20px",
                 fontWeight: "700",
-                background: "linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)",
+                background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Sales Co-Pilot
+              Outriva
             </span>
           </Link>
           <div style={{ display: "flex", gap: "12px" }}>
@@ -65,7 +65,7 @@ export default function PricingPage() {
         <SalesCopilotPricingSection
           variant="portal"
           enableCheckout={false}
-          pageTitle="Sales Co-Pilot pricing"
+          pageTitle="Outriva pricing"
           intro="All prices in AED. Setup is one-time; monthly plans include enriched lead quotas and omni-channel outreach. Calling replaces the standard setup fee when enabled."
         />
 

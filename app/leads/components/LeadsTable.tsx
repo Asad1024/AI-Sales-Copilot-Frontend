@@ -97,7 +97,7 @@ export function LeadsTable({ leads, onLeadClick }: LeadsTableProps) {
                   style={{ 
                     borderBottom: '1px solid var(--elev-border)', 
                     cursor:'pointer',
-                    background: selectedLeads.includes(lead.id) ? 'rgba(124, 58, 237, 0.1)' : 'transparent',
+                    background: selectedLeads.includes(lead.id) ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
                     transition: 'background 0.2s'
                   }} 
                   onClick={() => onLeadClick(lead)}
@@ -120,8 +120,8 @@ export function LeadsTable({ leads, onLeadClick }: LeadsTableProps) {
                             <span>{displayText}</span>
                             {sourceBadge && (
                               <span style={{
-                                background: 'rgba(124, 58, 237, 0.1)',
-                                color: '#7C3AED',
+                                background: 'rgba(37, 99, 235, 0.1)',
+                                color: '#2563EB',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
                                 fontSize: '10px',
@@ -146,13 +146,13 @@ export function LeadsTable({ leads, onLeadClick }: LeadsTableProps) {
                       {phoneInfo.normalized && (
                         <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                           <span>📞</span>
-                          <a href={`tel:${phoneInfo.normalized}`} style={{ color: '#7C3AED', textDecoration: 'none' }}>
+                          <a href={`tel:${phoneInfo.normalized}`} style={{ color: '#2563EB', textDecoration: 'none' }}>
                             {phoneInfo.normalized}
                           </a>
                           {phoneSourceBadge && (
                             <span style={{
-                              background: 'rgba(124, 58, 237, 0.1)',
-                              color: '#7C3AED',
+                              background: 'rgba(37, 99, 235, 0.1)',
+                              color: '#2563EB',
                               padding: '2px 6px',
                               borderRadius: '4px',
                               fontSize: '10px',
@@ -172,7 +172,7 @@ export function LeadsTable({ leads, onLeadClick }: LeadsTableProps) {
                           width: '32px',
                           height: '32px',
                           borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)',
+                          background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -193,7 +193,7 @@ export function LeadsTable({ leads, onLeadClick }: LeadsTableProps) {
                   </td>
                   <td style={{ padding: '16px 12px' }}>
                     <div style={{
-                      background: (lead.score || 0) > 80 ? 'linear-gradient(135deg, #7C3AED 0%, #A94CFF 100%)' : 
+                      background: (lead.score || 0) > 80 ? 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)' : 
                                   (lead.score || 0) > 60 ? 'linear-gradient(135deg, #ffa726 0%, #ff9800 100%)' : 
                                   'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
                       color: '#000000',

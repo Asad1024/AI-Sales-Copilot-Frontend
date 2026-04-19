@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LandingCompanyPreviewHeroPills } from "@/components/landing/LandingCompanyPreviewShell";
 
 export type LandingHeroProps = {
   onStartTrial: () => void;
@@ -91,20 +92,7 @@ export default function LandingHero({ onStartTrial, inputSlot, belowInputSlot, f
 
             <div className="mt-6 min-w-0">{inputSlot}</div>
 
-            <ul
-              className="landing-hero-preview-pills mt-6 grid w-full min-w-0 grid-cols-4 list-none gap-1 p-0 sm:gap-1.5"
-              aria-label="What you get in this preview"
-            >
-              {["Match in seconds", "Full firmographics", "Privacy-first", "Free to try"].map((label) => (
-                <li key={label} className="min-w-0">
-                  <span className="flex min-h-[2.25rem] items-center justify-center rounded-lg border border-[color:color-mix(in_srgb,var(--color-primary)_16%,var(--color-border))] bg-[color:color-mix(in_srgb,var(--color-surface)_98%,var(--color-primary))] px-1 py-1.5 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:min-h-0 sm:rounded-xl sm:px-1.5 sm:py-2">
-                    <span className="text-[9px] font-semibold leading-tight text-[color:var(--color-text)] sm:text-[10px]">
-                      {label}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <LandingCompanyPreviewHeroPills />
 
             <div className="mt-6 min-w-0">{belowInputSlot}</div>
           </div>

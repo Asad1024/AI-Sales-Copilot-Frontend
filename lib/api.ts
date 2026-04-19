@@ -50,6 +50,8 @@ export type CompanyPreviewRecord = {
   annual_revenue_printed: string | null;
   /** Raw org phone when API returns it (portal shows only when set) */
   phone?: string | null;
+  /** Generic company contact email when API returns it */
+  company_email?: string | null;
 };
 
 export type CompanyEmployeePreview = {
@@ -58,7 +60,7 @@ export type CompanyEmployeePreview = {
   email_masked: string | null;
   phone_masked: string | null;
   linkedin_url: string | null;
-  /** Portal: unmasked contact when Apollo returns it */
+  /** Optional raw contact when an endpoint enriches separately */
   email?: string | null;
   phone?: string | null;
 };
@@ -320,6 +322,8 @@ export const api = {
       company_name: string;
       company: CompanyPreviewRecord | null;
       employees: CompanyEmployeePreview[];
+      /** Same array as `employees` — mirrors landing `employees_preview` field name. */
+      employees_preview?: CompanyEmployeePreview[];
       credits_charged: number;
       credits_balance: number;
     }>(`/api/bases/${baseId}/company-employees-preview`, {

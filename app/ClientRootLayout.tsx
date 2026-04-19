@@ -14,7 +14,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
-import { APP_BRAND_NAME, APP_BRAND_TAGLINE } from "@/lib/brand";
+import { APP_BRAND_BROWSER_TITLE, APP_BRAND_NAME, APP_BRAND_TAGLINE } from "@/lib/brand";
 
 export default function ClientRootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -84,6 +84,9 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
     if (pathname.startsWith("/admin")) {
       return { title: "Overview", description: "Platform metrics and quick navigation." };
     }
+    if (pathname.includes("/companies")) {
+      return { title: "Companies", description: "Organizations in your workspace and leads linked to each company." };
+    }
     if (pathname.includes("/leads")) {
       return { title: "Leads", description: "Import, enrich, score, and manage your lead pipeline." };
     }
@@ -132,7 +135,7 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
   const pageMeta = getPageMeta();
 
   React.useEffect(() => {
-    document.title = APP_BRAND_NAME;
+    document.title = APP_BRAND_BROWSER_TITLE;
   }, [pathname]);
 
   const mainSidebarWidthPx = getSidebarWidthPx(sidebarCollapsed, isMobile);

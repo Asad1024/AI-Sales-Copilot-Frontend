@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
 import {
   pricingPlansByLayout,
   type SalesCopilotPricingPlan,
 } from "@/lib/salesCopilotPricing";
 import { apiRequest, getUser } from "@/lib/apiClient";
+import { RevealOnView } from "@/components/ui/RevealOnView";
 
 type Variant = "landing" | "portal";
 
@@ -19,6 +20,139 @@ type SalesCopilotPricingSectionProps = {
   pageTitle?: string;
   enableCheckout?: boolean;
 };
+
+function planFeatureBullets(plan: SalesCopilotPricingPlan): string[] {
+  return plan.sections.flatMap((s) => s.bullets);
+}
+
+function SetupFeeBanner({ amountLabel }: { amountLabel: string }) {
+  return (
+    <div className="scp-setup-fee-banner" role="note">
+      <div className="scp-setup-fee-banner-icon-wrap" aria-hidden>
+        <Info className="scp-setup-fee-banner-icon" size={20} strokeWidth={2} />
+      </div>
+      <div className="scp-setup-fee-banner-body">
+        <span className="scp-setup-fee-banner-label">One-time setup</span>
+        <p className="scp-setup-fee-banner-text">
+          <strong className="scp-setup-fee-banner-strong">{amountLabel}</strong> setup on every plan (onboarding and workspace).
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function LandingPricingTierCard({
+  plan,
+  onCta,
+}: {
+  plan: SalesCopilotPricingPlan;
+  onCta: () => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const bullets = planFeatureBullets(plan);
+  const visible = showAll ? bullets : bullets.slice(0, 4);
+  const hasMore = bullets.length > 4;
+  const featured = Boolean(plan.featured);
+
+  return (
+    <RevealOnView
+      className={`pricing-card scp-tier-card${featured ? " featured scp-pro-tier" : ""}`}
+    >
+      {plan.badge ? <div className="pricing-badge">{plan.badge}</div> : null}
+      <div className="pricing-header scp-tier-header">
+        <h3 className="pricing-name">{plan.name}</h3>
+        <p className="pricing-tagline">{plan.headline}</p>
+        <div className="pricing-price scp-price-block">
+          <span className="pricing-amount scp-price-line">{plan.priceDisplay}</span>
+          {plan.priceSub ? (
+            <span className="pricing-period scp-price-below">{plan.priceSub.trim()}</span>
+          ) : null}
+        </div>
+        {typeof plan.leadQuota === "number" ? (
+          <p className="pricing-highlight-sub" style={{ marginTop: 10, textAlign: "center" }}>
+            {plan.leadQuota} enriched leads / month
+          </p>
+        ) : null}
+      </div>
+      <div className="pricing-features">
+        {visible.map((b) => (
+          <div key={b} className="pricing-feature">
+            <span className="pricing-feature-icon">
+              <Check size={12} strokeWidth={3} />
+            </span>
+            <span className="pricing-feature-text">{b}</span>
+          </div>
+        ))}
+        {hasMore ? (
+          <button
+            type="button"
+            className="scp-features-toggle"
+            onClick={() => setShowAll((v) => !v)}
+            aria-expanded={showAll}
+          >
+            {showAll ? "See fewer features" : "See all features"}
+          </button>
+        ) : null}
+      </div>
+      {plan.footnote ? <p className="pricing-note" style={{ marginBottom: 14 }}>{plan.footnote}</p> : null}
+      <button
+        type="button"
+        className={`pricing-cta ${featured ? "pricing-cta-primary" : "pricing-cta-secondary"}`}
+        onClick={onCta}
+      >
+        Get started
+      </button>
+    </RevealOnView>
+  );
+}
+
+function LandingCallingAddonRow({
+  plan,
+  onCta,
+}: {
+  plan: SalesCopilotPricingPlan;
+  onCta: () => void;
+}) {
+  return (
+    <RevealOnView className="scp-calling-banner scp-landing-extra-card">
+      <div className="scp-calling-banner-inner">
+        <div className="scp-calling-banner-icon-wrap" aria-hidden>
+          <Icons.Phone size={22} strokeWidth={2} />
+        </div>
+        <div className="scp-calling-banner-text">
+          <p className="scp-calling-banner-label">Want AI Voice Calling?</p>
+          <p className="scp-calling-banner-desc">Outbound AI calling as a core channel.</p>
+        </div>
+        <div className="scp-calling-banner-price-block">
+          <span className="scp-calling-banner-amount">{plan.priceDisplay}</span>
+          {plan.priceSub ? <span className="scp-calling-banner-sub">{plan.priceSub}</span> : null}
+        </div>
+        <button type="button" className="pricing-cta pricing-cta-primary scp-calling-banner-cta" onClick={onCta}>
+          Add to Plan
+        </button>
+      </div>
+    </RevealOnView>
+  );
+}
+
+function LandingEnterpriseRow({ onCta }: { onCta: () => void }) {
+  return (
+    <RevealOnView className="scp-calling-banner scp-landing-extra-card">
+      <div className="scp-calling-banner-inner">
+        <div className="scp-calling-banner-icon-wrap" aria-hidden>
+          <Icons.Briefcase size={22} strokeWidth={2} />
+        </div>
+        <div className="scp-calling-banner-text">
+          <p className="scp-calling-banner-label">Enterprise</p>
+          <p className="scp-calling-banner-desc">Custom volume, workflows, and integrations.</p>
+        </div>
+        <button type="button" className="pricing-cta pricing-cta-secondary scp-calling-banner-cta" onClick={onCta}>
+          Contact Sales
+        </button>
+      </div>
+    </RevealOnView>
+  );
+}
 
 function PortalPlanCard({
   plan,
@@ -37,7 +171,11 @@ function PortalPlanCard({
   compact?: boolean;
   isCurrentPlan?: boolean;
 }) {
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
   const isCustom = plan.kind === "custom";
+  const flatBullets = !isCustom ? planFeatureBullets(plan) : [];
+  const visibleBullets = showAllFeatures ? flatBullets : flatBullets.slice(0, 4);
+  const hasFeatureToggle = !isCustom && flatBullets.length > 4;
   const ctaLabel = enableCheckout
     ? isCustom
       ? "Contact sales"
@@ -52,35 +190,40 @@ function PortalPlanCard({
 
   return (
     <div
-      className="card-enhanced"
+      className={`card-enhanced${plan.featured ? " scp-portal-pro-tier" : ""}`}
       style={{
-        padding: pad,
+        padding: plan.badge ? pad + 8 : pad,
         borderRadius: 20,
-        border: plan.featured ? "2px solid rgba(37, 99, 235, 0.45)" : "1px solid var(--color-border, #e5e7eb)",
+        border: plan.featured ? "2px solid var(--color-primary, #2563EB)" : "1px solid var(--color-border, #e5e7eb)",
         background: plan.featured
-          ? "linear-gradient(145deg, rgba(37, 99, 235, 0.06) 0%, rgba(6, 182, 212, 0.04) 100%)"
+          ? "linear-gradient(165deg, color-mix(in srgb, var(--color-primary, #2563eb) 10%, transparent) 0%, color-mix(in srgb, var(--color-accent, #06b6d4) 6%, transparent) 100%)"
           : "var(--color-surface, #fff)",
         display: "flex",
         flexDirection: "column",
         minHeight: "100%",
         position: "relative",
         height: "100%",
+        transform: plan.featured ? "translateY(-8px) scale(1.02)" : undefined,
+        boxShadow: plan.featured ? "var(--elev-shadow-lg, 0 12px 24px rgba(2, 6, 23, 0.12))" : undefined,
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
       }}
     >
       {plan.badge && (
         <span
           style={{
             position: "absolute",
-            top: 12,
-            right: 12,
+            ...(plan.featured
+              ? { top: -11, left: "50%", transform: "translateX(-50%)" }
+              : { top: 12, right: 12 }),
             fontSize: 10,
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.04em",
-            padding: "4px 9px",
+            padding: "5px 12px",
             borderRadius: 999,
-            background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
+            background: "linear-gradient(135deg, var(--color-primary, #2563EB) 0%, var(--color-accent, #06B6D4) 100%)",
             color: "#fff",
+            whiteSpace: "nowrap",
           }}
         >
           {plan.badge}
@@ -93,7 +236,8 @@ function PortalPlanCard({
           margin: "0 0 6px",
           color: "var(--color-text)",
           letterSpacing: "-0.02em",
-          paddingRight: plan.badge ? 72 : 0,
+          textAlign: plan.featured ? "center" : undefined,
+          width: "100%",
         }}
       >
         {plan.name}
@@ -104,68 +248,94 @@ function PortalPlanCard({
           color: "var(--color-text-muted)",
           margin: "0 0 12px",
           lineHeight: 1.45,
+          textAlign: plan.featured ? "center" : undefined,
         }}
       >
         {plan.headline}
       </p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <span style={{ fontSize: priceSize, fontWeight: 800, color: "#2563EB" }}>{plan.priceDisplay}</span>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: plan.featured ? "center" : "flex-start",
+          gap: 4,
+          marginBottom: 12,
+        }}
+      >
+        <span style={{ fontSize: priceSize, fontWeight: 800, color: "var(--color-primary, #2563EB)" }}>
+          {plan.priceDisplay}
+        </span>
         {plan.priceSub ? (
-          <span style={{ fontSize: compact ? 13 : 15, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
+          <span style={{ fontSize: compact ? 12 : 13, color: "var(--color-text-muted)" }}>
+            {plan.priceSub.trim()}
+          </span>
         ) : null}
       </div>
       {typeof plan.leadQuota === "number" && (
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", margin: "0 0 12px" }}>
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--color-text)",
+            margin: "0 0 12px",
+            textAlign: plan.featured ? "center" : undefined,
+            width: "100%",
+          }}
+        >
           {plan.leadQuota} enriched leads / month
         </p>
       )}
-      <div style={{ flex: 1 }}>
-        {plan.sections.map((sec) => (
-          <div key={sec.heading} style={{ marginBottom: compact ? 12 : 16 }}>
-            <div
+      <div style={{ flex: 1, width: "100%" }}>
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            margin: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: compact ? 6 : 8,
+          }}
+        >
+          {visibleBullets.map((b) => (
+            <li
+              key={b}
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: "var(--color-text-muted)",
-                marginBottom: 6,
-              }}
-            >
-              {sec.heading}
-            </div>
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
                 display: "flex",
-                flexDirection: "column",
-                gap: compact ? 6 : 8,
+                gap: 8,
+                fontSize: compact ? 12.5 : 14,
+                color: "var(--color-text)",
+                lineHeight: 1.45,
               }}
             >
-              {sec.bullets.map((b) => (
-                <li
-                  key={b}
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    fontSize: compact ? 12.5 : 14,
-                    color: "var(--color-text)",
-                    lineHeight: 1.45,
-                  }}
-                >
-                  <Check
-                    size={compact ? 15 : 18}
-                    strokeWidth={2.25}
-                    style={{ flexShrink: 0, color: "#2563EB", marginTop: 2 }}
-                  />
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+              <Check
+                size={compact ? 15 : 18}
+                strokeWidth={2.25}
+                style={{ flexShrink: 0, color: "var(--color-primary, #2563EB)", marginTop: 2 }}
+              />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+        {hasFeatureToggle ? (
+          <button
+            type="button"
+            onClick={() => setShowAllFeatures((v) => !v)}
+            style={{
+              marginTop: 10,
+              padding: 0,
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              fontSize: compact ? 12 : 13,
+              fontWeight: 600,
+              color: "var(--color-primary, #2563EB)",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            {showAllFeatures ? "See fewer features" : "See all features"}
+          </button>
+        ) : null}
       </div>
       {plan.footnote ? (
         <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
@@ -246,7 +416,7 @@ function PortalPlanCard({
   );
 }
 
-function PortalSetupPairCard({
+function PortalCallingAddonRow({
   plan,
   busyId,
   onCta,
@@ -260,164 +430,134 @@ function PortalSetupPairCard({
   onMarketingCta: (plan: SalesCopilotPricingPlan) => void;
 }) {
   const busy = busyId === plan.id;
-  const bullets = plan.sections.flatMap((s) => s.bullets);
-
   return (
     <div
-      className="card-enhanced"
+      className="card-enhanced scp-portal-calling-row"
       style={{
-        borderRadius: 16,
-        border: "1px solid rgba(37, 99, 235, 0.32)",
-        background: "var(--color-surface, #fff)",
-        padding: "16px 18px 18px",
         display: "flex",
-        flexDirection: "column",
-        minHeight: "100%",
-        boxShadow: "0 10px 24px rgba(37, 99, 235, 0.06)",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        padding: "18px 20px",
+        borderRadius: 16,
+        border: "1px solid var(--color-border, #e5e7eb)",
+        background: "var(--color-surface-secondary, #f1f5f9)",
       }}
     >
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 800,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "#06B6D4",
-          marginBottom: 8,
-        }}
-      >
-        Step 1 · Required first
-      </span>
-      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)", letterSpacing: "-0.02em" }}>
-        {plan.name}
-      </h2>
-      <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: "0 0 10px", lineHeight: 1.45 }}>
-        {plan.headline} Monthly plans and add-ons below activate after setup.
-      </p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <span style={{ fontSize: 26, fontWeight: 800, color: "#2563EB" }}>{plan.priceDisplay}</span>
+      <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)" }}>Want AI Voice Calling?</p>
+        <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.45 }}>{plan.headline}</p>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start" }}>
+        <span style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary, #2563EB)" }}>{plan.priceDisplay}</span>
         {plan.priceSub ? (
-          <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
+          <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
         ) : null}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
-        {bullets.map((b) => (
-          <div key={b} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "var(--color-text)", lineHeight: 1.4 }}>
-            <Check size={15} strokeWidth={2.25} style={{ flexShrink: 0, color: "#2563EB", marginTop: 2 }} />
-            <span>{b}</span>
-          </div>
-        ))}
-      </div>
-      {plan.footnote ? (
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>{plan.footnote}</p>
-      ) : null}
-      <div style={{ marginTop: "auto" }}>
-        {enableCheckout ? (
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={busy}
-            onClick={() => onCta(plan)}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              borderRadius: 11,
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: busy ? "wait" : "pointer",
-            }}
-          >
-            {busy ? "Please wait…" : "Start with setup"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => onMarketingCta(plan)}
-            style={{ width: "100%", padding: "10px 14px", borderRadius: 11, fontWeight: 700, fontSize: 13 }}
-          >
-            Get started
-          </button>
-        )}
-      </div>
+      {enableCheckout ? (
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={busy}
+          onClick={() => onCta(plan)}
+          style={{
+            padding: "12px 20px",
+            borderRadius: 12,
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+            cursor: busy ? "wait" : "pointer",
+            opacity: busy ? 0.85 : 1,
+          }}
+        >
+          {busy ? "Please wait…" : "Add to Plan"}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => onMarketingCta(plan)}
+          style={{ padding: "12px 20px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap" }}
+        >
+          Add to Plan
+        </button>
+      )}
     </div>
   );
 }
 
-function PortalCustomPairCard({ plan }: { plan: SalesCopilotPricingPlan }) {
-  const chips = plan.sections.flatMap((s) => s.bullets).slice(0, 3);
-
+function PortalEnterpriseRow({ plan }: { plan: SalesCopilotPricingPlan }) {
+  const chips = planFeatureBullets(plan).slice(0, 3);
   return (
     <div
-      className="card-enhanced"
+      className="card-enhanced scp-portal-enterprise-row"
       style={{
-        borderRadius: 16,
-        padding: "16px 18px 18px",
-        border: "1px dashed rgba(37, 99, 235, 0.38)",
-        background: "var(--color-surface, #fff)",
         display: "flex",
-        flexDirection: "column",
-        minHeight: "100%",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 20,
+        padding: "22px 24px",
+        borderRadius: 16,
+        background: "var(--color-text, #0f172a)",
+        color: "var(--color-text-inverse, #fff)",
+        border: "1px solid color-mix(in srgb, var(--color-text-inverse, #fff) 14%, transparent)",
       }}
     >
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 800,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "var(--color-text-muted)",
-          marginBottom: 8,
-        }}
-      >
-        Enterprise
-      </span>
-      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 6px", color: "var(--color-text)", letterSpacing: "-0.02em" }}>
-        {plan.name}
-      </h2>
-      <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
-        {plan.headline}
-      </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
-        {chips.map((c) => (
-          <span
-            key={c}
-            style={{
-              fontSize: 10.5,
-              fontWeight: 600,
-              padding: "4px 9px",
-              borderRadius: 999,
-              background: "rgba(37, 99, 235, 0.08)",
-              color: "var(--color-text)",
-              border: "1px solid rgba(37, 99, 235, 0.14)",
-              lineHeight: 1.35,
-            }}
-          >
-            {c}
-          </span>
-        ))}
-      </div>
-      {plan.footnote ? (
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>{plan.footnote}</p>
-      ) : null}
-      <div style={{ marginTop: "auto" }}>
-        <Link
-          href="/contact"
-          className="btn-primary"
+      <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+        <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            width: "100%",
-            padding: "10px 14px",
-            borderRadius: 11,
-            fontWeight: 700,
-            fontSize: 13,
-            textDecoration: "none",
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            opacity: 0.75,
+            marginBottom: 8,
           }}
         >
-          Contact sales
-        </Link>
+          Enterprise
+        </div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px", letterSpacing: "-0.02em" }}>{plan.name}</h2>
+        <p style={{ fontSize: 13, opacity: 0.88, margin: "0 0 12px", lineHeight: 1.5 }}>{plan.headline}</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {chips.map((c) => (
+            <span
+              key={c}
+              style={{
+                fontSize: 10.5,
+                fontWeight: 600,
+                padding: "4px 9px",
+                borderRadius: 999,
+                background: "color-mix(in srgb, var(--color-text-inverse, #fff) 12%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--color-text-inverse, #fff) 20%, transparent)",
+              }}
+            >
+              {c}
+            </span>
+          ))}
+        </div>
+        {plan.footnote ? (
+          <p style={{ fontSize: 11, opacity: 0.75, margin: "12px 0 0", lineHeight: 1.45 }}>{plan.footnote}</p>
+        ) : null}
       </div>
+      <Link
+        href="/contact"
+        className="btn-primary"
+        style={{
+          display: "inline-flex",
+          justifyContent: "center",
+          padding: "12px 22px",
+          borderRadius: 12,
+          fontWeight: 700,
+          textDecoration: "none",
+          whiteSpace: "nowrap",
+          background: "var(--color-surface, #fff)",
+          color: "var(--color-text, #0f172a)",
+          border: "none",
+        }}
+      >
+        Contact Sales
+      </Link>
     </div>
   );
 }
@@ -432,7 +572,7 @@ export default function SalesCopilotPricingSection({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [billingHint, setBillingHint] = useState<string | null>(null);
   const [currentBillingPlanKey, setCurrentBillingPlanKey] = useState<string | null>(null);
-  const { setup, tiers, custom } = useMemo(() => pricingPlansByLayout(), []);
+  const { setup, tiers, custom, callingAddon } = useMemo(() => pricingPlansByLayout(), []);
 
   useEffect(() => {
     if (variant !== "portal") return;
@@ -494,131 +634,33 @@ export default function SalesCopilotPricingSection({
   };
 
   if (variant === "landing") {
-    const setupBullets = setup.sections.flatMap((s) => s.bullets);
-    const customChips = custom.sections.flatMap((s) => s.bullets).slice(0, 3);
-
     return (
-      <section className="pricing-section" id="pricing">
-        <div className="section-header">
+      <section className="pricing-section scp-landing-pricing landing-strip landing-strip--b" id="pricing">
+        <RevealOnView className="section-header scp-landing-pricing-head">
           <div className="section-badge">
             <Icons.Sparkles size={14} />
             Pricing
           </div>
           <h2 className="section-title">Outriva Plans</h2>
-          <p className="section-subtitle">
-            Start with one-time setup. Then choose a monthly tier or the calling add-on. Enterprise teams can go custom.
-            Card payments will run on Stripe when checkout is enabled.
+          <p className="section-subtitle scp-landing-pricing-lead">
+            Choose a tier, add voice anytime, or go Enterprise. Stripe handles billing.
           </p>
-        </div>
+        </RevealOnView>
 
         <div className="scp-pricing-layout">
-          <div className="scp-top-row">
-            <div className="pricing-card scp-setup-top">
-              <div className="scp-setup-top-kicker">Step 1 · Required first</div>
-              <h3 className="scp-setup-top-name">{setup.name}</h3>
-              <p className="scp-setup-top-lead">
-                {setup.headline} All monthly plans and add-ons below unlock after this setup.
-              </p>
-              <div className="scp-setup-top-price">
-                <span className="pricing-amount scp-setup-top-amount">{setup.priceDisplay}</span>
-                {setup.priceSub ? <span className="pricing-period">{setup.priceSub}</span> : null}
-              </div>
-              <div className="scp-setup-top-list">
-                {setupBullets.map((b) => (
-                  <div key={b} className="pricing-feature scp-setup-top-li">
-                    <span className="pricing-feature-icon">
-                      <Check size={12} strokeWidth={3} />
-                    </span>
-                    <span className="pricing-feature-text">{b}</span>
-                  </div>
-                ))}
-              </div>
-              {setup.footnote ? <p className="scp-setup-top-foot">{setup.footnote}</p> : null}
-              <button
-                type="button"
-                className="pricing-cta pricing-cta-primary scp-setup-top-cta"
-                onClick={() => handleLandingCta(setup)}
-              >
-                Get started
-              </button>
-            </div>
-
-            <div className="pricing-card scp-custom-top">
-              <div className="scp-custom-top-kicker">Enterprise</div>
-              <h3 className="scp-custom-top-name">{custom.name}</h3>
-              <p className="scp-custom-top-lead">{custom.headline}</p>
-              <div className="scp-custom-top-chips">
-                {customChips.map((c) => (
-                  <span key={c} className="scp-custom-chip">
-                    {c}
-                  </span>
-                ))}
-              </div>
-              {custom.footnote ? <p className="scp-custom-top-foot">{custom.footnote}</p> : null}
-              <button
-                type="button"
-                className="pricing-cta pricing-cta-secondary scp-custom-top-cta"
-                onClick={() => handleLandingCta(custom)}
-              >
-                Talk to sales
-              </button>
-            </div>
-          </div>
-
-          <p className="scp-tier-section-label">Monthly plans & add-ons</p>
+          <SetupFeeBanner amountLabel={setup.priceDisplay} />
 
           <div className="scp-tier-grid">
             {tiers.map((plan) => (
-              <div
-                key={plan.id}
-                className={`pricing-card scp-tier-card${plan.featured ? " featured" : ""}`}
-              >
-                {plan.badge && <div className="pricing-badge">{plan.badge}</div>}
-                <div className="pricing-header scp-tier-header">
-                  <h3 className="pricing-name">{plan.name}</h3>
-                  <p className="pricing-tagline">{plan.headline}</p>
-                  <div className="pricing-price">
-                    <span className="pricing-amount">{plan.priceDisplay}</span>
-                    {plan.priceSub ? <span className="pricing-period">{plan.priceSub}</span> : null}
-                  </div>
-                  {typeof plan.leadQuota === "number" && (
-                    <p className="pricing-highlight-sub" style={{ marginTop: 10, textAlign: "center" }}>
-                      {plan.leadQuota} enriched leads / month
-                    </p>
-                  )}
-                </div>
-                <div className="pricing-features">
-                  {plan.sections.map((sec) => (
-                    <div key={sec.heading}>
-                      <div className="pricing-features-title">{sec.heading}</div>
-                      {sec.bullets.map((b) => (
-                        <div key={b} className="pricing-feature">
-                          <span className="pricing-feature-icon">
-                            <Check size={12} strokeWidth={3} />
-                          </span>
-                          <span className="pricing-feature-text">{b}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                {plan.footnote ? <p className="pricing-note" style={{ marginBottom: 14 }}>{plan.footnote}</p> : null}
-                <button
-                  type="button"
-                  className={`pricing-cta ${plan.featured ? "pricing-cta-primary" : "pricing-cta-secondary"}`}
-                  onClick={() => handleLandingCta(plan)}
-                >
-                  Get started
-                </button>
-              </div>
+              <LandingPricingTierCard key={plan.id} plan={plan} onCta={() => handleLandingCta(plan)} />
             ))}
           </div>
-        </div>
 
-        <p className="pricing-enterprise-note" style={{ maxWidth: 720, margin: "32px auto 0" }}>
-          All amounts are in AED. Calling replaces the standard setup fee when purchased. Stripe Checkout is wired on the
-          server—map Stripe Price IDs to each plan when you are ready.
-        </p>
+          <div className="scp-landing-extras">
+            <LandingCallingAddonRow plan={callingAddon} onCta={() => handleLandingCta(callingAddon)} />
+            <LandingEnterpriseRow onCta={() => handleLandingCta(custom)} />
+          </div>
+        </div>
       </section>
     );
   }
@@ -657,29 +699,7 @@ export default function SalesCopilotPricingSection({
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        <div className="scp-portal-top-row">
-          <PortalSetupPairCard
-            plan={setup}
-            busyId={busyId}
-            onCta={handlePortalCta}
-            enableCheckout={enableCheckout}
-            onMarketingCta={handleMarketingCta}
-          />
-          <PortalCustomPairCard plan={custom} />
-        </div>
-
-        <p
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "var(--color-text-muted)",
-            margin: "4px 0 0",
-          }}
-        >
-          Monthly plans & add-ons
-        </p>
+        <SetupFeeBanner amountLabel={setup.priceDisplay} />
 
         <div className="scp-portal-tier-grid">
           {tiers.map((plan) => (
@@ -695,6 +715,16 @@ export default function SalesCopilotPricingSection({
             />
           ))}
         </div>
+
+        <PortalCallingAddonRow
+          plan={callingAddon}
+          busyId={busyId}
+          onCta={handlePortalCta}
+          enableCheckout={enableCheckout}
+          onMarketingCta={handleMarketingCta}
+        />
+
+        <PortalEnterpriseRow plan={custom} />
       </div>
 
       <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 24, lineHeight: 1.5 }}>

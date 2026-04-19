@@ -13,6 +13,17 @@ export const APP_BRAND_LOGO_DARK = "/dark_logo.png";
 export const APP_BRAND_LOGO_LIGHT_COLLAPSE = "/light_collapse.png";
 /** Collapsed sidebar rail (dark theme). */
 export const APP_BRAND_LOGO_DARK_COLLAPSE = "/dark_collapse.png";
+/** Collapsed rail + login (`public/collapse_logo.png`) — replaces per-theme light/dark collapse assets. */
+export const APP_BRAND_LOGO_COLLAPSE_FILE = "/collapse_logo.png";
+
+/** Full wordmark: match landing nav (`height={44}`, `maxWidth: 230`). */
+export const APP_BRAND_LOGO_HEIGHT = 44;
+export const APP_BRAND_LOGO_MAX_WIDTH = 230;
+/** Collapsed mark max width (square-ish); height uses {@link APP_BRAND_LOGO_HEIGHT} for consistent brand scale. */
+export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 56;
+/** Narrow collapsed rail: slightly smaller mark so it fits the icon strip cleanly. */
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 32;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 40;
 /** @deprecated Use `APP_BRAND_LOGO_LIGHT_COLLAPSE`. */
 export const APP_BRAND_LOGO_COLLAPSE = APP_BRAND_LOGO_LIGHT_COLLAPSE;
 /** @deprecated Use `APP_BRAND_LOGO_DARK_COLLAPSE`. */
@@ -67,7 +78,7 @@ export function AppBrandLogoMark({ size = 44, className, style }: AppBrandLogoMa
 
 function resolveBrandLogoSrc(collapsed: boolean, theme: "light" | "dark"): string {
   if (collapsed) {
-    return theme === "dark" ? APP_BRAND_LOGO_DARK_COLLAPSE : APP_BRAND_LOGO_LIGHT_COLLAPSE;
+    return APP_BRAND_LOGO_COLLAPSE_FILE;
   }
   return theme === "dark" ? APP_BRAND_LOGO_DARK : APP_BRAND_LOGO_LIGHT;
 }
@@ -77,20 +88,21 @@ export type AppBrandLogoLockupProps = {
   height?: number;
   className?: string;
   style?: CSSProperties;
-  /** Desktop sidebar collapsed rail — `light_collapse.png` or `dark_collapse.png` by theme. */
+  /** Collapsed rail — `collapse_logo.png` (same asset as login top mark). */
   collapsed?: boolean;
   /**
-   * Override automatic `document.documentElement[data-theme]` (e.g. landing page local light/dark).
-   * When omitted, follows global app theme.
+   * Which full/collapse raster to use (`dark_logo` / `light_logo` and `*_collapse` pairs).
+   * Pass `"dark"` on auth marketing rails so the left panel always uses `dark_logo.png` regardless of form theme.
+   * When omitted, follows `document.documentElement[data-theme]` (e.g. app shell, landing).
    */
   theme?: "light" | "dark";
 };
 
 /**
- * Raster logos from `public/light_logo.png`, `dark_logo.png`, `light_collapse.png`, `dark_collapse.png`.
+ * Raster logos: full wordmarks from `light_logo.png` / `dark_logo.png`; collapsed from `collapse_logo.png`.
  */
 export function AppBrandLogoLockup({
-  height = 40,
+  height = APP_BRAND_LOGO_HEIGHT,
   className,
   style,
   collapsed = false,

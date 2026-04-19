@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import BaseCard from "@/components/ui/BaseCard";
 import { Icons } from "@/components/ui/Icons";
@@ -54,7 +54,7 @@ function InvitePublicHeader() {
       }}
     >
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-        <AppBrandLogoLockup height={32} style={{ maxWidth: 160 }} />
+        <AppBrandLogoLockup height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Link

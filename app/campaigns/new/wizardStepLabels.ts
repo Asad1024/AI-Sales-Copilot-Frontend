@@ -16,4 +16,5 @@ export const WIZARD_STEP_SHORT_LABEL: Record<StepType, string> = {
   call_system_persona: "Assistant style",
   schedule: "Schedule",
   review: "Review",
+  launch: "Launch",
 };

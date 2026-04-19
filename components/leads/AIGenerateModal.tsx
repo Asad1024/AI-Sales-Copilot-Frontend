@@ -117,7 +117,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const suggestionPrompts = [
     "SaaS Founders",
     "Marketing Directors",
-    "Product Managers",
+    "Software Engineer",
     "HR Leaders in IT Services",
     "Ecommerce Growth Managers",
     "Real Estate Brokerage Owners",

@@ -14,10 +14,11 @@ export type SalesCopilotPricingPlan = {
   footnote?: string;
 };
 
-/** Setup first, then the four purchasable tiers, then enterprise custom (layout only). */
+/** Setup fee (banner), three subscription tiers, calling add-on, then enterprise custom (layout only). */
 export const pricingPlansByLayout = (): {
   setup: SalesCopilotPricingPlan;
   tiers: SalesCopilotPricingPlan[];
+  callingAddon: SalesCopilotPricingPlan;
   custom: SalesCopilotPricingPlan;
 } => {
   const map = Object.fromEntries(SALES_COPILOT_PRICING_PLANS.map((p) => [p.id, p])) as Record<
@@ -26,7 +27,8 @@ export const pricingPlansByLayout = (): {
   >;
   return {
     setup: map.setup,
-    tiers: [map.basic, map.pro, map.premium, map.calling_addon],
+    tiers: [map.basic, map.pro, map.premium],
+    callingAddon: map.calling_addon,
     custom: map.custom,
   };
 };
@@ -86,8 +88,6 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
     headline: "Higher volume for teams scaling pipeline.",
     priceDisplay: "1,500 AED",
     priceSub: "/ month",
-    badge: "Popular",
-    featured: true,
     leadQuota: 500,
     sections: [
       {

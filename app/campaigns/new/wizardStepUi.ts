@@ -75,6 +75,10 @@ const BY_STEP: Record<StepType, WizardPhaseBanner> = {
     phaseLabel: "Review",
     phaseHint: "Check everything before you launch.",
   },
+  launch: {
+    phaseLabel: "Launch",
+    phaseHint: "Test a call if you use phone outreach, then go live.",
+  },
 };
 
 export function getWizardPhaseBanner(stepType: StepType | undefined): WizardPhaseBanner {

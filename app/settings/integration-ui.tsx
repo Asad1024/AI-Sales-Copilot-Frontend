@@ -6,7 +6,7 @@ import { Icons } from "@/components/ui/Icons";
 
 export type IntegrationStatusVariant = "connected" | "not_connected" | "coming_soon" | "server_configured";
 
-const CARD_MIN_HEIGHT = 110;
+const CARD_MIN_HEIGHT = 104;
 
 const cardShell: CSSProperties = {
   position: "relative",
@@ -14,13 +14,15 @@ const cardShell: CSSProperties = {
   width: "100%",
   height: "100%",
   minHeight: CARD_MIN_HEIGHT,
-  padding: 16,
-  borderRadius: 12,
+  padding: "18px 18px 16px",
+  borderRadius: 16,
   background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
+  border: "1px solid rgba(148, 163, 184, 0.22)",
+  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
+  transition: "box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
 };
 
 export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) {
@@ -112,40 +114,44 @@ type IntegrationUniversalCardProps = {
 export function IntegrationUniversalCard({ icon, name, subtitle, status, comingSoon, actionRow }: IntegrationUniversalCardProps) {
   return (
     <div
+      className="integration-universal-card"
+      data-interactive={comingSoon ? "false" : "true"}
       style={{
         ...cardShell,
         opacity: comingSoon ? 0.5 : 1,
         pointerEvents: comingSoon ? "none" : "auto",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0, flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, minWidth: 0, flex: 1 }}>
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 8,
+              width: 44,
+              height: 44,
+              borderRadius: 12,
               flexShrink: 0,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
+              background: "var(--color-surface-secondary)",
+              border: "1px solid rgba(148, 163, 184, 0.14)",
             }}
-            className="rounded-lg"
           >
             {icon}
           </div>
           <div style={{ minWidth: 0, paddingRight: 4, flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text)", lineHeight: 1.3 }}>{name}</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", lineHeight: 1.25, letterSpacing: "-0.02em" }}>{name}</div>
             <div
               style={{
-                fontSize: 12,
+                fontSize: 13,
                 color: "var(--color-text-muted)",
-                marginTop: 2,
-                lineHeight: 1.35,
-                whiteSpace: "nowrap",
+                marginTop: 4,
+                lineHeight: 1.45,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
                 overflow: "hidden",
-                textOverflow: "ellipsis",
               }}
               title={subtitle}
             >
@@ -166,8 +172,10 @@ export function IntegrationUniversalCard({ icon, name, subtitle, status, comingS
             gap: 10,
             flexWrap: "wrap",
             width: "100%",
-            marginTop: 12,
+            marginTop: 16,
+            paddingTop: 14,
             flexShrink: 0,
+            borderTop: "1px solid rgba(148, 163, 184, 0.12)",
           }}
         >
           {actionRow}

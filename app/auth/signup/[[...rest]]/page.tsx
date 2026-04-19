@@ -6,8 +6,7 @@ import { authAPI, apiRequest } from "@/lib/apiClient";
 import { rememberTeamWorkspaceAfterInvite } from "@/lib/focusTeamWorkspace";
 import { API_BASE } from "@/lib/api";
 import GoogleSignInRedirecting from "@/components/auth/GoogleSignInRedirecting";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
-import { APP_BRAND_TAGLINE } from "@/lib/brand";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 function decodeGooglePendingJwt(token: string): { purpose?: string; name?: string; email?: string } | null {
   try {
@@ -22,6 +21,7 @@ function decodeGooglePendingJwt(token: string): { purpose?: string; name?: strin
 export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,6 +55,27 @@ export default function SignupPage() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const appTheme = localStorage.getItem("spark-theme");
+      const landingTheme = localStorage.getItem("spark-landing-theme");
+      const domTheme = document.documentElement.getAttribute("data-theme");
+      const initialTheme =
+        appTheme === "dark" || appTheme === "light"
+          ? appTheme
+          : landingTheme === "dark" || landingTheme === "light"
+            ? landingTheme
+            : domTheme === "dark"
+              ? "dark"
+              : "light";
+      setTheme(initialTheme);
+      document.documentElement.setAttribute("data-theme", initialTheme);
+      localStorage.setItem("spark-theme", initialTheme);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -204,21 +225,28 @@ export default function SignupPage() {
   );
 
   const requiredMark = <span style={{ color: "#dc2626", fontWeight: 600 }} aria-hidden>*</span>;
+  const isDark = theme === "dark";
 
   return (
-    <div style={{
+    <div
+      className="auth-page"
+      data-auth-theme={theme}
+      style={{
       minHeight: "100vh",
       display: "flex",
-      background: "#f8fafc",
+      background: isDark ? "#050a16" : "#f8fafc",
       opacity: mounted ? 1 : 0,
       transition: "opacity 0.6s ease-in-out",
       position: "relative",
-    }}>
+    }}
+    >
       {googleRedirecting ? <GoogleSignInRedirecting /> : null}
       {/* Left Panel - Branding */}
       <div style={{
         flex: 1,
-        background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+        background: isDark
+          ? "linear-gradient(135deg, #0f172a 0%, #1f2937 48%, #14532d 100%)"
+          : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -269,10 +297,9 @@ export default function SignupPage() {
         <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
           {/* Logo */}
           <div style={{ marginBottom: "48px" }}>
-            <AppBrandLogoLockup height={44} style={{ maxWidth: 220 }} />
-            <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "12px" }}>
-              {APP_BRAND_TAGLINE}
-            </div>
+            <Link href="/" aria-label="Go to landing page" style={{ display: "inline-block" }}>
+              <AppBrandLogoLockup theme="dark" height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
+            </Link>
           </div>
 
           {/* Headline */}
@@ -366,16 +393,20 @@ export default function SignupPage() {
       </div>
 
       {/* Right Panel - Signup Form */}
-      <div style={{
+      <div
+        className="auth-form-panel"
+        style={{
         width: "520px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         padding: "60px",
-        background: "#fff",
+        background: isDark ? "#0b1220" : "#fff",
+        position: "relative",
         transform: mounted ? "translateX(0)" : "translateX(50px)",
         transition: "transform 0.8s ease-out"
-      }}>
+      }}
+      >
         <div style={{ maxWidth: "360px", width: "100%", margin: "0 auto" }}>
           <div style={{ marginBottom: "32px" }}>
             {/* Progress indicator */}
@@ -394,7 +425,7 @@ export default function SignupPage() {
                     flex: 1,
                     height: "4px",
                     borderRadius: "2px",
-                    background: step === 1 ? "linear-gradient(90deg, #2563EB, #06B6D4)" : "#e2e8f0",
+                    background: step === 1 ? "linear-gradient(90deg, #2563EB, #06B6D4)" : isDark ? "#334155" : "#e2e8f0",
                     transition: "all 0.4s ease"
                   }}
                 />
@@ -404,7 +435,7 @@ export default function SignupPage() {
             <h2 style={{
               fontSize: "28px",
               fontWeight: "700",
-              color: "#1e293b",
+              color: isDark ? "#e2e8f0" : "#1e293b",
               margin: "0 0 8px 0",
               letterSpacing: "-0.02em",
               opacity: mounted ? 1 : 0,
@@ -419,7 +450,7 @@ export default function SignupPage() {
             </h2>
             <p style={{ 
               fontSize: "14px", 
-              color: "#64748b", 
+              color: isDark ? "#94a3b8" : "#64748b", 
               margin: 0,
               opacity: mounted ? 1 : 0,
               transition: "opacity 0.6s ease-out 0.4s"
@@ -428,7 +459,7 @@ export default function SignupPage() {
                 ? "Google verified your email. Add any extra details, then create your account."
                 : isInvitationEmailLocked
                   ? "Create your password below. The email on this invite cannot be changed."
-                  : "Join thousands of sales teams • No credit card required"}
+                  : "Join thousands of sales teams | No credit card required"}
             </p>
           </div>
 
@@ -509,15 +540,16 @@ export default function SignupPage() {
           {!isGoogleFinishFlow && !suppressGoogleForWorkspaceInvite && (
           <button
             type="button"
+            className="auth-google-btn"
             onClick={startGoogleSignUp}
             disabled={loading || googleRedirecting}
             style={{
               width: "100%",
               padding: "12px 20px",
               borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              background: "#fff",
-              color: "#1e293b",
+              border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+              background: isDark ? "#0f172a" : "#fff",
+              color: isDark ? "#e2e8f0" : "#1e293b",
               fontSize: "14px",
               fontWeight: "600",
               cursor: loading || googleRedirecting ? "not-allowed" : "pointer",
@@ -532,14 +564,14 @@ export default function SignupPage() {
             }}
             onMouseOver={(e) => { 
               if (loading || googleRedirecting) return;
-              e.currentTarget.style.background = "#f8fafc"; 
-              e.currentTarget.style.borderColor = "#cbd5e1";
+              e.currentTarget.style.background = isDark ? "#111f35" : "#f8fafc";
+              e.currentTarget.style.borderColor = isDark ? "#475569" : "#cbd5e1";
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
             }}
             onMouseOut={(e) => { 
-              e.currentTarget.style.background = "#fff"; 
-              e.currentTarget.style.borderColor = "#e2e8f0";
+              e.currentTarget.style.background = isDark ? "#0f172a" : "#fff";
+              e.currentTarget.style.borderColor = isDark ? "#334155" : "#e2e8f0";
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
             }}
@@ -562,9 +594,9 @@ export default function SignupPage() {
             gap: "16px",
             margin: "24px 0"
           }}>
-            <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
-            <span style={{ fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>or</span>
-            <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
+            <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: isDark ? "#334155" : "#e2e8f0" }} />
+            <span className="auth-divider-text" style={{ fontSize: "12px", color: isDark ? "#64748b" : "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>or</span>
+            <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: isDark ? "#334155" : "#e2e8f0" }} />
           </div>
           )}
 
@@ -844,6 +876,7 @@ export default function SignupPage() {
             </div>
 
             <button
+              className="auth-primary-btn"
               onClick={onSignup}
               disabled={loading || !canSubmit}
               style={{
@@ -852,9 +885,15 @@ export default function SignupPage() {
                 borderRadius: "10px",
                 border: "none",
                 background: loading || !canSubmit
-                  ? "#cbd5e1"
+                  ? isDark
+                    ? "#334155"
+                    : "#cbd5e1"
                   : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
-                color: "#fff",
+                color: loading || !canSubmit
+                  ? isDark
+                    ? "#cbd5e1"
+                    : "#fff"
+                  : "#fff",
                 fontSize: "14px",
                 fontWeight: "600",
                 cursor: loading || !canSubmit ? "not-allowed" : "pointer",
@@ -896,7 +935,7 @@ export default function SignupPage() {
 
             <p style={{
               fontSize: "11px",
-              color: "#94a3b8",
+              color: isDark ? "#64748b" : "#94a3b8",
               textAlign: "center",
               marginTop: "4px",
               lineHeight: "1.5"
@@ -909,7 +948,7 @@ export default function SignupPage() {
           <p style={{
             textAlign: "center",
             fontSize: "14px",
-            color: "#64748b",
+            color: isDark ? "#94a3b8" : "#64748b",
             marginTop: "28px"
           }}>
             Already have an account?{" "}
@@ -934,6 +973,28 @@ export default function SignupPage() {
       </div>
 
       <style jsx global>{`
+        .auth-page[data-auth-theme="dark"] .auth-form-panel a {
+          color: #60a5fa !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel label {
+          color: #cbd5e1 !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input {
+          background: #0f172a !important;
+          color: #e2e8f0 !important;
+          border-color: #334155 !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input::placeholder {
+          color: #64748b !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input[readonly] {
+          background: #111827 !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input:focus {
+          border-color: #2563EB !important;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+        }
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }

@@ -177,6 +177,9 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
     
     case 'review':
       return true; // Review step is always valid
+
+    case 'launch':
+      return true;
     
     default:
       return true; // Default to allowing progression for unknown steps

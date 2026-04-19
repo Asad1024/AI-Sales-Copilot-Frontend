@@ -35,6 +35,40 @@ interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
 
+export type CompanyPreviewRecord = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  domain: string | null;
+  website_url: string | null;
+  linkedin_url: string | null;
+  industry: string | null;
+  estimated_num_employees: number | null;
+  employee_range: string | null;
+  location: string | null;
+  founded_year: number | null;
+  annual_revenue_printed: string | null;
+  /** Raw org phone when API returns it (portal shows only when set) */
+  phone?: string | null;
+};
+
+export type CompanyEmployeePreview = {
+  full_name: string;
+  title: string | null;
+  email_masked: string | null;
+  phone_masked: string | null;
+  linkedin_url: string | null;
+  /** Portal: unmasked contact when Apollo returns it */
+  email?: string | null;
+  phone?: string | null;
+};
+
+export type CompanyPreviewTries = {
+  limit: number;
+  used: number;
+  remaining: number;
+};
+
 /**
  * Make an authenticated API request
  */
@@ -236,6 +270,96 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ base_id: baseId, linkedin_url: linkedinUrl }),
     });
+  },
+
+  async searchCompanies(baseId: number, query: string, limit: number = 8) {
+    const params = new URLSearchParams({
+      base_id: String(baseId),
+      q: query.trim(),
+      limit: String(limit),
+    });
+    return apiRequest<{ companies: CompanyPreviewRecord[] }>(`/api/leads/company-search?${params.toString()}`);
+  },
+
+  /** Distinct companies in a workspace (aggregated from lead.company). */
+  async listWorkspaceCompanies(baseId: number) {
+    const params = new URLSearchParams({ base_id: String(baseId) });
+    return apiRequest<{
+      companies: Array<{
+        company: string;
+        lead_count: number;
+        last_updated: string | null;
+        industry: string | null;
+      }>;
+    }>(`/api/leads/companies?${params.toString()}`);
+  },
+
+  /**
+   * Full Apollo company profile + employee list (up to 200); charges 30 owner credits.
+   * Pass the same hints as landing search (name + optional Apollo company id / domain).
+   */
+  async fetchCompanyEmployeesPreview(
+    baseId: number,
+    payload:
+      | string
+      | { name: string; company_id?: string | null; domain?: string | null }
+  ) {
+    const body =
+      typeof payload === "string"
+        ? { name: payload.trim() }
+        : {
+            name: payload.name.trim(),
+            ...(payload.company_id != null && String(payload.company_id).trim() !== ""
+              ? { company_id: String(payload.company_id).trim() }
+              : {}),
+            ...(payload.domain != null && String(payload.domain).trim() !== ""
+              ? { domain: String(payload.domain).trim() }
+              : {}),
+          };
+    return apiRequest<{
+      company_name: string;
+      company: CompanyPreviewRecord | null;
+      employees: CompanyEmployeePreview[];
+      credits_charged: number;
+      credits_balance: number;
+    }>(`/api/bases/${baseId}/company-employees-preview`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  /** Owner credit pool for a workspace (same as header wallet). */
+  async getWorkspaceCreditsSummary(baseId: number) {
+    return apiRequest<{
+      credits_balance: number;
+      monthly_lead_credits: number;
+    }>(`/api/bases/${baseId}/workspace-credits?page=1&limit=1`);
+  },
+
+  async getLandingCompanySuggestions(query: string, limit: number = 10) {
+    const params = new URLSearchParams({
+      q: query.trim(),
+      limit: String(limit),
+    });
+    return apiRequest<{ companies: CompanyPreviewRecord[]; tries: CompanyPreviewTries }>(
+      `/api/ai/company-preview/search?${params.toString()}`,
+      { skipAuth: true }
+    );
+  },
+
+  async getLandingCompanyDetails(paramsInput: { company_id?: string; domain?: string; name?: string }) {
+    const params = new URLSearchParams();
+    if (paramsInput.company_id) params.set("company_id", paramsInput.company_id);
+    if (paramsInput.domain) params.set("domain", paramsInput.domain);
+    if (paramsInput.name) params.set("name", paramsInput.name);
+    return apiRequest<{
+      company: CompanyPreviewRecord;
+      employees_preview?: CompanyEmployeePreview[];
+      tries: CompanyPreviewTries;
+    }>(
+      `/api/ai/company-preview/details?${params.toString()}`,
+      { skipAuth: true }
+    );
   },
 
   async updateLead(id: number, updates: any) {

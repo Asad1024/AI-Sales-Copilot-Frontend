@@ -6,6 +6,7 @@ import { setToken, setUser, authAPI, getUser } from "@/lib/apiClient";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { routeAfterSuccessfulSession } from "@/lib/authRouting";
 import OAuthCompletingScreen from "@/components/auth/OAuthCompletingScreen";
+import { AuthCollapseBrandMark } from "@/components/auth/AuthCollapseBrandMark";
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -62,23 +63,7 @@ function OAuthCallbackContent() {
         }}
       >
         <div style={{ width: "100%", maxWidth: "400px", textAlign: "center" }}>
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "16px",
-              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-              boxShadow: "0 8px 24px rgba(37, 99, 235, 0.2)",
-            }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </div>
+          <AuthCollapseBrandMark marginBottom={20} />
           <h1
             style={{
               fontSize: "20px",

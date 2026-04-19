@@ -49,7 +49,7 @@ function trendFromBaseline(prev: number, curr: number): { show: boolean; trendPo
 
 export function CampaignStats() {
   const { campaigns, loading } = useCampaignStore();
-  const { pagination, fetchLeads } = useLeadStore();
+  const { pagination } = useLeadStore();
   const { activeBaseId } = useBaseStore();
   const [baseline, setBaseline] = useState<BaselineSnap | null>(null);
 
@@ -117,12 +117,6 @@ export function CampaignStats() {
     stats.avgOpenNum,
     stats.avgReplyNum,
   ]);
-
-  useEffect(() => {
-    if (activeBaseId && pagination.totalLeads === 0) {
-      fetchLeads(activeBaseId, 1, 30);
-    }
-  }, [activeBaseId, fetchLeads, pagination.totalLeads]);
 
   if (activeBaseId == null) return null;
 

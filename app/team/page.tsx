@@ -621,7 +621,7 @@ export default function TeamPage() {
           background: "var(--color-canvas)",
           display: "flex",
           flexDirection: "column",
-          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+          padding: "16px clamp(12px, 1.9vw, 28px) 20px",
           gap: 16,
           boxSizing: "border-box",
         }}
@@ -653,18 +653,57 @@ export default function TeamPage() {
         background: "var(--color-canvas)",
         display: "flex",
         flexDirection: "column",
-        padding: "8px clamp(10px, 1.25vw, 20px) 14px",
-        gap: 12,
+        padding: "16px clamp(12px, 1.9vw, 28px) 24px",
+        gap: 14,
         boxSizing: "border-box",
       }}
     >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+        <div
+          style={{
+            minWidth: 220,
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 6px",
+              fontSize: 11,
+              letterSpacing: "0.12em",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            Workspace team
+          </p>
+          <h1 style={{ margin: "0 0 8px", fontSize: "clamp(1.15rem, 2.1vw, 1.45rem)", lineHeight: 1.2, fontWeight: 700 }}>
+            Team and Access
+          </h1>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "var(--color-text-muted)" }}>
+            Manage roles, invitations, and workspace access for{" "}
+            <strong style={{ color: "var(--color-text)" }}>{activeBase?.name || "this workspace"}</strong>.
+          </p>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
+          <span>{totalMembers} members</span>
+          <span>•</span>
+          <span>{pendingInvites.length} pending invites</span>
+        </div>
+      </div>
+
       <div
+        style={{
+          padding: "8px 0 2px",
+          borderBottom: "1px solid var(--elev-border)",
+        }}
+      >
+        <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           width: "100%",
-          marginBottom: 4,
+          marginBottom: 2,
           gap: 12,
           flexWrap: "wrap",
         }}
@@ -674,13 +713,13 @@ export default function TeamPage() {
             variant="minimal"
             value={memberSearch}
             onChange={setMemberSearch}
-            placeholder="Search members by name or email"
-            style={{ minWidth: 260, maxWidth: 640, flex: 1 }}
+            placeholder="Search members by name, email, or user ID"
+            style={{ minWidth: 260, maxWidth: 680, flex: 1 }}
             aria-label="Search team members"
           />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexShrink: 0 }}>
-          <label htmlFor="team-base-selector" className="text-hint" style={{ fontSize: 11, fontWeight: 600 }}>
+          <label htmlFor="team-base-selector" className="text-hint" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             Workspace
           </label>
           <select
@@ -694,7 +733,7 @@ export default function TeamPage() {
               border: "1px solid var(--elev-border)",
               background: "var(--elev-bg)",
               color: "var(--color-text)",
-              minWidth: 200,
+              minWidth: 220,
               fontSize: 14,
               cursor: "pointer",
             }}
@@ -709,7 +748,7 @@ export default function TeamPage() {
           <button
             type="button"
             className="btn-primary focus-ring"
-            style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
+            style={{ borderRadius: 9, display: "inline-flex", alignItems: "center", gap: 8, paddingInline: 14 }}
             onClick={() => setShowInviteModal(true)}
             disabled={!canManageTeam}
           >
@@ -719,7 +758,7 @@ export default function TeamPage() {
           <button
             type="button"
             className="btn-dashboard-outline focus-ring"
-            style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
+            style={{ borderRadius: 9, display: "inline-flex", alignItems: "center", gap: 8 }}
             onClick={() => {
               void refreshMembers();
               if (canManageTeam) void fetchPendingInvitations();
@@ -731,7 +770,7 @@ export default function TeamPage() {
         </div>
       </div>
 
-      <div
+        <div
         style={{
           display: "flex",
           gap: 12,
@@ -739,6 +778,7 @@ export default function TeamPage() {
           color: "var(--color-text-muted)",
           fontSize: 13,
           alignItems: "center",
+          marginTop: 10,
         }}
       >
         <span>Your access: {viewerRoleLabel}</span>
@@ -748,8 +788,9 @@ export default function TeamPage() {
           </span>
         )}
         {!canManageTeam && (
-          <span>View-only roster — workspace owners and admins can invite or change roles.</span>
+          <span>View-only roster - workspace owners and admins can invite or change roles.</span>
         )}
+      </div>
       </div>
 
       {membersError && (
@@ -774,7 +815,7 @@ export default function TeamPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
+              gap: 14,
             }}
           >
             {[0, 1, 2, 3].map((i) => (
@@ -920,10 +961,27 @@ export default function TeamPage() {
           )}
 
           <BaseCard style={{ padding: "24px", overflow: "hidden" }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 20px 0", color: "var(--color-text)" }}>
-              Team members (
-              {memberSearch.trim() ? `${filteredMembers.length} shown · ${totalMembers} total` : totalMembers})
-            </h3>
+            <div style={{ marginBottom: 16 }}>
+              <h3
+                style={{
+                  fontSize: 18,
+                  fontWeight: 650,
+                  margin: "0 0 6px 0",
+                  color: "var(--color-text)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />
+                Team members
+              </h3>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+                {memberSearch.trim()
+                  ? `${filteredMembers.length} shown / ${totalMembers} total`
+                  : `${totalMembers} total`}
+              </p>
+            </div>
             {isWorkspaceOwner && (
               <p className="text-hint" style={{ margin: "-8px 0 16px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-muted)" }}>
                 Teammates use lead credits from your pool. The &quot;Credits spent&quot; column (visible only to you) sums
@@ -1480,13 +1538,14 @@ function HeaderCell({ children }: { children: React.ReactNode }) {
   return (
     <th
       style={{
-        padding: "12px",
+        padding: "12px 14px",
         textAlign: "left",
         fontSize: "12px",
-        fontWeight: 600,
+        fontWeight: 700,
         color: "var(--color-text-muted)",
         textTransform: "uppercase",
-        letterSpacing: "0.08em"
+        letterSpacing: "0.08em",
+        whiteSpace: "nowrap",
       }}
     >
       {children}
@@ -1525,26 +1584,27 @@ function InviteModal({
         left: 0,
         width: "100%",
         height: "100vh",
-        background: "rgba(0, 0, 0, 0.7)",
-        backdropFilter: "blur(8px)",
+        background: "rgba(15, 23, 42, 0.55)",
+        backdropFilter: "blur(5px)",
         zIndex: 1000,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "20px"
+        padding: "20px",
       }}
     >
       <div
         style={{
-          background: "var(--color-surface)",
-          borderRadius: "20px",
-          padding: "32px",
-          border: "1px solid var(--color-border)",
-          maxWidth: "520px",
+          background: "linear-gradient(170deg, color-mix(in srgb, var(--color-surface) 95%, #0ea5e9 5%), var(--color-surface))",
+          borderRadius: "16px",
+          padding: "26px",
+          border: "1px solid var(--elev-border)",
+          boxShadow: "0 20px 48px rgba(15, 23, 42, 0.25)",
+          maxWidth: "560px",
           width: "100%",
           display: "flex",
           flexDirection: "column",
-          gap: "20px"
+          gap: "18px",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -1575,14 +1635,14 @@ function InviteModal({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "4px",
-              borderRadius: "4px",
-              transition: "all 0.2s"
+              padding: "6px",
+              borderRadius: "8px",
+              transition: "all 0.2s",
             }}
             disabled={inviteLoading}
             onMouseEnter={(e) => {
               if (!inviteLoading) {
-                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                e.currentTarget.style.background = "var(--color-surface-secondary)";
                 e.currentTarget.style.color = "var(--color-text)";
               }
             }}
@@ -1608,8 +1668,8 @@ function InviteModal({
             }
             style={{
               padding: "12px 16px",
-              borderRadius: "12px",
-              border: "1px solid var(--color-border)",
+              borderRadius: "10px",
+              border: "1px solid var(--elev-border)",
               background: "var(--color-surface-secondary)",
               color: "var(--color-text)",
               fontSize: "14px",
@@ -1633,8 +1693,8 @@ function InviteModal({
               onChange={(event) => setInviteForm((prev) => ({ ...prev, name: event.target.value }))}
               style={{
                 padding: "12px 16px",
-                borderRadius: "12px",
-                border: "1px solid var(--color-border)",
+                borderRadius: "10px",
+                border: "1px solid var(--elev-border)",
                 background: "var(--color-surface-secondary)",
                 color: "var(--color-text)",
                 fontSize: "14px",
@@ -1655,8 +1715,8 @@ function InviteModal({
             }
             style={{
               padding: "12px 16px",
-              borderRadius: "12px",
-              border: "1px solid var(--color-border)",
+              borderRadius: "10px",
+              border: "1px solid var(--elev-border)",
               background: "var(--color-surface-secondary)",
               color: "var(--color-text)",
               fontSize: "14px",
@@ -1665,7 +1725,7 @@ function InviteModal({
           >
             {roleOptions.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label} — {option.description}
+                {option.label} - {option.description}
               </option>
             ))}
           </select>
@@ -1686,11 +1746,11 @@ function InviteModal({
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ display: "flex", gap: "12px", marginTop: 4 }}>
           <button
             type="button"
             className="btn-primary focus-ring"
-            style={{ borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, flex: 1 }}
+            style={{ borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, flex: 1 }}
             onClick={() => void onInvite()}
             disabled={disabled}
           >
@@ -1699,7 +1759,7 @@ function InviteModal({
           <button
             type="button"
             className="btn-dashboard-outline focus-ring"
-            style={{ borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, flex: 1 }}
+            style={{ borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, flex: 1 }}
             onClick={onClose}
             disabled={inviteLoading}
           >

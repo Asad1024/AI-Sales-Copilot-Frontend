@@ -7,7 +7,8 @@ import { getToken, clearAuth, getUser, apiRequest } from "@/lib/apiClient";
 import { rememberTeamWorkspaceAfterInvite, readRememberedTeamWorkspaceId } from "@/lib/focusTeamWorkspace";
 import { userNeedsOnboarding } from "@/lib/authRouting";
 import { API_BASE } from "@/lib/api";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { AuthCollapseBrandMark } from "@/components/auth/AuthCollapseBrandMark";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 import { APP_BRAND_TAGLINE } from "@/lib/brand";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -130,23 +131,7 @@ function VerifyRequiredContent() {
         }}
       >
         <div style={{ width: "100%", maxWidth: "420px", textAlign: "center" }}>
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "16px",
-              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-              boxShadow: "0 8px 24px rgba(37, 99, 235, 0.3)",
-            }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </div>
+          <AuthCollapseBrandMark marginBottom={20} />
           <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#1e293b", margin: "0 0 8px 0" }}>You&apos;re already verified</h1>
           <p style={{ fontSize: "14px", color: "#64748b", margin: "0 0 20px 0", lineHeight: 1.5 }}>
             Taking you to onboarding or your dashboard…
@@ -217,7 +202,7 @@ function VerifyRequiredContent() {
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
         <div style={{ marginBottom: "48px" }}>
-          <AppBrandLogoLockup height={44} style={{ maxWidth: 220 }} />
+          <AppBrandLogoLockup theme="dark" height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
           <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "12px" }}>{APP_BRAND_TAGLINE}</div>
         </div>
 

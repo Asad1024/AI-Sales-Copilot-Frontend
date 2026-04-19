@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wallet, Bell, ChevronDown, ExternalLink, Settings, CreditCard, UsersRound, Puzzle, BarChart3, CircleHelp, LogOut, Rocket } from "lucide-react";
+import { Bell, ChevronDown, ExternalLink, Settings, CreditCard, UsersRound, Puzzle, BarChart3, CircleHelp, LogOut, Rocket } from "lucide-react";
 import { getUser, apiRequest, clearAuth } from "@/lib/apiClient";
 import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
@@ -46,7 +46,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
   const [monthlyCredits, setMonthlyCredits] = useState<number>(0);
   const [walletOpen, setWalletOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const walletRef = useRef<HTMLDivElement | null>(null);
+  const creditsPopoverCloseTimer = useRef<number | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const user = getUser();
   const planLabel = (() => {
@@ -118,13 +118,13 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
   }, [syncCredits]);
 
   useEffect(() => {
-    const onDown = (event: MouseEvent) => {
-      if (!walletRef.current) return;
-      if (!walletRef.current.contains(event.target as Node)) setWalletOpen(false);
+    return () => {
+      if (creditsPopoverCloseTimer.current != null) {
+        window.clearTimeout(creditsPopoverCloseTimer.current);
+        creditsPopoverCloseTimer.current = null;
+      }
     };
-    if (walletOpen) document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [walletOpen]);
+  }, []);
 
   useEffect(() => {
     const onDown = (event: MouseEvent) => {
@@ -148,6 +148,22 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
   const creditsUsed = Math.max(0, monthlyCredits - credits);
   const creditsTotal = monthlyCredits > 0 ? monthlyCredits : 100;
   const creditProgress = Math.min(100, Math.max(0, Math.round((creditsUsed / Math.max(1, creditsTotal)) * 100)));
+  const openCreditsPopover = () => {
+    if (creditsPopoverCloseTimer.current != null) {
+      window.clearTimeout(creditsPopoverCloseTimer.current);
+      creditsPopoverCloseTimer.current = null;
+    }
+    setWalletOpen(true);
+  };
+  const closeCreditsPopoverSoon = () => {
+    if (creditsPopoverCloseTimer.current != null) {
+      window.clearTimeout(creditsPopoverCloseTimer.current);
+    }
+    creditsPopoverCloseTimer.current = window.setTimeout(() => {
+      setWalletOpen(false);
+      creditsPopoverCloseTimer.current = null;
+    }, 120);
+  };
   const nextReset = (() => {
     const d = new Date();
     const next = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 5, 0);
@@ -171,37 +187,135 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
       }}
     >
       {!hideUpgrade ? (
-        <Link
-          href="/upgrade"
-          style={{
-            ...headerPillBox,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            height: 34,
-            minHeight: 34,
-            borderRadius: 10,
-            padding: "0 12px",
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--color-primary)",
-            background: "rgba(37, 99, 235, 0.08)",
-            textDecoration: "none",
-            transition: "background 0.15s ease, color 0.15s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--color-primary)";
-            e.currentTarget.style.color = "#fff";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)";
-            e.currentTarget.style.color = "var(--color-primary)";
-          }}
+        <div
+          style={{ position: "relative" }}
+          onMouseEnter={openCreditsPopover}
+          onMouseLeave={closeCreditsPopoverSoon}
         >
-          <UpgradeSparkIcon size={16} />
-          Upgrade
-        </Link>
+          <Link
+            href="/upgrade"
+            style={{
+              ...headerPillBox,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              height: 34,
+              minHeight: 34,
+              borderRadius: 10,
+              padding: "0 12px",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "var(--color-primary)",
+              background: "rgba(37, 99, 235, 0.08)",
+              textDecoration: "none",
+              transition: "background 0.15s ease, color 0.15s ease",
+            }}
+            onFocus={openCreditsPopover}
+            onBlur={closeCreditsPopoverSoon}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--color-primary)";
+              e.currentTarget.style.color = "#fff";
+              openCreditsPopover();
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)";
+              e.currentTarget.style.color = "var(--color-primary)";
+              closeCreditsPopoverSoon();
+            }}
+          >
+            <UpgradeSparkIcon size={16} />
+            Upgrade
+          </Link>
+          {walletOpen && (
+            <div
+              onMouseEnter={openCreditsPopover}
+              onMouseLeave={closeCreditsPopoverSoon}
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 42,
+                width: "min(360px, calc(100vw - 16px))",
+                maxWidth: "calc(100vw - 16px)",
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 12,
+                boxShadow: "0 12px 36px rgba(15, 23, 42, 0.16)",
+                padding: 16,
+                zIndex: 80,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: "var(--color-text)",
+                }}
+              >
+                <span>Account credits</span>
+                <Link href="/settings?tab=credits" style={{ color: "var(--color-text-muted)" }} onClick={() => setWalletOpen(false)}>
+                  <ExternalLink size={17} strokeWidth={1.8} />
+                </Link>
+              </div>
+
+              <div style={{ height: 1, background: "var(--color-border)", marginBottom: 12 }} />
+
+              <div style={{ fontSize: 13, color: "var(--color-text)", marginBottom: 8 }}>
+                {creditsUsed} of {creditsTotal} credits used
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
+                Remaining credits: <strong style={{ color: "var(--color-text)" }}>{Math.max(0, credits)}</strong>
+              </div>
+              <div
+                style={{
+                  height: 6,
+                  borderRadius: 9999,
+                  background: "var(--color-surface-secondary)",
+                  overflow: "hidden",
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: `${creditProgress}%`,
+                    height: "100%",
+                    background: "var(--color-primary)",
+                  }}
+                />
+              </div>
+
+              <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
+                Next credit reset: {nextReset}
+              </div>
+
+              <div style={{ height: 1, background: "var(--color-border)", marginBottom: 12 }} />
+
+              <Link
+                href="/upgrade"
+                onClick={() => setWalletOpen(false)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
+                  height: 42,
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  background: "rgba(37, 99, 235, 0.12)",
+                  color: "var(--color-primary)",
+                }}
+              >
+                Get more credits
+              </Link>
+            </div>
+          )}
+        </div>
       ) : null}
 
       <div
@@ -236,114 +350,6 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
       >
         <Bell size={17} strokeWidth={1.85} />
       </Link>
-
-      <div ref={walletRef} style={{ position: "relative" }}>
-        <button
-          type="button"
-          title={activeBaseId ? "Credits for the active workspace (owner’s pool)" : "Your account credits"}
-          onClick={() => setWalletOpen((v) => !v)}
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 9999,
-            border: "none",
-            background: "var(--header-pill-bg)",
-            color: "var(--color-text-muted)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-        >
-          <Wallet size={17} strokeWidth={1.8} />
-        </button>
-        {walletOpen && (
-          <div
-            style={{
-              position: "absolute",
-              right: -36,
-              top: 42,
-              width: 360,
-              maxWidth: "min(360px, 88vw)",
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 12,
-              boxShadow: "0 12px 36px rgba(15, 23, 42, 0.16)",
-              padding: 16,
-              zIndex: 80,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 12,
-                fontSize: 15,
-                fontWeight: 500,
-                color: "var(--color-text)",
-              }}
-            >
-              <span>Account credits</span>
-              <Link href="/settings?tab=credits" style={{ color: "var(--color-text-muted)" }} onClick={() => setWalletOpen(false)}>
-                <ExternalLink size={17} strokeWidth={1.8} />
-              </Link>
-            </div>
-
-            <div style={{ height: 1, background: "var(--color-border)", marginBottom: 12 }} />
-
-            <div style={{ fontSize: 13, color: "var(--color-text)", marginBottom: 8 }}>
-              {creditsUsed} of {creditsTotal} credits used
-            </div>
-            <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
-              Remaining credits: <strong style={{ color: "var(--color-text)" }}>{Math.max(0, credits)}</strong>
-            </div>
-            <div
-              style={{
-                height: 6,
-                borderRadius: 9999,
-                background: "var(--color-surface-secondary)",
-                overflow: "hidden",
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: `${creditProgress}%`,
-                  height: "100%",
-                  background: "var(--color-primary)",
-                }}
-              />
-            </div>
-
-            <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
-              Next credit reset: {nextReset}
-            </div>
-
-            <div style={{ height: 1, background: "var(--color-border)", marginBottom: 12 }} />
-
-            <Link
-              href="/upgrade"
-              onClick={() => setWalletOpen(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "100%",
-                height: 42,
-                borderRadius: 10,
-                textDecoration: "none",
-                fontSize: 13,
-                fontWeight: 500,
-                background: "rgba(37, 99, 235, 0.12)",
-                color: "var(--color-primary)",
-              }}
-            >
-              Get more credits
-            </Link>
-          </div>
-        )}
-      </div>
 
       <div ref={userMenuRef} style={{ position: "relative" }}>
         <button

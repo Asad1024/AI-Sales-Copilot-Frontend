@@ -51,13 +51,22 @@ interface CampaignFilters {
   channel: 'all' | 'email' | 'linkedin' | 'whatsapp' | 'call';
 }
 
+interface CampaignCacheEntry {
+  campaigns: Campaign[];
+  timestamp: number;
+}
+
 interface CampaignStore {
   campaigns: Campaign[];
   loading: boolean;
   filters: CampaignFilters;
+  campaignCache: Record<number, CampaignCacheEntry>;
+  cacheTimeout: number;
   setCampaigns: (campaigns: Campaign[]) => void;
   setLoading: (loading: boolean) => void;
   setFilters: (filters: Partial<CampaignFilters>) => void;
+  clearCache: (baseId?: number) => void;
+  hasCacheForBase: (baseId: number | null) => boolean;
   fetchCampaigns: (baseId: number | null) => Promise<void>;
   createCampaign: (campaign: Partial<Campaign>) => Promise<Campaign | null>;
   updateCampaign: (id: number, updates: Partial<Campaign>) => Promise<void>;
@@ -74,33 +83,95 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
     status: 'all',
     channel: 'all',
   },
-  
+  campaignCache: {},
+  cacheTimeout: 2 * 60 * 1000, // 2 minutes
+
   setCampaigns: (campaigns) => set({ campaigns }),
   setLoading: (loading) => set({ loading }),
-  
+
   setFilters: (filters) => set((state) => ({
     filters: { ...state.filters, ...filters }
   })),
-  
+
+  clearCache: (baseId) => {
+    if (typeof baseId === 'number' && Number.isFinite(baseId)) {
+      set((state) => {
+        const next = { ...state.campaignCache };
+        delete next[baseId];
+        return { campaignCache: next };
+      });
+      return;
+    }
+    set({ campaignCache: {} });
+  },
+
+  hasCacheForBase: (baseId) => {
+    if (!baseId) return false;
+    return Boolean(get().campaignCache[baseId]);
+  },
+
   fetchCampaigns: async (baseId) => {
     if (!baseId) {
       set({ campaigns: [], loading: false });
       return;
     }
+    const state = get();
+    const cached = state.campaignCache[baseId];
+    const now = Date.now();
+
+    // Instant paint from cache for same-base revisits.
+    if (cached) {
+      set({ campaigns: cached.campaigns, loading: false });
+      if ((now - cached.timestamp) < state.cacheTimeout) {
+        return;
+      }
+      // Stale-while-revalidate: keep UI responsive and refresh silently.
+      void (async () => {
+        try {
+          const data = await apiRequest(`/campaigns?base_id=${baseId}`);
+          const campaignsList = Array.isArray(data?.campaigns)
+            ? data.campaigns
+            : (Array.isArray(data) ? data : []);
+          set((prev) => ({
+            campaigns: campaignsList,
+            campaignCache: {
+              ...prev.campaignCache,
+              [baseId]: {
+                campaigns: campaignsList,
+                timestamp: Date.now(),
+              },
+            },
+          }));
+        } catch (error) {
+          console.error('Failed to refresh campaigns cache:', error);
+        }
+      })();
+      return;
+    }
+
     set({ loading: true });
     try {
-      const params = `?base_id=${baseId}`;
-      const data = await apiRequest(`/campaigns${params}`);
-      const campaignsList = Array.isArray(data?.campaigns) 
-        ? data.campaigns 
+      const data = await apiRequest(`/campaigns?base_id=${baseId}`);
+      const campaignsList = Array.isArray(data?.campaigns)
+        ? data.campaigns
         : (Array.isArray(data) ? data : []);
-      set({ campaigns: campaignsList, loading: false });
+      set((prev) => ({
+        campaigns: campaignsList,
+        loading: false,
+        campaignCache: {
+          ...prev.campaignCache,
+          [baseId]: {
+            campaigns: campaignsList,
+            timestamp: Date.now(),
+          },
+        },
+      }));
     } catch (error) {
       console.error('Failed to fetch campaigns:', error);
       set({ campaigns: [], loading: false });
     }
   },
-  
+
   createCampaign: async (campaignData) => {
     try {
       const data = await apiRequest('/campaigns', {
@@ -108,9 +179,25 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
         body: JSON.stringify(campaignData),
       });
       const newCampaign = data?.campaign || data;
-      set((state) => ({
-        campaigns: [...state.campaigns, newCampaign]
-      }));
+      set((state) => {
+        const nextCampaigns = [...state.campaigns, newCampaign];
+        const baseId = Number(newCampaign?.base_id ?? campaignData?.base_id);
+        if (!Number.isFinite(baseId) || baseId <= 0) {
+          return { campaigns: nextCampaigns };
+        }
+        const cached = state.campaignCache[baseId];
+        const cachedCampaigns = cached ? [...cached.campaigns, newCampaign] : [newCampaign];
+        return {
+          campaigns: nextCampaigns,
+          campaignCache: {
+            ...state.campaignCache,
+            [baseId]: {
+              campaigns: cachedCampaigns,
+              timestamp: Date.now(),
+            },
+          },
+        };
+      });
       return newCampaign;
     } catch (error) {
       console.error('Failed to create campaign:', error);
@@ -125,9 +212,19 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
         body: JSON.stringify(updates),
       });
       set((state) => ({
-        campaigns: state.campaigns.map(c => 
+        campaigns: state.campaigns.map(c =>
           c.id === id ? { ...c, ...updates } : c
-        )
+        ),
+        campaignCache: Object.fromEntries(
+          Object.entries(state.campaignCache).map(([key, value]) => [
+            key,
+            {
+              ...value,
+              campaigns: value.campaigns.map(c => (c.id === id ? { ...c, ...updates } : c)),
+              timestamp: Date.now(),
+            },
+          ])
+        ) as Record<number, CampaignCacheEntry>,
       }));
     } catch (error) {
       console.error('Failed to update campaign:', error);
@@ -141,7 +238,17 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
         method: 'DELETE',
       });
       set((state) => ({
-        campaigns: state.campaigns.filter(c => c.id !== id)
+        campaigns: state.campaigns.filter(c => c.id !== id),
+        campaignCache: Object.fromEntries(
+          Object.entries(state.campaignCache).map(([key, value]) => [
+            key,
+            {
+              ...value,
+              campaigns: value.campaigns.filter(c => c.id !== id),
+              timestamp: Date.now(),
+            },
+          ])
+        ) as Record<number, CampaignCacheEntry>,
       }));
     } catch (error) {
       console.error('Failed to delete campaign:', error);
@@ -157,9 +264,19 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
       if (updatedCampaign) {
         // Update the campaign in the store
         set((state) => ({
-          campaigns: state.campaigns.map(c => 
+          campaigns: state.campaigns.map(c =>
             c.id === id ? { ...c, ...updatedCampaign } : c
-          )
+          ),
+          campaignCache: Object.fromEntries(
+            Object.entries(state.campaignCache).map(([key, value]) => [
+              key,
+              {
+                ...value,
+                campaigns: value.campaigns.map(c => (c.id === id ? { ...c, ...updatedCampaign } : c)),
+                timestamp: Date.now(),
+              },
+            ])
+          ) as Record<number, CampaignCacheEntry>,
         }));
         console.log(`[CampaignStore] Refreshed campaign ${id} metrics`);
       }

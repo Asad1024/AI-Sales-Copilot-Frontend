@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 export default function AboutPage() {
   return (
@@ -19,7 +19,7 @@ export default function AboutPage() {
           marginBottom: '60px'
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <AppBrandLogoLockup height={36} style={{ maxWidth: 180 }} />
+            <AppBrandLogoLockup height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
           </Link>
           <div style={{ display: 'flex', gap: '12px' }}>
             <Link href="/auth/login" className="btn-ghost">Log in</Link>

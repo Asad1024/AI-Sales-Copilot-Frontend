@@ -7,12 +7,18 @@ import { useBaseStore } from "@/stores/useBaseStore";
 import { API_BASE } from "@/lib/api";
 import { routeAfterSuccessfulSession } from "@/lib/authRouting";
 import GoogleSignInRedirecting from "@/components/auth/GoogleSignInRedirecting";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
-import { APP_BRAND_TAGLINE } from "@/lib/brand";
+import {
+  APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH,
+  APP_BRAND_LOGO_HEIGHT,
+  APP_BRAND_LOGO_MAX_WIDTH,
+  AppBrandLogoLockup,
+} from "@/components/ui/AppBrandLogo";
+import { Icons } from "@/components/ui/Icons";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +31,27 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const appTheme = localStorage.getItem("spark-theme");
+      const landingTheme = localStorage.getItem("spark-landing-theme");
+      const domTheme = document.documentElement.getAttribute("data-theme");
+      const initialTheme =
+        appTheme === "dark" || appTheme === "light"
+          ? appTheme
+          : landingTheme === "dark" || landingTheme === "light"
+            ? landingTheme
+            : domTheme === "dark"
+              ? "dark"
+              : "light";
+      setTheme(initialTheme);
+      document.documentElement.setAttribute("data-theme", initialTheme);
+      localStorage.setItem("spark-theme", initialTheme);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -75,20 +102,42 @@ export default function LoginPage() {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      try {
+        localStorage.setItem("spark-theme", next);
+        localStorage.setItem("spark-landing-theme", next);
+      } catch {
+        /* ignore */
+      }
+      document.documentElement.setAttribute("data-theme", next);
+      return next;
+    });
+  };
+
+  const isDark = theme === "dark";
+
   return (
-    <div style={{
+    <div
+      className="auth-page"
+      data-auth-theme={theme}
+      style={{
       minHeight: "100vh",
       display: "flex",
-      background: "#f8fafc",
+      background: isDark ? "#050a16" : "#f8fafc",
       opacity: mounted ? 1 : 0,
       transition: "opacity 0.6s ease-in-out",
       position: "relative",
-    }}>
+    }}
+    >
       {googleRedirecting ? <GoogleSignInRedirecting /> : null}
       {/* Left Panel - Branding */}
       <div style={{
         flex: 1,
-        background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+        background: isDark
+          ? "linear-gradient(135deg, #0f172a 0%, #1f2937 48%, #14532d 100%)"
+          : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -139,10 +188,9 @@ export default function LoginPage() {
         <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
           {/* Logo */}
           <div style={{ marginBottom: "48px" }}>
-            <AppBrandLogoLockup height={44} style={{ maxWidth: 220 }} />
-            <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "12px" }}>
-              {APP_BRAND_TAGLINE}
-            </div>
+            <Link href="/" aria-label="Go to landing page" style={{ display: "inline-block" }}>
+              <AppBrandLogoLockup theme="dark" height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
+            </Link>
           </div>
 
           {/* Headline */}
@@ -208,49 +256,91 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div style={{
+      <div
+        className="auth-form-panel"
+        style={{
         width: "520px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         padding: "60px",
-        background: "#fff",
+        background: isDark ? "#0b1220" : "#fff",
+        position: "relative",
         transform: mounted ? "translateX(0)" : "translateX(50px)",
         transition: "transform 0.8s ease-out"
-      }}>
+      }}
+      >
         <div style={{ maxWidth: "360px", width: "100%", margin: "0 auto" }}>
-          {/* Success indicator animation */}
-          <div style={{ 
-            marginBottom: "32px",
-            opacity: mounted ? 1 : 0,
-            transform: mounted ? "scale(1)" : "scale(0.9)",
-            transition: "all 0.6s ease-out 0.2s"
-          }}>
-            <div style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "14px",
-              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+          {/* Collapse mark + theme toggle */}
+          <div
+            style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "20px",
-              boxShadow: "0 10px 40px rgba(37, 99, 235, 0.3)"
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-              </svg>
-            </div>
+              justifyContent: "space-between",
+              marginBottom: "28px",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(8px)",
+              transition: "all 0.6s ease-out 0.1s",
+            }}
+          >
+            <Link href="/" aria-label="Go to landing page" style={{ display: "inline-flex", alignItems: "center" }}>
+              <AppBrandLogoLockup
+                collapsed
+                theme={theme}
+                height={APP_BRAND_LOGO_HEIGHT}
+                style={{ maxWidth: APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH }}
+              />
+            </Link>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+              title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+              style={{
+                width: "44px",
+                height: "44px",
+                borderRadius: "12px",
+                border: `1px solid ${isDark ? "#334155" : "#dbe1ea"}`,
+                background: isDark ? "#0f172a" : "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: isDark ? "0 8px 20px rgba(2, 6, 23, 0.35)" : "0 8px 20px rgba(15, 23, 42, 0.08)",
+                cursor: "pointer",
+                color: isDark ? "#e2e8f0" : "#475569",
+                transition: "transform 0.18s ease, border-color 0.2s ease",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.borderColor = "#2563EB";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.borderColor = isDark ? "#334155" : "#dbe1ea";
+              }}
+            >
+              {isDark ? <Icons.Sun size={22} strokeWidth={1.75} /> : <Icons.Moon size={22} strokeWidth={1.75} />}
+            </button>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "32px",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "scale(1)" : "scale(0.98)",
+              transition: "all 0.6s ease-out 0.2s",
+            }}
+          >
             <h2 style={{
               fontSize: "28px",
               fontWeight: "700",
-              color: "#1e293b",
+              color: isDark ? "#e2e8f0" : "#1e293b",
               margin: "0 0 8px 0",
               letterSpacing: "-0.02em"
             }}>
               Welcome back
             </h2>
-            <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
+            <p style={{ fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b", margin: 0 }}>
               Sign in to continue closing deals
             </p>
           </div>
@@ -258,15 +348,16 @@ export default function LoginPage() {
           {/* Google Sign In */}
           <button
             type="button"
+            className="auth-google-btn"
             onClick={startGoogleSignIn}
             disabled={loading || googleRedirecting}
             style={{
               width: "100%",
               padding: "12px 20px",
               borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              background: "#fff",
-              color: "#1e293b",
+              border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+              background: isDark ? "#0f172a" : "#fff",
+              color: isDark ? "#e2e8f0" : "#1e293b",
               fontSize: "14px",
               fontWeight: "600",
               cursor: loading || googleRedirecting ? "not-allowed" : "pointer",
@@ -281,14 +372,14 @@ export default function LoginPage() {
             }}
             onMouseOver={(e) => { 
               if (loading || googleRedirecting) return;
-              e.currentTarget.style.background = "#f8fafc"; 
-              e.currentTarget.style.borderColor = "#cbd5e1";
+              e.currentTarget.style.background = isDark ? "#111f35" : "#f8fafc";
+              e.currentTarget.style.borderColor = isDark ? "#475569" : "#cbd5e1";
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
             }}
             onMouseOut={(e) => { 
-              e.currentTarget.style.background = "#fff"; 
-              e.currentTarget.style.borderColor = "#e2e8f0";
+              e.currentTarget.style.background = isDark ? "#0f172a" : "#fff";
+              e.currentTarget.style.borderColor = isDark ? "#334155" : "#e2e8f0";
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
             }}
@@ -309,9 +400,9 @@ export default function LoginPage() {
             gap: "16px",
             margin: "24px 0"
           }}>
-            <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
-            <span style={{ fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>or</span>
-            <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
+            <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: isDark ? "#334155" : "#e2e8f0" }} />
+            <span className="auth-divider-text" style={{ fontSize: "12px", color: isDark ? "#64748b" : "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>or</span>
+            <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: isDark ? "#334155" : "#e2e8f0" }} />
           </div>
 
           {/* Error */}
@@ -437,6 +528,7 @@ export default function LoginPage() {
             </div>
 
             <button
+              className="auth-primary-btn"
               onClick={onLogin}
               disabled={loading || !email || !password}
               style={{
@@ -445,9 +537,15 @@ export default function LoginPage() {
                 borderRadius: "10px",
                 border: "none",
                 background: loading || !email || !password
-                  ? "#cbd5e1"
+                  ? isDark
+                    ? "#334155"
+                    : "#cbd5e1"
                   : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
-                color: "#fff",
+                color: loading || !email || !password
+                  ? isDark
+                    ? "#cbd5e1"
+                    : "#fff"
+                  : "#fff",
                 fontSize: "14px",
                 fontWeight: "600",
                 cursor: loading || !email || !password ? "not-allowed" : "pointer",
@@ -492,7 +590,7 @@ export default function LoginPage() {
           <p style={{
             textAlign: "center",
             fontSize: "14px",
-            color: "#64748b",
+            color: isDark ? "#94a3b8" : "#64748b",
             marginTop: "28px"
           }}>
             {"Don't have an account? "}
@@ -515,6 +613,28 @@ export default function LoginPage() {
       </div>
 
       <style jsx global>{`
+        .auth-page[data-auth-theme="dark"] .auth-form-panel a {
+          color: #60a5fa !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel label {
+          color: #cbd5e1 !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input {
+          background: #0f172a !important;
+          color: #e2e8f0 !important;
+          border-color: #334155 !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input::placeholder {
+          color: #64748b !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input[readonly] {
+          background: #111827 !important;
+        }
+        .auth-page[data-auth-theme="dark"] .auth-form-panel input:focus {
+          border-color: #2563EB !important;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+        }
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }

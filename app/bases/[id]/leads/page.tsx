@@ -34,7 +34,6 @@ const AddLinkedInLeadModal = dynamic(
   () => import("@/components/leads/AddLinkedInLeadModal").then((m) => ({ default: m.AddLinkedInLeadModal })),
   { ssr: false },
 );
-
 export default function BaseLeadsPage() {
   const router = useRouter();
   const params = useParams();
@@ -75,6 +74,7 @@ export default function BaseLeadsPage() {
   });
   const [showEnrichModal, setShowEnrichModal] = useState(false);
   const [linkedInOpen, setLinkedInOpen] = useState(false);
+  const [companyOpen, setCompanyOpen] = useState(false);
   const [showSchemaSidebar, setShowSchemaSidebar] = useState(false);
   const [pendingEnrichmentLeadIds, setPendingEnrichmentLeadIds] = useState<number[]>([]);
   /** Shown only after FullEnrich webhook (socket): refresh grid + workspace credits once. */

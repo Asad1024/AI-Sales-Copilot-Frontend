@@ -74,10 +74,17 @@ export function calculateStepFlow(
     isCommon: true
   });
 
-  // Review step (always last)
+  // Review step (before launch)
   steps.push({
     stepNumber: stepNumber++,
     stepType: 'review',
+    isCommon: true
+  });
+
+  // Launch step (always last)
+  steps.push({
+    stepNumber: stepNumber++,
+    stepType: 'launch',
     isCommon: true
   });
 

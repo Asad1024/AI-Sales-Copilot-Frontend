@@ -23,11 +23,11 @@ import {
 } from "./integration-ui";
 
 const cardStyle: CSSProperties = {
-  borderRadius: 14,
-  border: "1px solid var(--color-border)",
+  borderRadius: 18,
+  border: "1px solid rgba(148, 163, 184, 0.2)",
   background: "var(--color-surface)",
-  padding: 20,
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+  padding: 22,
+  boxShadow: "0 4px 24px rgba(15, 23, 42, 0.06)",
 };
 
 /** Same channel colors as `app/campaigns/new/page.tsx` review / schedule rows. */
@@ -35,33 +35,41 @@ const WIZ_CHANNEL_LINKEDIN = "#0077B5";
 const WIZ_CHANNEL_WHATSAPP = "#25D366";
 const WIZ_CHANNEL_EMAIL = "#2563eb";
 
+/** Fills the card’s icon tile — outer ring is drawn by IntegrationUniversalCard. */
 const integrationIconSlot: CSSProperties = {
   width: "100%",
   height: "100%",
-  background: "var(--color-surface)",
+  background: "transparent",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  border: "1px solid var(--color-border)",
+  border: "none",
 };
 
 function SectionHeader({ children }: { children: ReactNode }) {
   return (
-    <p
+    <div
       style={{
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: "0.07em",
-        color: "var(--color-text-muted)",
-        textTransform: "uppercase",
-        marginBottom: 12,
+        marginBottom: 14,
         marginTop: 0,
-        paddingBottom: 8,
-        borderBottom: "1px solid var(--color-border)",
+        paddingLeft: 12,
+        borderLeft: "3px solid rgba(37, 99, 235, 0.35)",
       }}
     >
-      {children}
-    </p>
+      <p
+        style={{
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: "0.06em",
+          color: "var(--color-text-muted)",
+          textTransform: "uppercase",
+          margin: 0,
+          lineHeight: 1.35,
+        }}
+      >
+        {children}
+      </p>
+    </div>
   );
 }
 
@@ -154,7 +162,7 @@ function GoogleSheetsConfigureModal({
   saveGoogleSheets,
 }: GoogleSheetsConfigureModalProps) {
   const gsIcon = (
-    <div style={{ width: 40, height: 40, borderRadius: 8, ...integrationIconSlot, border: "1px solid rgba(15, 157, 88, 0.22)" }}>
+    <div style={{ width: 40, height: 40, borderRadius: 8, ...integrationIconSlot }}>
       <GoogleSheetsBrandIcon size={24} />
     </div>
   );
@@ -828,7 +836,7 @@ export function IntegrationsHub() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 32, maxWidth: 960 }}>
       {showUnipileSuccessModal ? <UnipileSuccessModal onClose={() => setShowUnipileSuccessModal(false)} /> : null}
       {liModal && (
         <LinkedInTypeModal
@@ -883,42 +891,62 @@ export function IntegrationsHub() {
         saveHubspot={saveHubspot}
       />
 
-      <div style={{ marginBottom: 20, minWidth: 0 }}>
-        <h2 className="m-0 text-lg font-medium tracking-tight text-[var(--color-text)]">Integrations</h2>
-        <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">Connect messaging, outbound email, and CRM data sources for your workspace.</p>
-        {ownerReadOnly ? (
-          <p
-            className="mt-3 mb-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[13px] text-[var(--color-text-muted)]"
-            role="status"
-          >
-            {integrationOwnerOnlyHint}
-          </p>
-        ) : null}
-      </div>
+      {ownerReadOnly ? (
+        <p
+          className="mb-0 rounded-2xl px-4 py-3 text-[13px] leading-relaxed text-[var(--color-text-muted)]"
+          style={{
+            background: "rgba(37, 99, 235, 0.06)",
+            border: "1px solid rgba(37, 99, 235, 0.12)",
+          }}
+          role="status"
+        >
+          {integrationOwnerOnlyHint}
+        </p>
+      ) : null}
 
       {!activeBaseId ? (
         <div
           style={{
-            ...cardStyle,
             display: "flex",
-            alignItems: "center",
-            gap: 12,
-            borderColor: "rgba(234, 179, 8, 0.35)",
-            background: "rgba(234, 179, 8, 0.06)",
+            alignItems: "flex-start",
+            gap: 14,
+            padding: "16px 18px",
+            borderRadius: 16,
+            border: "1px solid rgba(234, 179, 8, 0.28)",
+            background: "linear-gradient(135deg, rgba(254, 252, 232, 0.9) 0%, rgba(255, 251, 235, 0.65) 100%)",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           }}
         >
-          <AlertCircle size={22} color="#ca8a04" />
-          <span style={{ fontSize: 14, color: "var(--color-text)" }}>Select a workspace to connect LinkedIn and WhatsApp.</span>
+          <div
+            style={{
+              flexShrink: 0,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(234, 179, 8, 0.2)",
+            }}
+          >
+            <AlertCircle size={22} color="#a16207" strokeWidth={2} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>Choose a workspace</div>
+            <span style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              Select a workspace above to connect LinkedIn and WhatsApp.
+            </span>
+          </div>
         </div>
       ) : null}
 
-      <div>
+      <div style={{ marginTop: 4 }}>
         <SectionHeader>Messaging</SectionHeader>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 12,
+            gap: 16,
             alignItems: "start",
           }}
           className="integrations-messaging-grid"
@@ -997,13 +1025,13 @@ export function IntegrationsHub() {
         </div>
       </div>
 
-      <div>
+      <div style={{ marginTop: 8 }}>
         <SectionHeader>Email</SectionHeader>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 12,
+            gap: 16,
             alignItems: "start",
           }}
           className="integrations-email-grid"
@@ -1022,15 +1050,15 @@ export function IntegrationsHub() {
         </div>
       </div>
 
-      <div>
+      <div style={{ marginTop: 8 }}>
         <SectionHeader>CRM &amp; data</SectionHeader>
         <div
-          style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, alignItems: "start" }}
+          style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, alignItems: "start" }}
           className="integrations-crm-grid"
         >
           <IntegrationUniversalCard
             icon={
-              <div style={{ ...integrationIconSlot, border: "1px solid rgba(15, 157, 88, 0.22)" }}>
+              <div style={integrationIconSlot}>
                 <GoogleSheetsBrandIcon size={24} />
               </div>
             }
@@ -1105,6 +1133,20 @@ export function IntegrationsHub() {
   .integrations-messaging-grid { grid-template-columns: 1fr !important; }
   .integrations-email-grid { grid-template-columns: 1fr !important; }
   .integrations-crm-grid { grid-template-columns: 1fr !important; }
+}
+.integration-universal-card[data-interactive="true"]:hover {
+  border-color: rgba(37, 99, 235, 0.22) !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08) !important;
+  transform: translateY(-1px);
+}
+.integration-universal-card[data-interactive="true"]:focus-within {
+  border-color: rgba(37, 99, 235, 0.28) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .integration-universal-card[data-interactive="true"]:hover {
+    transform: none !important;
+  }
 }
 `,
         }}

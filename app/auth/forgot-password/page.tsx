@@ -1,16 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { authAPI } from "@/lib/apiClient";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 export default function ForgotPasswordPage() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const appTheme = localStorage.getItem("spark-theme");
+      const landingTheme = localStorage.getItem("spark-landing-theme");
+      const domTheme = document.documentElement.getAttribute("data-theme");
+      const resolvedTheme =
+        appTheme === "dark" || appTheme === "light"
+          ? appTheme
+          : landingTheme === "dark" || landingTheme === "light"
+            ? landingTheme
+            : domTheme === "dark"
+              ? "dark"
+              : "light";
+      setTheme(resolvedTheme);
+      document.documentElement.setAttribute("data-theme", resolvedTheme);
+      localStorage.setItem("spark-theme", resolvedTheme);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const isDark = theme === "dark";
 
   const onSubmit = async () => {
     setError(null);
@@ -34,7 +58,7 @@ export default function ForgotPasswordPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#f8fafc",
+      background: isDark ? "#050a16" : "#f8fafc",
       padding: "20px"
     }}>
       <div style={{
@@ -44,29 +68,29 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-            <AppBrandLogoLockup height={48} style={{ maxWidth: 220 }} />
+            <AppBrandLogoLockup theme={theme} height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
           </div>
           <h1 style={{
             fontSize: "26px",
             fontWeight: "700",
-            color: "#1e293b",
+            color: isDark ? "#e2e8f0" : "#1e293b",
             margin: "0 0 8px 0",
             letterSpacing: "-0.02em"
           }}>
             Reset your password
           </h1>
-          <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
+          <p style={{ fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b", margin: 0 }}>
             Enter your email and we&apos;ll send you a reset link.
           </p>
         </div>
 
         {/* Card */}
         <div style={{
-          background: "#fff",
+          background: isDark ? "#0b1220" : "#fff",
           borderRadius: "16px",
           padding: "32px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04)",
-          border: "1px solid #e2e8f0"
+          boxShadow: isDark ? "0 4px 24px rgba(2,6,23,0.45)" : "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04)",
+          border: isDark ? "1px solid #334155" : "1px solid #e2e8f0"
         }}>
           {!sent ? (
             <>
@@ -74,12 +98,12 @@ export default function ForgotPasswordPage() {
                 <h2 style={{
                   fontSize: "20px",
                   fontWeight: "600",
-                  color: "#1e293b",
+                  color: isDark ? "#e2e8f0" : "#1e293b",
                   margin: "0 0 8px 0"
                 }}>
                   Forgot your password?
                 </h2>
-                <p style={{ fontSize: "14px", color: "#64748b", margin: 0, lineHeight: "1.5" }}>
+                <p style={{ fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b", margin: 0, lineHeight: "1.5" }}>
                   No worries! Enter your email and we'll send you a link to reset your password.
                 </p>
               </div>
@@ -107,10 +131,11 @@ export default function ForgotPasswordPage() {
               )}
 
               <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#475569", marginBottom: "6px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "500", color: isDark ? "#cbd5e1" : "#475569", marginBottom: "6px" }}>
                   Email address
                 </label>
                 <input
+                  className="forgot-input"
                   type="email"
                   placeholder="you@company.com"
                   value={email}
@@ -121,15 +146,15 @@ export default function ForgotPasswordPage() {
                     width: "100%",
                     padding: "12px 14px",
                     borderRadius: "10px",
-                    border: "1px solid #e2e8f0",
-                    background: "#fff",
-                    color: "#1e293b",
+                    border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+                    background: isDark ? "#0f172a" : "#fff",
+                    color: isDark ? "#e2e8f0" : "#1e293b",
                     fontSize: "14px",
                     outline: "none",
                     transition: "all 0.2s ease"
                   }}
                   onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+                  onBlur={(e) => { e.target.style.borderColor = isDark ? "#334155" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                 />
               </div>
 
@@ -142,9 +167,15 @@ export default function ForgotPasswordPage() {
                   borderRadius: "10px",
                   border: "none",
                   background: loading || !email
-                    ? "#cbd5e1"
+                    ? isDark
+                      ? "#334155"
+                      : "#cbd5e1"
                     : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
-                  color: "#fff",
+                  color: loading || !email
+                    ? isDark
+                      ? "#cbd5e1"
+                      : "#fff"
+                    : "#fff",
                   fontSize: "14px",
                   fontWeight: "600",
                   cursor: loading || !email ? "not-allowed" : "pointer",
@@ -183,15 +214,15 @@ export default function ForgotPasswordPage() {
               <h2 style={{
                 fontSize: "20px",
                 fontWeight: "600",
-                color: "#1e293b",
+                color: isDark ? "#e2e8f0" : "#1e293b",
                 margin: "0 0 8px 0",
                 textAlign: "center"
               }}>
                 Check your email
               </h2>
-              <p style={{ fontSize: "14px", color: "#64748b", margin: "0 0 20px 0", textAlign: "center", lineHeight: "1.5" }}>
+              <p style={{ fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b", margin: "0 0 20px 0", textAlign: "center", lineHeight: "1.5" }}>
                 We sent a password reset link to<br />
-                <span style={{ fontWeight: "600", color: "#1e293b" }}>{email}</span>
+                <span style={{ fontWeight: "600", color: isDark ? "#e2e8f0" : "#1e293b" }}>{email}</span>
               </p>
 
               {devResetUrl && (
@@ -231,9 +262,9 @@ export default function ForgotPasswordPage() {
                   width: "100%",
                   padding: "12px 20px",
                   borderRadius: "10px",
-                  border: "1px solid #e2e8f0",
-                  background: "#fff",
-                  color: "#475569",
+                  border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+                  background: isDark ? "#0f172a" : "#fff",
+                  color: isDark ? "#cbd5e1" : "#475569",
                   fontSize: "14px",
                   fontWeight: "600",
                   cursor: "pointer",
@@ -255,7 +286,7 @@ export default function ForgotPasswordPage() {
               alignItems: "center",
               gap: "8px",
               fontSize: "14px",
-              color: "#64748b",
+              color: isDark ? "#94a3b8" : "#64748b",
               textDecoration: "none",
               fontWeight: "500",
               transition: "color 0.2s ease"
@@ -270,6 +301,9 @@ export default function ForgotPasswordPage() {
       </div>
 
       <style jsx global>{`
+        .forgot-input::placeholder {
+          color: ${isDark ? "#64748b" : "#94a3b8"};
+        }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }

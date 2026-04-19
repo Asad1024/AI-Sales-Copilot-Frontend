@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
@@ -27,14 +27,6 @@ type StatMetric = {
   subline?: string | null;
 };
 
-const sectionLabelStyle = {
-  fontSize: 11,
-  fontWeight: 500 as const,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase" as const,
-  color: "var(--color-text-muted)",
-};
-
 /** Stat grid labels — stronger hierarchy than section rails (color from .dashboard-metric-label) */
 const metricLabelStyle = {
   fontSize: 12,
@@ -56,9 +48,9 @@ function isMutedMetricValue(value: string): boolean {
 }
 
 export default function Dashboard() {
+  const ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [copilotBannerDismissed, setCopilotBannerDismissed] = useState(false);
   const [invitationSuccess, setInvitationSuccess] = useState<{
     baseName: string;
     role: string;
@@ -68,6 +60,7 @@ export default function Dashboard() {
 
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const analyticsCacheRef = useRef<Record<number, { data: any; timestamp: number }>>({});
   const [dashboardInitialLoadPending, setDashboardInitialLoadPending] = useState(false);
   const [campaignListTab, setCampaignListTab] = useState<"recent" | "saved">("recent");
   const [savedCampaignIds, setSavedCampaignIds] = useState<number[]>([]);
@@ -158,15 +151,33 @@ export default function Dashboard() {
       return;
     }
     let cancelled = false;
-    setAnalyticsLoading(true);
-    setAnalyticsData(null);
+    const cached = analyticsCacheRef.current[activeBaseId];
+    const hasCached = Boolean(cached?.data);
+    if (hasCached) {
+      setAnalyticsData(cached.data);
+    } else {
+      setAnalyticsData(null);
+    }
+    const isFresh = hasCached && (Date.now() - cached.timestamp) < ANALYTICS_CACHE_TTL_MS;
+    if (isFresh) {
+      setAnalyticsLoading(false);
+      return;
+    }
+    // If cached data exists, refresh silently in background.
+    setAnalyticsLoading(!hasCached);
     (async () => {
       try {
         const data = await apiRequest(`/analytics?base_id=${activeBaseId}`);
-        if (!cancelled) setAnalyticsData(data);
+        if (!cancelled) {
+          setAnalyticsData(data);
+          analyticsCacheRef.current[activeBaseId] = {
+            data,
+            timestamp: Date.now(),
+          };
+        }
       } catch (error) {
         console.error("Failed to fetch analytics:", error);
-        if (!cancelled) setAnalyticsData(null);
+        if (!cancelled && !hasCached) setAnalyticsData(null);
       } finally {
         if (!cancelled) setAnalyticsLoading(false);
       }
@@ -700,46 +711,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-
-      {activeBase && !copilotBannerDismissed && analyticsData && analyticsData.hotLeads > 0 && (
-        <div
-          className="dashboard-surface-card"
-          style={{
-            padding: "14px 16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            transition: "box-shadow 0.15s ease",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Icons.Zap size={18} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
-              <div style={{ ...sectionLabelStyle, textTransform: "uppercase" }}>Suggestion</div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCopilotBannerDismissed(true)}
-              className="icon-btn"
-              style={{ width: 28, height: 28, borderRadius: 8, transition: "background 0.15s ease" }}
-              aria-label="Dismiss"
-            >
-              <Icons.X size={16} strokeWidth={1.5} />
-            </button>
-          </div>
-          <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
-            {analyticsData?.hotLeads || 0} hot leads are ready. Launch a short LinkedIn + Email sequence for faster replies.
-          </div>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{ borderRadius: 8, width: "100%", transition: "background 0.15s ease" }}
-            onClick={goToCreateCampaign}
-          >
-            Use suggestion
-          </button>
-        </div>
-      )}
     </>
   );
 

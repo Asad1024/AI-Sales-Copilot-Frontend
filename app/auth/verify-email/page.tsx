@@ -6,7 +6,7 @@ import Link from "next/link";
 import { authAPI, getUser, setUser } from "@/lib/apiClient";
 import { userNeedsOnboarding } from "@/lib/authRouting";
 import { API_BASE } from "@/lib/api";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 function AuthShell({
   children,
@@ -29,7 +29,7 @@ function AuthShell({
       <div style={{ width: "100%", maxWidth: "420px" }}>
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
-            <AppBrandLogoLockup height={48} style={{ maxWidth: 220 }} />
+            <AppBrandLogoLockup height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
           </div>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>{subtitle ?? "Email verification"}</p>
         </div>

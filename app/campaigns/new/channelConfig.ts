@@ -16,7 +16,8 @@ export type StepType =
   | 'call_initial_prompt'
   | 'call_system_persona'
   | 'schedule'
-  | 'review';
+  | 'review'
+  | 'launch';
 
 export interface ChannelStep {
   stepType: StepType;
@@ -51,7 +52,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
     icon: Icons.Mail,
     requiresIntegration: true,
     integrationProvider: 'resend',
-    maxThrottle: 100,
+    maxThrottle: 30,
     throttleKey: 'email',
     steps: [
       { stepType: 'email_followup_preferences', channel: 'email', required: true, order: 1 },
@@ -67,7 +68,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
     integrationProvider: 'unipile_linkedin',
     maxThrottle: (accountType?: string, action?: string) => {
       if (['premium', 'sales_navigator', 'recruiter'].includes(accountType || '')) {
-        return 100; // Daily limit for premium
+        return 30; // Wizard daily cap (matches schedule step max)
       }
       // Free accounts: monthly limits, calculate daily average
       const monthlyLimit = action === 'invitation_with_message' ? 5 : 150;
@@ -97,7 +98,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
     icon: Icons.MessageCircle,
     requiresIntegration: true,
     integrationProvider: 'unipile_whatsapp',
-    maxThrottle: 100,
+    maxThrottle: 30,
     throttleKey: 'whatsapp',
     steps: [
       { stepType: 'whatsapp_templates', channel: 'whatsapp', required: true, order: 1 },
@@ -110,7 +111,7 @@ export const CHANNEL_CONFIGS: ChannelConfigs = {
     icon: Icons.Phone,
     requiresIntegration: true,
     integrationProvider: 'twilio',
-    maxThrottle: 100,
+    maxThrottle: 30,
     throttleKey: 'call',
     steps: [
       { stepType: 'call_knowledge_base', channel: 'call', required: true, order: 1 },
@@ -127,7 +128,8 @@ export const COMMON_STEPS: StepType[] = [
   'core_details_part1',
   'core_details_part2',
   'schedule',
-  'review'
+  'review',
+  'launch'
 ];
 
 // Get channel config by ID

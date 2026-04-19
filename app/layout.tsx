@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import ClientRootLayout from "./ClientRootLayout";
 import "../styles/globals.css";
-import { APP_BRAND_META_DESCRIPTION, APP_BRAND_NAME } from "@/lib/brand";
+import { APP_BRAND_BROWSER_TITLE, APP_BRAND_META_DESCRIPTION } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: APP_BRAND_NAME,
+  title: APP_BRAND_BROWSER_TITLE,
   description: APP_BRAND_META_DESCRIPTION,
   icons: {
     icon: "/favicon.ico",

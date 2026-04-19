@@ -4,7 +4,7 @@ import { useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authAPI } from "@/lib/apiClient";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -50,7 +50,7 @@ function ResetPasswordContent() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-            <AppBrandLogoLockup height={48} style={{ maxWidth: 220 }} />
+            <AppBrandLogoLockup height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
           </div>
           <h1 style={{
             fontSize: "26px",

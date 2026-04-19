@@ -191,29 +191,34 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
 
     const fetchKey = `${baseId}:${page}:${limit}:${searchQ}`;
     const state = get();
+    let hasStaleCache = false;
     
     // Prevent duplicate concurrent calls
     if (!force && state.lastFetchKey === fetchKey && state.loading) {
       return;
     }
 
-    // Check cache first
+    // Check cache first (stale-while-revalidate).
     if (!force) {
       const cached = state.leadCache[fetchKey];
       const now = Date.now();
       
-      if (cached && (now - cached.timestamp) < state.cacheTimeout) {
+      if (cached) {
         set({
           leads: cached.leads,
           pagination: cached.pagination,
           loading: false,
           lastFetchKey: fetchKey
         });
-        return;
+        if ((now - cached.timestamp) < state.cacheTimeout) {
+          return;
+        }
+        hasStaleCache = true;
       }
     }
-    
-    if (quiet) {
+
+    const quietRefresh = quiet || hasStaleCache;
+    if (quietRefresh) {
       set({ lastFetchKey: fetchKey });
     } else {
       set({ loading: true, lastFetchKey: fetchKey });
@@ -250,7 +255,7 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
       // Update cache
       set((state) => ({
         leads: leadsList,
-        loading: quiet ? state.loading : false,
+        loading: quietRefresh ? state.loading : false,
         pagination: paginationState,
         leadCache: {
           ...state.leadCache,
@@ -264,8 +269,8 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to fetch leads:', error);
       set((state) => ({
-        leads: [],
-        loading: quiet ? state.loading : false,
+        leads: quietRefresh ? state.leads : [],
+        loading: quietRefresh ? state.loading : false,
         lastFetchKey: null,
       }));
     }
@@ -449,4 +454,3 @@ export const useLeadStore = create<LeadStore>((set, get) => ({
     return filtered;
   },
 }));
-

@@ -19,7 +19,12 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react";
-import { AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import {
+  APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH,
+  APP_BRAND_LOGO_HEIGHT,
+  APP_BRAND_LOGO_MAX_WIDTH,
+  AppBrandLogoLockup,
+} from "@/components/ui/AppBrandLogo";
 import { getUser, clearAuth, type User } from "@/lib/apiClient";
 import ThemeToggle from "./ThemeToggle";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
@@ -391,8 +396,10 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           >
             <AppBrandLogoLockup
               collapsed={collapsed && !isMobile}
-              height={collapsed && !isMobile ? 32 : 34}
-              style={{ maxWidth: collapsed && !isMobile ? 44 : 140 }}
+              height={APP_BRAND_LOGO_HEIGHT}
+              style={{
+                maxWidth: collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH : APP_BRAND_LOGO_MAX_WIDTH,
+              }}
             />
             {!(collapsed && !isMobile) && (
               <span

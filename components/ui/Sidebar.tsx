@@ -6,14 +6,21 @@ import { useBaseStore } from "@/stores/useBaseStore";
 import { useSidebarStore, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/stores/useSidebarStore";
 import BaseSelector from "./BaseSelector";
 import { Icons } from "@/components/ui/Icons";
-import { PanelLeft, Puzzle, BarChart3, UsersRound } from "lucide-react";
+import { PanelLeft, Puzzle, BarChart3, Building2 } from "lucide-react";
 import {
   FiGrid,
   FiFolder,
   FiUsers,
   FiFileText,
 } from "react-icons/fi";
-import { APP_BRAND_NAME, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import {
+  APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT,
+  APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH,
+  APP_BRAND_LOGO_HEIGHT,
+  APP_BRAND_LOGO_MAX_WIDTH,
+  APP_BRAND_NAME,
+  AppBrandLogoLockup,
+} from "@/components/ui/AppBrandLogo";
 
 function CollapsedHoverTip({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -111,9 +118,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href.includes("/companies")) return Boolean(pathname?.includes("/companies"));
     if (href.startsWith("/bases/") && href.includes("/leads"))
       return Boolean(pathname?.startsWith("/bases/") && pathname.includes("/leads"));
-    if (href === "/bases") return Boolean(pathname?.startsWith("/bases") && !pathname.includes("/leads"));
+    /** Workspaces list / base home — not /bases/:id/leads, /bases/:id/companies, etc. */
+    if (href === "/bases") {
+      if (!pathname?.startsWith("/bases")) return false;
+      if (pathname === "/bases") return true;
+      const rest = pathname.slice("/bases".length);
+      const segments = rest.replace(/^\//, "").split("/").filter(Boolean);
+      return segments.length === 1;
+    }
     return Boolean(pathname?.startsWith(href) && href !== "/");
   };
 
@@ -130,12 +145,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       tour: "leads-link",
     },
     { href: "/campaigns", label: "Campaigns", icon: <Icons.Send size={iconSize} strokeWidth={1.9} />, tour: "campaigns-link" },
+    {
+      href: activeBaseId ? `/bases/${activeBaseId}/companies` : "/bases",
+      label: "Companies",
+      icon: <Building2 size={iconSize} strokeWidth={1.75} />,
+      tour: "companies-link",
+    },
     { href: "/templates", label: "Templates", icon: <FiFileText size={iconSize} />, tour: "templates-link" },
   ];
 
   const secondaryNav: NavItem[] = [
     { href: "/reports", label: "Analytics", icon: <BarChart3 size={iconSize} strokeWidth={1.9} /> },
-    { href: "/team", label: "Team", icon: <UsersRound size={iconSize} strokeWidth={1.9} /> },
     { href: "/integration", label: "Integration", icon: <Puzzle size={iconSize} strokeWidth={1.9} /> },
   ];
 
@@ -247,8 +267,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div
           className="sidebar-premium-logo"
           style={{
-            height: collapsed && !isMobile ? 88 : 56,
-            minHeight: collapsed && !isMobile ? 88 : 56,
+            height: collapsed && !isMobile ? 78 : 56,
+            minHeight: collapsed && !isMobile ? 78 : 56,
             /* Align logo top with app PageHeader title row (header uses paddingTop 12px) */
             paddingTop: collapsed && !isMobile ? 12 : 0,
             paddingBottom: 0,
@@ -280,9 +300,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <AppBrandLogoLockup
               collapsed={collapsed && !isMobile}
-              height={collapsed && !isMobile ? 28 : 34}
+              height={collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT : APP_BRAND_LOGO_HEIGHT}
               style={{
-                maxWidth: collapsed && !isMobile ? 36 : 160,
+                maxWidth:
+                  collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH : APP_BRAND_LOGO_MAX_WIDTH,
                 margin: collapsed && !isMobile ? "0 auto" : undefined,
               }}
             />

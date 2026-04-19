@@ -1,5 +1,7 @@
 "use client";
 
+import { AuthCollapseBrandMark } from "@/components/auth/AuthCollapseBrandMark";
+
 /** Minimal full-screen loader while /auth/oauth-callback exchanges the Google token. */
 export default function OAuthCompletingScreen() {
   return (
@@ -14,23 +16,7 @@ export default function OAuthCompletingScreen() {
       }}
     >
       <div style={{ textAlign: "center", maxWidth: "360px" }}>
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "16px",
-            background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 24px",
-            boxShadow: "0 12px 40px rgba(37, 99, 235, 0.25)",
-          }}
-        >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
-        </div>
+        <AuthCollapseBrandMark />
         <h1
           style={{
             fontSize: "22px",

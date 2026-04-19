@@ -57,7 +57,8 @@ export default function PageHeader({
       style={{
         position: "sticky",
         top: 0,
-        zIndex: 20,
+        /* Above LeadsToolbar (z-index 200) so header dropdowns (credits, account) aren’t covered by Enrich / toolbar */
+        zIndex: 450,
         background: "var(--color-canvas, var(--color-background))",
         padding: "12px 20px 8px",
         borderBottom: "1px solid var(--color-border-light)",

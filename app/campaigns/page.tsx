@@ -26,6 +26,7 @@ export default function CampaignsPage() {
     setFilters,
     getFilteredCampaigns,
     refreshCampaign,
+    hasCacheForBase,
   } = useCampaignStore();
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   /** One gate for campaigns list + stats + tier insights (avoids a second loader after fetchCampaigns). */
@@ -49,14 +50,24 @@ export default function CampaignsPage() {
       return;
     }
     let cancelled = false;
-    setCampaignsPageReady(false);
+    const hasCachedCampaignsForBase = hasCacheForBase(activeBaseId);
+    // Keep existing list visible when we already have campaigns for this workspace.
+    setCampaignsPageReady(hasCachedCampaignsForBase);
     setLeadsReady(false);
-    (async () => {
+
+    // Load campaigns first (critical path for this page).
+    void fetchCampaigns(activeBaseId)
+      .catch((e) => {
+        console.error("[CampaignsPage] campaigns load:", e);
+      })
+      .finally(() => {
+        if (!cancelled) setCampaignsPageReady(true);
+      });
+
+    // Fetch leads/tier insights in parallel without blocking campaign rendering.
+    void (async () => {
       try {
-        const [leadsPayload] = await Promise.all([
-          apiRequest(`/leads?base_id=${activeBaseId}&page=1&limit=100`),
-          fetchCampaigns(activeBaseId),
-        ]);
+        const leadsPayload = await apiRequest(`/leads?base_id=${activeBaseId}&page=1&limit=100`);
         if (cancelled) return;
         const list = Array.isArray(leadsPayload?.leads)
           ? leadsPayload.leads
@@ -73,19 +84,17 @@ export default function CampaignsPage() {
           });
         }
       } catch (e) {
-        console.error("[CampaignsPage] initial load:", e);
+        console.error("[CampaignsPage] leads insights load:", e);
         if (!cancelled) setTierLeadsForInsights([]);
       } finally {
-        if (!cancelled) {
-          setLeadsReady(true);
-          setCampaignsPageReady(true);
-        }
+        if (!cancelled) setLeadsReady(true);
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [activeBaseId, fetchCampaigns, setPagination]);
+  }, [activeBaseId, fetchCampaigns, hasCacheForBase, setPagination]);
 
   // Listen for real-time campaign metrics updates via WebSocket
   useEffect(() => {

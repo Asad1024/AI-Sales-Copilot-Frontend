@@ -62,7 +62,7 @@ import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
 const LeadDrawer = dynamic(() => import("@/components/leads/LeadDrawer"), { ssr: false });
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+type Step = number;
 
 interface Lead {
   id: number;
@@ -551,6 +551,82 @@ const isPremadeLibraryVoice = (v: VoiceOption) => {
 const WIZ_ACCENT = "#2563EB";
 const WIZ_ACCENT_LINE = "#1D4ED8";
 const WIZ_ROW_SELECTED = "rgba(37, 99, 235, 0.07)";
+/** Voice step: title, tab bar, list, and selected bar share this horizontal inset (px). */
+const VOICE_STEP_CONTENT_GUTTER = 20;
+
+/** Straight left accent (not `border-left` on a rounded box). Right corners only rounded. */
+function WizardStepCallout({
+  tone,
+  marginTop,
+  children,
+}: {
+  tone: "selected" | "idle";
+  marginTop?: number;
+  children: ReactNode;
+}) {
+  const on = tone === "selected";
+  return (
+    <div
+      style={{
+        marginTop: marginTop ?? 0,
+        display: "flex",
+        alignItems: "stretch",
+        borderRadius: "0 12px 12px 0",
+        overflow: "hidden",
+        border: on ? "1px solid rgba(37, 99, 235, 0.14)" : "1px solid var(--color-border)",
+        background: on ? "rgba(37, 99, 235, 0.05)" : "var(--color-surface-secondary)",
+        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+      }}
+    >
+      <div aria-hidden style={{ width: 3, flexShrink: 0, background: on ? WIZ_ACCENT : "#cbd5e1" }} />
+      <div
+        style={{
+          flex: 1,
+          padding: "11px 16px",
+          fontSize: 14,
+          lineHeight: 1.5,
+          color: "var(--color-text)",
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function WizardStickyLeadSelectionBar({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        position: "sticky",
+        bottom: 0,
+        zIndex: 2,
+        display: "flex",
+        alignItems: "stretch",
+        borderTop: "1px solid rgba(37, 99, 235, 0.16)",
+        boxShadow: "0 -6px 24px rgba(15, 23, 42, 0.06)",
+        background: "rgba(248, 250, 255, 0.97)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div aria-hidden style={{ width: 3, flexShrink: 0, background: WIZ_ACCENT }} />
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "11px 16px 11px 14px",
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const VOICE_LOAD_MORE_BORDER = "rgba(37, 99, 235, 0.42)";
 const VOICE_LOAD_MORE_BG = "rgba(37, 99, 235, 0.08)";
@@ -745,7 +821,7 @@ function VoiceNameRow({
 }
 
 /** Wizard Step 13 — daily throttle slider ceiling (all channels). */
-const SCHEDULE_DAILY_LIMIT_MAX = 100;
+const SCHEDULE_DAILY_LIMIT_MAX = 30;
 
 /** Clamp persisted / legacy throttle so UI `stored={min(max, …)}` cannot hide values > max in review. */
 function clampScheduleThrottleValue(
@@ -1161,7 +1237,7 @@ export default function CampaignNew() {
   const [recommendedEmailThrottle, setRecommendedEmailThrottle] = useState<number | null>(null);
   const [recommendedLinkedInThrottle, setRecommendedLinkedInThrottle] = useState<number | null>(null);
   const [linkedInAccountType, setLinkedInAccountType] = useState<string | null>(null);
-  const [linkedInMaxThrottle, setLinkedInMaxThrottle] = useState<number>(100);
+  const [linkedInMaxThrottle, setLinkedInMaxThrottle] = useState<number>(SCHEDULE_DAILY_LIMIT_MAX);
   const [linkedInMonthlyLimit, setLinkedInMonthlyLimit] = useState<number | null>(null); // For free accounts
   
   // Email campaign details (only used when email channel is selected)
@@ -1238,15 +1314,11 @@ export default function CampaignNew() {
     return () => window.removeEventListener("keydown", onKey);
   }, [emailWizardPreview, emailWizardEdit]);
 
-  // WhatsApp message generation state
-  const [whatsAppMessages, setWhatsAppMessages] = useState<string[]>([
-    "Hi {{first_name}}, I noticed {{company_name}}...",
-    "{{first_name}}, quick question about {{company_name}}...",
-    "Hello {{first_name}}, I'd love to connect..."
-  ]);
+  // WhatsApp message generation state (AI fills on WhatsApp drafts step — no hardcoded starters)
+  const [whatsAppMessages, setWhatsAppMessages] = useState<string[]>([]);
   const [generatingWhatsAppMessages, setGeneratingWhatsAppMessages] = useState(false);
   const [whatsAppMessagesGenerated, setWhatsAppMessagesGenerated] = useState(false);
-  const [selectedWhatsAppMessageIndices, setSelectedWhatsAppMessageIndices] = useState<number[]>([0]); // Single suggestion index (radio)
+  const [selectedWhatsAppMessageIndices, setSelectedWhatsAppMessageIndices] = useState<number[]>([]); // Single suggestion index (radio)
   
   // Email follow-up preferences state
   const [followupsPreferenceSet, setFollowupsPreferenceSet] = useState(false);
@@ -1323,10 +1395,14 @@ export default function CampaignNew() {
   const initialPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   /** One-time voice first-message prefill per wizard mount (avoid refetch when user clears textarea). */
   const callOpeningElFetchFinishedRef = useRef(false);
+  /** True while `/campaigns/elevenlabs-first-message` is loading (empty draft opening only). */
+  const [callOpeningFetchLoading, setCallOpeningFetchLoading] = useState(false);
   const initialPromptRef = useRef(initialPrompt);
   const [systemPersona, setSystemPersona] = useState("");
   /** One-time voice system-prompt prefill for Step 12. */
   const callSystemPersonaElFetchFinishedRef = useRef(false);
+  /** True while `/campaigns/elevenlabs-system-prompt` is loading (empty draft persona only). */
+  const [systemPersonaFetchLoading, setSystemPersonaFetchLoading] = useState(false);
   const systemPersonaRef = useRef(systemPersona);
   const [systemPersonaGenerating, setSystemPersonaGenerating] = useState(false);
   const [systemPersonaCustomBrief, setSystemPersonaCustomBrief] = useState("");
@@ -1530,18 +1606,28 @@ export default function CampaignNew() {
     [leads]
   );
 
-  const runLinkedInInlineAiTemplates = useCallback(async () => {
+  /** One auto-run per (step × lead snapshot) so we retry when leads load after landing on the step */
+  const linkedInAutoSuggestAttemptKeyRef = useRef<string>("");
+
+  const runLinkedInInlineAiTemplates = useCallback(
+    async (opts?: { quietNoUrl?: boolean }) => {
     const sampleLead = linkedInSampleLeadForAi;
     if (!sampleLead || activeBaseId == null) {
-      showWarning(
-        "LinkedIn URLs",
-        "Add leads with LinkedIn profile URLs to your campaign to suggest connection notes."
-      );
+      setLinkedInTemplateError(null);
+      if (!opts?.quietNoUrl) {
+        showWarning(
+          "LinkedIn URLs",
+          "Add leads with LinkedIn profile URLs to your campaign to suggest connection notes."
+        );
+      }
       return;
     }
     const linkedInUrl = getLinkedInUrlFromLead(sampleLead);
     if (!linkedInUrl) {
-      showWarning("LinkedIn URL", "Your sample lead does not have a LinkedIn URL.");
+      setLinkedInTemplateError(null);
+      if (!opts?.quietNoUrl) {
+        showWarning("LinkedIn URL", "Your sample lead does not have a LinkedIn URL.");
+      }
       return;
     }
     setLinkedInGeneratingTemplates(true);
@@ -1578,7 +1664,8 @@ export default function CampaignNew() {
     } finally {
       setLinkedInGeneratingTemplates(false);
     }
-  }, [
+  },
+    [
     linkedInSampleLeadForAi,
     activeBaseId,
     productService,
@@ -1588,6 +1675,41 @@ export default function CampaignNew() {
     senderCompany,
     showWarning,
     showSuccess,
+  ]
+  );
+
+  useEffect(() => {
+    if (currentStepInfo?.stepType !== "linkedin_templates") {
+      linkedInAutoSuggestAttemptKeyRef.current = "";
+      return;
+    }
+    if (linkedInStepConfig?.action !== "invitation_with_message") return;
+    if (!channels.includes("linkedin")) return;
+    if (!activeBaseId) return;
+    if (loadingLeads) return;
+
+    const leadSig = `${leads.length}:${linkedInSampleLeadForAi?.id ?? "none"}`;
+    const attemptKey = `${step}|${leadSig}`;
+    if (linkedInAutoSuggestAttemptKeyRef.current === attemptKey) return;
+
+    if (linkedInStepConfig?.templates && linkedInStepConfig.templates.length > 0) {
+      linkedInAutoSuggestAttemptKeyRef.current = attemptKey;
+      return;
+    }
+
+    linkedInAutoSuggestAttemptKeyRef.current = attemptKey;
+    void runLinkedInInlineAiTemplates({ quietNoUrl: true });
+  }, [
+    currentStepInfo?.stepType,
+    step,
+    linkedInStepConfig?.action,
+    linkedInStepConfig?.templates,
+    channels,
+    activeBaseId,
+    loadingLeads,
+    leads,
+    linkedInSampleLeadForAi?.id,
+    runLinkedInInlineAiTemplates,
   ]);
 
   useEffect(() => {
@@ -1715,7 +1837,10 @@ export default function CampaignNew() {
   systemPersonaRef.current = systemPersona;
 
   useEffect(() => {
-    if (currentStepInfo?.stepType !== "call_initial_prompt") return;
+    if (currentStepInfo?.stepType !== "call_initial_prompt") {
+      setCallOpeningFetchLoading(false);
+      return;
+    }
     if (!draftHydrated) return;
     if (callOpeningElFetchFinishedRef.current) return;
 
@@ -1724,6 +1849,7 @@ export default function CampaignNew() {
       return;
     }
 
+    setCallOpeningFetchLoading(true);
     let cancelled = false;
     void (async () => {
       try {
@@ -1738,17 +1864,22 @@ export default function CampaignNew() {
       } finally {
         if (!cancelled) {
           callOpeningElFetchFinishedRef.current = true;
+          setCallOpeningFetchLoading(false);
         }
       }
     })();
 
     return () => {
       cancelled = true;
+      setCallOpeningFetchLoading(false);
     };
   }, [currentStepInfo?.stepType, draftHydrated]);
 
   useEffect(() => {
-    if (currentStepInfo?.stepType !== "call_system_persona") return;
+    if (currentStepInfo?.stepType !== "call_system_persona") {
+      setSystemPersonaFetchLoading(false);
+      return;
+    }
     if (!draftHydrated) return;
     if (callSystemPersonaElFetchFinishedRef.current) return;
 
@@ -1757,6 +1888,7 @@ export default function CampaignNew() {
       return;
     }
 
+    setSystemPersonaFetchLoading(true);
     let cancelled = false;
     void (async () => {
       try {
@@ -1771,12 +1903,14 @@ export default function CampaignNew() {
       } finally {
         if (!cancelled) {
           callSystemPersonaElFetchFinishedRef.current = true;
+          setSystemPersonaFetchLoading(false);
         }
       }
     })();
 
     return () => {
       cancelled = true;
+      setSystemPersonaFetchLoading(false);
     };
   }, [currentStepInfo?.stepType, draftHydrated]);
 
@@ -1935,7 +2069,8 @@ export default function CampaignNew() {
     const fetchLeads = async () => {
       if (!activeBaseId) return;
       const segmentStep = 3;
-      const onReview = currentStepInfo?.stepType === "review";
+      const onReview =
+        currentStepInfo?.stepType === "review" || currentStepInfo?.stepType === "launch";
       const pastSegmentStep = step >= segmentStep;
       const hasSavedSegments = segments.length > 0;
       if (!pastSegmentStep && !onReview && !hasSavedSegments) return;
@@ -2015,7 +2150,7 @@ export default function CampaignNew() {
   useEffect(() => {
     const needVoices =
       currentStepInfo?.stepType === "call_voice_selection" ||
-      (currentStepInfo?.stepType === "review" &&
+      ((currentStepInfo?.stepType === "review" || currentStepInfo?.stepType === "launch") &&
         channels.includes("call") &&
         Boolean(selectedVoiceId?.trim()));
     if (!needVoices) return;
@@ -2629,6 +2764,17 @@ export default function CampaignNew() {
     [allChannelLeads, selectedLeadIds]
   );
 
+  const whatsAppSampleLeadsForAi = useMemo(() => {
+    return selectedLeadsForSamples
+      .filter((lead: Lead) => {
+        if (!lead.phone || !lead.phone.trim()) return false;
+        const cleaned = lead.phone.replace(/[^\d+]/g, "");
+        const digitsOnly = cleaned.replace(/\+/g, "");
+        return digitsOnly.length >= 10;
+      })
+      .slice(0, 3);
+  }, [selectedLeadsForSamples]);
+
   const buildSegmentsFromLeadIds = useCallback(
     (ids: Set<number>) => {
       const out: string[] = [];
@@ -2639,6 +2785,118 @@ export default function CampaignNew() {
     },
     [segmentData]
   );
+
+  const whatsAppAutoSuggestAttemptKeyRef = useRef<string>("");
+
+  const runWhatsAppAiDrafts = useCallback(
+    async (opts?: { quietNoPhone?: boolean }) => {
+      if (!channels.includes("whatsapp") || !activeBaseId) return;
+
+      const sampleLeads = whatsAppSampleLeadsForAi;
+      if (sampleLeads.length === 0) {
+        if (!opts?.quietNoPhone) {
+          showWarning(
+            "Phone numbers required",
+            "Add leads with phone numbers to generate WhatsApp drafts."
+          );
+        }
+        return;
+      }
+
+      setGeneratingWhatsAppMessages(true);
+      try {
+        const response = await apiRequest("/campaigns/generate-messages", {
+          method: "POST",
+          body: JSON.stringify({
+            channel: "whatsapp",
+            campaignName: name || "",
+            campaignPurpose: productService || "",
+            baseId: activeBaseId,
+            segments,
+            sampleLeads: sampleLeads.map((lead) => {
+              const sanitized = sanitizeLeadForAPI(lead);
+              if (!sanitized.industry && lead.role) {
+                sanitized.industry = lead.role;
+              }
+              return sanitized;
+            }),
+            productService: productService || "",
+            valueProposition: valueProposition || "",
+            callToAction: callToAction || "",
+            senderName: senderName || "",
+            senderCompany: senderCompany || "",
+          }),
+        });
+
+        if (response?.messages && Array.isArray(response.messages) && response.messages.length > 0) {
+          setWhatsAppMessages(response.messages);
+          setWhatsAppMessagesGenerated(true);
+          setSelectedWhatsAppMessageIndices([0]);
+          showSuccess("Drafts ready", "Your WhatsApp messages are ready to review.");
+        } else {
+          console.error("Invalid response format:", response);
+          showError("Generation failed", "Failed to generate WhatsApp drafts. Please try again.");
+        }
+      } catch (error: unknown) {
+        console.error("Failed to generate WhatsApp messages:", error);
+        showError(
+          "Generation failed",
+          error instanceof Error ? error.message : "Failed to generate WhatsApp drafts. Please try again."
+        );
+      } finally {
+        setGeneratingWhatsAppMessages(false);
+      }
+    },
+    [
+      channels,
+      activeBaseId,
+      whatsAppSampleLeadsForAi,
+      name,
+      productService,
+      segments,
+      valueProposition,
+      callToAction,
+      senderName,
+      senderCompany,
+      showWarning,
+      showSuccess,
+      showError,
+    ]
+  );
+
+  useEffect(() => {
+    if (currentStepInfo?.stepType !== "whatsapp_templates") {
+      whatsAppAutoSuggestAttemptKeyRef.current = "";
+      return;
+    }
+    if (!channels.includes("whatsapp")) return;
+    if (whatsAppTemplateTab !== "ai") return;
+    if (!activeBaseId) return;
+    if (loadingLeads) return;
+
+    const leadKey = `${selectedLeadsForSamples.map((l) => l.id).join(",")}|${whatsAppSampleLeadsForAi.map((l) => l.id).join(",")}`;
+    const attemptKey = `${step}|${leadKey}`;
+    if (whatsAppAutoSuggestAttemptKeyRef.current === attemptKey) return;
+
+    if (whatsAppMessages.length > 0) {
+      whatsAppAutoSuggestAttemptKeyRef.current = attemptKey;
+      return;
+    }
+
+    whatsAppAutoSuggestAttemptKeyRef.current = attemptKey;
+    void runWhatsAppAiDrafts({ quietNoPhone: true });
+  }, [
+    currentStepInfo?.stepType,
+    whatsAppTemplateTab,
+    step,
+    channels,
+    activeBaseId,
+    loadingLeads,
+    selectedLeadsForSamples,
+    whatsAppSampleLeadsForAi,
+    whatsAppMessages.length,
+    runWhatsAppAiDrafts,
+  ]);
 
   useEffect(() => {
     if (explicitCampaignTargetLeadIds === null) return;
@@ -2748,7 +3006,7 @@ export default function CampaignNew() {
     const fetchLinkedInAccountType = async () => {
       if (!channels.includes('linkedin') || !activeBaseId) {
         setLinkedInAccountType(null);
-        setLinkedInMaxThrottle(100);
+        setLinkedInMaxThrottle(SCHEDULE_DAILY_LIMIT_MAX);
         return;
       }
       try {
@@ -2762,7 +3020,7 @@ export default function CampaignNew() {
           
           // Set max throttle based on account type
           if (['premium', 'sales_navigator', 'recruiter'].includes(accountType)) {
-            setLinkedInMaxThrottle(100); // Daily limit for premium
+            setLinkedInMaxThrottle(SCHEDULE_DAILY_LIMIT_MAX); // Wizard daily cap
             setLinkedInMonthlyLimit(null); // Premium accounts have daily limits
           } else {
             // Free accounts: monthly limits
@@ -3812,8 +4070,8 @@ export default function CampaignNew() {
     <style>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes voiceRowPlayingPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.12); }
-        50% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2); }
+        0%, 100% { box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12); }
+        50% { box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28); }
       }
       .campaign-wizard-root .voice-row-playing-pulse {
         animation: voiceRowPlayingPulse 1.25s ease-in-out infinite;
@@ -3832,26 +4090,309 @@ export default function CampaignNew() {
         transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       }
       .campaign-wizard-root .voice-preview-btn-idle {
-        border: 1px solid #d1d5db;
-        color: #6b7280;
+        border: 1px solid transparent;
+        color: var(--color-text-muted);
+        background: transparent;
       }
       .campaign-wizard-root .voice-preview-btn-idle:hover:not(:disabled) {
-        border-color: #9ca3af;
-        background: rgba(15, 23, 42, 0.04);
-        color: var(--color-text);
+        border-color: transparent;
+        background: rgba(37, 99, 235, 0.08);
+        color: var(--color-primary, #2563EB);
       }
       .campaign-wizard-root .voice-preview-btn-playing {
-        border: 1px solid var(--color-primary, #2563EB);
+        border: 1px solid transparent;
         color: var(--color-primary, #2563EB);
-        background: rgba(37, 99, 235, 0.08);
+        background: rgba(37, 99, 235, 0.12);
       }
       .campaign-wizard-root .voice-preview-btn-playing:hover:not(:disabled) {
-        border-color: #1D4ED8;
-        background: rgba(37, 99, 235, 0.12);
+        background: rgba(37, 99, 235, 0.18);
       }
       .campaign-wizard-root .voice-preview-btn:disabled {
         opacity: 0.55;
         cursor: not-allowed;
+      }
+      .campaign-wizard-root .voice-step-shell {
+        border-radius: 16px;
+        border: none;
+        background: var(--color-surface);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+        min-width: 0;
+      }
+      .campaign-wizard-root .voice-step-segment-wrap {
+        display: flex;
+        gap: 6px;
+        background: rgba(15, 23, 42, 0.03);
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        box-sizing: border-box;
+      }
+      .campaign-wizard-root .voice-step-segment {
+        flex: 1;
+        min-height: 44px;
+        padding: 10px 14px;
+        border-radius: 11px;
+        border: none;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+      }
+      .campaign-wizard-root .voice-step-segment-active {
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-weight: 600;
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+      }
+      .campaign-wizard-root .voice-step-segment-idle {
+        background: transparent;
+        color: var(--color-text-muted);
+        font-weight: 500;
+      }
+      .campaign-wizard-root .voice-step-segment-idle:hover {
+        color: var(--color-text);
+        background: rgba(15, 23, 42, 0.05);
+      }
+      .campaign-wizard-root .voice-select-row {
+        transition: background 0.15s ease;
+        background: transparent;
+      }
+      .campaign-wizard-root .voice-select-row[data-selected="true"] {
+        background: rgba(37, 99, 235, 0.075);
+      }
+      .campaign-wizard-root .voice-select-row:hover {
+        background: rgba(15, 23, 42, 0.045);
+      }
+      .campaign-wizard-root .voice-select-row[data-selected="true"]:hover {
+        background: rgba(37, 99, 235, 0.1);
+      }
+      .campaign-wizard-root .voice-select-row:focus-visible {
+        outline: 2px solid rgba(37, 99, 235, 0.45);
+        outline-offset: -2px;
+      }
+      .campaign-wizard-root .voice-list-scroll {
+        max-height: min(52vh, 440px);
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .campaign-wizard-root .voice-list-rows {
+        display: flex;
+        flex-direction: column;
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(15, 23, 42, 0.02);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+      }
+      .campaign-wizard-root .voice-list-rows .voice-select-row + .voice-select-row {
+        border-top: 1px solid rgba(15, 23, 42, 0.07);
+      }
+      .campaign-wizard-root .voice-load-more-plain {
+        width: 100%;
+        margin-top: 10px;
+        padding: 11px 12px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--color-primary, #2563eb);
+        font-size: 14px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: background 0.15s ease;
+      }
+      .campaign-wizard-root .voice-load-more-plain:hover {
+        background: rgba(37, 99, 235, 0.08);
+      }
+      .campaign-wizard-root .voice-search-field {
+        width: 100%;
+        padding: 11px 14px 11px 40px;
+        font-size: 14px;
+        border-radius: 10px;
+        box-sizing: border-box;
+        border: none;
+        background: rgba(15, 23, 42, 0.045);
+        color: var(--color-text);
+        outline: none;
+        transition: background 0.15s ease, box-shadow 0.15s ease;
+      }
+      .campaign-wizard-root .voice-search-field::placeholder {
+        color: var(--color-text-muted);
+        opacity: 0.85;
+      }
+      .campaign-wizard-root .voice-search-field:focus {
+        background: var(--color-surface);
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.35), 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+      .campaign-wizard-root .voice-filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+      @media (max-width: 520px) {
+        .campaign-wizard-root .voice-filter-chips {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 6px;
+          margin-bottom: -4px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+        }
+      }
+      .campaign-wizard-root .call-opening-panel {
+        border-radius: 16px;
+        background: var(--color-surface);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+      }
+      .campaign-wizard-root .call-opening-panel-inner {
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      @media (max-width: 919px) {
+        .campaign-wizard-root .call-opening-panel-inner {
+          padding: 18px 16px;
+        }
+      }
+      .campaign-wizard-root .call-opening-chip {
+        border: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        background: rgba(37, 99, 235, 0.1);
+        color: #1d4ed8;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.12s ease;
+      }
+      .campaign-wizard-root .call-opening-chip:hover {
+        background: rgba(37, 99, 235, 0.16);
+      }
+      .campaign-wizard-root .call-opening-chip:active {
+        transform: scale(0.98);
+      }
+      .campaign-wizard-root .call-opening-grid {
+        display: grid;
+        gap: 22px;
+        align-items: start;
+      }
+      @media (min-width: 920px) {
+        .campaign-wizard-root .call-opening-grid {
+          grid-template-columns: minmax(0, 1fr) minmax(252px, 300px);
+        }
+      }
+      .campaign-wizard-root .call-opening-editor-shell {
+        position: relative;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.035);
+        overflow: hidden;
+        min-height: 200px;
+      }
+      .campaign-wizard-root .call-opening-loader-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 24px;
+        background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+        backdrop-filter: blur(5px);
+        color: var(--color-text-muted);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .campaign-wizard-root .call-opening-textarea {
+        width: 100%;
+        min-height: 176px;
+        max-height: 280px;
+        resize: vertical;
+        border: none;
+        border-radius: 0;
+        padding: 14px 14px 40px;
+        font-size: 14px;
+        line-height: 1.55;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: transparent;
+        color: var(--color-text);
+        box-sizing: border-box;
+      }
+      .campaign-wizard-root .call-opening-textarea:focus {
+        outline: none;
+      }
+      .campaign-wizard-root .call-opening-textarea::placeholder {
+        color: var(--color-text-muted);
+        opacity: 0.75;
+      }
+      .campaign-wizard-root .persona-behavior-textarea {
+        min-height: 220px;
+        max-height: 520px;
+      }
+      .campaign-wizard-root .call-opening-meta {
+        position: absolute;
+        bottom: 10px;
+        right: 12px;
+        font-size: 12px;
+        color: var(--color-text-muted);
+        pointer-events: none;
+      }
+      .campaign-wizard-root .call-opening-preview {
+        margin-top: 14px;
+        padding: 12px 14px 14px 16px;
+        border-radius: 0 12px 12px 0;
+        border: none;
+        border-left: 3px solid #2563eb;
+        background: rgba(37, 99, 235, 0.06);
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--color-text);
+      }
+      .campaign-wizard-root .call-opening-starter {
+        width: 100%;
+        text-align: left;
+        padding: 12px 14px;
+        margin: 0;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        cursor: pointer;
+        transition: background 0.15s ease;
+        border-left: 3px solid transparent;
+        box-sizing: border-box;
+      }
+      .campaign-wizard-root .call-opening-starter:hover {
+        background: rgba(15, 23, 42, 0.04);
+      }
+      .campaign-wizard-root .call-opening-starter[data-selected="true"] {
+        background: rgba(37, 99, 235, 0.09);
+        border-left-color: #2563eb;
+      }
+      .campaign-wizard-root .call-opening-chip:disabled,
+      .campaign-wizard-root .call-opening-starter:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .campaign-wizard-root .call-opening-starters-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px 0 0;
+      }
+      .campaign-wizard-root .call-opening-starters-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        margin: 0 0 8px;
       }
       .campaign-wizard-root .wizard-footer-back {
         font-family: inherit;
@@ -5212,27 +5753,12 @@ export default function CampaignNew() {
                   </div>
 
                   {selectedLeadIds.size > 0 ? (
-                    <div
-                      style={{
-                        position: "sticky",
-                        bottom: 0,
-                        zIndex: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        padding: "10px 14px 10px 12px",
-                        borderTop: "1px solid rgba(37, 99, 235, 0.22)",
-                        borderLeft: "4px solid #2563EB",
-                        background: "rgba(37, 99, 235, 0.09)",
-                        boxShadow: "0 -2px 10px rgba(15, 23, 42, 0.05)",
-                      }}
-                    >
+                    <WizardStickyLeadSelectionBar>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: 500,
-                          color: "#2563EB",
+                          color: "#1e40af",
                           lineHeight: "20px",
                           display: "flex",
                           flexDirection: "column",
@@ -5273,7 +5799,7 @@ export default function CampaignNew() {
                       >
                         Clear selection
                       </button>
-                    </div>
+                    </WizardStickyLeadSelectionBar>
                   ) : null}
 
                   <div
@@ -6028,20 +6554,9 @@ export default function CampaignNew() {
                     })}
                   </div>
                   {selectedLibraryTemplateIds.length > 0 ? (
-                    <div
-                      style={{
-                        marginTop: 4,
-                        padding: "12px 14px",
-                        background: "rgba(37, 99, 235, 0.09)",
-                        borderLeft: "4px solid #2563EB",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "var(--color-text)",
-                        lineHeight: 1.45,
-                      }}
-                    >
+                    <WizardStepCallout tone="selected" marginTop={4}>
                       {librarySelectionSummaryPhrase(selectedLibraryTemplateIds.length)}
-                    </div>
+                    </WizardStepCallout>
                   ) : null}
                 </>
               )}
@@ -6151,24 +6666,12 @@ export default function CampaignNew() {
                   </div>
 
                   {messages.length > 0 && channels.includes("email") ? (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        padding: "12px 14px",
-                        background:
-                          selectedMessageIndices.length > 0 ? "rgba(37, 99, 235, 0.09)" : "var(--color-surface-secondary)",
-                        borderLeft:
-                          selectedMessageIndices.length > 0
-                            ? "4px solid #2563EB"
-                            : "4px solid var(--color-border)",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "var(--color-text)",
-                        lineHeight: 1.45,
-                      }}
+                    <WizardStepCallout
+                      tone={selectedMessageIndices.length > 0 ? "selected" : "idle"}
+                      marginTop={12}
                     >
                       {aiEmailDraftsUnifiedSummary(messages.length, selectedMessageIndices)}
-                    </div>
+                    </WizardStepCallout>
                   ) : null}
                 </>
               )}
@@ -6649,11 +7152,23 @@ export default function CampaignNew() {
                   </div>
                 ) : null}
                 {!linkedInSampleLeadForAi ? (
-                  <p className="text-sm text-amber-800" style={{ margin: 0, lineHeight: 1.45 }}>
-                    No lead with a detectable LinkedIn URL in this campaign yet. Map your CSV column to{" "}
-                    <strong>LinkedIn URL</strong> (system field), or use a custom text column whose cells are full profile
-                    links (<code className="text-xs">linkedin.com/in/…</code>).
-                  </p>
+                  <div
+                    role="status"
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      background: "#fffbeb",
+                      border: "1px solid #fde68a",
+                      color: "#92400e",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <strong style={{ fontWeight: 600 }}>No leads have a LinkedIn profile URL.</strong> Add or enrich
+                    leads with a full profile link, then use &quot;Suggest connection notes (AI)&quot; again. Map a CSV
+                    column to <strong>LinkedIn URL</strong> (system field), or use a custom column with{" "}
+                    <code className="text-xs">linkedin.com/in/…</code> links.
+                  </div>
                 ) : null}
                 {linkedInStepConfig.templates && linkedInStepConfig.templates.length > 0 ? (
                   <div
@@ -7295,69 +7810,7 @@ export default function CampaignNew() {
               >
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!channels.includes("whatsapp") || !activeBaseId) return;
-                    setGeneratingWhatsAppMessages(true);
-                    try {
-                      const sampleLeads = selectedLeadsForSamples
-                        .filter((lead: Lead) => {
-                          if (!lead.phone || !lead.phone.trim()) return false;
-                          const cleaned = lead.phone.replace(/[^\d+]/g, "");
-                          const digitsOnly = cleaned.replace(/\+/g, "");
-                          return digitsOnly.length >= 10;
-                        })
-                        .slice(0, 3);
-
-                      if (sampleLeads.length === 0) {
-                        showWarning(
-                          "Phone numbers required",
-                          "Add leads with phone numbers to generate WhatsApp drafts."
-                        );
-                        return;
-                      }
-
-                      const response = await apiRequest("/campaigns/generate-messages", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          channel: "whatsapp",
-                          campaignName: name || "",
-                          campaignPurpose: productService || "",
-                          baseId: activeBaseId,
-                          segments,
-                          sampleLeads: sampleLeads.map((lead) => {
-                            const sanitized = sanitizeLeadForAPI(lead);
-                            if (!sanitized.industry && lead.role) {
-                              sanitized.industry = lead.role;
-                            }
-                            return sanitized;
-                          }),
-                          productService: productService || "",
-                          valueProposition: valueProposition || "",
-                          callToAction: callToAction || "",
-                          senderName: senderName || "",
-                          senderCompany: senderCompany || "",
-                        }),
-                      });
-
-                      if (response?.messages && Array.isArray(response.messages)) {
-                        setWhatsAppMessages(response.messages);
-                        setWhatsAppMessagesGenerated(true);
-                        setSelectedWhatsAppMessageIndices([0]);
-                        showSuccess("Drafts ready", "Your WhatsApp messages are ready to review.");
-                      } else {
-                        console.error("Invalid response format:", response);
-                        showError("Generation failed", "Failed to generate WhatsApp drafts. Please try again.");
-                      }
-                    } catch (error: unknown) {
-                      console.error("Failed to generate WhatsApp messages:", error);
-                      showError(
-                        "Generation failed",
-                        error instanceof Error ? error.message : "Failed to generate WhatsApp drafts. Please try again."
-                      );
-                    } finally {
-                      setGeneratingWhatsAppMessages(false);
-                    }
-                  }}
+                  onClick={() => void runWhatsAppAiDrafts()}
                   disabled={generatingWhatsAppMessages || !channels.includes("whatsapp") || !activeBaseId}
                   style={{
                     ...EMAIL_AI_TOOLBAR_BTN,
@@ -7374,7 +7827,11 @@ export default function CampaignNew() {
                   ) : (
                     <Icons.RefreshCw size={16} strokeWidth={1.75} style={{ color: "var(--color-text-muted)" }} />
                   )}
-                  {generatingWhatsAppMessages ? "Generating…" : "Regenerate drafts"}
+                  {generatingWhatsAppMessages
+                    ? "Generating…"
+                    : whatsAppMessages.length > 0
+                      ? "Regenerate drafts"
+                      : "Generate drafts"}
                 </button>
               </div>
             ) : null}
@@ -7507,21 +7964,10 @@ export default function CampaignNew() {
                     })}
                   </div>
                   {whatsAppAppliedLibraryTemplateId != null ? (
-                    <div
-                      style={{
-                        marginTop: 4,
-                        padding: "12px 14px",
-                        background: "rgba(37, 99, 235, 0.09)",
-                        borderLeft: "4px solid #2563EB",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "var(--color-text)",
-                        lineHeight: 1.45,
-                      }}
-                    >
+                    <WizardStepCallout tone="selected" marginTop={4}>
                       ✓ A saved template is applied to Suggestion 1. Open AI suggestions to compare variants, pick one
                       message for this campaign, and edit copy if needed.
-                    </div>
+                    </WizardStepCallout>
                   ) : null}
                 </>
               )}
@@ -7555,6 +8001,24 @@ export default function CampaignNew() {
                 </div>
               ) : (
                 <>
+                  {whatsAppMessages.length === 0 && whatsAppSampleLeadsForAi.length === 0 ? (
+                    <div
+                      role="status"
+                      style={{
+                        padding: 12,
+                        borderRadius: 10,
+                        background: "#fffbeb",
+                        border: "1px solid #fde68a",
+                        color: "#92400e",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <strong style={{ fontWeight: 600 }}>No selected leads have a valid phone number.</strong> Add or
+                      enrich phone numbers for your campaign leads, then use <strong>Generate drafts</strong> again.
+                    </div>
+                  ) : null}
                   <div
                     style={{
                       maxHeight: "60vh",
@@ -7597,26 +8061,12 @@ export default function CampaignNew() {
                   </div>
 
                   {whatsAppMessages.length > 0 && channels.includes("whatsapp") ? (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        padding: "12px 14px",
-                        background:
-                          selectedWhatsAppMessageIndices.length > 0
-                            ? "rgba(37, 99, 235, 0.09)"
-                            : "var(--color-surface-secondary)",
-                        borderLeft:
-                          selectedWhatsAppMessageIndices.length > 0
-                            ? "4px solid #2563EB"
-                            : "4px solid var(--color-border)",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "var(--color-text)",
-                        lineHeight: 1.45,
-                      }}
+                    <WizardStepCallout
+                      tone={selectedWhatsAppMessageIndices.length > 0 ? "selected" : "idle"}
+                      marginTop={12}
                     >
                       {aiWhatsAppDraftsUnifiedSummary(whatsAppMessages.length, selectedWhatsAppMessageIndices)}
-                    </div>
+                    </WizardStepCallout>
                   ) : null}
                 </>
               )}
@@ -7627,73 +8077,105 @@ export default function CampaignNew() {
 
       {/* Call Voice Selection - rendered based on stepType */}
       {currentStepInfo?.stepType === 'call_voice_selection' && (
-        <div style={{ display: "grid", gap: 24 }}>
-          <div>
-            <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>Call voice</h3>
-            <p className="text-hint" style={{ marginTop: 0, marginBottom: 0, maxWidth: 720, lineHeight: 1.55 }}>
-              For AI phone calls only. Use the tabs for library voices or your cloned voices.
+        <div style={{ display: "grid", gap: 20 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              paddingLeft: VOICE_STEP_CONTENT_GUTTER,
+              paddingRight: VOICE_STEP_CONTENT_GUTTER,
+              boxSizing: "border-box",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: 0,
+                fontSize: 20,
+                fontWeight: 600,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.25,
+              }}
+            >
+              Choose a call voice
+            </h3>
+            <p className="text-hint" style={{ margin: 0, maxWidth: 720, lineHeight: 1.55, fontSize: 14 }}>
+              Used for AI phone calls. Pick a library voice or one you cloned — preview any row before you continue.
             </p>
           </div>
 
           {loadingVoices ? (
             <div
               style={{
-                textAlign: "center",
-                padding: "48px 24px",
-                color: "var(--color-text-muted)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 12,
+                paddingLeft: VOICE_STEP_CONTENT_GUTTER,
+                paddingRight: VOICE_STEP_CONTENT_GUTTER,
+                boxSizing: "border-box",
               }}
             >
-              <Icons.Loader size={28} style={{ animation: "spin 1s linear infinite" }} />
-              <div style={{ fontWeight: 600, color: "var(--color-text)" }}>Loading voices…</div>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "52px 20px",
+                  color: "var(--color-text-muted)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 14,
+                  borderRadius: 16,
+                  border: "1px dashed var(--color-border)",
+                  background: "var(--color-surface-secondary)",
+                  boxSizing: "border-box",
+                }}
+              >
+                <Icons.Loader size={28} style={{ animation: "spin 1s linear infinite" }} />
+                <div style={{ fontWeight: 600, color: "var(--color-text)" }}>Loading voices…</div>
+              </div>
             </div>
           ) : availableVoices.length === 0 ? (
             <div
               style={{
-                textAlign: "center",
-                padding: "40px 20px",
-                color: "var(--color-text-muted)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 12,
-                border: "1px dashed var(--color-border)",
-                borderRadius: 8,
+                paddingLeft: VOICE_STEP_CONTENT_GUTTER,
+                paddingRight: VOICE_STEP_CONTENT_GUTTER,
+                boxSizing: "border-box",
               }}
             >
-              <Icons.AlertCircle size={28} style={{ color: "#f59e0b" }} />
-              <div style={{ fontWeight: 600, color: "var(--color-text)" }}>No voices available</div>
-              <div style={{ fontSize: 14 }}>Check your voice API key, or clone a voice once the API is configured.</div>
-              <button type="button" className="btn-primary" onClick={() => setVoiceCloneOpen(true)} style={{ marginTop: 8 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <Icons.UserPlus size={18} />
-                  Clone a voice
-                </span>
-              </button>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "40px 20px",
+                  color: "var(--color-text-muted)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 12,
+                  border: "1px dashed var(--color-border)",
+                  borderRadius: 16,
+                  background: "var(--color-surface-secondary)",
+                  boxSizing: "border-box",
+                }}
+              >
+                <Icons.AlertCircle size={28} style={{ color: "#f59e0b" }} />
+                <div style={{ fontWeight: 600, color: "var(--color-text)" }}>No voices available</div>
+                <div style={{ fontSize: 14, maxWidth: 400, lineHeight: 1.5 }}>
+                  Check your voice API key, or clone a voice once the API is configured.
+                </div>
+                <button type="button" className="btn-primary" onClick={() => setVoiceCloneOpen(true)} style={{ marginTop: 8 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <Icons.UserPlus size={18} />
+                    Clone a voice
+                  </span>
+                </button>
+              </div>
             </div>
           ) : (
             <>
-              <div
-                style={{
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  background: "var(--color-surface-secondary)",
-                  minWidth: 0,
-                }}
-              >
+              <div className="voice-step-shell">
                 <div
                   role="tablist"
                   aria-label="Voice source"
-                  style={{
-                    display: "flex",
-                    gap: 0,
-                    borderBottom: "1px solid var(--color-border)",
-                    background: "var(--color-surface)",
-                  }}
+                  className="voice-step-segment-wrap"
+                  style={{ padding: `8px ${VOICE_STEP_CONTENT_GUTTER}px` }}
                 >
                   <button
                     type="button"
@@ -7701,26 +8183,28 @@ export default function CampaignNew() {
                     aria-selected={voicePickerTab === "library"}
                     id="voice-tab-library"
                     onClick={() => setVoicePickerTab("library")}
-                    style={{
-                      flex: 1,
-                      padding: "14px 16px",
-                      fontSize: 14,
-                      fontWeight: voicePickerTab === "library" ? 600 : 500,
-                      color: voicePickerTab === "library" ? "var(--color-text)" : "var(--color-text-muted)",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: voicePickerTab === "library" ? `2px solid ${WIZ_ACCENT_LINE}` : "2px solid transparent",
-                      marginBottom: -1,
-                      cursor: "pointer",
-                      transition: "color 0.15s, border-color 0.15s",
-                    }}
+                    className={`voice-step-segment ${
+                      voicePickerTab === "library" ? "voice-step-segment-active" : "voice-step-segment-idle"
+                    }`}
                   >
-                    Library
-                    {premadeVoices.length > 0 ? (
-                      <span className="text-hint" style={{ fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
-                        ({premadeVoices.length})
-                      </span>
-                    ) : null}
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+                      Library
+                      {premadeVoices.length > 0 ? (
+                        <span
+                          className="text-hint"
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: "rgba(37, 99, 235, 0.1)",
+                            color: WIZ_ACCENT_LINE,
+                          }}
+                        >
+                          {premadeVoices.length}
+                        </span>
+                      ) : null}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -7728,26 +8212,28 @@ export default function CampaignNew() {
                     aria-selected={voicePickerTab === "my"}
                     id="voice-tab-my"
                     onClick={() => setVoicePickerTab("my")}
-                    style={{
-                      flex: 1,
-                      padding: "14px 16px",
-                      fontSize: 14,
-                      fontWeight: voicePickerTab === "my" ? 600 : 500,
-                      color: voicePickerTab === "my" ? "var(--color-text)" : "var(--color-text-muted)",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: voicePickerTab === "my" ? `2px solid ${WIZ_ACCENT_LINE}` : "2px solid transparent",
-                      marginBottom: -1,
-                      cursor: "pointer",
-                      transition: "color 0.15s, border-color 0.15s",
-                    }}
+                    className={`voice-step-segment ${
+                      voicePickerTab === "my" ? "voice-step-segment-active" : "voice-step-segment-idle"
+                    }`}
                   >
-                    My voices
-                    {myVoicesList.length > 0 ? (
-                      <span className="text-hint" style={{ fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
-                        ({myVoicesList.length})
-                      </span>
-                    ) : null}
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+                      My voices
+                      {myVoicesList.length > 0 ? (
+                        <span
+                          className="text-hint"
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: "rgba(37, 99, 235, 0.1)",
+                            color: WIZ_ACCENT_LINE,
+                          }}
+                        >
+                          {myVoicesList.length}
+                        </span>
+                      ) : null}
+                    </span>
                   </button>
                 </div>
 
@@ -7755,68 +8241,87 @@ export default function CampaignNew() {
                 {voicePickerTab === "library" && (
                   <section
                     style={{
-                      padding: 18,
+                      padding: `16px ${VOICE_STEP_CONTENT_GUTTER}px 20px`,
                       minWidth: 0,
+                      background: "var(--color-surface)",
+                      boxSizing: "border-box",
                     }}
                   >
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>Premade library</div>
-                    </div>
-
                     {premadeVoices.length === 0 ? (
-                      <div className="text-hint" style={{ fontSize: 13, lineHeight: 1.5 }}>
-                        No premade voices were returned. If you only see custom voices, they will appear under My voices.
+                      <div className="text-hint" style={{ fontSize: 13, lineHeight: 1.55 }}>
+                        No premade voices were returned. If you only see custom voices, they will appear under{" "}
+                        <strong style={{ fontWeight: 600, color: "var(--color-text)" }}>My voices</strong>.
                       </div>
                     ) : (
                       <>
-                        <input
-                          type="search"
-                          className="input"
-                          placeholder="Search voices…"
-                          value={voiceLibrarySearch}
-                          onChange={(e) => setVoiceLibrarySearch(e.target.value)}
-                          aria-label="Search voices"
+                        <div
                           style={{
-                            width: "100%",
-                            marginBottom: 10,
-                            padding: "10px 12px",
-                            fontSize: 14,
-                            borderRadius: 8,
-                            boxSizing: "border-box",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 14,
+                            marginBottom: 14,
                           }}
-                        />
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                          {VOICE_LIBRARY_FILTER_CHIPS.map((chip) => {
-                            const active = voiceLibraryFilter === chip.id;
-                            return (
-                              <button
-                                key={chip.id}
-                                type="button"
-                                onClick={() => setVoiceLibraryFilter(chip.id)}
-                                className={active ? "font-medium" : ""}
-                                style={{
-                                  padding: "6px 12px",
-                                  borderRadius: 999,
-                                  fontSize: 12,
-                                  border: active ? "1px solid #2563EB" : "1px solid var(--color-border)",
-                                  background: active ? "rgba(139, 92, 246, 0.12)" : "var(--color-surface-secondary)",
-                                  color: active ? "#2563EB" : "var(--color-text-muted)",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {chip.label}
-                              </button>
-                            );
-                          })}
+                        >
+                          <div style={{ position: "relative" }}>
+                            <Icons.Search
+                              size={18}
+                              aria-hidden
+                              style={{
+                                position: "absolute",
+                                left: 13,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                color: "var(--color-text-muted)",
+                                opacity: 0.65,
+                                pointerEvents: "none",
+                              }}
+                            />
+                            <input
+                              id="voice-library-search"
+                              type="search"
+                              className="voice-search-field"
+                              placeholder="Search by name or description…"
+                              value={voiceLibrarySearch}
+                              onChange={(e) => setVoiceLibrarySearch(e.target.value)}
+                              aria-label="Search voices"
+                            />
+                          </div>
+                          <div role="group" aria-label="Voice style filters" className="voice-filter-chips">
+                            {VOICE_LIBRARY_FILTER_CHIPS.map((chip) => {
+                              const active = voiceLibraryFilter === chip.id;
+                              return (
+                                <button
+                                  key={chip.id}
+                                  type="button"
+                                  onClick={() => setVoiceLibraryFilter(chip.id)}
+                                  style={{
+                                    padding: "6px 13px",
+                                    borderRadius: 999,
+                                    fontSize: 12,
+                                    fontWeight: active ? 600 : 500,
+                                    border: "none",
+                                    background: active ? "rgba(37, 99, 235, 0.16)" : "transparent",
+                                    color: active ? WIZ_ACCENT_LINE : "var(--color-text-muted)",
+                                    cursor: "pointer",
+                                    flexShrink: 0,
+                                    transition: "background 0.15s ease, color 0.15s ease",
+                                  }}
+                                >
+                                  {chip.label}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div className="text-hint" style={{ fontSize: 12, marginBottom: 12 }}>
-                          Showing {visibleLibraryVoices.length} of {filteredPremadeVoices.length} voices
-                          {filteredPremadeVoices.length !== premadeVoices.length
-                            ? ` (${premadeVoices.length} in library)`
-                            : ""}
+                        <div className="text-hint" style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.45 }}>
+                          Showing{" "}
+                          <span style={{ fontWeight: 600, color: "var(--color-text)" }}>{visibleLibraryVoices.length}</span> of{" "}
+                          {filteredPremadeVoices.length}
+                          {filteredPremadeVoices.length !== premadeVoices.length ? ` (${premadeVoices.length} in library)` : ""}
                         </div>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div className="voice-list-scroll">
+                          <div className="voice-list-rows">
                           {visibleLibraryVoices.map((voice) => {
                             const sel = selectedVoiceId === voice.id;
                             const playing = previewingVoiceId === voice.id;
@@ -7826,7 +8331,10 @@ export default function CampaignNew() {
                                 key={voice.id}
                                 role="button"
                                 tabIndex={0}
-                                className={playing ? "voice-row-playing-pulse" : undefined}
+                                aria-pressed={sel}
+                                data-selected={sel ? "true" : undefined}
+                                aria-label={`Select voice ${voice.name}`}
+                                className={`voice-select-row${playing ? " voice-row-playing-pulse" : ""}`}
                                 onClick={() => setSelectedVoiceId(voice.id)}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
@@ -7836,25 +8344,32 @@ export default function CampaignNew() {
                                 }}
                                 style={{
                                   display: "flex",
-                                  alignItems: "center",
-                                  gap: 12,
-                                  padding: "12px 14px",
-                                  borderRadius: 8,
-                                  border: "1px solid var(--color-border)",
-                                  borderLeft: sel ? "4px solid #2563EB" : "1px solid var(--color-border)",
-                                  background: sel ? "rgba(37, 99, 235, 0.09)" : "var(--color-surface)",
+                                  alignItems: "stretch",
+                                  border: "none",
+                                  borderRadius: 0,
+                                  overflow: "hidden",
+                                  borderLeft: `3px solid ${sel ? WIZ_ACCENT : "transparent"}`,
                                   cursor: "pointer",
-                                  transition: "background 0.15s ease, border-color 0.15s ease",
                                   minWidth: 0,
                                 }}
                               >
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    padding: "12px 14px 12px 11px",
+                                    minWidth: 0,
+                                  }}
+                                >
                                 <div
                                   aria-hidden
                                   style={{
                                     width: 18,
                                     height: 18,
                                     borderRadius: "50%",
-                                    border: sel ? "2px solid #2563EB" : "2px solid #d1d5db",
+                                    border: sel ? "2px solid #2563EB" : "1.5px solid rgba(148, 163, 184, 0.5)",
                                     background: sel ? "#2563EB" : "transparent",
                                     flexShrink: 0,
                                     display: "flex",
@@ -7909,22 +8424,24 @@ export default function CampaignNew() {
                                   )}
                                   {playing ? "Stop" : "Preview"}
                                 </button>
+                                </div>
                               </div>
                             );
                           })}
+                          </div>
                         </div>
                         {libraryVoiceVisibleCount < filteredPremadeVoices.length ? (
                           <button
                             type="button"
-                            style={voiceLoadMoreButtonSx(12)}
-                            onMouseEnter={(e) => voiceLoadMoreHover(e.currentTarget, true)}
-                            onMouseLeave={(e) => voiceLoadMoreHover(e.currentTarget, false)}
+                            className="voice-load-more-plain"
                             onClick={() => setLibraryVoiceVisibleCount((n) => n + 5)}
                           >
-                            <Icons.ChevronDown size={18} strokeWidth={2.25} aria-hidden style={{ flexShrink: 0, opacity: 0.9 }} />
-                            <span>Load more</span>
-                            <span style={{ fontWeight: 500, fontSize: 13, color: "var(--color-text-muted)" }}>
-                              ({filteredPremadeVoices.length - libraryVoiceVisibleCount} left)
+                            <Icons.ChevronDown size={18} strokeWidth={2.25} aria-hidden style={{ flexShrink: 0, opacity: 0.75 }} />
+                            <span>
+                              Load more{" "}
+                              <span style={{ fontWeight: 500, color: "var(--color-text-muted)" }}>
+                                ({filteredPremadeVoices.length - libraryVoiceVisibleCount} left)
+                              </span>
                             </span>
                           </button>
                         ) : null}
@@ -7942,18 +8459,29 @@ export default function CampaignNew() {
                 {voicePickerTab === "my" && (
                   <section
                     style={{
-                      padding: 18,
+                      padding: `16px ${VOICE_STEP_CONTENT_GUTTER}px 20px`,
                       minWidth: 0,
                       display: "flex",
                       flexDirection: "column",
-                      gap: 12,
+                      gap: 14,
+                      background: "var(--color-surface)",
+                      boxSizing: "border-box",
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>Your cloned voices</div>
-                      <div className="text-hint" style={{ fontSize: 12, marginTop: 4 }}>
-                        Only voices you cloned while signed in to this app (stored on your user account).
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--color-text)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Your voices
                       </div>
+                      <p className="text-hint" style={{ fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                        Clones are saved to your account and appear only here.
+                      </p>
                     </div>
 
                     {myVoicesList.length === 0 ? (
@@ -7961,23 +8489,29 @@ export default function CampaignNew() {
                         className="text-hint"
                         style={{
                           fontSize: 13,
-                          padding: "16px 12px",
-                          borderRadius: 8,
-                          border: "1px dashed var(--color-border)",
+                          padding: "22px 16px",
+                          borderRadius: 12,
+                          border: "none",
                           textAlign: "center",
-                          lineHeight: 1.5,
+                          lineHeight: 1.55,
+                          background: "rgba(15, 23, 42, 0.03)",
+                          boxShadow: "inset 0 0 0 1px rgba(15, 23, 42, 0.08)",
                         }}
                       >
-                        No cloned voices yet. Use the button below to clone a new voice — it will show up here.
+                        No cloned voices yet. Use <strong style={{ fontWeight: 600, color: "var(--color-text)" }}>Clone a new voice</strong>{" "}
+                        below — it will show up in this list.
                       </div>
                     ) : (
                       <>
                         {myVoicesList.length > 5 ? (
-                          <div className="text-hint" style={{ fontSize: 12 }}>
-                            Showing {visibleMyVoices.length} of {myVoicesList.length} voices
+                          <div className="text-hint" style={{ fontSize: 12, lineHeight: 1.45 }}>
+                            Showing{" "}
+                            <span style={{ fontWeight: 600, color: "var(--color-text)" }}>{visibleMyVoices.length}</span> of{" "}
+                            {myVoicesList.length}
                           </div>
                         ) : null}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div className="voice-list-scroll">
+                        <div className="voice-list-rows">
                         {visibleMyVoices.map((voice) => {
                           const sel = selectedVoiceId === voice.id;
                           const playing = previewingVoiceId === voice.id;
@@ -7987,7 +8521,10 @@ export default function CampaignNew() {
                               key={voice.id}
                               role="button"
                               tabIndex={0}
-                              className={playing ? "voice-row-playing-pulse" : undefined}
+                              aria-pressed={sel}
+                              data-selected={sel ? "true" : undefined}
+                              aria-label={`Select voice ${voice.name}`}
+                              className={`voice-select-row${playing ? " voice-row-playing-pulse" : ""}`}
                               onClick={() => setSelectedVoiceId(voice.id)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
@@ -7997,25 +8534,32 @@ export default function CampaignNew() {
                               }}
                               style={{
                                 display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                                padding: "12px 14px",
-                                borderRadius: 8,
-                                border: "1px solid var(--color-border)",
-                                borderLeft: sel ? "4px solid #2563EB" : "1px solid var(--color-border)",
-                                background: sel ? "rgba(37, 99, 235, 0.09)" : "var(--color-surface)",
+                                alignItems: "stretch",
+                                border: "none",
+                                borderRadius: 0,
+                                overflow: "hidden",
+                                borderLeft: `3px solid ${sel ? WIZ_ACCENT : "transparent"}`,
                                 cursor: "pointer",
-                                transition: "background 0.15s ease, border-color 0.15s ease",
                                 minWidth: 0,
                               }}
                             >
+                              <div
+                                style={{
+                                  flex: 1,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 12,
+                                  padding: "12px 14px 12px 11px",
+                                  minWidth: 0,
+                                }}
+                              >
                               <div
                                 aria-hidden
                                 style={{
                                   width: 18,
                                   height: 18,
                                   borderRadius: "50%",
-                                  border: sel ? "2px solid #2563EB" : "2px solid #d1d5db",
+                                  border: sel ? "2px solid #2563EB" : "1.5px solid rgba(148, 163, 184, 0.5)",
                                   background: sel ? "#2563EB" : "transparent",
                                   flexShrink: 0,
                                   display: "flex",
@@ -8079,7 +8623,10 @@ export default function CampaignNew() {
                                   style={{
                                     padding: "8px 10px",
                                     borderRadius: 8,
-                                    color: "#b91c1c",
+                                    border: "none",
+                                    color: "rgba(185, 28, 28, 0.75)",
+                                    background: "transparent",
+                                    opacity: 0.85,
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -8089,22 +8636,24 @@ export default function CampaignNew() {
                                   <Icons.Trash size={18} />
                                 </button>
                               </div>
+                              </div>
                             </div>
                           );
                         })}
                         </div>
+                        </div>
                         {myVoiceVisibleCount < myVoicesList.length ? (
                           <button
                             type="button"
-                            style={voiceLoadMoreButtonSx(10)}
-                            onMouseEnter={(e) => voiceLoadMoreHover(e.currentTarget, true)}
-                            onMouseLeave={(e) => voiceLoadMoreHover(e.currentTarget, false)}
+                            className="voice-load-more-plain"
                             onClick={() => setMyVoiceVisibleCount((n) => n + 5)}
                           >
-                            <Icons.ChevronDown size={18} strokeWidth={2.25} aria-hidden style={{ flexShrink: 0, opacity: 0.9 }} />
-                            <span>Load more</span>
-                            <span style={{ fontWeight: 500, fontSize: 13, color: "var(--color-text-muted)" }}>
-                              ({myVoicesList.length - myVoiceVisibleCount} left)
+                            <Icons.ChevronDown size={18} strokeWidth={2.25} aria-hidden style={{ flexShrink: 0, opacity: 0.75 }} />
+                            <span>
+                              Load more{" "}
+                              <span style={{ fontWeight: 500, color: "var(--color-text-muted)" }}>
+                                ({myVoicesList.length - myVoiceVisibleCount} left)
+                              </span>
                             </span>
                           </button>
                         ) : null}
@@ -8117,19 +8666,22 @@ export default function CampaignNew() {
                       onClick={() => setVoiceCloneOpen(true)}
                       style={{
                         width: "100%",
-                        marginTop: 4,
+                        marginTop: 2,
                         padding: "12px 16px",
                         fontWeight: 600,
                         fontSize: 14,
-                        borderRadius: 8,
-                        border: "1px solid var(--color-border)",
+                        borderRadius: 10,
+                        border: "none",
+                        background: "rgba(37, 99, 235, 0.08)",
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 8,
+                        gap: 10,
+                        color: WIZ_ACCENT_LINE,
+                        transition: "background 0.15s ease",
                       }}
                     >
-                      <Icons.Plus size={18} />
+                      <Icons.Plus size={18} strokeWidth={2.25} />
                       Clone a new voice
                     </button>
                   </section>
@@ -8139,22 +8691,62 @@ export default function CampaignNew() {
               {selectedVoiceId ? (
                 <div
                   style={{
-                    padding: "12px 14px",
-                    background: WIZ_ROW_SELECTED,
-                    borderRadius: 8,
-                    border: `1px solid var(--color-border)`,
-                    boxShadow: `inset 3px 0 0 0 ${WIZ_ACCENT_LINE}`,
+                    padding: `12px ${VOICE_STEP_CONTENT_GUTTER}px`,
+                    background: "rgba(37, 99, 235, 0.06)",
+                    borderRadius: "0 12px 12px 0",
+                    border: "none",
+                    boxShadow: "inset 3px 0 0 0 rgba(37, 99, 235, 0.55)",
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
+                    gap: 12,
                     flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    boxSizing: "border-box",
                   }}
                 >
-                  <Icons.Check size={16} style={{ color: WIZ_ACCENT_LINE, flexShrink: 0, opacity: 0.9 }} />
-                  <div style={{ fontSize: 13, color: "var(--color-text)" }}>
-                    <span style={{ color: "var(--color-text-muted)", fontWeight: 500 }}>Selected · </span>
-                    {availableVoices.find((v) => v.id === selectedVoiceId)?.name || "Unknown"}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                    <div
+                      aria-hidden
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: "rgba(37, 99, 235, 0.14)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icons.Check size={17} style={{ color: WIZ_ACCENT_LINE }} strokeWidth={2.25} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: WIZ_ACCENT_LINE }}>
+                        Voice selected
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", marginTop: 2, overflowWrap: "anywhere" }}>
+                        {availableVoices.find((v) => v.id === selectedVoiceId)?.name || "Unknown"}
+                      </div>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className={`voice-preview-btn ${
+                      previewingVoiceId === selectedVoiceId ? "voice-preview-btn-playing" : "voice-preview-btn-idle"
+                    }`}
+                    disabled={previewLoadingVoiceId === selectedVoiceId}
+                    onClick={() => void toggleVoicePreview(selectedVoiceId)}
+                    style={{ flexShrink: 0 }}
+                  >
+                    {previewLoadingVoiceId === selectedVoiceId ? (
+                      <Icons.Loader size={14} style={{ animation: "spin 1s linear infinite" }} />
+                    ) : previewingVoiceId === selectedVoiceId ? (
+                      <Pause size={14} />
+                    ) : (
+                      <Play size={14} />
+                    )}
+                    {previewingVoiceId === selectedVoiceId ? "Stop" : "Preview"}
+                  </button>
                 </div>
               ) : null}
             </>
@@ -8164,259 +8756,170 @@ export default function CampaignNew() {
 
       {/* Call Initial Prompt - rendered based on stepType */}
       {currentStepInfo?.stepType === 'call_initial_prompt' && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            paddingLeft: VOICE_STEP_CONTENT_GUTTER,
+            paddingRight: VOICE_STEP_CONTENT_GUTTER,
+            boxSizing: "border-box",
+          }}
+        >
           <div>
-            <h2 style={{ marginTop: 0, marginBottom: 6, fontSize: 20, fontWeight: 600 }}>How the call starts</h2>
-            <p className="text-hint" style={{ margin: 0, fontSize: 13 }}>
-              Opening line for AI calls only.
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>How the call starts</h2>
+            <p className="text-hint" style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.55, maxWidth: 680 }}>
+              The first thing your AI says on outbound calls. Tap a field to insert it, then edit freely—placeholders fill from
+              each lead&apos;s profile.
             </p>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 55fr) minmax(0, 45fr)",
-              gap: 20,
-              alignItems: "stretch",
-              minHeight: 380,
-            }}
-          >
-            {/* Left: variables + textarea + preview */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 2 }}>Click to insert →</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                {CALL_OPENING_VARIABLES.map((variable) => (
-                  <button
-                    key={variable.key}
-                    type="button"
-                    title={`Example: ${variable.example}`}
-                    onClick={() => {
-                      const textarea = initialPromptTextareaRef.current;
-                      if (!textarea) return;
-                      const start = textarea.selectionStart;
-                      const end = textarea.selectionEnd;
-                      const text = initialPrompt;
-                      const insertText = `{{${variable.key}}}`;
-                      const next = text.slice(0, start) + insertText + text.slice(end);
-                      setInitialPrompt(next);
-                      setCallOpeningStarterIndex(null);
-                      requestAnimationFrame(() => {
-                        const el = initialPromptTextareaRef.current;
-                        if (!el) return;
-                        const pos = start + insertText.length;
-                        el.selectionStart = el.selectionEnd = pos;
-                        el.focus();
-                      });
-                    }}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "4px 12px",
-                      borderRadius: 9999,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      fontFamily:
-                        'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                      background: "rgba(37, 99, 235, 0.09)",
-                      color: "#2563EB",
-                      border: "1px solid rgba(37, 99, 235, 0.22)",
-                      cursor: "pointer",
-                      boxSizing: "border-box",
-                      transition: "background 0.15s ease, border-color 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.14)";
-                      e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.09)";
-                      e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.22)";
-                    }}
-                  >
-                    {`{{${variable.key}}}`}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-                <label htmlFor="initial-prompt-textarea" className="sr-only">
-                  Call opening message
-                </label>
-                <div
-                  style={{
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                    flex: 1,
-                    minHeight: 0,
-                    background: "var(--color-surface)",
-                  }}
-                >
-                  <div style={{ padding: "10px 12px 6px" }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
-                        color: "#ecfdf5",
-                        background: "#14532d",
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        lineHeight: 1.2,
+          <div className="call-opening-panel">
+            <div className="call-opening-panel-inner">
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 10 }}>Insert fields</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  {CALL_OPENING_VARIABLES.map((variable) => (
+                    <button
+                      key={variable.key}
+                      type="button"
+                      className="call-opening-chip"
+                      title={`Example: ${variable.example}`}
+                      disabled={callOpeningFetchLoading}
+                      onClick={() => {
+                        if (callOpeningFetchLoading) return;
+                        const textarea = initialPromptTextareaRef.current;
+                        if (!textarea) return;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = initialPrompt;
+                        const insertText = `{{${variable.key}}}`;
+                        const next = text.slice(0, start) + insertText + text.slice(end);
+                        setInitialPrompt(next);
+                        setCallOpeningStarterIndex(null);
+                        requestAnimationFrame(() => {
+                          const el = initialPromptTextareaRef.current;
+                          if (!el) return;
+                          const pos = start + insertText.length;
+                          el.selectionStart = el.selectionEnd = pos;
+                          el.focus();
+                        });
                       }}
                     >
-                      Last opening prompt
-                    </span>
+                      {`{{${variable.key}}}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="call-opening-grid">
+                <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>Opening line</span>
+                    {!callOpeningFetchLoading ? (
+                      <span className="text-hint" style={{ fontSize: 12 }}>
+                        Tip: click a field above to insert at the cursor
+                      </span>
+                    ) : null}
                   </div>
-                  <div style={{ position: "relative", flex: 1, minHeight: 100, display: "flex", flexDirection: "column" }}>
+
+                  <div className="call-opening-editor-shell">
+                    {callOpeningFetchLoading ? (
+                      <div className="call-opening-loader-overlay" role="status" aria-live="polite" aria-busy="true">
+                        <Icons.Loader size={28} style={{ animation: "spin 1s linear infinite", color: WIZ_ACCENT }} />
+                        <span>Loading your saved opening…</span>
+                      </div>
+                    ) : null}
+                    <label htmlFor="initial-prompt-textarea" className="sr-only">
+                      Call opening message
+                    </label>
                     <textarea
                       id="initial-prompt-textarea"
                       ref={initialPromptTextareaRef}
-                      className="input initial-prompt-textarea"
+                      className="call-opening-textarea initial-prompt-textarea"
                       value={initialPrompt}
+                      disabled={callOpeningFetchLoading}
                       onChange={(e) => {
                         setInitialPrompt(e.target.value);
                         setCallOpeningStarterIndex(null);
                       }}
                       placeholder="Hello {{first_name}}! I'm calling about {{product_service}}…"
-                      style={{
-                        width: "100%",
-                        flex: 1,
-                        minHeight: 100,
-                        maxHeight: 220,
-                        fontSize: 14,
-                        fontFamily:
-                          'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                        resize: "vertical",
-                        border: "none",
-                        borderRadius: 0,
-                        padding: "12px 12px 32px",
-                        boxSizing: "border-box",
-                        lineHeight: 1.5,
-                        background: "transparent",
-                        color: "var(--color-text)",
-                      }}
                     />
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: 8,
-                        right: 12,
-                        fontSize: 12,
-                        color: "#9ca3af",
-                        pointerEvents: "none",
-                      }}
-                    >
+                    <div className="call-opening-meta">
                       ~
-                      {countWordsForCallOpening(initialPrompt) || 0}{" "}
-                      words · ~
-                      {estimateSpeakSecondsFromWords(countWordsForCallOpening(initialPrompt)) || 0}{" "}
-                      sec
+                      {countWordsForCallOpening(initialPrompt) || 0} words · ~
+                      {estimateSpeakSecondsFromWords(countWordsForCallOpening(initialPrompt)) || 0} sec
                     </div>
                   </div>
-                  {initialPrompt.trim() ? (
-                    <div
-                      style={{
-                        borderLeft: "4px solid #4ade80",
-                        background: "rgba(34, 197, 94, 0.12)",
-                        padding: "8px 12px",
-                        fontSize: 14,
-                        lineHeight: 1.45,
-                        color: "#166534",
-                        borderTop: "1px solid rgba(34, 197, 94, 0.22)",
-                        borderRadius: "0 0 10px 10px",
-                      }}
-                    >
-                      <div style={{ marginBottom: 6 }}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                            color: "#ecfdf5",
-                            background: "#14532d",
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          Preview
-                        </span>
+
+                  {initialPrompt.trim() && !callOpeningFetchLoading ? (
+                    <div className="call-opening-preview">
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: "var(--color-text-muted)",
+                          marginBottom: 8,
+                        }}
+                      >
+                        Sample as heard
                       </div>
                       <div>{previewCallOpeningWithSamples(initialPrompt)}</div>
                     </div>
                   ) : null}
                 </div>
-              </div>
-            </div>
 
-            {/* Right: starter scripts */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                minWidth: 0,
-                minHeight: 0,
-              }}
-            >
-              {CALL_STARTER_SCRIPTS.map((template, index) => {
-                const selected = callOpeningStarterIndex === index;
-                return (
-                  <button
-                    key={template.title}
-                    type="button"
-                    title={template.text}
-                    onClick={() => {
-                      setInitialPrompt(template.text);
-                      setCallOpeningStarterIndex(index);
-                      requestAnimationFrame(() => initialPromptTextareaRef.current?.focus());
-                    }}
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      textAlign: "left",
-                      padding: 12,
-                      background: "var(--color-surface)",
-                      border: "1px solid var(--color-border)",
-                      borderLeftWidth: selected ? 4 : 1,
-                      borderLeftStyle: "solid",
-                      borderLeftColor: selected ? WIZ_ACCENT : "var(--color-border)",
-                      borderRadius: 12,
-                      cursor: "pointer",
-                      boxSizing: "border-box",
-                      minHeight: 0,
-                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                      boxShadow: selected ? "0 1px 4px rgba(37, 99, 235, 0.12)" : "none",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text)", marginBottom: 4 }}>
-                      {template.title}
-                    </div>
-                    <div
-                      className="text-hint"
-                      style={{
-                        fontSize: 12,
-                        lineHeight: 1.4,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {template.description}
-                    </div>
-                  </button>
-                );
-              })}
+                <div className="call-opening-starters-wrap">
+                  <div className="call-opening-starters-label">Starting points</div>
+                  {CALL_STARTER_SCRIPTS.map((template, index) => {
+                    const selected = callOpeningStarterIndex === index;
+                    return (
+                      <button
+                        key={template.title}
+                        type="button"
+                        className="call-opening-starter"
+                        data-selected={selected ? "true" : undefined}
+                        title={template.text}
+                        disabled={callOpeningFetchLoading}
+                        onClick={() => {
+                          if (callOpeningFetchLoading) return;
+                          setInitialPrompt(template.text);
+                          setCallOpeningStarterIndex(index);
+                          requestAnimationFrame(() => initialPromptTextareaRef.current?.focus());
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text)", marginBottom: 4 }}>
+                          {template.title}
+                        </div>
+                        <div
+                          className="text-hint"
+                          style={{
+                            fontSize: 12,
+                            lineHeight: 1.45,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {template.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -8424,21 +8927,31 @@ export default function CampaignNew() {
 
       {/* Call System Persona - rendered based on stepType */}
       {currentStepInfo?.stepType === 'call_system_persona' && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            paddingLeft: VOICE_STEP_CONTENT_GUTTER,
+            paddingRight: VOICE_STEP_CONTENT_GUTTER,
+            boxSizing: "border-box",
+          }}
+        >
           <div>
-            <h2 style={{ marginTop: 0, marginBottom: 6, fontSize: 20, fontWeight: 600 }}>Assistant behavior</h2>
-            <p className="text-hint" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
-              This is your voice agent <strong style={{ fontWeight: 600, color: "var(--color-text)" }}>system prompt</strong>
-              —how the agent thinks, speaks, and handles the rest of the call after the opening line.
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>Assistant behavior</h2>
+            <p className="text-hint" style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.55, maxWidth: 720 }}>
+              Your voice agent&apos;s{" "}
+              <strong style={{ fontWeight: 600, color: "var(--color-text)" }}>system prompt</strong>
+              —tone, guardrails, and how it handles the rest of the call after the opening line.
             </p>
           </div>
 
           {!systemPersonaAiExpanded ? (
-            <div style={{ alignSelf: "flex-start", width: "fit-content", maxWidth: "100%" }}>
+            <div style={{ justifySelf: "start", width: "fit-content", maxWidth: "100%" }}>
               <button
                 type="button"
                 className="persona-ai-generate-btn"
-                disabled={systemPersonaGenerating}
+                disabled={systemPersonaGenerating || systemPersonaFetchLoading}
                 onClick={() => setSystemPersonaAiExpanded(true)}
               >
                 <Sparkles size={18} strokeWidth={2} aria-hidden />
@@ -8447,15 +8960,16 @@ export default function CampaignNew() {
             </div>
           ) : (
             <div
-              className="persona-ai-panel-reveal"
+              className="persona-ai-panel-reveal call-kb-ai-panel"
               style={{
                 border: "1px solid var(--color-border)",
-                borderRadius: 10,
-                padding: "10px 12px",
-                background: "var(--color-surface-secondary)",
+                borderRadius: 12,
+                padding: "18px 18px 16px",
+                background: "linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-secondary) 100%)",
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: 18,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               }}
             >
               <div
@@ -8463,48 +8977,71 @@ export default function CampaignNew() {
                   display: "flex",
                   flexWrap: "wrap",
                   alignItems: "flex-start",
-                  gap: 8,
                   justifyContent: "space-between",
+                  gap: 12,
+                  paddingBottom: 2,
+                  borderBottom: "1px solid var(--color-border)",
                 }}
               >
-                <div style={{ minWidth: 0, flex: "1 1 200px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 2, lineHeight: 1.3 }}>
-                    Generate with AI
+                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "var(--color-text)",
+                      marginBottom: 8,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    AI assistant style
                   </div>
-                  <p className="text-hint" style={{ margin: 0, fontSize: 11, lineHeight: 1.35, maxWidth: 520 }}>
-                    One-click suggestions or your own words + Generate. Campaign context is used when available.
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                      color: "var(--color-text-muted)",
+                      maxWidth: "52ch",
+                    }}
+                  >
+                    Choose a starter below, or describe your own. We&apos;ll generate a full system prompt using campaign
+                    context when available.
                   </p>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flexShrink: 0 }}>
                   {systemPersonaGenerating ? (
                     <span
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 6,
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: 500,
                         color: "var(--color-text-muted)",
                       }}
                     >
-                      <RefreshCw size={12} strokeWidth={2} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+                      <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
                       Generating…
                     </span>
                   ) : null}
                   <button
                     type="button"
-                    disabled={systemPersonaGenerating}
+                    disabled={systemPersonaGenerating || systemPersonaFetchLoading}
                     onClick={() => setSystemPersonaAiExpanded(false)}
                     className="btn-ghost"
                     style={{
-                      padding: "4px 8px",
-                      fontSize: 12,
+                      padding: "8px 12px",
+                      fontSize: 13,
                       fontWeight: 500,
                       color: "var(--color-text-muted)",
-                      border: "none",
-                      background: "transparent",
-                      cursor: systemPersonaGenerating ? "not-allowed" : "pointer",
-                      opacity: systemPersonaGenerating ? 0.5 : 1,
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      background: "var(--color-surface)",
+                      cursor:
+                        systemPersonaGenerating || systemPersonaFetchLoading ? "not-allowed" : "pointer",
+                      opacity: systemPersonaGenerating || systemPersonaFetchLoading ? 0.5 : 1,
+                      flexShrink: 0,
                     }}
                   >
                     Hide
@@ -8512,55 +9049,72 @@ export default function CampaignNew() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
+              <div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
-                    letterSpacing: "0.05em",
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    color: "#9ca3af",
-                    marginBottom: 6,
+                    color: "var(--color-text-muted)",
+                    marginBottom: 10,
                   }}
                 >
-                  Suggestions
+                  Suggested styles
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", paddingTop: 2 }}>
-                  {CALL_SYSTEM_PERSONA_SUGGESTIONS.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      disabled={systemPersonaGenerating}
-                      onClick={() => void generateCallSystemPersonaWithBrief(s.brief)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "4px 9px",
-                        borderRadius: 9999,
-                        border: "1px solid var(--color-border)",
-                        background: "var(--color-surface)",
-                        color: "var(--color-text)",
-                        fontSize: 11,
-                        fontWeight: 500,
-                        lineHeight: 1.25,
-                        cursor: systemPersonaGenerating ? "not-allowed" : "pointer",
-                        opacity: systemPersonaGenerating ? 0.65 : 1,
-                        textAlign: "left",
-                        maxWidth: "100%",
-                      }}
-                    >
-                      <Sparkles size={11} strokeWidth={2} style={{ flexShrink: 0, color: "#2563EB" }} aria-hidden />
-                      {s.label}
-                    </button>
-                  ))}
+                <div
+                  style={{
+                    padding: "14px 14px 12px",
+                    borderRadius: 10,
+                    background: "var(--color-surface)",
+                    border: "1px solid var(--color-border)",
+                  }}
+                >
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+                    {CALL_SYSTEM_PERSONA_SUGGESTIONS.map((s) => {
+                      const disabled = systemPersonaGenerating || systemPersonaFetchLoading;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          disabled={disabled}
+                          title={s.brief.length > 140 ? `${s.brief.slice(0, 140)}…` : s.brief}
+                          onClick={() => void generateCallSystemPersonaWithBrief(s.brief)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                            padding: "8px 14px",
+                            borderRadius: 9999,
+                            fontSize: 12,
+                            fontWeight: 500,
+                            fontFamily: "inherit",
+                            lineHeight: 1.35,
+                            boxSizing: "border-box",
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            opacity: disabled ? 0.55 : 1,
+                            border: "1px solid var(--color-border)",
+                            background: "var(--color-surface-secondary)",
+                            color: "var(--color-text)",
+                            transition: "background 0.15s ease, border-color 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (disabled) return;
+                            e.currentTarget.style.borderColor = "#c4b5fd";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (disabled) return;
+                            e.currentTarget.style.borderColor = "";
+                            e.currentTarget.style.border = "1px solid var(--color-border)";
+                          }}
+                        >
+                          <Sparkles size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#2563EB" }} aria-hidden />
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -8568,18 +9122,18 @@ export default function CampaignNew() {
                 <label
                   htmlFor="system-persona-custom-brief"
                   style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
-                    letterSpacing: "0.05em",
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    color: "#9ca3af",
+                    color: "var(--color-text-muted)",
                     display: "block",
-                    marginBottom: 4,
+                    marginBottom: 10,
                   }}
                 >
-                  Your words
+                  Or describe your own style
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch" }}>
                   <input
                     id="system-persona-custom-brief"
                     type="text"
@@ -8587,32 +9141,52 @@ export default function CampaignNew() {
                     value={systemPersonaCustomBrief}
                     onChange={(e) => setSystemPersonaCustomBrief(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !systemPersonaGenerating && systemPersonaCustomBrief.trim()) {
+                      const t = (e.currentTarget as HTMLInputElement).value.trim();
+                      if (
+                        e.key === "Enter" &&
+                        t &&
+                        !systemPersonaGenerating &&
+                        !systemPersonaFetchLoading
+                      ) {
                         e.preventDefault();
                         void generateCallSystemPersonaWithBrief(systemPersonaCustomBrief);
                       }
                     }}
-                    disabled={systemPersonaGenerating}
-                    placeholder='e.g. calm doctor tone, UK English, short sentences'
-                    style={{ flex: "1 1 180px", minWidth: 0, fontSize: 12, padding: "6px 10px", minHeight: 32 }}
+                    disabled={systemPersonaGenerating || systemPersonaFetchLoading}
+                    placeholder="e.g. calm doctor tone, UK English, short sentences"
+                    style={{
+                      flex: "1 1 220px",
+                      minWidth: 0,
+                      fontSize: 14,
+                      padding: "10px 14px",
+                      minHeight: 42,
+                      borderRadius: 10,
+                    }}
                   />
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={systemPersonaGenerating || !systemPersonaCustomBrief.trim()}
+                    disabled={
+                      systemPersonaGenerating ||
+                      systemPersonaFetchLoading ||
+                      !systemPersonaCustomBrief.trim()
+                    }
                     onClick={() => void generateCallSystemPersonaWithBrief(systemPersonaCustomBrief)}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
+                      justifyContent: "center",
+                      gap: 8,
                       flexShrink: 0,
-                      padding: "0 12px",
-                      minHeight: 32,
-                      fontSize: 12,
+                      padding: "0 18px",
+                      minHeight: 42,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      borderRadius: 10,
                       opacity: systemPersonaGenerating ? 0.55 : 1,
                     }}
                   >
-                    <Sparkles size={13} strokeWidth={2} aria-hidden />
+                    <Sparkles size={16} strokeWidth={2} aria-hidden />
                     Generate
                   </button>
                 </div>
@@ -8620,57 +9194,35 @@ export default function CampaignNew() {
             </div>
           )}
 
-          <div
-            style={{
-              border: "1px solid var(--color-border)",
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "var(--color-surface)",
-              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 10,
-                padding: "12px 14px",
-                borderBottom: "1px solid var(--color-border)",
-                background: "var(--color-surface-secondary)",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "#ecfdf5",
-                  background: "#14532d",
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  lineHeight: 1.2,
-                }}
-              >
-                Last assistant style
-              </span>
-              <span className="text-hint" style={{ fontSize: 12, lineHeight: 1.4 }}>
-                Saved with your campaign and pushed to your voice agent when you continue or launch.
-              </span>
-            </div>
+          <div className="call-opening-panel">
+            <div className="call-opening-panel-inner" style={{ paddingBottom: 16 }}>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
+                  System instructions
+                </div>
+                <p className="text-hint" style={{ margin: 0, fontSize: 12, lineHeight: 1.45, maxWidth: 640 }}>
+                  Cover objections, tone, what to avoid, and how to close or hand off. Saved with your campaign and sent to
+                  your voice agent when you continue or launch.
+                </p>
+              </div>
 
-            <label htmlFor="system-persona-textarea" className="sr-only">
-              System instructions for the call assistant
-            </label>
-            <textarea
-              id="system-persona-textarea"
-              className="input"
-              value={systemPersona}
-              onChange={(e) => setSystemPersona(e.target.value)}
-              placeholder={`You are a professional sales representative from [Your Company]. Your goals:
+              <div className="call-opening-editor-shell" style={{ minHeight: 260 }}>
+                {systemPersonaFetchLoading ? (
+                  <div className="call-opening-loader-overlay" role="status" aria-live="polite" aria-busy="true">
+                    <Icons.Loader size={28} style={{ animation: "spin 1s linear infinite", color: WIZ_ACCENT }} />
+                    <span>Loading your saved assistant style…</span>
+                  </div>
+                ) : null}
+                <label htmlFor="system-persona-textarea" className="sr-only">
+                  System instructions for the call assistant
+                </label>
+                <textarea
+                  id="system-persona-textarea"
+                  className="call-opening-textarea persona-behavior-textarea"
+                  value={systemPersona}
+                  disabled={systemPersonaFetchLoading}
+                  onChange={(e) => setSystemPersona(e.target.value)}
+                  placeholder={`You are a professional sales representative from [Your Company]. Your goals:
 
 • Build rapport and understand the prospect's needs
 • Explain [Your Product/Service] and its benefits clearly
@@ -8679,42 +9231,12 @@ export default function CampaignNew() {
 • Stay polite, knowledgeable, and solution-focused
 
 Guidelines: listen actively, ask qualifying questions, focus on value over features, be persistent but respectful, end positively even if there's no immediate sale.`}
-              style={{
-                width: "100%",
-                minHeight: 220,
-                maxHeight: 480,
-                fontSize: 14,
-                lineHeight: 1.55,
-                resize: "vertical",
-                fontFamily:
-                  'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                border: "none",
-                borderRadius: 0,
-                padding: "14px 16px",
-                boxSizing: "border-box",
-                background: "transparent",
-                color: "var(--color-text)",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "10px 14px 12px",
-                borderTop: "1px solid var(--color-border)",
-                background: "var(--color-surface-secondary)",
-              }}
-            >
-              <span className="text-hint" style={{ fontSize: 12, lineHeight: 1.45, flex: "1 1 200px" }}>
-                Cover objections, tone (formal/casual), what to avoid, and how to close or hand off.
-              </span>
-              <span style={{ fontSize: 12, color: "#9ca3af", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-                {systemPersona.length.toLocaleString()} characters ·{" "}
-                {countWordsForCallOpening(systemPersona).toLocaleString()} words
-              </span>
+                />
+                <div className="call-opening-meta">
+                  {systemPersona.length.toLocaleString()} chars · {countWordsForCallOpening(systemPersona).toLocaleString()}{" "}
+                  words
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -9437,9 +9959,9 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
           ) : null}
 
           <div>
-            <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 24, fontWeight: 700 }}>Review and launch</h3>
+            <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 24, fontWeight: 700 }}>Review your campaign</h3>
             <p className="text-hint" style={{ marginTop: 0, marginBottom: 0 }}>
-              One last look at every channel you turned on before you go live.
+              One last look at every channel you turned on, then continue to launch.
             </p>
           </div>
 
@@ -10445,6 +10967,397 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
         </div>
       )}
 
+      {currentStepInfo?.stepType === "launch" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {totalLeads === 0 && !loadingLeads ? (
+            <div
+              role="alert"
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                borderRadius: 8,
+                border: "1px solid #fcd34d",
+                background: "#fffbeb",
+                padding: 12,
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: "#92400e",
+              }}
+            >
+              <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2, color: "#d97706" }} aria-hidden />
+              <span>
+                No leads selected — go back to Step 3 to add leads before launching.{" "}
+                <button
+                  type="button"
+                  onClick={() => void goToWizardStepByType("core_details_part2")}
+                  style={{
+                    padding: 0,
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    color: "#1D4ED8",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    fontSize: "inherit",
+                  }}
+                >
+                  Go back
+                </button>
+              </span>
+            </div>
+          ) : null}
+
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 24, fontWeight: 700 }}>Launch</h3>
+            <p className="text-hint" style={{ marginTop: 0, marginBottom: 0 }}>
+              Place a test call on the left if you use AI calls, then launch when you are ready.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              gap: 24,
+              alignItems: "stretch",
+            }}
+          >
+            <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+              {channels.includes("call") && draftCampaignId ? (
+                <div
+                  style={{
+                    padding: 20,
+                    background: "rgba(37, 99, 235, 0.05)",
+                    borderRadius: 12,
+                    border: "1px solid rgba(37, 99, 235, 0.2)",
+                    height: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div style={{ marginBottom: 16 }}>
+                    <h4 style={{ margin: 0, marginBottom: 4, fontSize: 16, fontWeight: 600 }}>Test call</h4>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+                      Call one number to hear your assistant before the campaign runs to all leads.
+                    </p>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {testCallSuccess && (
+                      <div
+                        style={{
+                          padding: 16,
+                          background: "rgba(34, 197, 94, 0.1)",
+                          borderRadius: 8,
+                          border: "1px solid rgba(34, 197, 94, 0.2)",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <Icons.Check size={20} style={{ color: "#22c55e" }} />
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#22c55e" }}>
+                            Test call initiated successfully!
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+                          The call has been placed. You can launch when ready, or place another test call.
+                        </p>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div>
+                        <label style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
+                          Phone number *
+                        </label>
+                        <input
+                          className="input"
+                          type="tel"
+                          placeholder="+1234567890"
+                          value={testCallPhoneNumber}
+                          onChange={(e) => setTestCallPhoneNumber(e.target.value)}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
+                          First name (optional)
+                        </label>
+                        <input
+                          className="input"
+                          type="text"
+                          placeholder="John"
+                          value={testCallFirstName}
+                          onChange={(e) => setTestCallFirstName(e.target.value)}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                      {testCallError && (
+                        <div
+                          style={{
+                            padding: 12,
+                            background: "rgba(239, 68, 68, 0.1)",
+                            borderRadius: 8,
+                            border: "1px solid rgba(239, 68, 68, 0.2)",
+                            fontSize: 13,
+                            color: "#ef4444",
+                          }}
+                        >
+                          {testCallError}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={async () => {
+                          if (!testCallPhoneNumber.trim()) {
+                            setTestCallError("Phone number is required");
+                            return;
+                          }
+                          setTestingCall(true);
+                          setTestCallError(null);
+                          try {
+                            await apiRequest(`/campaigns/${draftCampaignId}/test-call`, {
+                              method: "POST",
+                              body: JSON.stringify({
+                                phoneNumber: testCallPhoneNumber.trim(),
+                                firstName: testCallFirstName.trim() || undefined,
+                              }),
+                            });
+                            setTestCallSuccess(true);
+                            setTestCallError(null);
+                          } catch (error: any) {
+                            setTestCallError(error?.message || "Failed to initiate test call. Please try again.");
+                            setTestCallSuccess(false);
+                          } finally {
+                            setTestingCall(false);
+                          }
+                        }}
+                        disabled={testingCall || !testCallPhoneNumber.trim()}
+                        style={{
+                          padding: "10px 20px",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          borderRadius: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                        }}
+                      >
+                        {testingCall ? (
+                          <>
+                            <Icons.Loader size={16} style={{ animation: "spin 1s linear infinite" }} />
+                            Testing…
+                          </>
+                        ) : (
+                          <>
+                            <Icons.Phone size={16} />
+                            Test call
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : channels.includes("call") && !draftCampaignId ? (
+                <div
+                  style={{
+                    padding: 20,
+                    borderRadius: 12,
+                    border: "1px dashed var(--color-border)",
+                    background: "var(--color-surface-secondary)",
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Saving your campaign… Once the draft is ready, you can place a test call here.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: 20,
+                    borderRadius: 12,
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-surface-secondary)",
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Test call is only available when the <strong>Call</strong> channel is enabled. Your campaign uses other
+                  channels only.
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                padding: 22,
+                borderRadius: 12,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface-secondary)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    background: "var(--color-primary, #2563EB)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icons.Rocket size={20} style={{ color: "#fff" }} aria-hidden />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", lineHeight: 1.25 }}>
+                    {name?.trim() || "Untitled Campaign"}
+                  </div>
+                  <div className="text-hint" style={{ fontSize: 13, marginTop: 2 }}>
+                    {totalLeads} unique lead{totalLeads !== 1 ? "s" : ""}
+                    {((schedule.launch_now && schedule.end) || (schedule.start && schedule.end)) && campaignDays > 0
+                      ? ` · ${campaignDays} day${campaignDays !== 1 ? "s" : ""} window`
+                      : null}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {channels.map((channel) => {
+                  const ch = channel as ChannelType;
+                  return (
+                    <span
+                      key={ch}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        borderRadius: 9999,
+                        padding: "4px 12px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: "transparent",
+                        color: "var(--color-text)",
+                        border: "1px solid var(--color-border)",
+                      }}
+                    >
+                      <ReviewChannelGlyph channel={ch} size={14} />
+                      {CHANNEL_CONFIGS[ch]?.label || ch}
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize: 13, color: "var(--color-text)", lineHeight: 1.55 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Audience
+                </div>
+                {explicitCampaignTargetLeadIds != null && explicitCampaignTargetLeadIds.length > 0 ? (
+                  <div>Hand-picked leads ({explicitCampaignTargetLeadIds.length} selected)</div>
+                ) : segments.length > 0 ? (
+                  <div style={{ overflowWrap: "anywhere" }}>
+                    Segments: {segments.join(", ")}
+                  </div>
+                ) : (
+                  <div className="text-hint">No audience — go back to the review step if this looks wrong.</div>
+                )}
+              </div>
+
+              <div style={{ fontSize: 13, color: "var(--color-text)", lineHeight: 1.55 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Daily limits (max {SCHEDULE_DAILY_LIMIT_MAX}/day per channel)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {channels.includes("email") ? (
+                    <div>
+                      <strong>Email:</strong> {schedule.email?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX} / day
+                    </div>
+                  ) : null}
+                  {channels.includes("linkedin") ? (
+                    <div>
+                      <strong>LinkedIn:</strong> {schedule.linkedin?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX} / day
+                    </div>
+                  ) : null}
+                  {channels.includes("whatsapp") ? (
+                    <div>
+                      <strong>WhatsApp:</strong> {schedule.whatsapp?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX} / day
+                    </div>
+                  ) : null}
+                  {channels.includes("call") ? (
+                    <div>
+                      <strong>Calls:</strong> {schedule.call?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX} / day
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {channels.includes("call") ? (
+                <div style={{ fontSize: 13, color: "var(--color-text)", lineHeight: 1.55 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                    Call assistant
+                  </div>
+                  <div>
+                    <strong>Voice:</strong>{" "}
+                    {availableVoices.find((v) => v.id === selectedVoiceId)?.name ||
+                      (selectedVoiceId ? selectedVoiceId : "—")}
+                  </div>
+                  {initialPrompt.trim() ? (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>Opening line</div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: "var(--color-text-muted)",
+                          lineHeight: 1.45,
+                          whiteSpace: "pre-wrap",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        {initialPrompt.trim().length > 160
+                          ? `${initialPrompt.trim().slice(0, 160)}…`
+                          : initialPrompt.trim()}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div style={{ fontSize: 13, color: "var(--color-text)", lineHeight: 1.55 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 4 }}>
+                  Schedule
+                </div>
+                <div>
+                  <strong>Start:</strong>{" "}
+                  {schedule.launch_now
+                    ? "Immediately on launch"
+                    : schedule.start
+                      ? new Date(schedule.start).toLocaleString()
+                      : "Not set"}
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  <strong>End:</strong> {schedule.end ? new Date(schedule.end).toLocaleString() : "Not set"}
+                </div>
+                {schedule.timezone?.trim() ? (
+                  <div style={{ marginTop: 4, fontSize: 12, color: "var(--color-text-muted)" }}>
+                    Timezone: {schedule.timezone.trim()}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
         <div
           style={{
             marginTop: 40,
@@ -10472,7 +11385,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               </span>
             </div>
           ) : null}
-          {currentStepInfo?.stepType === "review" ? (
+          {currentStepInfo?.stepType === "launch" ? (
             <div
               style={{
                 display: "grid",
@@ -14161,139 +15074,6 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 )}
               </button>
             </div>
-
-            {/* Test Call Section for Call Campaigns */}
-            {channels.includes('call') && draftCampaignId && (
-              <div style={{
-                marginTop: 24,
-                padding: 20,
-                background: 'rgba(37, 99, 235, 0.05)',
-                borderRadius: 12,
-                border: '1px solid rgba(37, 99, 235, 0.2)'
-              }}>
-                <div style={{ marginBottom: 16 }}>
-                  <h4 style={{ margin: 0, marginBottom: 4, fontSize: 16, fontWeight: 600 }}>
-                    Test Call Before Launch
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
-                    Test your call campaign with a single phone number before launching to all leads
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {testCallSuccess && (
-                    <div style={{
-                      padding: 16,
-                      background: 'rgba(34, 197, 94, 0.1)',
-                      borderRadius: 8,
-                      border: '1px solid rgba(34, 197, 94, 0.2)',
-                      marginBottom: 8
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <Icons.Check size={20} style={{ color: '#22c55e' }} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#22c55e' }}>
-                          Test call initiated successfully!
-                        </span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
-                        The call has been placed. You can now launch the campaign when ready, or make another test call.
-                      </p>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
-                        Phone Number *
-                      </label>
-                      <input
-                        className="input"
-                        type="tel"
-                        placeholder="+1234567890"
-                        value={testCallPhoneNumber}
-                        onChange={(e) => setTestCallPhoneNumber(e.target.value)}
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
-                        First Name (Optional)
-                      </label>
-                      <input
-                        className="input"
-                        type="text"
-                        placeholder="John"
-                        value={testCallFirstName}
-                        onChange={(e) => setTestCallFirstName(e.target.value)}
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                    {testCallError && (
-                      <div style={{
-                        padding: 12,
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        borderRadius: 8,
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        fontSize: 13,
-                        color: '#ef4444'
-                      }}>
-                        {testCallError}
-                      </div>
-                    )}
-                    <button
-                      className="btn-primary"
-                      onClick={async () => {
-                        if (!testCallPhoneNumber.trim()) {
-                          setTestCallError('Phone number is required');
-                          return;
-                        }
-                        setTestingCall(true);
-                        setTestCallError(null);
-                        try {
-                          await apiRequest(`/campaigns/${draftCampaignId}/test-call`, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                              phoneNumber: testCallPhoneNumber.trim(),
-                              firstName: testCallFirstName.trim() || undefined
-                            })
-                          });
-                          setTestCallSuccess(true);
-                          setTestCallError(null);
-                        } catch (error: any) {
-                          setTestCallError(error?.message || 'Failed to initiate test call. Please try again.');
-                          setTestCallSuccess(false);
-                        } finally {
-                          setTestingCall(false);
-                        }
-                      }}
-                      disabled={testingCall || !testCallPhoneNumber.trim()}
-                      style={{
-                        padding: '10px 20px',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        borderRadius: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8
-                      }}
-                    >
-                      {testingCall ? (
-                        <>
-                          <Icons.Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <Icons.Phone size={16} />
-                          Test Call
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {channels.includes('email') && !emailIntegration && (
               <div style={{ 

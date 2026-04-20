@@ -164,7 +164,7 @@ export function AddCompanyLeadModal({ open, onClose, baseId, onCreated }: AddCom
                 width: 44,
                 height: 44,
                 borderRadius: 12,
-                background: "rgba(37, 99, 235, 0.14)",
+                background: "rgba(var(--color-primary-rgb), 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -272,7 +272,7 @@ export function AddCompanyLeadModal({ open, onClose, baseId, onCreated }: AddCom
                       width: "100%",
                       border: "none",
                       borderBottom: "1px solid var(--color-border-light)",
-                      background: selected ? "rgba(37, 99, 235, 0.10)" : "transparent",
+                      background: selected ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
                       textAlign: "left",
                       padding: "12px 14px",
                       cursor: "pointer",
@@ -293,8 +293,8 @@ export function AddCompanyLeadModal({ open, onClose, baseId, onCreated }: AddCom
           {selectedCompany ? (
             <div
               style={{
-                border: "1px solid rgba(37, 99, 235, 0.25)",
-                background: "rgba(37, 99, 235, 0.08)",
+                border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
+                background: "rgba(var(--color-primary-rgb), 0.2)",
                 borderRadius: 12,
                 padding: "12px 14px",
                 color: "var(--color-text)",
@@ -331,7 +331,6 @@ export function AddCompanyLeadModal({ open, onClose, baseId, onCreated }: AddCom
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                opacity: canSubmit ? 1 : 0.6,
                 cursor: canSubmit ? "pointer" : "not-allowed",
               }}
             >
@@ -353,4 +352,3 @@ export function AddCompanyLeadModal({ open, onClose, baseId, onCreated }: AddCom
     </div>
   );
 }
-

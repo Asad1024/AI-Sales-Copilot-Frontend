@@ -136,7 +136,7 @@ export default function AdminPaymentsPage() {
                             display: "inline-block",
                             padding: "6px 12px",
                             borderRadius: 8,
-                            background: "#635BFF",
+                            background: "#F29F67",
                             color: "#fff",
                             fontSize: 12,
                             fontWeight: 600,

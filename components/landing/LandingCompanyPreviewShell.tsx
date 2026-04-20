@@ -449,7 +449,7 @@ export function LandingCompanyPreviewBody({ showSignupCtas = true }: { showSignu
                   fontWeight: 700,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "#1d4ed8",
+                  color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                   background: "rgba(219, 234, 254, 0.85)",
                   border: "1px solid rgba(147, 197, 253, 0.85)",
                   borderRadius: 9999,
@@ -706,8 +706,8 @@ export function LandingCompanyPreviewBody({ showSignupCtas = true }: { showSignu
                       fontSize: 14,
                       fontWeight: 600,
                       color: "#ffffff",
-                      background: "#2563eb",
-                      boxShadow: "0 1px 2px rgba(37, 99, 235, 0.25)",
+                      background: "var(--color-primary)",
+                      boxShadow: "0 1px 2px rgba(var(--color-primary-rgb), 0.2)",
                       flexShrink: 0,
                     }}
                   >

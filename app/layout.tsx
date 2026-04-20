@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: APP_BRAND_BROWSER_TITLE,
   description: APP_BRAND_META_DESCRIPTION,
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/collapse_logo.png",
+    shortcut: "/collapse_logo.png",
   },
 };
 

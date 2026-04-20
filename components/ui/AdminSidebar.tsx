@@ -33,8 +33,8 @@ import { useNotificationStore } from "@/stores/useNotificationStore";
 const iconStroke = 1.5;
 const iconSize = 16;
 const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
-const ACTIVE_NAV_TEXT = "#2563EB";
-const ACTIVE_NAV_ACCENT = "#2563EB";
+const ACTIVE_NAV_TEXT = "#ffffff";
+const ACTIVE_NAV_ACCENT = "#ffffff";
 
 function CollapsedHoverTip({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -113,7 +113,7 @@ function SidebarUserAvatar({ avatarUrl, initials }: { avatarUrl?: string | null;
         borderRadius: 999,
         overflow: "hidden",
         flexShrink: 0,
-        background: "linear-gradient(135deg, #0EA5E9 0%, #2563EB 55%, #1D4ED8 100%)",
+        background: "linear-gradient(135deg, #F29F67 0%, var(--color-primary) 55%, color-mix(in srgb, var(--color-primary) 88%, #000000) 100%)",
       }}
     >
       {showImg ? (
@@ -156,7 +156,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const refreshUnreadCount = useNotificationStore((s) => s.refreshUnreadCount);
   const sidebarOpenLogoHeight = APP_BRAND_LOGO_HEIGHT;
-  const sidebarOpenHeaderHeight = 64;
+  const sidebarOpenHeaderHeight = 72;
 
   const sidebarWidth = isMobile
     ? Math.min(288, typeof window !== "undefined" ? window.innerWidth : 288)
@@ -269,9 +269,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 ? `${active ? 8 : 5}px 10px`
                 : `${active ? 10 : 7}px ${active ? 14 : 11}px`,
             boxSizing: "border-box",
-            borderLeft: active ? `3px solid ${ACTIVE_NAV_ACCENT}` : "3px solid transparent",
+            borderLeft: "3px solid transparent",
             boxShadow: "none",
-            borderRadius: active ? 0 : 8,
+            borderRadius: 10,
             textDecoration: "none",
             fontSize: 14,
             fontWeight: active ? 600 : 500,
@@ -441,7 +441,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 transition: "color 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#2563EB";
+                e.currentTarget.style.color = "var(--color-primary)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = "var(--sidebar-nav-muted-icon)";
@@ -618,7 +618,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   transition: "color 150ms ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#2563EB";
+                  e.currentTarget.style.color = "var(--color-primary)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.color = "var(--sidebar-nav-icon)";

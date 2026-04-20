@@ -78,7 +78,7 @@ export function CampaignHeader() {
         <button 
           onClick={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
           style={{
-            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
             border: 'none',
             borderRadius: '12px',
             padding: '12px 24px',

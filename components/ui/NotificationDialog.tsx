@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useId } from "react";
 import { Icons } from "./Icons";
@@ -42,7 +42,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ notification, o
       ? "#f87171"
       : notification.type === "warning"
       ? "#fb923c"
-      : "#818cf8";
+      : "#eeab7a";
 
   const Icon =
     notification.type === "success"

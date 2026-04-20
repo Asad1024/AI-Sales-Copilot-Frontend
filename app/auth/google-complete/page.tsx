@@ -23,7 +23,7 @@ function RedirectContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
+      <Loader2 className="h-8 w-8 animate-spin text-orange-500" aria-hidden />
       <span className="sr-only">Redirecting…</span>
     </div>
   );
@@ -34,7 +34,7 @@ export default function GoogleCompletePage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
         </div>
       }
     >

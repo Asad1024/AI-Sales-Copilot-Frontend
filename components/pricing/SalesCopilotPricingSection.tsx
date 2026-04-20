@@ -194,9 +194,9 @@ function PortalPlanCard({
       style={{
         padding: plan.badge ? pad + 8 : pad,
         borderRadius: 20,
-        border: plan.featured ? "2px solid var(--color-primary, #2563EB)" : "1px solid var(--color-border, #e5e7eb)",
+        border: plan.featured ? "2px solid var(--color-primary)" : "1px solid var(--color-border, #e5e7eb)",
         background: plan.featured
-          ? "linear-gradient(165deg, color-mix(in srgb, var(--color-primary, #2563eb) 10%, transparent) 0%, color-mix(in srgb, var(--color-accent, #06b6d4) 6%, transparent) 100%)"
+          ? "linear-gradient(165deg, color-mix(in srgb, var(--color-primary) 10%, transparent) 0%, color-mix(in srgb, var(--color-accent, #f29f67) 6%, transparent) 100%)"
           : "var(--color-surface, #fff)",
         display: "flex",
         flexDirection: "column",
@@ -221,7 +221,7 @@ function PortalPlanCard({
             letterSpacing: "0.04em",
             padding: "5px 12px",
             borderRadius: 999,
-            background: "linear-gradient(135deg, var(--color-primary, #2563EB) 0%, var(--color-accent, #06B6D4) 100%)",
+            background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent, #F29F67) 100%)",
             color: "#fff",
             whiteSpace: "nowrap",
           }}
@@ -262,7 +262,7 @@ function PortalPlanCard({
           marginBottom: 12,
         }}
       >
-        <span style={{ fontSize: priceSize, fontWeight: 800, color: "var(--color-primary, #2563EB)" }}>
+        <span style={{ fontSize: priceSize, fontWeight: 800, color: "var(--color-primary)" }}>
           {plan.priceDisplay}
         </span>
         {plan.priceSub ? (
@@ -310,7 +310,7 @@ function PortalPlanCard({
               <Check
                 size={compact ? 15 : 18}
                 strokeWidth={2.25}
-                style={{ flexShrink: 0, color: "var(--color-primary, #2563EB)", marginTop: 2 }}
+                style={{ flexShrink: 0, color: "var(--color-primary)", marginTop: 2 }}
               />
               <span>{b}</span>
             </li>
@@ -328,7 +328,7 @@ function PortalPlanCard({
               cursor: "pointer",
               fontSize: compact ? 12 : 13,
               fontWeight: 600,
-              color: "var(--color-primary, #2563EB)",
+              color: "var(--color-primary)",
               textDecoration: "underline",
               textUnderlineOffset: 3,
             }}
@@ -370,9 +370,9 @@ function PortalPlanCard({
             fontWeight: 700,
             textAlign: "center",
             fontSize: compact ? 14 : undefined,
-            border: "1px solid rgba(37, 99, 235, 0.4)",
-            background: "rgba(37, 99, 235, 0.1)",
-            color: "#5b21b6",
+            border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
+            background: "rgba(var(--color-primary-rgb), 0.2)",
+            color: "#de8850",
           }}
         >
           Current plan
@@ -450,7 +450,7 @@ function PortalCallingAddonRow({
         <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.45 }}>{plan.headline}</p>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start" }}>
-        <span style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary, #2563EB)" }}>{plan.priceDisplay}</span>
+        <span style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary)" }}>{plan.priceDisplay}</span>
         {plan.priceSub ? (
           <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{plan.priceSub}</span>
         ) : null}
@@ -688,8 +688,8 @@ export default function SalesCopilotPricingSection({
             marginBottom: 20,
             padding: "12px 16px",
             borderRadius: 12,
-            background: "rgba(37, 99, 235, 0.08)",
-            border: "1px solid rgba(37, 99, 235, 0.25)",
+            background: "rgba(var(--color-primary-rgb), 0.2)",
+            border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
             fontSize: 14,
             color: "var(--color-text)",
           }}
@@ -729,7 +729,7 @@ export default function SalesCopilotPricingSection({
 
       <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 24, lineHeight: 1.5 }}>
         Secured by Stripe when checkout is live. Until then, use{" "}
-        <Link href="/contact" style={{ color: "#2563EB", fontWeight: 600 }}>
+        <Link href="/contact" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
           Contact
         </Link>{" "}
         for enterprise or custom quotes.

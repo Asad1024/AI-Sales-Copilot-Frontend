@@ -182,8 +182,8 @@ export function PaymentSettingsPanel() {
           style={{
             padding: "12px 14px",
             borderRadius: 10,
-            background: "rgba(37, 99, 235, 0.08)",
-            border: "1px solid rgba(37, 99, 235, 0.25)",
+            background: "rgba(var(--color-primary-rgb), 0.2)",
+            border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
             fontSize: 14,
             color: "var(--color-text)",
           }}
@@ -219,7 +219,7 @@ export function PaymentSettingsPanel() {
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
                 Credits balance
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "#2563EB" }}>{summary.credits_balance}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "var(--color-primary)" }}>{summary.credits_balance}</div>
             </div>
             <div className="card-enhanced" style={{ padding: 16, borderRadius: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
@@ -274,7 +274,7 @@ export function PaymentSettingsPanel() {
                                   href={t.invoice_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  style={{ color: "#635BFF", fontWeight: 600, fontSize: 13 }}
+                                  style={{ color: "#F29F67", fontWeight: 600, fontSize: 13 }}
                                 >
                                   View receipt
                                 </a>
@@ -341,7 +341,7 @@ export function PaymentSettingsPanel() {
             ) : (
               <>
                 Open{" "}
-                <a href="/upgrade" style={{ color: "#2563EB", fontWeight: 600 }}>
+                <a href="/upgrade" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
                   Upgrade
                 </a>{" "}
                 to change plan.

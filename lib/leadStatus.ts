@@ -3,7 +3,7 @@ export const LEAD_STATUS_STORAGE_KEY = "Lead status";
 
 export const DEFAULT_LEAD_STATUS_OPTIONS = [
   { value: "new", label: "New", color: "#64748b" },
-  { value: "contacted", label: "Contacted", color: "#3b82f6" },
+  { value: "contacted", label: "Contacted", color: "var(--color-support-blue)" },
   { value: "qualified", label: "Qualified", color: "#8b5cf6" },
   { value: "negotiation", label: "Negotiation", color: "#f59e0b" },
   { value: "won", label: "Won", color: "#22c55e" },

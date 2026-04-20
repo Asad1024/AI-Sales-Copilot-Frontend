@@ -64,7 +64,7 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
               : 'All leads in this campaign'}
           </p>
         </div>
-        <div style={{ fontSize: '14px', fontWeight: '600', color: '#2563EB' }}>
+        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-primary)' }}>
           {displayLeads.length} lead{displayLeads.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -87,12 +87,12 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
             width: 64, 
             height: 64, 
             borderRadius: '50%', 
-            background: 'rgba(37, 99, 235, 0.1)',
+            background: 'rgba(var(--color-primary-rgb), 0.2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Icons.Mail size={32} style={{ color: '#2563EB' }} />
+            <Icons.Mail size={32} style={{ color: 'var(--color-primary)' }} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No leads found</div>
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -110,9 +110,9 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
                 onClick={handleShowAccepted}
                 style={{
                   padding: '8px 16px',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  color: '#3b82f6',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  background: 'rgba(var(--color-support-blue-rgb), 0.2)',
+                  color: 'var(--color-support-blue)',
+                  border: '1px solid rgba(var(--color-support-blue-rgb), 0.2)',
                   borderRadius: '6px',
                   fontSize: 12,
                   fontWeight: 600,
@@ -195,8 +195,8 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
                   <td style={{ padding: '12px' }}>
                     {lead.score ? (
                       <span style={{ 
-                        background: 'rgba(37, 99, 235, 0.1)', 
-                        color: '#2563EB', 
+                        background: 'rgba(var(--color-primary-rgb), 0.2)', 
+                        color: 'var(--color-primary)', 
                         padding: '4px 8px', 
                         borderRadius: 4, 
                         fontSize: 11, 
@@ -234,8 +234,8 @@ export function LeadsTab({ campaign, leads, loadingLeads, onViewLeadActivity }: 
                     <td style={{ padding: '12px' }}>
                       {lead.linkedin_invitation_accepted ? (
                         <span style={{ 
-                          background: 'rgba(59, 130, 246, 0.1)', 
-                          color: '#3b82f6', 
+                          background: 'rgba(var(--color-support-blue-rgb), 0.2)', 
+                          color: 'var(--color-support-blue)', 
                           padding: '4px 8px', 
                           borderRadius: 4, 
                           fontSize: 11, 

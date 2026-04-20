@@ -69,13 +69,13 @@ export function ImportModalStepper({ steps, activeKey }: { steps: ImportStepDef[
                   fontSize: 13,
                   fontWeight: 700,
                   background: active
-                    ? "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)"
+                    ? "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 100%)"
                     : done
-                      ? "rgba(37, 99, 235, 0.2)"
+                      ? "rgba(var(--color-primary-rgb), 0.2)"
                       : "var(--color-surface-secondary)",
                   color: active ? "#fff" : done ? "var(--color-primary)" : "var(--color-text-muted)",
                   border: active || done ? "none" : "1px solid var(--color-border)",
-                  boxShadow: active ? "0 4px 14px rgba(37, 99, 235, 0.3)" : "none",
+                  boxShadow: active ? "0 4px 14px rgba(var(--color-primary-rgb), 0.2)" : "none",
                 }}
               >
                 {done ? <Icons.Check size={16} strokeWidth={2.5} /> : i + 1}
@@ -98,7 +98,9 @@ export function ImportModalStepper({ steps, activeKey }: { steps: ImportStepDef[
                   height: 2,
                   margin: "0 6px 22px",
                   borderRadius: 1,
-                  background: done ? "linear-gradient(90deg, rgba(99,102,241,0.45), rgba(37, 99, 235,0.25))" : "var(--color-border)",
+                  background: done
+                    ? "linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.42), rgba(var(--color-primary-rgb), 0.2))"
+                    : "var(--color-border)",
                   minWidth: 8,
                 }}
               />
@@ -268,8 +270,9 @@ export function ImportModalFrame({
               onMouseEnter={(e) => {
                 if (closeDisabled) return;
                 if (headerCloseButtonStyle) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.32)";
-                  e.currentTarget.style.color = "#ffffff";
+                  e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.32)";
+                  e.currentTarget.style.color =
+                    (headerCloseButtonStyle.color as string) || "var(--color-primary)";
                 } else {
                   e.currentTarget.style.background = "var(--color-surface-secondary)";
                   e.currentTarget.style.color = "var(--color-text)";
@@ -278,8 +281,9 @@ export function ImportModalFrame({
               onMouseLeave={(e) => {
                 if (headerCloseButtonStyle) {
                   e.currentTarget.style.background =
-                    (headerCloseButtonStyle.background as string) || "rgba(255,255,255,0.18)";
-                  e.currentTarget.style.color = (headerCloseButtonStyle.color as string) || "#f5f3ff";
+                    (headerCloseButtonStyle.background as string) || "rgba(var(--color-primary-rgb), 0.18)";
+                  e.currentTarget.style.color =
+                    (headerCloseButtonStyle.color as string) || "var(--color-primary)";
                 } else {
                   e.currentTarget.style.background = "var(--color-surface)";
                   e.currentTarget.style.color = "var(--color-text-muted)";

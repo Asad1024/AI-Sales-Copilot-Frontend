@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icons } from "@/components/ui/Icons";
 import type { StepInfo } from "./stepFlowCalculator";
 import { WIZARD_STEP_SHORT_LABEL } from "./wizardStepLabels";
 
-/** Matches app `--color-primary` (#2563EB) */
-const ACCENT = "var(--color-primary, #2563EB)";
-const ACCENT_SOFT = "rgba(37, 99, 235, 0.45)";
-const TRACK_INCOMPLETE = "#cbd5e1";
-const LABEL_INACTIVE = "#9ca3af";
+/** Matches app `--color-primary` (var(--color-primary)) */
+const ACCENT = "var(--color-primary)";
+const ACCENT_SOFT = "rgba(var(--color-primary-rgb), 0.2)";
+const TRACK_INCOMPLETE = "var(--color-border, #cbd5e1)";
+const LABEL_INACTIVE = "var(--color-text-muted, #9ca3af)";
 
 /** How many step columns stay visible at once; wider flows scroll horizontally. */
 const MAX_VISIBLE_STEPS = 8;
@@ -88,10 +88,7 @@ export function WizardCircularStepper({
   navigationDisabled = false,
   loadingStepNumber = null,
 }: Props) {
-  const outerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  /** Outer width only — used to center the 8-slot viewport; does not change step metrics. */
-  const [outerWidth, setOuterWidth] = useState(0);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const n = steps.length;
@@ -103,16 +100,6 @@ export function WizardCircularStepper({
     const max = el.scrollWidth - el.clientWidth;
     setCanScrollRight(max > 2 && el.scrollLeft < max - 2);
   }, []);
-
-  useLayoutEffect(() => {
-    const el = outerRef.current;
-    if (!el || n <= 1) return;
-    const apply = () => setOuterWidth(el.clientWidth);
-    apply();
-    const ro = new ResizeObserver(() => apply());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [n]);
 
   useEffect(() => {
     if (steps.length <= 1) return;
@@ -176,16 +163,10 @@ export function WizardCircularStepper({
       ? rowWidthForSlots(MAX_VISIBLE_STEPS, m)
       : rowPixelWidth;
   const capScrollViewport = n > MAX_VISIBLE_STEPS;
-  const trackOuterMaxCss = capScrollViewport
-    ? `min(100%, ${visibleWindowPx}px)`
-    : "100%";
-  const scrollPaneMaxCss = capScrollViewport
-    ? `min(100%, ${visibleWindowPx}px)`
-    : "100%";
-  const trackOuterWidthPx = visibleWindowPx;
+  const trackOuterMaxCss = `min(100%, ${visibleWindowPx}px)`;
+  const scrollPaneMaxCss = `min(100%, ${visibleWindowPx}px)`;
   const connectorBandHeight = m.connectorRowMinHeight;
-  const centerOuter =
-    outerWidth > 0 && trackOuterWidthPx + 16 < outerWidth ? "center" : "flex-start";
+  const centerOuter: "center" = "center";
 
   const renderStepColumn = (s: StepInfo, globalIdx: number) => {
     const isCurrent = s.stepNumber === currentStepNumber;
@@ -384,7 +365,6 @@ export function WizardCircularStepper({
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div
-        ref={outerRef}
         style={{
           width: "100%",
           display: "flex",
@@ -463,7 +443,7 @@ export function WizardCircularStepper({
                   border: "none",
                   borderRadius: 0,
                   background:
-                    "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 38%, var(--color-surface, #fff) 72%)",
+                    "linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--color-surface, #fff) 75%, transparent) 38%, var(--color-surface, #fff) 72%)",
                   color: ACCENT,
                   cursor: "pointer",
                   boxShadow: "none",

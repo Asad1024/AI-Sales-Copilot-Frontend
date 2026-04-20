@@ -20,12 +20,12 @@ interface BaseCardProps {
 
 const BASE_COLORS = [
   { bg: "#ffeee0", icon: "#f97316" },
-  { bg: "#e0f2fe", icon: "#0ea5e9" },
+  { bg: "#e0f2fe", icon: "#f29f67" },
   { bg: "#dcfce7", icon: "#22c55e" },
   { bg: "#f3e8ff", icon: "#a855f7" },
   { bg: "#fce7f3", icon: "#ec4899" },
   { bg: "#fef3c7", icon: "#eab308" },
-  { bg: "#e0e7ff", icon: "#6366f1" },
+  { bg: "#fee9da", icon: "#e59662" },
   { bg: "#ccfbf1", icon: "#14b8a6" },
 ];
 

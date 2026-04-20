@@ -1,4 +1,4 @@
-/** @type {import('tailwindcss').Config} */
+﻿/** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: "class",
   content: [
@@ -10,7 +10,7 @@ module.exports = {
     extend: {
       colors: {
         spark: {
-          green: "#2563EB",
+          green: "#F29F67",
           orange: "#FF4A00",
           ink: "#0B1020",
           gray: "#0F172A"

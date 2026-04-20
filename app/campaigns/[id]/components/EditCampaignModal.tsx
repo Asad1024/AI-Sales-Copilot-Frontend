@@ -90,7 +90,7 @@ export function EditCampaignModal({ campaign, editData, updating, totalLeads, lo
           {campaign.tier_filter && (
             <div style={{
               padding: 12,
-              background: 'rgba(37, 99, 235, 0.1)',
+              background: 'rgba(var(--color-primary-rgb), 0.2)',
               borderRadius: 8,
               fontSize: 13,
               color: 'var(--color-text-muted)'
@@ -114,7 +114,6 @@ export function EditCampaignModal({ campaign, editData, updating, totalLeads, lo
               style={{ 
                 padding: '10px 24px', 
                 fontSize: 14,
-                opacity: (updating || !editData.name.trim()) ? 0.6 : 1,
                 cursor: (updating || !editData.name.trim()) ? 'not-allowed' : 'pointer'
               }}
             >

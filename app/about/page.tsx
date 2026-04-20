@@ -33,7 +33,7 @@ export default function AboutPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 24px 0',
-            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
@@ -105,7 +105,7 @@ export default function AboutPage() {
         <div style={{
           textAlign: 'center',
           padding: '60px',
-          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.1) 100%)',
           borderRadius: '24px'
         }}>
           <h2 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 16px 0' }}>

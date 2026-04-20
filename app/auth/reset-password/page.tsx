@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState, Suspense } from "react";
 import Link from "next/link";
@@ -115,13 +115,13 @@ function ResetPasswordContent() {
                   padding: "12px 20px",
                   borderRadius: "10px",
                   border: "none",
-                  background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                  background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                   color: "#fff",
                   fontSize: "14px",
                   fontWeight: "600",
                   textAlign: "center",
                   textDecoration: "none",
-                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)"
+                  boxShadow: "0 4px 14px rgba(var(--color-primary-rgb), 0.2)"
                 }}
               >
                 Request new link
@@ -219,7 +219,7 @@ function ResetPasswordContent() {
                         outline: "none",
                         transition: "all 0.2s ease"
                       }}
-                      onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                      onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                       onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                     />
                     <button
@@ -280,7 +280,7 @@ function ResetPasswordContent() {
                         outline: "none",
                         transition: "all 0.2s ease"
                       }}
-                      onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                      onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                       onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                     />
                     <button
@@ -328,13 +328,13 @@ function ResetPasswordContent() {
                     border: "none",
                     background: loading || !canSubmit
                       ? "#cbd5e1"
-                      : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                      : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                     color: "#fff",
                     fontSize: "14px",
                     fontWeight: "600",
                     cursor: loading || !canSubmit ? "not-allowed" : "pointer",
                     transition: "all 0.2s ease",
-                    boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)"
+                    boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(var(--color-primary-rgb), 0.2)"
                   }}
                 >
                   {loading ? (
@@ -409,7 +409,7 @@ export default function ResetPasswordPage() {
             width: "56px",
             height: "56px",
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

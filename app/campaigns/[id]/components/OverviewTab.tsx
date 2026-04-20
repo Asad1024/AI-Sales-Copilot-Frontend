@@ -123,7 +123,7 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
             }}>
               <div style={{ marginBottom: 24 }}>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text)' }}>
-                  <Icons.Mail size={20} style={{ color: '#3b82f6' }} />
+                  <Icons.Mail size={20} style={{ color: 'var(--color-support-blue)' }} />
                   Email Metrics
                 </h3>
                 <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
@@ -325,7 +325,7 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         <div style={{ 
           marginTop: 40,
           padding: '24px',
-          background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(var(--color-primary-rgb), 0.2) 100%)',
           borderRadius: '16px',
           border: '1px solid rgba(78, 205, 196, 0.2)'
         }}>
@@ -347,11 +347,11 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         <div style={{
           marginTop: 24,
           padding: 20,
-          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.1) 100%)',
           borderRadius: 12,
-          border: '1px solid rgba(37, 99, 235, 0.2)'
+          border: '1px solid rgba(var(--color-primary-rgb), 0.2)'
         }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#2563EB', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icons.Robot size={18} />
             AI Insight
           </div>

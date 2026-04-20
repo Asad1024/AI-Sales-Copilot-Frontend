@@ -27,7 +27,7 @@ export default function InboxPage() {
           fontSize: '32px', 
           fontWeight: '700', 
           margin: '0 0 8px 0',
-          background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
@@ -50,7 +50,7 @@ export default function InboxPage() {
         {loading ? (
           <div style={{
             background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(37, 99, 235, 0.2)',
+            border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
             borderRadius: '16px',
             padding: '32px',
             textAlign: 'center'
@@ -102,8 +102,8 @@ export default function InboxPage() {
                   {t.lead_name || "Unknown Lead"}
                 </span>
                 <span style={{
-                  background: 'rgba(37, 99, 235, 0.2)',
-                  color: '#2563EB',
+                  background: 'rgba(var(--color-primary-rgb), 0.2)',
+                  color: 'var(--color-primary)',
                   padding: '4px 8px',
                   borderRadius: '12px',
                   fontSize: '10px',
@@ -121,11 +121,11 @@ export default function InboxPage() {
                 {t.last_message}
               </p>
               <button style={{
-                background: 'rgba(37, 99, 235, 0.1)',
-                border: '1px solid rgba(37, 99, 235, 0.3)',
+                background: 'rgba(var(--color-primary-rgb), 0.2)',
+                border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
                 borderRadius: '8px',
                 padding: '8px 16px',
-                color: '#2563EB',
+                color: 'var(--color-primary)',
                 fontSize: '12px',
                 fontWeight: '600',
                 cursor: 'pointer',

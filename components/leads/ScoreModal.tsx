@@ -31,7 +31,7 @@ export function ScoreModal({ open, onClose, onScored }: ScoreModalProps) {
       padding: "11px 14px",
       borderRadius: 10,
       border: on ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-      background: on ? "rgba(37, 99, 235, 0.1)" : "var(--color-surface-secondary)",
+      background: on ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-surface-secondary)",
       color: "var(--color-text)",
       fontSize: 13,
       fontWeight: 500,
@@ -182,7 +182,7 @@ export function ScoreModal({ open, onClose, onScored }: ScoreModalProps) {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: "rgba(37, 99, 235, 0.14)",
+                  background: "rgba(var(--color-primary-rgb), 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -354,11 +354,8 @@ export function ScoreModal({ open, onClose, onScored }: ScoreModalProps) {
                       padding: "12px 16px",
                       borderRadius: 10,
                       fontWeight: 600,
-                      background: "var(--color-primary)",
-                      border: "none",
-                      opacity: !canSubmit ? 0.45 : 1,
                       cursor: !canSubmit ? "not-allowed" : "pointer",
-                      boxShadow: !canSubmit ? "none" : "0 8px 22px rgba(37, 99, 235, 0.28)",
+                      boxShadow: !canSubmit ? "none" : "0 8px 22px rgba(var(--color-primary-rgb), 0.2)",
                     }}
                   >
                     Score{" "}

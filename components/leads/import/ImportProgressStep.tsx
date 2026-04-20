@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { Icons } from "@/components/ui/Icons";
 
 interface ImportProgressStepProps {
@@ -14,7 +14,7 @@ export function ImportProgressStep({ progress, onCancel }: ImportProgressStepPro
       <Icons.Loader
         size={48}
         className="animate-spin"
-        style={{ marginBottom: "24px", color: "#2563EB" }}
+        style={{ marginBottom: "24px", color: "var(--color-primary)" }}
       />
       <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>
         Importing Leads...
@@ -38,7 +38,7 @@ export function ImportProgressStep({ progress, onCancel }: ImportProgressStepPro
           style={{
             width: `${percentage}%`,
             height: "100%",
-            background: "linear-gradient(90deg, #2563EB 0%, #06B6D4 100%)",
+            background: "linear-gradient(90deg, var(--color-primary) 0%, #F29F67 100%)",
             transition: "width 0.3s ease",
           }}
         />

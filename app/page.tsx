@@ -253,6 +253,8 @@ export default function LandingPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [landingAppearance, setLandingAppearance] = useState<"light" | "dark">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const landingLogoHeight = APP_BRAND_LOGO_HEIGHT + 8;
+  const landingLogoMaxWidth = APP_BRAND_LOGO_MAX_WIDTH + 34;
 
   useEffect(() => {
     try {
@@ -355,21 +357,21 @@ export default function LandingPage() {
       role: 'VP of Sales',
       company: 'TechCorp',
       quote: "Rift Reach transformed our outbound process. We went from 50 meetings/month to 200+ while our team actually got smaller. The AI personalization is incredible.",
-      avatar: '#2563EB'
+      avatar: 'var(--color-primary)'
     },
     {
       name: 'Michael Rodriguez',
       role: 'Growth Lead',
       company: 'ScaleUp',
       quote: "The multi-channel orchestration is a game-changer. Our reply rates jumped 4x because prospects hear from us on their preferred channel at the right time.",
-      avatar: '#1D4ED8'
+      avatar: 'color-mix(in srgb, var(--color-primary) 88%, #000000)'
     },
     {
       name: 'Emma Watson',
       role: 'SDR Manager',
       company: 'CloudBase',
       quote: "My team of 5 SDRs now outperforms teams of 20. The AI handles the grunt work while we focus on actual conversations and closing deals.",
-      avatar: '#0EA5E9'
+      avatar: '#F29F67'
     }
   ];
 
@@ -412,13 +414,13 @@ export default function LandingPage() {
           --landing-nav-clearance: max(8rem, calc(env(safe-area-inset-top, 0px) + 6.75rem));
           --landing-heading-weight: 500;
           --landing-ui-weight: 500;
-          --gradient-primary: #2563EB;
+          --gradient-primary: var(--color-primary);
           --gradient-dark: #0a0a0f;
           --gradient-card: rgba(255,255,255,0.04);
           --glass-bg: linear-gradient(165deg, rgba(24, 34, 56, 0.5), rgba(8, 12, 20, 0.5));
           --glass-border: rgba(255, 255, 255, 0.1);
           --card-shadow: 0 18px 50px rgba(2, 10, 32, 0.38);
-          font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
           text-rendering: optimizeLegibility;
@@ -463,7 +465,7 @@ export default function LandingPage() {
           min-height: 320px;
           top: -12vw;
           left: -8vw;
-          background: radial-gradient(circle at 30% 30%, rgba(37, 99, 235, 0.5), rgba(37, 99, 235, 0));
+          background: radial-gradient(circle at 30% 30%, rgba(var(--color-primary-rgb), 0.2), rgba(var(--color-primary-rgb), 0.2));
         }
         .landing-page::after {
           width: 36vw;
@@ -472,7 +474,7 @@ export default function LandingPage() {
           min-height: 280px;
           bottom: -14vw;
           right: -8vw;
-          background: radial-gradient(circle at 30% 30%, rgba(6, 182, 212, 0.4), rgba(6, 182, 212, 0));
+          background: radial-gradient(circle at 30% 30%, rgba(var(--color-primary-rgb), 0.4), rgba(var(--color-primary-rgb), 0));
           animation-delay: 2s;
         }
         @keyframes aurora-drift {
@@ -552,7 +554,7 @@ export default function LandingPage() {
         .landing-company-preview-reset:hover {
           background: rgba(255, 255, 255, 0.95) !important;
           color: var(--color-text) !important;
-          border-color: rgba(37, 99, 235, 0.35) !important;
+          border-color: rgba(var(--color-primary-rgb), 0.2) !important;
         }
 
         .landing-team-results-link {
@@ -593,7 +595,7 @@ export default function LandingPage() {
           transform: translateX(0);
         }
         .landing-team-results-link:hover .landing-team-results-arrow {
-          color: #2563eb;
+          color: var(--color-primary);
         }
 
         .scroll-progress {
@@ -603,7 +605,7 @@ export default function LandingPage() {
           width: 100%;
           height: 2px;
           transform-origin: left center;
-          background: linear-gradient(90deg, #2563EB, #06B6D4);
+          background: linear-gradient(90deg, var(--color-primary), #F29F67);
           z-index: 140;
           transition: transform 0.18s ease-out;
         }
@@ -660,7 +662,7 @@ export default function LandingPage() {
         .logo-text {
           font-size: 22px;
           font-weight: var(--landing-heading-weight);
-          background: #2563EB;
+          background: var(--color-primary);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           letter-spacing: -0.5px;
@@ -681,7 +683,7 @@ export default function LandingPage() {
         }
         .nav-link:hover {
           color: #fff;
-          background: rgba(37, 99, 235, 0.2);
+          background: rgba(var(--color-primary-rgb), 0.2);
         }
         .nav-buttons {
           display: flex;
@@ -710,17 +712,17 @@ export default function LandingPage() {
         .btn-cta {
           padding: 11px 26px;
           color: #fff;
-          background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+          background: linear-gradient(180deg, var(--color-support-blue) 0%, var(--color-primary) 100%);
           border: none;
           border-radius: 9999px;
           font-size: 14px;
           cursor: pointer;
           transition: all 0.3s ease;
-          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+          box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.2);
         }
         .btn-cta:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 30px rgba(37, 99, 235, 0.5);
+          box-shadow: 0 8px 30px rgba(var(--color-primary-rgb), 0.2);
         }
 
         /* Connected trust band: stats + logos (below hero) */
@@ -886,7 +888,7 @@ export default function LandingPage() {
           padding: 14px 28px;
           font-size: 16px;
           color: #fff;
-          background: #2563EB;
+          background: var(--color-primary);
           border: none;
           border-radius: 12px;
           cursor: pointer;
@@ -895,12 +897,12 @@ export default function LandingPage() {
           justify-content: center;
           gap: 10px;
           transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+          box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.2);
         }
         .btn-hero-primary:hover {
           transform: translateY(-1px);
-          background: #1d4ed8;
-          box-shadow: 0 8px 22px rgba(37, 99, 235, 0.42);
+          background: color-mix(in srgb, var(--color-primary) 88%, #000000);
+          box-shadow: 0 8px 22px rgba(var(--color-primary-rgb), 0.2);
         }
         .btn-hero-secondary {
           padding: 18px 36px;
@@ -960,12 +962,12 @@ export default function LandingPage() {
           align-items: center;
           gap: 8px;
           padding: 6px 14px;
-          background: rgba(6, 182, 212, 0.1);
-          border: 1px solid rgba(6, 182, 212, 0.2);
+          background: rgba(var(--color-primary-rgb), 0.1);
+          border: 1px solid rgba(var(--color-primary-rgb), 0.2);
           border-radius: 100px;
           font-size: 12px;
           font-weight: var(--landing-heading-weight);
-          color: #06B6D4;
+          color: #F29F67;
           margin-bottom: 12px;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -995,7 +997,7 @@ export default function LandingPage() {
         .video-gradient-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(37, 99, 235, 0.16);
+          background: rgba(var(--color-primary-rgb), 0.2);
         }
         .video-play-btn {
           position: absolute;
@@ -1004,19 +1006,19 @@ export default function LandingPage() {
           transform: translate(-50%, -50%);
           width: 80px;
           height: 80px;
-          background: #2563EB;
+          background: var(--color-primary);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #000;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
-          box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5);
+          box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.2);
           z-index: 3;
         }
         .video-play-btn:hover {
           transform: translate(-50%, -50%) scale(1.08);
-          box-shadow: 0 10px 36px rgba(37, 99, 235, 0.55);
+          box-shadow: 0 10px 36px rgba(var(--color-primary-rgb), 0.2);
         }
         .video-info {
           position: absolute;
@@ -1417,7 +1419,7 @@ export default function LandingPage() {
           border-left-color: color-mix(in srgb, var(--color-primary) 72%, transparent);
         }
         .faq-item:hover {
-          border-bottom-color: rgba(37, 99, 235, 0.35);
+          border-bottom-color: rgba(var(--color-primary-rgb), 0.2);
         }
         .faq-question {
           width: 100%;
@@ -1434,7 +1436,7 @@ export default function LandingPage() {
           text-align: left;
         }
         .faq-question:focus-visible {
-          outline: 2px solid rgba(37, 99, 235, 0.5);
+          outline: 2px solid rgba(var(--color-primary-rgb), 0.2);
           outline-offset: 4px;
           border-radius: 8px;
         }
@@ -1443,7 +1445,7 @@ export default function LandingPage() {
           transition: transform 0.3s ease;
         }
         .faq-item.open .faq-toggle {
-          color: #2563EB;
+          color: var(--color-primary);
           transform: rotate(180deg);
         }
         .faq-answer {
@@ -1483,7 +1485,7 @@ export default function LandingPage() {
               color-mix(in srgb, var(--color-accent) 22%, transparent) 0%,
               transparent 65%
             ),
-            rgba(37, 99, 235, 0.1);
+            rgba(var(--color-primary-rgb), 0.2);
         }
         .cta-content {
           position: relative;
@@ -1892,8 +1894,8 @@ export default function LandingPage() {
         }
         .pricing-card:hover {
           transform: translateY(-8px);
-          border-color: rgba(37, 99, 235, 0.3);
-          box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
+          border-color: rgba(var(--color-primary-rgb), 0.2);
+          box-shadow: 0 20px 40px rgba(var(--color-primary-rgb), 0.2);
         }
         .pricing-badge {
           position: absolute;
@@ -1901,7 +1903,7 @@ export default function LandingPage() {
           left: 50%;
           transform: translateX(-50%);
           padding: 6px 16px;
-          background: #2563EB;
+          background: var(--color-primary);
           border-radius: 100px;
           font-size: 12px;
           font-weight: var(--landing-heading-weight);
@@ -1933,7 +1935,7 @@ export default function LandingPage() {
         .pricing-amount {
           font-size: 48px;
           font-weight: var(--landing-heading-weight);
-          background: #2563EB;
+          background: var(--color-primary);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -1949,13 +1951,13 @@ export default function LandingPage() {
         .pricing-custom {
           font-size: 36px;
           font-weight: var(--landing-heading-weight);
-          background: #2563EB;
+          background: var(--color-primary);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
         .pricing-highlight {
-          background: rgba(37, 99, 235, 0.1);
-          border: 1px solid rgba(37, 99, 235, 0.2);
+          background: rgba(var(--color-primary-rgb), 0.2);
+          border: 1px solid rgba(var(--color-primary-rgb), 0.2);
           border-radius: 12px;
           padding: 16px;
           margin-bottom: 24px;
@@ -1964,7 +1966,7 @@ export default function LandingPage() {
         .pricing-highlight-text {
           font-size: 18px;
           font-weight: var(--landing-heading-weight);
-          color: #2563EB;
+          color: var(--color-primary);
           margin: 0;
         }
         .pricing-highlight-sub {
@@ -1997,11 +1999,11 @@ export default function LandingPage() {
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: rgba(37, 99, 235, 0.2);
+          background: rgba(var(--color-primary-rgb), 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #2563EB;
+          color: var(--color-primary);
         }
         .pricing-feature-text {
           line-height: 1.5;
@@ -2009,7 +2011,7 @@ export default function LandingPage() {
         .pricing-section-title {
           font-size: 13px;
           font-weight: var(--landing-heading-weight);
-          color: #06B6D4;
+          color: #F29F67;
           margin: 20px 0 12px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -2023,14 +2025,14 @@ export default function LandingPage() {
           transition: all 0.3s ease;
         }
         .pricing-cta-primary {
-          background: #2563EB;
+          background: var(--color-primary);
           border: none;
           color: #000;
-          box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+          box-shadow: 0 8px 24px rgba(var(--color-primary-rgb), 0.2);
         }
         .pricing-cta-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+          box-shadow: 0 12px 32px rgba(var(--color-primary-rgb), 0.2);
         }
         .pricing-cta-secondary {
           background: transparent;
@@ -2039,7 +2041,7 @@ export default function LandingPage() {
         }
         .pricing-cta-secondary:hover {
           background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(37, 99, 235, 0.4);
+          border-color: rgba(var(--color-primary-rgb), 0.2);
         }
         .pricing-note {
           margin-top: 16px;
@@ -2232,7 +2234,7 @@ export default function LandingPage() {
               <Menu size={22} strokeWidth={1.75} />
             </button>
             <div className="logo-container">
-              <AppBrandLogoLockup theme={landingAppearance} height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
+              <AppBrandLogoLockup theme={landingAppearance} height={landingLogoHeight} style={{ maxWidth: landingLogoMaxWidth }} />
             </div>
           </div>
           <nav className="nav-links landing-nav-desktop" aria-label="Primary">
@@ -2556,8 +2558,8 @@ export default function LandingPage() {
               <div className="logo-container">
                 <AppBrandLogoLockup
                   theme={landingAppearance === "light" ? "light" : "dark"}
-                  height={APP_BRAND_LOGO_HEIGHT}
-                  style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }}
+                  height={landingLogoHeight}
+                  style={{ maxWidth: landingLogoMaxWidth }}
                 />
               </div>
               <p>Your AI-powered workspace to scale outreach and close more deals.</p>
@@ -2614,5 +2616,4 @@ export default function LandingPage() {
     </div>
   );
 }
-
 

@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss";
+﻿import type { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: ["selector", '[data-theme="dark"]'],
@@ -11,7 +11,7 @@ const config: Config = {
     extend: {
       colors: {
         spark: {
-          green: "#2563EB",   // primary
+          green: "#F29F67",   // primary
           orange: "#FF4A00",  // accent
           ink: "#0B1020",     // dark base
           gray: "#0F172A"     // slate-ish base

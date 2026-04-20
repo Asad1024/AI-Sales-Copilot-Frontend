@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { Icons } from "./Icons";
 
@@ -28,10 +28,11 @@ export default function ThemeToggle({ compact }: { compact?: boolean }) {
     root.style.setProperty('--color-border', isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1');
     root.style.setProperty('--color-border-light', isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0');
     root.style.setProperty('--color-shadow', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
-    root.style.setProperty('--color-primary', '#2563EB');
-    root.style.setProperty('--color-accent', '#06B6D4');
-    root.style.setProperty('--color-success', '#2563EB');
-    root.style.setProperty('--color-info', '#06B6D4');
+    root.style.setProperty('--color-primary', '#F29F67');
+    root.style.setProperty('--color-primary-rgb', '242, 159, 103');
+    root.style.setProperty('--color-accent', '#F29F67');
+    root.style.setProperty('--color-success', '#F29F67');
+    root.style.setProperty('--color-info', '#F29F67');
   };
 
   const toggleTheme = () => {

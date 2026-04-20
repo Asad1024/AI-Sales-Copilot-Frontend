@@ -157,7 +157,7 @@ export function EnrichModal({
       padding: "14px 16px",
       borderRadius: 12,
       border: on ? "1.5px solid var(--color-primary)" : "1px solid var(--color-border)",
-      background: on ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface-secondary)",
+      background: on ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-surface-secondary)",
       color: "var(--color-text)",
       fontSize: 14,
       fontWeight: 600,
@@ -198,24 +198,24 @@ export function EnrichModal({
         onClose={onClose}
         title="Enrich leads"
         subtitle="Add or refresh contact and research data"
-        headerTint="var(--color-primary, #2563eb)"
-        icon={<Icons.Sparkles size={22} strokeWidth={2} style={{ color: "#ffffff" }} />}
-        headerTitleColor="#ffffff"
-        headerSubtitleColor="rgba(255,255,255,0.86)"
-        headerBorderColor="rgba(255,255,255,0.24)"
+        headerTint="linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.26) 0%, rgba(var(--color-primary-rgb), 0.14) 100%)"
+        icon={<Icons.Sparkles size={22} strokeWidth={2} style={{ color: "var(--color-primary)" }} />}
+        headerTitleColor="var(--color-text)"
+        headerSubtitleColor="var(--color-text-muted)"
+        headerBorderColor="rgba(var(--color-primary-rgb), 0.26)"
         hideHeaderBottomBorder
         headerIconContainerStyle={{
-          background: "rgba(255,255,255,0.2)",
-          border: "1px solid rgba(255,255,255,0.45)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0, 0, 0, 0.12)",
+          background: "rgba(var(--color-primary-rgb), 0.16)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.32)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 14px rgba(0, 0, 0, 0.08)",
           borderRadius: 12,
           width: 44,
           height: 44,
         }}
         headerCloseButtonStyle={{
-          background: "rgba(255,255,255,0.2)",
-          border: "1px solid rgba(255,255,255,0.38)",
-          color: "#f8fafc",
+          background: "rgba(var(--color-primary-rgb), 0.16)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.35)",
+          color: "var(--color-primary)",
           width: 40,
           height: 40,
           borderRadius: 12,
@@ -479,7 +479,6 @@ export function EnrichModal({
                     style={{
                       flex: 1,
                       justifyContent: "center",
-                      opacity: !canSubmit ? 0.45 : 1,
                       cursor: !canSubmit || enriching ? "not-allowed" : "pointer",
                     }}
                   >

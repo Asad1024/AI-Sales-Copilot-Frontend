@@ -109,7 +109,7 @@ export default function AdminDashboard() {
         label: "Users",
         value: stats.totalUsers,
         hint: `${stats.activeUsers} app users · ${stats.adminCount} admins`,
-        color: "#2563EB",
+        color: "var(--color-primary)",
         menu: [
           { key: "open", label: "Open users", onClick: () => router.push("/admin/users") },
           { key: "bases", label: "Workspaces", onClick: () => router.push("/admin/bases") },
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
         label: "Leads",
         value: stats.totalLeads,
         hint: "All workspaces",
-        color: "#06B6D4",
+        color: "#F29F67",
         menu: [{ key: "open", label: "Open leads", onClick: () => router.push("/admin/leads") }],
       },
       {
@@ -141,8 +141,8 @@ export default function AdminDashboard() {
       },
     ];
     const snap = [
-      { label: "Users", value: stats.totalUsers, color: "#2563EB", key: "users" as const },
-      { label: "Leads", value: stats.totalLeads, color: "#06B6D4", key: "leads" as const },
+      { label: "Users", value: stats.totalUsers, color: "var(--color-primary)", key: "users" as const },
+      { label: "Leads", value: stats.totalLeads, color: "#F29F67", key: "leads" as const },
       { label: "Campaigns", value: stats.totalCampaigns, color: "#f97316", key: "campaigns" as const },
       { label: "Workspaces", value: stats.totalBases, color: "#14b8a6", key: "bases" as const },
     ];

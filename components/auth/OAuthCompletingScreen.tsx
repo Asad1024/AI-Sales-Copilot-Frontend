@@ -38,7 +38,7 @@ export default function OAuthCompletingScreen() {
             margin: "0 auto",
             borderRadius: "50%",
             border: "3px solid #e2e8f0",
-            borderTopColor: "#2563EB",
+            borderTopColor: "var(--color-primary)",
             animation: "oauthCompletingSpin 0.75s linear infinite",
           }}
         />

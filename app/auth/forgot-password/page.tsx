@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -153,7 +153,7 @@ export default function ForgotPasswordPage() {
                     outline: "none",
                     transition: "all 0.2s ease"
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                  onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                   onBlur={(e) => { e.target.style.borderColor = isDark ? "#334155" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                 />
               </div>
@@ -170,7 +170,7 @@ export default function ForgotPasswordPage() {
                     ? isDark
                       ? "#334155"
                       : "#cbd5e1"
-                    : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                    : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                   color: loading || !email
                     ? isDark
                       ? "#cbd5e1"
@@ -180,7 +180,7 @@ export default function ForgotPasswordPage() {
                   fontWeight: "600",
                   cursor: loading || !email ? "not-allowed" : "pointer",
                   transition: "all 0.2s ease",
-                  boxShadow: loading || !email ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)"
+                  boxShadow: loading || !email ? "none" : "0 4px 14px rgba(var(--color-primary-rgb), 0.2)"
                 }}
               >
                 {loading ? (
@@ -239,7 +239,7 @@ export default function ForgotPasswordPage() {
                   <a
                     href={devResetUrl}
                     style={{
-                      color: "#2563EB",
+                      color: "var(--color-primary)",
                       textDecoration: "none",
                       fontWeight: "600",
                       fontSize: "13px",

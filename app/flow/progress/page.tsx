@@ -74,7 +74,7 @@ export default function ProgressPage() {
           fontSize: '32px', 
           fontWeight: '700', 
           margin: '0 0 8px 0',
-          background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
@@ -107,7 +107,7 @@ export default function ProgressPage() {
                 height: '24px',
                 borderRadius: '50%',
                 background: done 
-                  ? 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)' 
+                  ? 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)' 
                   : 'rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 alignItems: 'center',

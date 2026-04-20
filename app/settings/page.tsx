@@ -17,8 +17,8 @@ import { CreditCard, Coins } from "lucide-react";
 /** Match `components/ui/Sidebar.tsx` nav links: 16px icon, stroke 1.5 */
 const navIconBox = { width: 16, height: 16, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const };
 const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
-const ACTIVE_NAV_TEXT = "#2563EB";
-const ACTIVE_NAV_ACCENT = "#2563EB";
+const ACTIVE_NAV_TEXT = "var(--color-primary)";
+const ACTIVE_NAV_ACCENT = "var(--color-primary)";
 
 const UserIcon = ({ active }: { active: boolean }) => (
   <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>

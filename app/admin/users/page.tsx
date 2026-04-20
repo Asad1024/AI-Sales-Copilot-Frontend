@@ -418,8 +418,8 @@ export default function AdminUsersPage() {
                         borderRadius: 12,
                         fontSize: 12,
                         fontWeight: 600,
-                        background: row.role === "admin" ? "rgba(6, 182, 212, 0.2)" : "rgba(37, 99, 235, 0.2)",
-                        color: row.role === "admin" ? "#06B6D4" : "#2563EB",
+                        background: row.role === "admin" ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(var(--color-primary-rgb), 0.2)",
+                        color: row.role === "admin" ? "#F29F67" : "var(--color-primary)",
                       }}
                     >
                       {row.role}

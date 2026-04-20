@@ -47,14 +47,14 @@ export function CampaignTabs({ tab, setTab }: CampaignTabsProps) {
               gap: 8,
               padding: "10px 14px",
               borderRadius: 10,
-              border: "none",
+              border: active ? "1px solid var(--color-primary)" : "1px solid transparent",
               cursor: "pointer",
               fontSize: 13,
               fontWeight: active ? 600 : 500,
               fontFamily: "inherit",
-              color: active ? "var(--color-text)" : "var(--color-text-muted)",
-              background: active ? "var(--color-surface)" : "transparent",
-              boxShadow: active ? "0 1px 3px var(--color-shadow)" : "none",
+              color: active ? "#ffffff" : "var(--color-text-muted)",
+              background: active ? "var(--color-primary)" : "transparent",
+              boxShadow: active ? "0 6px 14px rgba(var(--color-primary-rgb), 0.24)" : "none",
               transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
             }}
           >

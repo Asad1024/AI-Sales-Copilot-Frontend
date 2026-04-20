@@ -236,8 +236,8 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                           padding: "8px 10px",
                           borderRadius: 8,
                           border: "none",
-                          background: base.id === activeBaseId ? "rgba(37, 99, 235, 0.1)" : "transparent",
-                          color: base.id === activeBaseId ? "#2563EB" : "var(--color-text)",
+                          background: base.id === activeBaseId ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
+                          color: base.id === activeBaseId ? "var(--color-primary)" : "var(--color-text)",
                           fontSize: 13,
                           fontWeight: 500,
                           cursor: "pointer",
@@ -255,7 +255,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                           {base.name}
                         </span>
-                        {base.id === activeBaseId && <Check size={16} strokeWidth={1.5} style={{ flexShrink: 0, color: "#2563EB" }} />}
+                        {base.id === activeBaseId && <Check size={16} strokeWidth={1.5} style={{ flexShrink: 0, color: "var(--color-primary)" }} />}
                       </button>
                     ))
                   )}
@@ -277,14 +277,14 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                         borderRadius: 8,
                         border: "none",
                         background: "transparent",
-                        color: "#2563EB",
+                        color: "var(--color-primary)",
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: "pointer",
                         textAlign: "left",
                         transition: "background 150ms ease",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.2)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <Plus size={16} strokeWidth={1.5} />
@@ -374,7 +374,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                     fontSize: 13,
                     border: "none",
                     borderRadius: 8,
-                    background: loading || !baseName.trim() ? "#C4B5FD" : "#2563EB",
+                    background: loading || !baseName.trim() ? "#F8C8A9" : "var(--color-primary)",
                     color: "#fff",
                     cursor: loading || !baseName.trim() ? "not-allowed" : "pointer",
                     fontWeight: 600,
@@ -480,7 +480,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                       padding: "8px 10px",
                       borderRadius: 4,
                       border: "none",
-                      background: base.id === activeBaseId ? "rgba(37, 99, 235,0.08)" : "transparent",
+                      background: base.id === activeBaseId ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
                       color: "var(--color-text)",
                       fontSize: 13,
                       cursor: "pointer",
@@ -495,7 +495,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   >
                     <Icons.Folder size={14} style={{ opacity: 0.6 }} />
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{base.name}</span>
-                    {base.id === activeBaseId && <Icons.CheckCircle size={14} style={{ marginLeft: "auto", color: "#2563eb" }} />}
+                    {base.id === activeBaseId && <Icons.CheckCircle size={14} style={{ marginLeft: "auto", color: "var(--color-primary)" }} />}
                   </button>
                 ))
               )}
@@ -518,13 +518,13 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                     borderRadius: 4,
                     border: "none",
                     background: "transparent",
-                    color: "#2563eb",
+                    color: "var(--color-primary)",
                     fontSize: 13,
                     fontWeight: 500,
                     cursor: "pointer",
                     textAlign: "left",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.2)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
                   <Icons.Plus size={14} />
@@ -609,7 +609,7 @@ export default function BaseSelector({ variant = "default", collapsed = false }:
                   fontSize: 13,
                   border: "none",
                   borderRadius: 6,
-                  background: loading || !baseName.trim() ? "#93c5fd" : "#2563eb",
+                  background: loading || !baseName.trim() ? "#f8c8a9" : "var(--color-primary)",
                   color: "#fff",
                   cursor: loading || !baseName.trim() ? "not-allowed" : "pointer",
                 }}

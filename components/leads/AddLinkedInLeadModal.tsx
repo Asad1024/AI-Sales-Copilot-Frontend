@@ -91,14 +91,14 @@ export function AddLinkedInLeadModal({ open, onClose, baseId, onCreated }: AddLi
                 width: 44,
                 height: 44,
                 borderRadius: 12,
-                background: "rgba(10, 102, 194, 0.12)",
+                background: "rgba(var(--color-primary-rgb), 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              <Icons.Linkedin size={22} strokeWidth={1.5} style={{ color: "#0A66C2" }} />
+              <Icons.Linkedin size={22} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
             </div>
             <div style={{ minWidth: 0 }}>
               <h2 id="add-li-title" style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--color-text)" }}>

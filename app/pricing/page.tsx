@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SalesCopilotPricingSection from "@/components/pricing/SalesCopilotPricingSection";
@@ -30,7 +30,7 @@ export default function PricingPage() {
                 height: "52px",
                 width: "52px",
                 borderRadius: "12px",
-                background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
+                background: "linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -44,7 +44,7 @@ export default function PricingPage() {
               style={{
                 fontSize: "24px",
                 fontWeight: "700",
-                background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
+                background: "linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}

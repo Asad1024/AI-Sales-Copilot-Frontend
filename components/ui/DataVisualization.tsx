@@ -5,7 +5,7 @@ import React from "react";
 export const ProgressBar = ({ 
   value, 
   max = 100, 
-  color = "#2563EB", 
+  color = "var(--color-primary)", 
   label, 
   showPercentage = true 
 }: {
@@ -56,7 +56,7 @@ export const CircularProgress = ({
   max = 100, 
   size = 80, 
   strokeWidth = 8, 
-  color = "#2563EB",
+  color = "var(--color-primary)",
   label 
 }: {
   value: number;
@@ -134,7 +134,7 @@ export const CircularProgress = ({
 // Mini Chart Component
 export const MiniChart = ({ 
   data, 
-  color = "#2563EB", 
+  color = "var(--color-primary)", 
   height = 40 
 }: {
   data: number[];
@@ -180,7 +180,7 @@ export const StatCard = ({
   change, 
   trend, 
   icon, 
-  color = "#2563EB",
+  color = "var(--color-primary)",
   chartData,
   loading = false 
 }: {
@@ -206,9 +206,9 @@ export const StatCard = ({
   const changeBadgeStyle =
     trend === "up"
       ? {
-          background: "rgba(37, 99, 235, 0.12)",
+          background: "rgba(var(--color-primary-rgb), 0.2)",
           color: "var(--color-primary)",
-          border: "1px solid rgba(37, 99, 235, 0.28)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
         }
       : trend === "down"
         ? {

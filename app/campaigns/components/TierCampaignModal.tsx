@@ -145,8 +145,8 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
                     style={{
                       padding: '16px',
                       borderRadius: 12,
-                      border: isSelected ? '2px solid #2563EB' : '1px solid var(--elev-border)',
-                      background: isSelected ? 'rgba(37, 99, 235, 0.1)' : 'var(--elev-bg)',
+                      border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--elev-border)',
+                      background: isSelected ? 'rgba(var(--color-primary-rgb), 0.2)' : 'var(--elev-bg)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -155,7 +155,7 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <IconComponent size={24} style={{ color: isSelected ? '#2563EB' : 'var(--color-text)' }} />
+                    <IconComponent size={24} style={{ color: isSelected ? 'var(--color-primary)' : 'var(--color-text)' }} />
                     <span style={{ fontSize: 14, fontWeight: 600, textTransform: 'capitalize' }}>{ch}</span>
                   </button>
                 );
@@ -179,7 +179,6 @@ export function TierCampaignModal({ tier, onClose }: TierCampaignModalProps) {
                 padding: '10px 24px', 
                 fontSize: 14,
                 fontWeight: 600,
-                opacity: (creating || selectedChannels.length === 0) ? 0.6 : 1,
                 cursor: (creating || selectedChannels.length === 0) ? 'not-allowed' : 'pointer'
               }}
             >

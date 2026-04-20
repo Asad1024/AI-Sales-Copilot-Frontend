@@ -53,11 +53,11 @@ function VerticalStepNode({
           border: isComplete
             ? "none"
             : !isLocked
-              ? `${RING}px solid var(--color-primary, #2563EB)`
+              ? `${RING}px solid var(--color-primary)`
               : "1px solid #E5E7EB",
-          background: isComplete ? "#059669" : !isLocked ? "rgba(37, 99, 235, 0.08)" : "#F9FAFB",
-          color: isComplete ? "#FFFFFF" : !isLocked ? "var(--color-primary, #2563EB)" : "#9CA3AF",
-          boxShadow: !isComplete && !isLocked ? "0 0 0 4px rgba(37, 99, 235, 0.2)" : "none",
+          background: isComplete ? "#059669" : !isLocked ? "rgba(var(--color-primary-rgb), 0.2)" : "#F9FAFB",
+          color: isComplete ? "#FFFFFF" : !isLocked ? "var(--color-primary)" : "#9CA3AF",
+          boxShadow: !isComplete && !isLocked ? "0 0 0 4px rgba(var(--color-primary-rgb), 0.2)" : "none",
         }}
       >
         {isComplete ? (

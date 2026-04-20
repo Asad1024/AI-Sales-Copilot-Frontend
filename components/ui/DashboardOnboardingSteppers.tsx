@@ -59,11 +59,11 @@ function StepDot({ status, label, stepNumber }: { status: StepStatus; label: str
             border: isComplete
               ? "none"
               : isCurrent
-                ? `${RING}px solid var(--color-primary, #2563EB)`
+                ? `${RING}px solid var(--color-primary)`
                 : "1px solid #E5E7EB",
-            background: isComplete ? "#059669" : isCurrent ? "rgba(37, 99, 235, 0.08)" : "#F9FAFB",
-            color: isComplete ? "#FFFFFF" : isCurrent ? "var(--color-primary, #2563EB)" : "#9CA3AF",
-            boxShadow: isCurrent ? "0 0 0 4px rgba(37, 99, 235, 0.2)" : "none",
+            background: isComplete ? "#059669" : isCurrent ? "rgba(var(--color-primary-rgb), 0.2)" : "#F9FAFB",
+            color: isComplete ? "#FFFFFF" : isCurrent ? "var(--color-primary)" : "#9CA3AF",
+            boxShadow: isCurrent ? "0 0 0 4px rgba(var(--color-primary-rgb), 0.2)" : "none",
           }}
         >
           {isComplete ? (
@@ -339,11 +339,11 @@ export default function DashboardOnboardingSteppers({
               style={{
                 fontSize: 10,
                 fontWeight: 600,
-                color: "#6366f1",
-                background: "#eef2ff",
+                color: "#e59662",
+                background: "#fff4ec",
                 padding: "4px 8px",
                 borderRadius: 6,
-                border: "1px solid #c7d2fe",
+                border: "1px solid #f8c8a9",
               }}
             >
               Optional
@@ -378,15 +378,15 @@ export default function DashboardOnboardingSteppers({
                   width: 28,
                   height: 28,
                   borderRadius: 8,
-                  background: "#eef2ff",
+                  background: "#fff4ec",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  border: "1px solid #c7d2fe",
+                  border: "1px solid #f8c8a9",
                 }}
               >
-                <Zap size={14} strokeWidth={2} color="#4f46e5" aria-hidden />
+                <Zap size={14} strokeWidth={2} color="#de8850" aria-hidden />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>

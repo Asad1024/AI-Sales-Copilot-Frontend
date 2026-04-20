@@ -31,6 +31,8 @@ interface LeadsToolbarProps {
   onImportCSV?: () => void;
   /** Add → Add from LinkedIn URL */
   onAddFromLinkedIn?: () => void;
+  /** Add → Type lead details manually */
+  onAddManual?: () => void;
   /** Add from Company */
   onAddFromCompany?: () => void;
 }
@@ -45,6 +47,7 @@ export function LeadsToolbar({
   onExportCSV,
   onImportCSV,
   onAddFromLinkedIn,
+  onAddManual,
   onAddFromCompany,
 }: LeadsToolbarProps) {
   const embedded = variant === "embedded";
@@ -222,14 +225,17 @@ export function LeadsToolbar({
             <>
               <button
                 type="button"
-                className="btn-primary focus-ring inline-flex h-11 min-h-[44px] items-center justify-center rounded-[10px] px-[18px] text-[13px] font-semibold shadow-sm transition-[transform,box-shadow] disabled:opacity-50"
+                className="btn-primary focus-ring inline-flex h-11 min-h-[44px] items-center justify-center rounded-[10px] px-[18px] text-[13px] font-semibold shadow-sm transition-[transform,box-shadow]"
                 disabled={!hasAnyLeads}
                 onClick={() => onEnrich()}
                 style={{
                   gap: 8,
                   flexShrink: 0,
                   whiteSpace: "nowrap",
-                  opacity: hasAnyLeads ? 1 : 0.45,
+                  opacity: 1,
+                  background: hasAnyLeads ? undefined : "rgba(var(--color-primary-rgb), 0.18)",
+                  borderColor: hasAnyLeads ? undefined : "rgba(var(--color-primary-rgb), 0.35)",
+                  color: hasAnyLeads ? undefined : "var(--color-primary)",
                   cursor: hasAnyLeads ? "pointer" : "not-allowed",
                 }}
               >
@@ -262,15 +268,29 @@ export function LeadsToolbar({
                   <MenuButton
                     icon={
                       <MenuBrandIconSlot>
-                        <Icons.Sparkles size={17} strokeWidth={1.8} style={{ color: "#2563EB" }} />
+                        <Icons.Sparkles size={17} strokeWidth={1.8} style={{ color: "var(--color-primary)" }} />
                       </MenuBrandIconSlot>
                     }
-                    label="Generate Leads with AI"
+                    label="Generate with AI"
                     onClick={() => {
                       onGenerateAI();
                       setShowAddMenu(false);
                     }}
                   />
+                  {onAddManual && (
+                    <MenuButton
+                      icon={
+                        <MenuBrandIconSlot>
+                          <Icons.UserPlus size={17} strokeWidth={1.8} style={{ color: "var(--color-primary)" }} />
+                        </MenuBrandIconSlot>
+                      }
+                      label="Add manually"
+                      onClick={() => {
+                        onAddManual();
+                        setShowAddMenu(false);
+                      }}
+                    />
+                  )}
                   {onAddFromLinkedIn && (
                     <MenuButton
                       icon={
@@ -289,7 +309,7 @@ export function LeadsToolbar({
                     <MenuButton
                       icon={
                         <MenuBrandIconSlot>
-                          <Icons.Briefcase size={17} strokeWidth={1.8} style={{ color: "#2563EB" }} />
+                          <Icons.Briefcase size={17} strokeWidth={1.8} style={{ color: "var(--color-primary)" }} />
                         </MenuBrandIconSlot>
                       }
                       label="Add from Company"
@@ -537,15 +557,15 @@ function MenuButton({
         display: "flex",
         alignItems: "center",
         gap: "12px",
-        background: "transparent",
         border: "none",
-        color: danger ? "#dc2626" : "var(--color-text)",
         fontSize: "13px",
         fontWeight: 500,
         cursor: disabled ? "not-allowed" : "pointer",
         textAlign: "left",
         transition: "all 0.12s ease",
-        opacity: disabled ? 0.45 : 1,
+        opacity: 1,
+        background: disabled ? "rgba(var(--color-primary-rgb), 0.12)" : "transparent",
+        color: disabled ? "var(--color-primary)" : danger ? "#dc2626" : "var(--color-text)",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = danger 
@@ -636,7 +656,7 @@ function DropdownMenu({
               alignItems: "center",
               justifyContent: "space-between",
               gap: "8px",
-              background: selected === option.value ? "rgba(37, 99, 235, 0.12)" : "transparent",
+              background: selected === option.value ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
               border: "none",
               borderRadius: "6px",
               color: selected === option.value ? "var(--color-primary)" : "var(--color-text)",

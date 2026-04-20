@@ -854,7 +854,7 @@ export default function TeamPage() {
               label="Total Members"
               value={totalMembers}
               description="People with access to this base"
-              accent="#2563EB"
+              accent="var(--color-primary)"
             />
             <StatCard
               icon={<Icons.Key size={24} />}
@@ -868,7 +868,7 @@ export default function TeamPage() {
               label="Collaborators"
               value={totalMembersWithoutOwners}
               description="Members without owner privileges"
-              accent="#06B6D4"
+              accent="#F29F67"
             />
             <StatCard
               icon={<Icons.Shield size={24} />}
@@ -1595,7 +1595,7 @@ function InviteModal({
     >
       <div
         style={{
-          background: "linear-gradient(170deg, color-mix(in srgb, var(--color-surface) 95%, #0ea5e9 5%), var(--color-surface))",
+          background: "linear-gradient(170deg, color-mix(in srgb, var(--color-surface) 95%, #f29f67 5%), var(--color-surface))",
           borderRadius: "16px",
           padding: "26px",
           border: "1px solid var(--elev-border)",

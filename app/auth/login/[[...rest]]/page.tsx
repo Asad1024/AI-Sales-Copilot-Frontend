@@ -137,7 +137,7 @@ export default function LoginPage() {
         flex: 1,
         background: isDark
           ? "linear-gradient(135deg, #0f172a 0%, #1f2937 48%, #14532d 100%)"
-          : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+          : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -312,7 +312,7 @@ export default function LoginPage() {
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.borderColor = "#2563EB";
+                e.currentTarget.style.borderColor = "var(--color-primary)";
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
@@ -452,7 +452,7 @@ export default function LoginPage() {
                   outline: "none",
                   transition: "all 0.2s ease"
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                 onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
               />
             </div>
@@ -480,7 +480,7 @@ export default function LoginPage() {
                     outline: "none",
                     transition: "all 0.2s ease"
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                  onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                   onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                 />
                 <button
@@ -518,7 +518,7 @@ export default function LoginPage() {
                 href="/auth/forgot-password"
                 style={{
                   fontSize: "13px",
-                  color: "#2563EB",
+                  color: "var(--color-primary)",
                   textDecoration: "none",
                   fontWeight: "500"
                 }}
@@ -540,7 +540,7 @@ export default function LoginPage() {
                   ? isDark
                     ? "#334155"
                     : "#cbd5e1"
-                  : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                  : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                 color: loading || !email || !password
                   ? isDark
                     ? "#cbd5e1"
@@ -550,20 +550,20 @@ export default function LoginPage() {
                 fontWeight: "600",
                 cursor: loading || !email || !password ? "not-allowed" : "pointer",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                boxShadow: loading || !email || !password ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)",
+                boxShadow: loading || !email || !password ? "none" : "0 4px 14px rgba(var(--color-primary-rgb), 0.2)",
                 position: "relative",
                 overflow: "hidden"
               }}
               onMouseOver={(e) => {
                 if (!loading && email && password) {
                   e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(37, 99, 235, 0.5)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(var(--color-primary-rgb), 0.2)";
                 }
               }}
               onMouseOut={(e) => {
                 if (!loading && email && password) {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.4)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(var(--color-primary-rgb), 0.2)";
                 }
               }}
             >
@@ -601,7 +601,7 @@ export default function LoginPage() {
                   : "/auth/signup"
               }
               style={{
-                color: "#2563EB",
+                color: "var(--color-primary)",
                 textDecoration: "none",
                 fontWeight: "600"
               }}
@@ -614,7 +614,7 @@ export default function LoginPage() {
 
       <style jsx global>{`
         .auth-page[data-auth-theme="dark"] .auth-form-panel a {
-          color: #60a5fa !important;
+          color: #f5b78f !important;
         }
         .auth-page[data-auth-theme="dark"] .auth-form-panel label {
           color: #cbd5e1 !important;
@@ -631,8 +631,8 @@ export default function LoginPage() {
           background: #111827 !important;
         }
         .auth-page[data-auth-theme="dark"] .auth-form-panel input:focus {
-          border-color: #2563EB !important;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+          border-color: var(--color-primary) !important;
+          box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2) !important;
         }
 
         @keyframes spin {

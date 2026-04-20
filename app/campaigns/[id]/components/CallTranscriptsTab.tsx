@@ -40,7 +40,7 @@ function formatSafeDate(iso: string | null | undefined): string {
 
 const statusConfig: Record<string, { color: string; bg: string; label: string; icon: any }> = {
   completed: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Completed', icon: Icons.Check },
-  answered: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Answered', icon: Icons.Phone },
+  answered: { color: 'var(--color-support-blue)', bg: 'rgba(var(--color-support-blue-rgb), 0.2)', label: 'Answered', icon: Icons.Phone },
   failed: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Failed', icon: Icons.AlertCircle },
   no_answer: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'No Answer', icon: Icons.Phone },
   busy: { color: '#fb923c', bg: 'rgba(251, 146, 60, 0.1)', label: 'Busy', icon: Icons.Phone },
@@ -218,7 +218,7 @@ export function CallTranscriptsTab() {
         </div>
         <div style={{ padding: 16, background: 'var(--elev-bg)', borderRadius: 12, border: '1px solid var(--elev-border)' }}>
           <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>Answered</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6' }}>{stats.answered}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-support-blue)' }}>{stats.answered}</div>
         </div>
         <div style={{ padding: 16, background: 'var(--elev-bg)', borderRadius: 12, border: '1px solid var(--elev-border)' }}>
           <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>With Transcript</div>

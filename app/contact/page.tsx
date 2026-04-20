@@ -50,7 +50,7 @@ export default function ContactPage() {
             fontSize: 'clamp(36px, 6vw, 56px)',
             fontWeight: '800',
             margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>

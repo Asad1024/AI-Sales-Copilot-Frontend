@@ -9,7 +9,7 @@ import { Icons } from "@/components/ui/Icons";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 
 const fieldShellClass =
-  "w-full box-border rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition-shadow focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[rgba(37,99,235,0.22)]";
+  "w-full box-border rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition-shadow focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[rgba(var(--color-primary-rgb), 0.2)]";
 
 const onboardingTimezones = [
   "UTC",
@@ -192,7 +192,7 @@ export function ProfileSettingsPanel() {
         <button
           type="button"
           onClick={() => setPasswordModalOpen(true)}
-          className="btn-dashboard-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(37,99,235,0.45)] focus-visible:ring-offset-0"
+          className="btn-dashboard-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--color-primary-rgb), 0.2)] focus-visible:ring-offset-0"
           style={{ paddingLeft: 20, paddingRight: 20 }}
         >
           <span className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center [&>svg]:block" aria-hidden>

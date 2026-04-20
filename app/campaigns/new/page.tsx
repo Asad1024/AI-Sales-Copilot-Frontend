@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import {
   useState,
   useEffect,
@@ -321,7 +321,7 @@ const WIZARD_LEAD_STEP_CHECKBOX_STYLE: CSSProperties = {
   cursor: "pointer",
   margin: 0,
   flexShrink: 0,
-  accentColor: "var(--color-primary, #2563EB)",
+  accentColor: "var(--color-primary)",
 };
 
 function filterLeadsByLeadTableKey(list: Lead[], key: LeadTableFilterKey): Lead[] {
@@ -526,7 +526,7 @@ function kbQuestionPlaceholder(question: string, _index: number): string {
 function kbFileIconColor(fileName: string): string {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".pdf")) return "#ef4444";
-  if (lower.endsWith(".doc") || lower.endsWith(".docx")) return "#2563eb";
+  if (lower.endsWith(".doc") || lower.endsWith(".docx")) return "var(--color-primary)";
   if (lower.endsWith(".txt")) return "#6b7280";
   return "#64748b";
 }
@@ -547,10 +547,10 @@ const isPremadeLibraryVoice = (v: VoiceOption) => {
   return true;
 };
 
-/** Wizard chrome — aligned with app primary (`--color-primary` / #2563EB) */
-const WIZ_ACCENT = "#2563EB";
-const WIZ_ACCENT_LINE = "#1D4ED8";
-const WIZ_ROW_SELECTED = "rgba(37, 99, 235, 0.07)";
+/** Wizard chrome — aligned with app primary (`--color-primary` / var(--color-primary)) */
+const WIZ_ACCENT = "var(--color-primary)";
+const WIZ_ACCENT_LINE = "color-mix(in srgb, var(--color-primary) 88%, #000000)";
+const WIZ_ROW_SELECTED = "rgba(var(--color-primary-rgb), 0.2)";
 /** Voice step: title, tab bar, list, and selected bar share this horizontal inset (px). */
 const VOICE_STEP_CONTENT_GUTTER = 20;
 
@@ -573,8 +573,8 @@ function WizardStepCallout({
         alignItems: "stretch",
         borderRadius: "0 12px 12px 0",
         overflow: "hidden",
-        border: on ? "1px solid rgba(37, 99, 235, 0.14)" : "1px solid var(--color-border)",
-        background: on ? "rgba(37, 99, 235, 0.05)" : "var(--color-surface-secondary)",
+        border: on ? "1px solid rgba(var(--color-primary-rgb), 0.2)" : "1px solid var(--color-border)",
+        background: on ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-surface-secondary)",
         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
       }}
     >
@@ -604,7 +604,7 @@ function WizardStickyLeadSelectionBar({ children }: { children: ReactNode }) {
         zIndex: 2,
         display: "flex",
         alignItems: "stretch",
-        borderTop: "1px solid rgba(37, 99, 235, 0.16)",
+        borderTop: "1px solid rgba(var(--color-primary-rgb), 0.2)",
         boxShadow: "0 -6px 24px rgba(15, 23, 42, 0.06)",
         background: "rgba(248, 250, 255, 0.97)",
         backdropFilter: "blur(10px)",
@@ -628,8 +628,8 @@ function WizardStickyLeadSelectionBar({ children }: { children: ReactNode }) {
   );
 }
 
-const VOICE_LOAD_MORE_BORDER = "rgba(37, 99, 235, 0.42)";
-const VOICE_LOAD_MORE_BG = "rgba(37, 99, 235, 0.08)";
+const VOICE_LOAD_MORE_BORDER = "rgba(var(--color-primary-rgb), 0.2)";
+const VOICE_LOAD_MORE_BG = "rgba(var(--color-primary-rgb), 0.2)";
 const VOICE_LOAD_MORE_SHADOW = "0 1px 3px rgba(15, 23, 42, 0.08)";
 
 function voiceLoadMoreButtonSx(marginTop: number): CSSProperties {
@@ -659,9 +659,9 @@ function voiceLoadMoreButtonSx(marginTop: number): CSSProperties {
 
 function voiceLoadMoreHover(el: HTMLButtonElement, on: boolean) {
   if (on) {
-    el.style.background = "rgba(37, 99, 235, 0.16)";
+    el.style.background = "rgba(var(--color-primary-rgb), 0.2)";
     el.style.borderColor = WIZ_ACCENT;
-    el.style.boxShadow = "0 6px 22px rgba(37, 99, 235, 0.22)";
+    el.style.boxShadow = "0 6px 22px rgba(var(--color-primary-rgb), 0.2)";
     el.style.transform = "translateY(-1px)";
   } else {
     el.style.background = VOICE_LOAD_MORE_BG;
@@ -691,13 +691,13 @@ const WIZ_EDIT_FIELD: CSSProperties = {
   outline: "none",
   boxSizing: "border-box",
   lineHeight: 1.55,
-  fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   WebkitFontSmoothing: "antialiased",
 };
 const WIZ_EDIT_ICON_MUTED = "#64748b";
 
 /** Channel glyph colors in wizard edit headers (aligned with WizardEmailDraftCard). */
-const WIZ_CHANNEL_EMAIL = "#2563eb";
+const WIZ_CHANNEL_EMAIL = "var(--color-primary)";
 const WIZ_CHANNEL_WHATSAPP = "#25D366";
 const WIZ_CHANNEL_LINKEDIN = "#0077B5";
 /** Call channel — distinct from email blue / primary purple */
@@ -720,6 +720,26 @@ const EMAIL_AI_TOOLBAR_BTN: CSSProperties = {
   cursor: "pointer",
   boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
   transition: "background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
+};
+
+const DISABLED_BUTTON_STYLE: CSSProperties = {
+  cursor: "not-allowed",
+  boxShadow: "none",
+  opacity: 1,
+};
+
+const DISABLED_PRIMARY_TINT_STYLE: CSSProperties = {
+  ...DISABLED_BUTTON_STYLE,
+  background: "rgba(var(--color-primary-rgb), 0.18)",
+  borderColor: "rgba(var(--color-primary-rgb), 0.35)",
+  color: "var(--color-primary)",
+};
+
+const DISABLED_SURFACE_TINT_STYLE: CSSProperties = {
+  ...DISABLED_BUTTON_STYLE,
+  background: "rgba(var(--color-primary-rgb), 0.12)",
+  borderColor: "rgba(var(--color-primary-rgb), 0.3)",
+  color: "var(--color-primary)",
 };
 
 const VALUE_PROPOSITION_MAX_LENGTH = 300;
@@ -746,7 +766,7 @@ function inferVoiceWaveColor(v: VoiceOption): string {
   if (/\b(energetic|upbeat|excited|dynamic|high[\s-]?energy)\b/.test(t)) return "#ea580c";
   if (/\b(warm|gentle|soft|soothing|kind)\b/.test(t)) return "#d97706";
   if (/\b(casual|laid[\s-]?back|relaxed|conversational|chill)\b/.test(t)) return "#16a34a";
-  if (/\b(professional|formal|corporate|authoritative|news|documentary)\b/.test(t)) return "#2563eb";
+  if (/\b(professional|formal|corporate|authoritative|news|documentary)\b/.test(t)) return "var(--color-primary)";
   return "#64748b";
 }
 
@@ -995,7 +1015,7 @@ function WizardScheduleThrottleRow({
                 verticalAlign: "middle",
                 cursor: "pointer",
                 boxSizing: "border-box",
-                accentColor: "var(--color-primary, #2563EB)",
+                accentColor: "var(--color-primary)",
               }}
             />
           </div>
@@ -2710,9 +2730,9 @@ export default function CampaignNew() {
       { name: 'Hot leads', color: '#ff6b6b' },
       { name: 'Warm leads', color: '#ffa726' },
       { name: 'Cold leads', color: '#38bdf8' },
-      { name: 'Engaged not converted', color: '#2563EB' },
+      { name: 'Engaged not converted', color: 'var(--color-primary)' },
       { name: 'Never opened', color: '#888' },
-      { name: 'High-score low-engagement', color: '#06B6D4' }
+      { name: 'High-score low-engagement', color: '#F29F67' }
     ].map(s => ({
       ...s,
       count: getSegmentLeads(s.name).length,
@@ -4070,8 +4090,8 @@ export default function CampaignNew() {
     <style>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes voiceRowPlayingPulse {
-        0%, 100% { box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12); }
-        50% { box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28); }
+        0%, 100% { box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.2); }
+        50% { box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.2); }
       }
       .campaign-wizard-root .voice-row-playing-pulse {
         animation: voiceRowPlayingPulse 1.25s ease-in-out infinite;
@@ -4096,20 +4116,23 @@ export default function CampaignNew() {
       }
       .campaign-wizard-root .voice-preview-btn-idle:hover:not(:disabled) {
         border-color: transparent;
-        background: rgba(37, 99, 235, 0.08);
-        color: var(--color-primary, #2563EB);
+        background: rgba(var(--color-primary-rgb), 0.2);
+        color: var(--color-primary);
       }
       .campaign-wizard-root .voice-preview-btn-playing {
         border: 1px solid transparent;
-        color: var(--color-primary, #2563EB);
-        background: rgba(37, 99, 235, 0.12);
+        color: var(--color-primary);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .voice-preview-btn-playing:hover:not(:disabled) {
-        background: rgba(37, 99, 235, 0.18);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .voice-preview-btn:disabled {
-        opacity: 0.55;
+        opacity: 1;
         cursor: not-allowed;
+        border-color: rgba(var(--color-primary-rgb), 0.35);
+        background: rgba(var(--color-primary-rgb), 0.12);
+        color: var(--color-primary);
       }
       .campaign-wizard-root .voice-step-shell {
         border-radius: 16px;
@@ -4157,16 +4180,16 @@ export default function CampaignNew() {
         background: transparent;
       }
       .campaign-wizard-root .voice-select-row[data-selected="true"] {
-        background: rgba(37, 99, 235, 0.075);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .voice-select-row:hover {
         background: rgba(15, 23, 42, 0.045);
       }
       .campaign-wizard-root .voice-select-row[data-selected="true"]:hover {
-        background: rgba(37, 99, 235, 0.1);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .voice-select-row:focus-visible {
-        outline: 2px solid rgba(37, 99, 235, 0.45);
+        outline: 2px solid rgba(var(--color-primary-rgb), 0.2);
         outline-offset: -2px;
       }
       .campaign-wizard-root .voice-list-scroll {
@@ -4194,7 +4217,7 @@ export default function CampaignNew() {
         border: none;
         border-radius: 10px;
         background: transparent;
-        color: var(--color-primary, #2563eb);
+        color: var(--color-primary);
         font-size: 14px;
         font-weight: 600;
         font-family: inherit;
@@ -4206,7 +4229,7 @@ export default function CampaignNew() {
         transition: background 0.15s ease;
       }
       .campaign-wizard-root .voice-load-more-plain:hover {
-        background: rgba(37, 99, 235, 0.08);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .voice-search-field {
         width: 100%;
@@ -4226,7 +4249,7 @@ export default function CampaignNew() {
       }
       .campaign-wizard-root .voice-search-field:focus {
         background: var(--color-surface);
-        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.35), 0 0 0 3px rgba(37, 99, 235, 0.12);
+        box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.2), 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .voice-filter-chips {
         display: flex;
@@ -4266,13 +4289,13 @@ export default function CampaignNew() {
         font-size: 12px;
         font-weight: 500;
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-        background: rgba(37, 99, 235, 0.1);
-        color: #1d4ed8;
+        background: rgba(var(--color-primary-rgb), 0.2);
+        color: color-mix(in srgb, var(--color-primary) 88%, #000000);
         cursor: pointer;
         transition: background 0.15s ease, transform 0.12s ease;
       }
       .campaign-wizard-root .call-opening-chip:hover {
-        background: rgba(37, 99, 235, 0.16);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .call-opening-chip:active {
         transform: scale(0.98);
@@ -4320,7 +4343,7 @@ export default function CampaignNew() {
         padding: 14px 14px 40px;
         font-size: 14px;
         line-height: 1.55;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         background: transparent;
         color: var(--color-text);
         box-sizing: border-box;
@@ -4349,8 +4372,8 @@ export default function CampaignNew() {
         padding: 12px 14px 14px 16px;
         border-radius: 0 12px 12px 0;
         border: none;
-        border-left: 3px solid #2563eb;
-        background: rgba(37, 99, 235, 0.06);
+        border-left: 3px solid var(--color-primary);
+        background: rgba(var(--color-primary-rgb), 0.2);
         font-size: 14px;
         line-height: 1.5;
         color: var(--color-text);
@@ -4372,13 +4395,16 @@ export default function CampaignNew() {
         background: rgba(15, 23, 42, 0.04);
       }
       .campaign-wizard-root .call-opening-starter[data-selected="true"] {
-        background: rgba(37, 99, 235, 0.09);
-        border-left-color: #2563eb;
+        background: rgba(var(--color-primary-rgb), 0.2);
+        border-left-color: var(--color-primary);
       }
       .campaign-wizard-root .call-opening-chip:disabled,
       .campaign-wizard-root .call-opening-starter:disabled {
-        opacity: 0.45;
+        opacity: 1;
         cursor: not-allowed;
+        border-left-color: transparent;
+        background: rgba(var(--color-primary-rgb), 0.12);
+        color: var(--color-primary);
       }
       .campaign-wizard-root .call-opening-starters-wrap {
         display: flex;
@@ -4409,25 +4435,31 @@ export default function CampaignNew() {
         justify-content: center;
         gap: 10px;
         background: var(--color-surface);
-        color: var(--color-text);
-        border: 1px solid var(--color-border);
+        color: var(--color-primary);
+        border: 1px solid rgba(var(--color-primary-rgb), 0.45);
         cursor: pointer;
         transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
       }
       .campaign-wizard-root .wizard-footer-back:hover:not(:disabled):not(.wizard-footer-back--saving) {
-        background: var(--color-surface-secondary);
-        border-color: rgba(37, 99, 235, 0.35);
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(var(--color-primary-rgb), 0.22);
       }
       .campaign-wizard-root .wizard-footer-back:disabled:not(.wizard-footer-back--saving) {
-        opacity: 0.45;
+        opacity: 1;
+        background: rgba(var(--color-primary-rgb), 0.18);
+        border-color: rgba(var(--color-primary-rgb), 0.35);
+        color: var(--color-primary);
+        box-shadow: none;
         cursor: not-allowed;
       }
       .campaign-wizard-root .wizard-footer-back.wizard-footer-back--saving {
         opacity: 1 !important;
         cursor: wait !important;
         pointer-events: none;
-        border-color: rgba(37, 99, 235, 0.45);
-        background: rgba(37, 99, 235, 0.08);
+        border-color: rgba(var(--color-primary-rgb), 0.2);
+        background: rgba(var(--color-primary-rgb), 0.2);
       }
       .campaign-wizard-root .wizard-footer-btn-spinner {
         animation: spin 0.75s linear infinite;
@@ -4448,33 +4480,34 @@ export default function CampaignNew() {
         align-items: center;
         justify-content: center;
         gap: 10px;
-        background: var(--color-primary, #2563EB);
+        background: var(--color-primary);
         color: #ffffff;
         cursor: pointer;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
       }
       .campaign-wizard-root .wizard-footer-next:hover:not(:disabled):not(.wizard-footer-next--saving) {
-        background: #1D4ED8;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+        background: color-mix(in srgb, var(--color-primary) 88%, #000000);
+        box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.2);
         transform: translateY(-1px);
       }
       .campaign-wizard-root .wizard-footer-next:active:not(:disabled):not(.wizard-footer-next--saving) {
         transform: translateY(0);
       }
       .campaign-wizard-root .wizard-footer-next[disabled]:not(.wizard-footer-next--saving) {
-        opacity: 0.5;
+        opacity: 1;
         cursor: not-allowed;
         box-shadow: none;
-        background: rgba(37, 99, 235, 0.38);
-        color: rgba(255, 255, 255, 0.92);
+        background: rgba(var(--color-primary-rgb), 0.18);
+        border: 1px solid rgba(var(--color-primary-rgb), 0.35);
+        color: var(--color-primary);
       }
       .campaign-wizard-root .wizard-footer-next[disabled].wizard-footer-next--saving,
       .campaign-wizard-root .wizard-footer-next.wizard-footer-next--saving {
         opacity: 1 !important;
         cursor: wait !important;
         pointer-events: none;
-        background: var(--color-primary, #2563EB) !important;
+        background: var(--color-primary) !important;
         color: #fff !important;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
       }
@@ -4507,7 +4540,7 @@ export default function CampaignNew() {
                 color: "var(--color-text)",
               }}
             >
-              <span style={{ fontWeight: 700, color: "var(--color-primary, #2563EB)" }}>Step {step} of {totalSteps}</span>
+              <span style={{ fontWeight: 700, color: "var(--color-primary)" }}>Step {step} of {totalSteps}</span>
               <span
                 style={{
                   color: "var(--color-text-muted)",
@@ -4539,7 +4572,7 @@ export default function CampaignNew() {
                 top: 0,
                 bottom: 0,
                 width: `${(step / totalSteps) * 100}%`,
-                background: `linear-gradient(90deg, ${WIZ_ACCENT_LINE} 0%, ${WIZ_ACCENT} 55%, #A78BFA 100%)`,
+                background: `linear-gradient(90deg, ${WIZ_ACCENT_LINE} 0%, ${WIZ_ACCENT} 55%, #F6B68B 100%)`,
                 transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             />
@@ -4733,17 +4766,17 @@ export default function CampaignNew() {
                       gap: 6,
                       textAlign: "center",
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
-                      boxShadow: selected ? "0 1px 4px rgba(37, 99, 235, 0.12)" : "none",
+                      boxShadow: selected ? "0 1px 4px rgba(var(--color-primary-rgb), 0.2)" : "none",
                       position: "relative",
                       opacity: showDisconnected && !selected ? 0.55 : 1,
                     }}
                     onMouseEnter={(e) => {
                       if (cannotSelectDisconnected) return;
                       if (!selected) {
-                        e.currentTarget.style.background = "rgba(37, 99, 235, 0.06)";
-                        e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
+                        e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.2)";
+                        e.currentTarget.style.borderColor = "rgba(var(--color-primary-rgb), 0.2)";
                       } else {
-                        e.currentTarget.style.background = "rgba(37, 99, 235, 0.04)";
+                        e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.2)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -4830,7 +4863,7 @@ export default function CampaignNew() {
                   textTransform: "uppercase",
                   color: WIZ_ACCENT_LINE,
                   background: WIZ_ROW_SELECTED,
-                  border: "1px solid rgba(37, 99, 235, 0.22)",
+                  border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                   padding: "4px 10px",
                   borderRadius: 999,
                 }}
@@ -5032,7 +5065,7 @@ export default function CampaignNew() {
               <div
                 style={{
                   background: "#F9F8FF",
-                  border: "1px solid rgba(37, 99, 235, 0.12)",
+                  border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                   borderRadius: 10,
                   padding: 16,
                   display: "flex",
@@ -5227,7 +5260,7 @@ export default function CampaignNew() {
                         { key: "all" as const, label: "All", dot: null as string | null },
                         { key: "hot" as const, label: "Hot", dot: "#ef4444" },
                         { key: "warm" as const, label: "Warm", dot: "#f97316" },
-                        { key: "cold" as const, label: "Cold", dot: "#3b82f6" },
+                        { key: "cold" as const, label: "Cold", dot: "var(--color-primary)" },
                         { key: "never_opened" as const, label: "Never Opened", dot: "#9ca3af" },
                         { key: "engaged" as const, label: "Engaged", dot: "#22c55e" },
                         { key: "high_score" as const, label: "High Score", dot: "#eab308" },
@@ -5652,7 +5685,7 @@ export default function CampaignNew() {
                               }}
                               onMouseEnter={(e) => {
                                 (e.currentTarget as HTMLTableRowElement).style.background =
-                                  "rgba(37, 99, 235, 0.04)";
+                                  "rgba(var(--color-primary-rgb), 0.2)";
                               }}
                               onMouseLeave={(e) => {
                                 (e.currentTarget as HTMLTableRowElement).style.background = "transparent";
@@ -5758,7 +5791,7 @@ export default function CampaignNew() {
                         style={{
                           fontSize: 14,
                           fontWeight: 500,
-                          color: "#1e40af",
+                          color: "#de8850",
                           lineHeight: "20px",
                           display: "flex",
                           flexDirection: "column",
@@ -5786,7 +5819,7 @@ export default function CampaignNew() {
                           fontSize: 14,
                           fontWeight: 500,
                           lineHeight: "20px",
-                          color: "#2563EB",
+                          color: "var(--color-primary)",
                           border: "none",
                           background: "none",
                           cursor: "pointer",
@@ -5988,8 +6021,8 @@ export default function CampaignNew() {
                     minHeight: 96,
                     padding: "16px 14px",
                     borderRadius: 12,
-                    border: selected ? "2px solid #2563EB" : "1px solid #e5e7eb",
-                    background: selected ? "rgba(37, 99, 235, 0.09)" : "#fff",
+                    border: selected ? "2px solid var(--color-primary)" : "1px solid #e5e7eb",
+                    background: selected ? "rgba(var(--color-primary-rgb), 0.2)" : "#fff",
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
@@ -6013,7 +6046,7 @@ export default function CampaignNew() {
                         width: 20,
                         height: 20,
                         borderRadius: "50%",
-                        background: "#2563EB",
+                        background: "var(--color-primary)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -6023,12 +6056,12 @@ export default function CampaignNew() {
                       <Icons.Check size={12} style={{ color: "#fff" }} strokeWidth={3} />
                     </span>
                   ) : null}
-                  <CardIcon size={22} style={{ color: selected ? "#2563EB" : "#6b7280" }} />
+                  <CardIcon size={22} style={{ color: selected ? "var(--color-primary)" : "#6b7280" }} />
                   <span
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: selected ? "#1D4ED8" : "#374151",
+                      color: selected ? "color-mix(in srgb, var(--color-primary) 88%, #000000)" : "#374151",
                       lineHeight: 1.35,
                     }}
                   >
@@ -6074,7 +6107,7 @@ export default function CampaignNew() {
                         borderRadius: 9999,
                         border: active ? "none" : "1px solid #d1d5db",
                         background: active
-                          ? "linear-gradient(135deg, #0EA5E9 0%, #2563EB 48%, #1D4ED8 100%)"
+                          ? "linear-gradient(135deg, #F29F67 0%, var(--color-primary) 48%, color-mix(in srgb, var(--color-primary) 88%, #000000) 100%)"
                           : "#fff",
                         color: active ? "#fff" : "#4b5563",
                         fontSize: 14,
@@ -6107,8 +6140,8 @@ export default function CampaignNew() {
                     gap: 6,
                     padding: "6px 12px",
                     borderRadius: 999,
-                    background: "#eef2ff",
-                    border: "1px solid #c7d2fe",
+                    background: "#fff4ec",
+                    border: "1px solid #f8c8a9",
                     fontSize: 12,
                     fontWeight: 600,
                     color: WIZ_ACCENT_LINE,
@@ -6140,11 +6173,11 @@ export default function CampaignNew() {
                         gap: 6,
                         padding: "6px 12px",
                         borderRadius: 999,
-                        background: "rgba(37, 99, 235, 0.07)",
-                        border: "1px solid rgba(37, 99, 235, 0.28)",
+                        background: "rgba(var(--color-primary-rgb), 0.2)",
+                        border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                         fontSize: 12,
                         fontWeight: 600,
-                        color: "#1D4ED8",
+                        color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                       }}
                     >
                       <span aria-hidden>📧</span> Follow-up {fu}
@@ -6161,12 +6194,12 @@ export default function CampaignNew() {
                   padding: 12,
                   borderRadius: 10,
                   background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  border: "1px solid #fbe0ce",
                   marginTop: 4,
                 }}
               >
-                <Icons.Info size={14} style={{ color: "#1d4ed8", flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 13, color: "#1d4ed8", lineHeight: 1.45 }}>
+                <Icons.Info size={14} style={{ color: "color-mix(in srgb, var(--color-primary) 88%, #000000)", flexShrink: 0, marginTop: 2 }} />
+                <span style={{ fontSize: 13, color: "color-mix(in srgb, var(--color-primary) 88%, #000000)", lineHeight: 1.45 }}>
                   You can configure the delay between follow-ups in the schedule step
                 </span>
               </div>
@@ -6226,7 +6259,7 @@ export default function CampaignNew() {
                     ? {
                         background: "var(--color-surface)",
                         color: "var(--color-primary)",
-                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
@@ -6258,7 +6291,7 @@ export default function CampaignNew() {
                     ? {
                         background: "var(--color-surface)",
                         color: "var(--color-primary)",
-                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
@@ -6306,7 +6339,7 @@ export default function CampaignNew() {
                     !productService ||
                     !valueProposition ||
                     !callToAction
-                      ? { opacity: 0.5, cursor: "not-allowed", boxShadow: "none" }
+                      ? DISABLED_SURFACE_TINT_STYLE
                       : {}),
                   }}
                 >
@@ -6326,7 +6359,7 @@ export default function CampaignNew() {
                     aria-haspopup="listbox"
                     style={{
                       ...EMAIL_AI_TOOLBAR_BTN,
-                      ...(emailDraftFetchState !== "idle" ? { opacity: 0.5, cursor: "not-allowed", boxShadow: "none" } : {}),
+                      ...(emailDraftFetchState !== "idle" ? DISABLED_SURFACE_TINT_STYLE : {}),
                     }}
                   >
                     <span
@@ -6582,7 +6615,7 @@ export default function CampaignNew() {
                     gap: 16,
                   }}
                 >
-                  <Icons.Loader size={40} style={{ color: "#2563EB", animation: "spin 1s linear infinite" }} />
+                  <Icons.Loader size={40} style={{ color: "var(--color-primary)", animation: "spin 1s linear infinite" }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Writing your email drafts…</div>
                   <div style={{ fontSize: 13 }}>
                     Using your campaign details, target segments, and ICP profile to create tailored messages
@@ -6719,7 +6752,7 @@ export default function CampaignNew() {
             ).map((opt) => {
               const selected = linkedInStepConfig?.action === opt.key;
               const iconColor =
-                opt.icon === "userplus" ? "#0A66C2" : "#2563EB";
+                opt.icon === "userplus" ? "#0A66C2" : "var(--color-primary)";
               return (
                 <div
                   key={opt.key}
@@ -6754,7 +6787,7 @@ export default function CampaignNew() {
                     textAlign: "left",
                     cursor: "pointer",
                     transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-                    ...(selected ? { border: "2px solid #818cf8" } : {}),
+                    ...(selected ? { border: "2px solid #eeab7a" } : {}),
                   }}
                 >
                   <div style={{ padding: "16px 18px" }}>
@@ -6767,7 +6800,7 @@ export default function CampaignNew() {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          background: "#2563EB",
+                          background: "var(--color-primary)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -6894,7 +6927,7 @@ export default function CampaignNew() {
                       ? {
                           background: "var(--color-surface)",
                           color: "var(--color-primary)",
-                          border: "1px solid rgba(37, 99, 235, 0.22)",
+                          border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                           boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                         }
                       : {
@@ -6926,7 +6959,7 @@ export default function CampaignNew() {
                       ? {
                           background: "var(--color-surface)",
                           color: "var(--color-primary)",
-                          border: "1px solid rgba(37, 99, 235, 0.22)",
+                          border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                           boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                         }
                       : {
@@ -6950,7 +6983,7 @@ export default function CampaignNew() {
                       disabled={linkedInGeneratingTemplates}
                       style={{
                         ...EMAIL_AI_TOOLBAR_BTN,
-                        ...(linkedInGeneratingTemplates ? { opacity: 0.5, cursor: "not-allowed", boxShadow: "none" } : {}),
+                        ...(linkedInGeneratingTemplates ? DISABLED_SURFACE_TINT_STYLE : {}),
                       }}
                     >
                       {linkedInGeneratingTemplates ? (
@@ -6975,7 +7008,7 @@ export default function CampaignNew() {
                       }
                       style={{
                         ...EMAIL_AI_TOOLBAR_BTN,
-                        ...(linkedInGeneratingTemplates ? { opacity: 0.5, cursor: "not-allowed", boxShadow: "none" } : {}),
+                        ...(linkedInGeneratingTemplates ? DISABLED_SURFACE_TINT_STYLE : {}),
                       }}
                     >
                       {linkedInGeneratingTemplates ? (
@@ -7133,7 +7166,7 @@ export default function CampaignNew() {
                       color: "var(--color-text-muted)",
                     }}
                   >
-                    <Icons.Loader size={18} style={{ animation: "spin 1s linear infinite", color: "#2563EB" }} />
+                    <Icons.Loader size={18} style={{ animation: "spin 1s linear infinite", color: "var(--color-primary)" }} />
                     Suggesting connection notes…
                   </div>
                 ) : null}
@@ -7377,10 +7410,20 @@ export default function CampaignNew() {
                       lineHeight: 1.35,
                       boxSizing: "border-box",
                       cursor: disabled ? "not-allowed" : "pointer",
-                      opacity: disabled ? 0.55 : 1,
-                      border: isSel ? "1px solid #2563EB" : "1px solid var(--color-border)",
-                      background: isSel ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface-secondary)",
-                      color: isSel ? "#2563EB" : "var(--color-text)",
+                      opacity: 1,
+                      border:
+                        disabled
+                          ? "1px solid rgba(var(--color-primary-rgb), 0.35)"
+                          : isSel
+                            ? "1px solid var(--color-primary)"
+                            : "1px solid var(--color-border)",
+                      background:
+                        disabled
+                          ? "rgba(var(--color-primary-rgb), 0.12)"
+                          : isSel
+                            ? "rgba(var(--color-primary-rgb), 0.2)"
+                            : "var(--color-surface-secondary)",
+                      color: disabled ? "var(--color-primary)" : isSel ? "var(--color-primary)" : "var(--color-text)",
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
                     };
                     return (
@@ -7401,7 +7444,7 @@ export default function CampaignNew() {
                         onMouseEnter={(e) => {
                           if (disabled || isSel) return;
                           e.currentTarget.style.background = "var(--color-surface-secondary)";
-                          e.currentTarget.style.borderColor = "#c4b5fd";
+                          e.currentTarget.style.borderColor = "#f8c8a9";
                         }}
                         onMouseLeave={(e) => {
                           if (disabled || isSel) return;
@@ -7503,7 +7546,12 @@ export default function CampaignNew() {
                       fontSize: 14,
                       fontWeight: 600,
                       borderRadius: 10,
-                      opacity: kbAiPhase === "loading" || kbAiPhase === "generating" ? 0.55 : 1,
+                      ...(uploadingFile ||
+                      kbAiPhase === "loading" ||
+                      kbAiPhase === "generating" ||
+                      !kbAiGeneratorCustomBrief.trim()
+                        ? DISABLED_PRIMARY_TINT_STYLE
+                        : {}),
                     }}
                   >
                     <Sparkles size={16} strokeWidth={2} aria-hidden />
@@ -7531,8 +7579,8 @@ export default function CampaignNew() {
               onDragOver={(e) => {
                 e.preventDefault();
                 if (uploadingFile) return;
-                e.currentTarget.style.borderColor = "#2563EB";
-                e.currentTarget.style.background = "rgba(37, 99, 235, 0.05)";
+                e.currentTarget.style.borderColor = "var(--color-primary)";
+                e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.2)";
               }}
               onDragLeave={(e) => {
                 e.currentTarget.style.borderColor = "var(--color-border)";
@@ -7579,7 +7627,7 @@ export default function CampaignNew() {
                       style={{
                         height: 4,
                         borderRadius: 9999,
-                        background: "#2563EB",
+                        background: "var(--color-primary)",
                         width: `${uploadProgress ?? 0}%`,
                         transition: "width 0.25s ease-out",
                       }}
@@ -7591,7 +7639,7 @@ export default function CampaignNew() {
                 </div>
               ) : (
                 <>
-                  <Icons.Upload size={48} style={{ color: "#2563EB", marginBottom: 16 }} />
+                  <Icons.Upload size={48} style={{ color: "var(--color-primary)", marginBottom: 16 }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Click to upload or drag and drop</div>
                   <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Knowledge base files only (max 10MB)</div>
                 </>
@@ -7751,7 +7799,7 @@ export default function CampaignNew() {
                     ? {
                         background: "var(--color-surface)",
                         color: "var(--color-primary)",
-                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
@@ -7783,7 +7831,7 @@ export default function CampaignNew() {
                     ? {
                         background: "var(--color-surface)",
                         color: "var(--color-primary)",
-                        border: "1px solid rgba(37, 99, 235, 0.22)",
+                        border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
                       }
                     : {
@@ -7815,7 +7863,7 @@ export default function CampaignNew() {
                   style={{
                     ...EMAIL_AI_TOOLBAR_BTN,
                     ...(generatingWhatsAppMessages || !channels.includes("whatsapp") || !activeBaseId
-                      ? { opacity: 0.5, cursor: "not-allowed", boxShadow: "none" }
+                      ? DISABLED_SURFACE_TINT_STYLE
                       : {}),
                   }}
                 >
@@ -7993,7 +8041,7 @@ export default function CampaignNew() {
                     gap: 16,
                   }}
                 >
-                  <Icons.Loader size={40} style={{ color: "#2563EB", animation: "spin 1s linear infinite" }} />
+                  <Icons.Loader size={40} style={{ color: "var(--color-primary)", animation: "spin 1s linear infinite" }} />
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Writing your WhatsApp drafts…</div>
                   <div style={{ fontSize: 13 }}>
                     Using your campaign details, target segments, and sample leads with phone numbers
@@ -8197,7 +8245,7 @@ export default function CampaignNew() {
                             fontWeight: 600,
                             padding: "2px 8px",
                             borderRadius: 999,
-                            background: "rgba(37, 99, 235, 0.1)",
+                            background: "rgba(var(--color-primary-rgb), 0.2)",
                             color: WIZ_ACCENT_LINE,
                           }}
                         >
@@ -8226,7 +8274,7 @@ export default function CampaignNew() {
                             fontWeight: 600,
                             padding: "2px 8px",
                             borderRadius: 999,
-                            background: "rgba(37, 99, 235, 0.1)",
+                            background: "rgba(var(--color-primary-rgb), 0.2)",
                             color: WIZ_ACCENT_LINE,
                           }}
                         >
@@ -8300,7 +8348,7 @@ export default function CampaignNew() {
                                     fontSize: 12,
                                     fontWeight: active ? 600 : 500,
                                     border: "none",
-                                    background: active ? "rgba(37, 99, 235, 0.16)" : "transparent",
+                                    background: active ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
                                     color: active ? WIZ_ACCENT_LINE : "var(--color-text-muted)",
                                     cursor: "pointer",
                                     flexShrink: 0,
@@ -8369,8 +8417,8 @@ export default function CampaignNew() {
                                     width: 18,
                                     height: 18,
                                     borderRadius: "50%",
-                                    border: sel ? "2px solid #2563EB" : "1.5px solid rgba(148, 163, 184, 0.5)",
-                                    background: sel ? "#2563EB" : "transparent",
+                                    border: sel ? "2px solid var(--color-primary)" : "1.5px solid rgba(148, 163, 184, 0.5)",
+                                    background: sel ? "var(--color-primary)" : "transparent",
                                     flexShrink: 0,
                                     display: "flex",
                                     alignItems: "center",
@@ -8559,8 +8607,8 @@ export default function CampaignNew() {
                                   width: 18,
                                   height: 18,
                                   borderRadius: "50%",
-                                  border: sel ? "2px solid #2563EB" : "1.5px solid rgba(148, 163, 184, 0.5)",
-                                  background: sel ? "#2563EB" : "transparent",
+                                  border: sel ? "2px solid var(--color-primary)" : "1.5px solid rgba(148, 163, 184, 0.5)",
+                                  background: sel ? "var(--color-primary)" : "transparent",
                                   flexShrink: 0,
                                   display: "flex",
                                   alignItems: "center",
@@ -8672,7 +8720,7 @@ export default function CampaignNew() {
                         fontSize: 14,
                         borderRadius: 10,
                         border: "none",
-                        background: "rgba(37, 99, 235, 0.08)",
+                        background: "rgba(var(--color-primary-rgb), 0.2)",
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -8692,10 +8740,10 @@ export default function CampaignNew() {
                 <div
                   style={{
                     padding: `12px ${VOICE_STEP_CONTENT_GUTTER}px`,
-                    background: "rgba(37, 99, 235, 0.06)",
+                    background: "rgba(var(--color-primary-rgb), 0.2)",
                     borderRadius: "0 12px 12px 0",
                     border: "none",
-                    boxShadow: "inset 3px 0 0 0 rgba(37, 99, 235, 0.55)",
+                    boxShadow: "inset 3px 0 0 0 rgba(var(--color-primary-rgb), 0.2)",
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
@@ -8711,7 +8759,7 @@ export default function CampaignNew() {
                         width: 34,
                         height: 34,
                         borderRadius: "50%",
-                        background: "rgba(37, 99, 235, 0.14)",
+                        background: "rgba(var(--color-primary-rgb), 0.2)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -9040,7 +9088,7 @@ export default function CampaignNew() {
                       background: "var(--color-surface)",
                       cursor:
                         systemPersonaGenerating || systemPersonaFetchLoading ? "not-allowed" : "pointer",
-                      opacity: systemPersonaGenerating || systemPersonaFetchLoading ? 0.5 : 1,
+                      ...(systemPersonaGenerating || systemPersonaFetchLoading ? DISABLED_SURFACE_TINT_STYLE : {}),
                       flexShrink: 0,
                     }}
                   >
@@ -9093,15 +9141,15 @@ export default function CampaignNew() {
                             lineHeight: 1.35,
                             boxSizing: "border-box",
                             cursor: disabled ? "not-allowed" : "pointer",
-                            opacity: disabled ? 0.55 : 1,
-                            border: "1px solid var(--color-border)",
-                            background: "var(--color-surface-secondary)",
-                            color: "var(--color-text)",
+                            opacity: 1,
+                            border: disabled ? "1px solid rgba(var(--color-primary-rgb), 0.35)" : "1px solid var(--color-border)",
+                            background: disabled ? "rgba(var(--color-primary-rgb), 0.12)" : "var(--color-surface-secondary)",
+                            color: disabled ? "var(--color-primary)" : "var(--color-text)",
                             transition: "background 0.15s ease, border-color 0.15s ease",
                           }}
                           onMouseEnter={(e) => {
                             if (disabled) return;
-                            e.currentTarget.style.borderColor = "#c4b5fd";
+                            e.currentTarget.style.borderColor = "#f8c8a9";
                           }}
                           onMouseLeave={(e) => {
                             if (disabled) return;
@@ -9109,7 +9157,7 @@ export default function CampaignNew() {
                             e.currentTarget.style.border = "1px solid var(--color-border)";
                           }}
                         >
-                          <Sparkles size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#2563EB" }} aria-hidden />
+                          <Sparkles size={14} strokeWidth={2} style={{ flexShrink: 0, color: "var(--color-primary)" }} aria-hidden />
                           {s.label}
                         </button>
                       );
@@ -9183,7 +9231,11 @@ export default function CampaignNew() {
                       fontSize: 14,
                       fontWeight: 600,
                       borderRadius: 10,
-                      opacity: systemPersonaGenerating ? 0.55 : 1,
+                      ...(systemPersonaGenerating ||
+                      systemPersonaFetchLoading ||
+                      !systemPersonaCustomBrief.trim()
+                        ? DISABLED_PRIMARY_TINT_STYLE
+                        : {}),
                     }}
                   >
                     <Sparkles size={16} strokeWidth={2} aria-hidden />
@@ -9946,7 +9998,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: "none",
                     background: "none",
                     cursor: "pointer",
-                    color: "#1D4ED8",
+                    color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                     fontWeight: 600,
                     textDecoration: "underline",
                     fontSize: "inherit",
@@ -10002,7 +10054,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#2563EB", flexShrink: 0 }} />
+                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "var(--color-primary)", flexShrink: 0 }} />
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Campaign Overview</h4>
                   </div>
                   <button
@@ -10012,7 +10064,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       flexShrink: 0,
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#1D4ED8",
+                      color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -10120,7 +10172,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "#2563EB", flexShrink: 0 }} />
+                    <Rocket size={20} strokeWidth={2} aria-hidden style={{ color: "var(--color-primary)", flexShrink: 0 }} />
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{"Schedule & Settings"}</h4>
                   </div>
                   <button
@@ -10130,7 +10182,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       flexShrink: 0,
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#1D4ED8",
+                      color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -10352,7 +10404,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                      <Icons.Mail size={20} style={{ color: "#2563EB", flexShrink: 0 }} />
+                      <Icons.Mail size={20} style={{ color: "var(--color-primary)", flexShrink: 0 }} />
                       <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Email Configuration</h4>
                     </div>
                     <button
@@ -10362,7 +10414,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#1D4ED8",
+                        color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10515,7 +10567,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#1D4ED8",
+                        color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10621,7 +10673,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#1D4ED8",
+                        color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10755,7 +10807,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         flexShrink: 0,
                         fontSize: 13,
                         fontWeight: 500,
-                        color: "#1D4ED8",
+                        color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -10799,7 +10851,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             gap: 6,
                             fontSize: 13,
                             fontWeight: 600,
-                            color: "#1D4ED8",
+                            color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                             padding: "6px 12px",
                             borderRadius: 8,
                             border: "1px solid var(--color-border)",
@@ -10891,7 +10943,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                                     padding: 0,
                                     borderRadius: 8,
                                     border: "1px solid var(--color-border)",
-                                    color: "#1D4ED8",
+                                    color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                                   }}
                                 >
                                   {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "view" ? (
@@ -10923,7 +10975,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                                     padding: 0,
                                     borderRadius: 8,
                                     border: "1px solid var(--color-border)",
-                                    color: "#1D4ED8",
+                                    color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                                   }}
                                 >
                                   {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "download" ? (
@@ -10996,7 +11048,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: "none",
                     background: "none",
                     cursor: "pointer",
-                    color: "#1D4ED8",
+                    color: "color-mix(in srgb, var(--color-primary) 88%, #000000)",
                     fontWeight: 600,
                     textDecoration: "underline",
                     fontSize: "inherit",
@@ -11028,9 +11080,9 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 <div
                   style={{
                     padding: 20,
-                    background: "rgba(37, 99, 235, 0.05)",
+                    background: "rgba(var(--color-primary-rgb), 0.2)",
                     borderRadius: 12,
-                    border: "1px solid rgba(37, 99, 235, 0.2)",
+                    border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                     height: "100%",
                     boxSizing: "border-box",
                   }}
@@ -11210,7 +11262,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     width: 40,
                     height: 40,
                     borderRadius: 12,
-                    background: "var(--color-primary, #2563EB)",
+                    background: "var(--color-primary)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -11370,16 +11422,16 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
         >
           {isCallVoiceStep && availableVoices.length > 0 ? (
             <div
-              className="rounded-lg bg-blue-50 p-3 text-sm"
+              className="rounded-lg bg-orange-50 p-3 text-sm"
               style={{
                 display: "flex",
                 gap: 10,
                 alignItems: "flex-start",
                 lineHeight: 1.45,
-                color: "#1e40af",
+                color: "var(--color-primary)",
               }}
             >
-              <Icons.Info size={14} style={{ color: "#3b82f6", flexShrink: 0, marginTop: 2 }} />
+              <Icons.Info size={14} style={{ color: "var(--color-primary)", flexShrink: 0, marginTop: 2 }} />
               <span>
                 Select a voice to continue. Use Preview to hear it first.
               </span>
@@ -11405,7 +11457,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 >
                   {wizardNavBusy === "back" ? (
                     <>
-                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #2563EB)" }} aria-hidden />
+                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary)" }} aria-hidden />
                       <span>Saving…</span>
                     </>
                   ) : (
@@ -11463,7 +11515,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 >
                   {wizardNavBusy === "back" ? (
                     <>
-                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary, #2563EB)" }} aria-hidden />
+                      <Icons.Loader size={18} strokeWidth={2.25} className="wizard-footer-btn-spinner" style={{ color: "var(--color-primary)" }} aria-hidden />
                       <span>Saving…</span>
                     </>
                   ) : (
@@ -13361,7 +13413,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 style={{
                   animation: "spin 1s linear infinite",
                   marginBottom: 10,
-                  color: "#2563EB",
+                  color: "var(--color-primary)",
                 }}
               />
               <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 6 }}>Preparing questions…</div>
@@ -13437,7 +13489,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
 
           {kbAiPhase === 'generating' && (
             <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              <Icons.Sparkles size={32} style={{ color: '#2563EB', marginBottom: 8 }} />
+              <Icons.Sparkles size={32} style={{ color: 'var(--color-primary)', marginBottom: 8 }} />
               <div style={{ fontWeight: 600, marginBottom: 4 }}>Generating your knowledge base…</div>
               <div style={{ fontSize: 13 }}>This may take up to a minute.</div>
             </div>
@@ -13707,10 +13759,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               setVoiceCloneFiles((prev) => mergeVoiceCloneFiles(dropped, prev));
             }}
             style={{
-              border: `2px dashed ${voiceCloneDragOver ? "#2563EB" : "var(--color-border)"}`,
+              border: `2px dashed ${voiceCloneDragOver ? "var(--color-primary)" : "var(--color-border)"}`,
               borderRadius: 14,
               padding: "22px 18px",
-              background: voiceCloneDragOver ? "rgba(37, 99, 235, 0.08)" : "var(--color-surface-secondary)",
+              background: voiceCloneDragOver ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-surface-secondary)",
               marginBottom: 10,
               textAlign: "center",
               transition: "border-color 0.15s, background 0.15s",
@@ -13723,12 +13775,12 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 height: 52,
                 margin: "0 auto 12px",
                 borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.12) 100%)",
-                border: "1px solid rgba(37, 99, 235, 0.25)",
+                background: "linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.12) 100%)",
+                border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#2563EB",
+                color: "var(--color-primary)",
               }}
             >
               <Icons.Upload size={26} />
@@ -13808,11 +13860,11 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         width: 36,
                         height: 36,
                         borderRadius: 8,
-                        background: "rgba(37, 99, 235, 0.12)",
+                        background: "rgba(var(--color-primary-rgb), 0.2)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#2563EB",
+                        color: "var(--color-primary)",
                         flexShrink: 0,
                       }}
                     >
@@ -14049,13 +14101,13 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: 'rgba(37, 99, 235, 0.12)',
-                border: '1px solid rgba(37, 99, 235, 0.2)',
+                background: 'rgba(var(--color-primary-rgb), 0.2)',
+                border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Icons.Users size={16} style={{ color: '#2563EB' }} />
+                <Icons.Users size={16} style={{ color: 'var(--color-primary)' }} />
               </div>
               <div>
                 <h3 style={{ margin:0, fontSize: 18, fontWeight: 700 }}>
@@ -14098,7 +14150,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               padding: '0 24px 24px 24px',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(37, 99, 235, 0.4) rgba(0, 0, 0, 0.08)'
+              scrollbarColor: 'rgba(var(--color-primary-rgb), 0.2) rgba(0, 0, 0, 0.08)'
             }}
           >
               {viewingLeads.length === 0 ? (
@@ -14142,7 +14194,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         title={isDisabled ? 'This lead does not have a LinkedIn URL and cannot be used for LinkedIn campaigns' : ''}
                         onMouseEnter={(e) => {
                           if (!isDisabled) {
-                            e.currentTarget.style.background = 'rgba(37, 99, 235, 0.05)';
+                            e.currentTarget.style.background = 'rgba(var(--color-primary-rgb), 0.2)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -14188,10 +14240,10 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                             <span style={{
                               padding: '4px 10px',
                               borderRadius: 6,
-                              background: (lead.score || 0) > 80 ? 'rgba(37, 99, 235, 0.2)' : 
+                              background: (lead.score || 0) > 80 ? 'rgba(var(--color-primary-rgb), 0.2)' : 
                                          (lead.score || 0) > 60 ? 'rgba(255, 167, 38, 0.2)' : 
                                          'rgba(128, 128, 128, 0.2)',
-                              color: (lead.score || 0) > 80 ? '#2563EB' : 
+                              color: (lead.score || 0) > 80 ? 'var(--color-primary)' : 
                                      (lead.score || 0) > 60 ? '#ffa726' : '#888',
                               fontWeight: 600,
                               fontSize: 12
@@ -14377,7 +14429,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             <div style={{
               padding: '24px 28px',
               borderBottom: '1px solid var(--elev-border)',
-              background: 'rgba(37, 99, 235, 0.08)',
+              background: 'rgba(var(--color-primary-rgb), 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -14387,7 +14439,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  background: 'var(--color-primary, #2563EB)',
+                  background: 'var(--color-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -14451,7 +14503,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icons.Target size={16} style={{ color: '#2563EB' }} />
+                      <Icons.Target size={16} style={{ color: 'var(--color-primary)' }} />
                       <span style={{ fontWeight: 600, fontSize: 15 }}>{name}</span>
                     </div>
                     <div style={{ 
@@ -14530,7 +14582,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       border: '1px solid var(--elev-border)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <Icons.Mail size={18} style={{ color: '#2563EB' }} />
+                        <Icons.Mail size={18} style={{ color: 'var(--color-primary)' }} />
                         <span style={{ fontWeight: 600, fontSize: 14 }}>Email Configuration</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
@@ -14653,7 +14705,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     border: '1px solid var(--elev-border)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                      <Icons.Clock size={18} style={{ color: '#2563EB' }} />
+                      <Icons.Clock size={18} style={{ color: 'var(--color-primary)' }} />
                       <span style={{ fontWeight: 600, fontSize: 14 }}>Schedule</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>

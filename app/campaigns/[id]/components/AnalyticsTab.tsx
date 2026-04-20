@@ -111,8 +111,8 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   📤 Sending & Delivery
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                  <MetricCard title="Emails sent" value={emailSent} gradient="linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)" color="#2563EB" />
-                  <MetricCard title="Resend accepted (processed)" value={campaign.email_processed ?? 0} subtitle={campaign.esp_accept_rate ? `${campaign.esp_accept_rate}% ESP accept rate` : undefined} gradient="linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)" color="#6366f1" />
+                  <MetricCard title="Emails sent" value={emailSent} gradient="linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.2) 100%)" color="var(--color-primary)" />
+                  <MetricCard title="Resend accepted (processed)" value={campaign.email_processed ?? 0} subtitle={campaign.esp_accept_rate ? `${campaign.esp_accept_rate}% ESP accept rate` : undefined} gradient="linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)" color="#e59662" />
                   <MetricCard title="Delivered (inbox)" value={campaign.delivered || 0} subtitle={campaign.deliveryRate ? `${campaign.deliveryRate}% inbox delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
                   {(campaign.bounced || 0) > 0 && (
                     <MetricCard title="Bounced" value={campaign.bounced || 0} subtitle={campaign.bounceRate ? `${campaign.bounceRate}% bounce rate` : undefined} gradient="linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)" color="#ef4444" />
@@ -128,8 +128,8 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   💡 Engagement
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                  <MetricCard title="Opened" value={campaign.opened || 0} subtitle={campaign.openRate ? `${campaign.openRate}% open rate` : undefined} gradient="linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%)" color="#06B6D4" />
-                  <MetricCard title="Clicked" value={campaign.clicked || 0} subtitle={campaign.clickRate ? `${campaign.clickRate}% click rate` : undefined} gradient="linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)" color="#3b82f6" />
+                  <MetricCard title="Opened" value={campaign.opened || 0} subtitle={campaign.openRate ? `${campaign.openRate}% open rate` : undefined} gradient="linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1) 0%, rgba(var(--color-primary-rgb), 0.05) 100%)" color="#F29F67" />
+                  <MetricCard title="Clicked" value={campaign.clicked || 0} subtitle={campaign.clickRate ? `${campaign.clickRate}% click rate` : undefined} gradient="linear-gradient(135deg, rgba(var(--color-support-blue-rgb), 0.2) 0%, rgba(var(--color-support-blue-rgb), 0.2) 100%)" color="var(--color-support-blue)" />
                   <MetricCard title="Replied" value={campaign.replied || 0} subtitle={campaign.replyRate ? `${campaign.replyRate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
                 </div>
               </div>
@@ -193,7 +193,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
             <div>
               <div style={{ marginBottom: 16 }}>
                 <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icons.Phone size={18} style={{ color: '#6366f1' }} />
+                  <Icons.Phone size={18} style={{ color: '#e59662' }} />
                   Call Metrics
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
@@ -205,7 +205,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   📞 Call Status
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                  <MetricCard title="Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)" color="#6366f1" />
+                  <MetricCard title="Initiated" value={campaign.call_initiated || 0} gradient="linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)" color="#e59662" />
                   <MetricCard title="Answered" value={campaign.call_answered || 0} subtitle={campaign.call_answer_rate ? `${campaign.call_answer_rate}% answer rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
                   <MetricCard title="Completed" value={campaign.call_completed || 0} subtitle={campaign.call_completion_rate ? `${campaign.call_completion_rate}% completion rate` : undefined} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
                 </div>
@@ -235,7 +235,7 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                 <MetricCard title="Invitations Sent" value={campaign.linkedin_invitations_sent || 0} gradient="linear-gradient(135deg, rgba(0, 119, 181, 0.1) 0%, rgba(0, 119, 181, 0.05) 100%)" color="#0077b5" />
                 <MetricCard title="Accepted" value={campaign.linkedin_invitations_accepted || 0} subtitle={`${campaign.linkedin_invitations_sent && campaign.linkedin_invitations_accepted ? ((campaign.linkedin_invitations_accepted / campaign.linkedin_invitations_sent) * 100).toFixed(1) : '0'}% acceptance rate`} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="API success" value={`${campaign.linkedin_submit_success_rate ?? '0'}%`} subtitle="Sent ÷ (sent + failed)" gradient="linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)" color="#2563EB" />
+                <MetricCard title="API success" value={`${campaign.linkedin_submit_success_rate ?? '0'}%`} subtitle="Sent ÷ (sent + failed)" gradient="linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.2) 100%)" color="var(--color-primary)" />
                 {campaign.linkedin_invitations_failed && campaign.linkedin_invitations_failed > 0 && (
                   <MetricCard title="Failed" value={campaign.linkedin_invitations_failed} gradient="linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)" color="#ff6b6b" />
                 )}
@@ -279,8 +279,8 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 const r = campaign.replied || 0;
                 const max = Math.max(s, o, r, 1);
                 const bars = [
-                  { label: 'Sent', value: s, color: '#2563EB' },
-                  { label: 'Opened', value: o, color: '#06B6D4' },
+                  { label: 'Sent', value: s, color: 'var(--color-primary)' },
+                  { label: 'Opened', value: o, color: '#F29F67' },
                   { label: 'Replied', value: r, color: '#ff6b6b' },
                 ];
                 return (
@@ -307,13 +307,13 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
           {/* AI Insights */}
           {campaign.ai_insight && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+              background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.1) 100%)',
               borderRadius: 12,
               padding: 20,
-              border: '1px solid rgba(37, 99, 235, 0.3)'
+              border: '1px solid rgba(var(--color-primary-rgb), 0.2)'
             }}>
               <h4 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Robot size={18} style={{ color: '#2563EB' }} />
+                <Icons.Robot size={18} style={{ color: 'var(--color-primary)' }} />
                 AI Insights
               </h4>
               <p style={{ fontSize: 14, color: 'var(--color-text)', lineHeight: 1.6 }}>

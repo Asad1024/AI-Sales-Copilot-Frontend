@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { CSSProperties, ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
@@ -41,7 +41,7 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
           whiteSpace: "nowrap",
         }}
       >
-        ● Connected
+        Connected
       </span>
     );
   }
@@ -70,9 +70,9 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
           flexShrink: 0,
           fontSize: 12,
           fontWeight: 500,
-          color: "#60a5fa",
-          background: "rgba(37, 99, 235, 0.16)",
-          border: "1px solid rgba(96, 165, 250, 0.35)",
+          color: "#f5b78f",
+          background: "rgba(var(--color-primary-rgb), 0.2)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.38)",
           borderRadius: 9999,
           padding: "2px 10px",
           whiteSpace: "nowrap",
@@ -96,7 +96,7 @@ export function StatusBadge({ variant }: { variant: IntegrationStatusVariant }) 
         whiteSpace: "nowrap",
       }}
     >
-      ○ Not connected
+      Not connected
     </span>
   );
 }
@@ -257,7 +257,6 @@ export function ConnectFilledButton({
         justifyContent: "center",
         fontSize: 13,
         padding: "8px 16px",
-        opacity: disabled ? 0.55 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
@@ -327,7 +326,7 @@ export function ConfigureModalShell({ open, onClose, icon, title, children, foot
 export function VaultEncryptedNote() {
   return (
     <p style={{ margin: "14px 0 0", fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
-      ● Vault encrypted — credentials are stored securely on the server.
+      Vault encrypted - credentials are stored securely on the server.
     </p>
   );
 }

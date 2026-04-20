@@ -15,10 +15,10 @@ interface ColumnConfigPanelProps {
 export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnConfigPanelProps) {
   const { showError } = useNotification();
   const [newOption, setNewOption] = useState("");
-  const [newOptionColor, setNewOptionColor] = useState("#2563EB");
+  const [newOptionColor, setNewOptionColor] = useState("var(--color-primary)");
   const [saving, setSaving] = useState(false);
 
-  const defaultColors = ["#2563EB", "#ff6b6b", "#4ecdc4", "#ffa726", "#66bb6a", "#ef5350", "#ab47bc", "#26c6da"];
+  const defaultColors = ["var(--color-primary)", "#ff6b6b", "#4ecdc4", "#ffa726", "#66bb6a", "#ef5350", "#ab47bc", "#26c6da"];
   
   // Normalize options: handle both string[] and {id/value/label/color}
   const options = useMemo(() => {
@@ -193,14 +193,14 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
                   width: "24px",
                   height: "24px",
                   borderRadius: "50%",
-                  background: option.color || "#2563EB",
-                  border: `2px solid ${option.color || "#2563EB"}80`,
+                  background: option.color || "var(--color-primary)",
+                  border: `2px solid ${option.color || "var(--color-primary)"}80`,
                   cursor: "pointer",
                 }}
                 onClick={() => {
                   const input = document.createElement("input");
                   input.type = "color";
-                  input.value = option.color || "#2563EB";
+                  input.value = option.color || "var(--color-primary)";
                   input.onchange = (e) => {
                     const target = e.target as HTMLInputElement;
                     updateOption(index, { color: target.value });
@@ -225,7 +225,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
               />
               <input
                 type="color"
-                value={option.color || "#2563EB"}
+                value={option.color || "var(--color-primary)"}
                 onChange={(e) => updateOption(index, { color: e.target.value })}
                 style={{ width: "40px", height: "40px", border: "none", borderRadius: "6px", cursor: "pointer" }}
               />
@@ -273,20 +273,20 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
           </p>
         )}
         {options.length > 0 && (
-          <div style={{ marginTop: "12px", padding: "12px", background: "rgba(37, 99, 235, 0.05)", borderRadius: "8px" }}>
+          <div style={{ marginTop: "12px", padding: "12px", background: "rgba(var(--color-primary-rgb), 0.2)", borderRadius: "8px" }}>
             <div style={{ fontSize: "12px", fontWeight: "600", marginBottom: "8px" }}>Preview:</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {options.map((opt: any, idx: number) => (
                 <span
                   key={idx}
                   style={{
-                    background: `${opt.color || "#2563EB"}20`,
-                    color: opt.color || "#2563EB",
+                    background: `${opt.color || "var(--color-primary)"}20`,
+                    color: opt.color || "var(--color-primary)",
                     padding: "4px 12px",
                     borderRadius: "6px",
                     fontSize: "12px",
                     fontWeight: "600",
-                    border: `1px solid ${opt.color || "#2563EB"}40`,
+                    border: `1px solid ${opt.color || "var(--color-primary)"}40`,
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
@@ -297,7 +297,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
                       width: "8px",
                       height: "8px",
                       borderRadius: "50%",
-                      background: opt.color || "#2563EB",
+                      background: opt.color || "var(--color-primary)",
                     }}
                   />
                   {opt.label || opt.value}
@@ -363,15 +363,15 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
                   width: "36px",
                   height: "36px",
                   borderRadius: "8px",
-                  background: option.color || "#2563EB",
-                  border: `2px solid ${option.color || "#2563EB"}80`,
+                  background: option.color || "var(--color-primary)",
+                  border: `2px solid ${option.color || "var(--color-primary)"}80`,
                   cursor: "pointer",
                   flexShrink: 0,
                 }}
                 onClick={() => {
                   const input = document.createElement("input");
                   input.type = "color";
-                  input.value = option.color || "#2563EB";
+                  input.value = option.color || "var(--color-primary)";
                   input.onchange = (e) => {
                     const target = e.target as HTMLInputElement;
                     updateOption(index, { color: target.value });
@@ -440,14 +440,14 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
           </button>
         </div>
         {normalizedOptions.length === 0 && (
-          <div style={{ padding: "16px", background: "rgba(37, 99, 235, 0.05)", borderRadius: "8px", border: "1px dashed rgba(37, 99, 235, 0.3)" }}>
+          <div style={{ padding: "16px", background: "rgba(var(--color-primary-rgb), 0.2)", borderRadius: "8px", border: "1px dashed rgba(var(--color-primary-rgb), 0.2)" }}>
             <p style={{ fontSize: "12px", color: "var(--color-text-muted)", margin: 0, textAlign: "center" }}>
               Add at least one option for this dropdown field
             </p>
           </div>
         )}
         {normalizedOptions.length > 0 && (
-          <div style={{ marginTop: "16px", padding: "16px", background: "rgba(37, 99, 235, 0.05)", borderRadius: "8px", border: "1px solid rgba(37, 99, 235, 0.2)" }}>
+          <div style={{ marginTop: "16px", padding: "16px", background: "rgba(var(--color-primary-rgb), 0.2)", borderRadius: "8px", border: "1px solid rgba(var(--color-primary-rgb), 0.2)" }}>
             <div style={{ fontSize: "12px", fontWeight: "600", marginBottom: "12px", color: "var(--color-text)" }}>
               Preview:
             </div>
@@ -456,13 +456,13 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
                 <span
                   key={idx}
                   style={{
-                    background: `${opt.color || "#2563EB"}20`,
-                    color: opt.color || "#2563EB",
+                    background: `${opt.color || "var(--color-primary)"}20`,
+                    color: opt.color || "var(--color-primary)",
                     padding: "6px 14px",
                     borderRadius: "8px",
                     fontSize: "12px",
                     fontWeight: "600",
-                    border: `1px solid ${opt.color || "#2563EB"}40`,
+                    border: `1px solid ${opt.color || "var(--color-primary)"}40`,
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
@@ -473,7 +473,7 @@ export function ColumnConfigPanel({ type, config, onChange, columnId }: ColumnCo
                       width: "10px",
                       height: "10px",
                       borderRadius: "50%",
-                      background: opt.color || "#2563EB",
+                      background: opt.color || "var(--color-primary)",
                       flexShrink: 0,
                     }}
                   />

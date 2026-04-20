@@ -13,17 +13,17 @@ export const APP_BRAND_LOGO_DARK = "/dark_logo.png";
 export const APP_BRAND_LOGO_LIGHT_COLLAPSE = "/light_collapse.png";
 /** Collapsed sidebar rail (dark theme). */
 export const APP_BRAND_LOGO_DARK_COLLAPSE = "/dark_collapse.png";
-/** Collapsed rail + login use the same mark as browser favicon. */
-export const APP_BRAND_LOGO_COLLAPSE_FILE = "/favicon.svg";
+/** Collapsed rail + login (`public/collapse_logo.png`) — replaces per-theme light/dark collapse assets. */
+export const APP_BRAND_LOGO_COLLAPSE_FILE = "/collapse_logo.png";
 
 /** Full wordmark: slightly larger across landing, auth, and sidebars. */
-export const APP_BRAND_LOGO_HEIGHT = 58;
-export const APP_BRAND_LOGO_MAX_WIDTH = 300;
+export const APP_BRAND_LOGO_HEIGHT = 64;
+export const APP_BRAND_LOGO_MAX_WIDTH = 330;
 /** Collapsed mark max width (square-ish); height uses {@link APP_BRAND_LOGO_HEIGHT} for consistent brand scale. */
-export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 72;
+export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 80;
 /** Narrow collapsed rail: slightly smaller mark so it fits the icon strip cleanly. */
-export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 44;
-export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 56;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 50;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 62;
 /** @deprecated Use `APP_BRAND_LOGO_LIGHT_COLLAPSE`. */
 export const APP_BRAND_LOGO_COLLAPSE = APP_BRAND_LOGO_LIGHT_COLLAPSE;
 /** @deprecated Use `APP_BRAND_LOGO_DARK_COLLAPSE`. */
@@ -33,7 +33,7 @@ export const APP_BRAND_LOGO_COLLAPSE_DARK = APP_BRAND_LOGO_DARK_COLLAPSE;
 export const APP_BRAND_LOGO_PATH = APP_BRAND_LOGO_LIGHT;
 
 /** Same gradient as landing `app/page.tsx` (`--gradient-primary`). */
-export const APP_BRAND_GRADIENT = "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)";
+export const APP_BRAND_GRADIENT = "linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)";
 
 /** Lightning path inside the mark — matches landing `logo-icon` SVG. */
 const LIGHTNING_PATH = "M13 2L3 14h7l-1 8 10-12h-7l1-8z";

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { BaseColumn, ColumnType, useColumnStore } from "@/stores/useColumnStore";
 import { Icons } from "@/components/ui/Icons";
@@ -189,16 +189,16 @@ export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEdi
               {!column && (
                 <div style={{ 
                   padding: "10px 12px", 
-                  background: "rgba(37, 99, 235, 0.08)", 
+                  background: "rgba(var(--color-primary-rgb), 0.2)", 
                   borderRadius: "6px",
-                  border: "1px solid rgba(37, 99, 235, 0.2)",
+                  border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>Type:</span>
-                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#2563eb", textTransform: "capitalize" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-primary)", textTransform: "capitalize" }}>
                       {type}
                     </span>
                   </div>
@@ -206,7 +206,7 @@ export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEdi
                     onClick={() => setStep('type')}
                     style={{
                       fontSize: "12px",
-                      color: "#2563eb",
+                      color: "var(--color-primary)",
                       background: "transparent",
                       border: "none",
                       cursor: "pointer",
@@ -250,7 +250,7 @@ export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEdi
                       width: 40,
                       height: 22,
                       borderRadius: 11,
-                      background: visible ? "#2563eb" : "var(--color-border)",
+                      background: visible ? "var(--color-primary)" : "var(--color-border)",
                       position: "relative",
                       cursor: "pointer",
                       transition: "background 0.2s",
@@ -303,7 +303,7 @@ export function ColumnEditorModal({ baseId, column, onClose, onSave }: ColumnEdi
               disabled={saving || !name.trim()}
               style={{
                 padding: "8px 16px",
-                background: saving || !name.trim() ? "#93c5fd" : "#2563eb",
+                background: saving || !name.trim() ? "#f8c8a9" : "var(--color-primary)",
                 border: "none",
                 borderRadius: "6px",
                 fontSize: "13px",

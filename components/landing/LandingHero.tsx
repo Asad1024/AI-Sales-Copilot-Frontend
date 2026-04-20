@@ -46,7 +46,7 @@ export default function LandingHero({ onStartTrial, inputSlot, belowInputSlot, f
             <Button
               type="button"
               variant="primary"
-              className="!min-h-[52px] !rounded-full !border-0 !px-8 !text-base !font-medium !shadow-[0_4px_14px_rgba(37,99,235,0.25)] transition hover:!shadow-[0_6px_20px_rgba(37,99,235,0.32)]"
+              className="!min-h-[52px] !rounded-full !border-0 !px-8 !text-base !font-medium !shadow-[0_4px_14px_rgba(var(--color-primary-rgb), 0.2)] transition hover:!shadow-[0_6px_20px_rgba(var(--color-primary-rgb), 0.2)]"
               onClick={onStartTrial}
             >
               <Icons.Rocket size={20} className="shrink-0" />

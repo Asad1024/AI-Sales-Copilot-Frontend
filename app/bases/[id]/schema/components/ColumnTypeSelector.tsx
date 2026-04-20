@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { ColumnType } from "@/stores/useColumnStore";
 import { Icons } from "@/components/ui/Icons";
 
@@ -19,7 +19,7 @@ const columnTypes: Array<{
     label: "Text", 
     description: "Single line text", 
     icon: <Icons.FileText size={18} />,
-    color: "#6366f1"
+    color: "#e59662"
   },
   { 
     value: "number", 
@@ -40,7 +40,7 @@ const columnTypes: Array<{
     label: "Email", 
     description: "Email addresses", 
     icon: <Icons.Mail size={18} />,
-    color: "#2563eb"
+    color: "var(--color-primary)"
   },
   { 
     value: "phone", 

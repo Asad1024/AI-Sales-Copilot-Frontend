@@ -13,7 +13,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 /** Wizard review / step-14 overview — same colors & glyphs as `REVIEW_OVERVIEW_CHANNEL_META` in campaign wizard */
 const WIZ_REVIEW_CHANNEL_COLORS: Record<ChannelType, string> = {
-  email: "#2563eb",
+  email: "var(--color-primary)",
   linkedin: "#0077B5",
   whatsapp: "#25D366",
   call: "#0d9488",
@@ -617,7 +617,7 @@ export default function CampaignCard({
             {campaignChannelsOrdered.length > 0 ? (
               <CampaignChannelGlyphs channels={campaignChannelsOrdered} size={compact ? 13 : 14} />
             ) : (
-              <ChannelIcon size={sc.channelIcon} strokeWidth={1.5} style={{ color: "#a5b4fc" }} />
+              <ChannelIcon size={sc.channelIcon} strokeWidth={1.5} style={{ color: "#f6b68b" }} />
             )}
           </div>
           <div style={{ minWidth: 0 }}>

@@ -46,7 +46,7 @@ const LEAD_TABLE_CHECKBOX_STYLE: React.CSSProperties = {
   cursor: "pointer",
   margin: 0,
   flexShrink: 0,
-  accentColor: "var(--color-primary, #2563EB)",
+  accentColor: "var(--color-primary)",
 };
 
 /** Campaign wizard (lead step) datatable chrome — shared with `app/campaigns/new/page.tsx` lead picker */
@@ -177,11 +177,19 @@ export function DynamicLeadsTable({
     const customCols = columns
       .filter(col => col.visible)
       .map(col => ({ ...col, system: false }));
-    return [...systemCols, ...customCols].sort((a, b) => {
+    const ordered = [...systemCols, ...customCols].sort((a, b) => {
       if (a.system && !b.system) return -1;
       if (!a.system && b.system) return 1;
       return (a.display_order || 0) - (b.display_order || 0);
     });
+    // Keep Owner as the second-last visible column for consistent table scanning.
+    const ownerIndex = ordered.findIndex((col) => String(col.id) === "owner");
+    if (ownerIndex >= 0 && ordered.length > 1) {
+      const [ownerColumn] = ordered.splice(ownerIndex, 1);
+      const insertAt = Math.max(0, ordered.length - 1);
+      ordered.splice(insertAt, 0, ownerColumn);
+    }
+    return ordered;
   }, [columns]);
 
   const toggleLeadSelection = (leadId: number) => {
@@ -319,7 +327,7 @@ export function DynamicLeadsTable({
         return 'transparent';
       case 'score':
         const score = lead.score ?? 0;
-        if (score >= 80) return 'rgba(37, 99, 235, 0.08)';
+        if (score >= 80) return 'rgba(var(--color-primary-rgb), 0.2)';
         if (score >= 60) return 'rgba(255, 167, 38, 0.08)';
         return 'rgba(158, 158, 158, 0.05)';
       case 'owner':
@@ -361,8 +369,8 @@ export function DynamicLeadsTable({
                   alignItems: "center",
                   gap: 5,
                   borderRadius: 9999,
-                  border: "1px solid rgba(37, 99, 235, 0.28)",
-                  background: "rgba(37, 99, 235, 0.08)",
+                  border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
+                  background: "rgba(var(--color-primary-rgb), 0.2)",
                   color: "var(--color-primary)",
                   fontSize: 10,
                   fontWeight: 600,
@@ -393,7 +401,11 @@ export function DynamicLeadsTable({
         const phoneInfo = getPhoneInfo(lead.phone, lead.enrichment);
         return phoneInfo.normalized ? (
           <div className="text-[12px] leading-snug">
-            <a href={`tel:${phoneInfo.normalized}`} className="text-blue-600 hover:underline dark:text-blue-400">
+            <a
+              href={`tel:${phoneInfo.normalized}`}
+              className="hover:underline"
+              style={{ color: "var(--color-primary)" }}
+            >
               {phoneInfo.normalized}
             </a>
           </div>
@@ -419,7 +431,7 @@ export function DynamicLeadsTable({
           n >= 80
             ? "#047857"
             : n >= 60
-              ? "#1d4ed8"
+              ? "color-mix(in srgb, var(--color-primary) 88%, #000000)"
               : n >= 40
                 ? "#b45309"
                 : n >= 20
@@ -954,4 +966,3 @@ export function DynamicLeadsTable({
     </div>
   );
 }
-

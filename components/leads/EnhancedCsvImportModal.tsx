@@ -257,7 +257,7 @@ export function EnhancedCsvImportModal({ open, onClose, onImported }: { open: bo
   };
 
   const csvHeaderTint =
-    "linear-gradient(165deg, rgba(33, 115, 70, 0.1) 0%, rgba(37, 99, 235, 0.06) 45%, transparent 72%)";
+    "linear-gradient(165deg, rgba(33, 115, 70, 0.1) 0%, rgba(var(--color-primary-rgb), 0.2) 45%, transparent 72%)";
 
   return (
     <ImportModalFrame

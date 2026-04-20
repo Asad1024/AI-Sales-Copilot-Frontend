@@ -115,7 +115,7 @@ export function ValidationStep({ csvRows, mappings, baseColumns, onValidationCom
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "24px" }}>
         <div className="card-enhanced" style={{ padding: "16px", borderRadius: "8px", textAlign: "center" }}>
-          <div style={{ fontSize: "24px", fontWeight: "700", color: "#2563EB" }}>{csvRows.length}</div>
+          <div style={{ fontSize: "24px", fontWeight: "700", color: "var(--color-primary)" }}>{csvRows.length}</div>
           <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>Total Rows</div>
         </div>
         <div className="card-enhanced" style={{ padding: "16px", borderRadius: "8px", textAlign: "center" }}>

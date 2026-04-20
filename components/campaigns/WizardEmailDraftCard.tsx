@@ -25,7 +25,7 @@ function channelMetaFromLayout(layout: "email" | "linkedin_note" | "whatsapp") {
   if (layout === "whatsapp") {
     return { Icon: Icons.WhatsApp, color: "#25D366", label: "WhatsApp", useStroke: false as const };
   }
-  return { Icon: Icons.Mail, color: "#2563eb", label: "Email", useStroke: true as const };
+  return { Icon: Icons.Mail, color: "var(--color-primary)", label: "Email", useStroke: true as const };
 }
 
 export type WizardEmailDraftCardProps = {
@@ -82,7 +82,7 @@ export function WizardEmailDraftCard({
       style={{
         position: "relative",
         WebkitFontSmoothing: "antialiased",
-        ...(isSelected ? { border: "2px solid #818cf8" } : {}),
+        ...(isSelected ? { border: "2px solid #eeab7a" } : {}),
       }}
     >
       <div style={{ padding: "16px 18px" }}>
@@ -138,7 +138,7 @@ export function WizardEmailDraftCard({
               {workspaceShared ? (
                 <>
                   <span style={{ opacity: 0.4 }}>·</span>
-                  <span style={{ color: "#818cf8", fontWeight: 600 }}>Shared</span>
+                  <span style={{ color: "#eeab7a", fontWeight: 600 }}>Shared</span>
                 </>
               ) : null}
             </div>
@@ -226,8 +226,8 @@ export function WizardEmailDraftCard({
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                border: isSelected ? "2px solid var(--color-primary, #2563EB)" : "2px solid var(--color-border)",
-                background: isSelected ? "var(--color-primary, #2563EB)" : "transparent",
+                border: isSelected ? "2px solid var(--color-primary)" : "2px solid var(--color-border)",
+                background: isSelected ? "var(--color-primary)" : "transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -33,7 +33,7 @@ const cardStyle: CSSProperties = {
 /** Same channel colors as `app/campaigns/new/page.tsx` review / schedule rows. */
 const WIZ_CHANNEL_LINKEDIN = "#0077B5";
 const WIZ_CHANNEL_WHATSAPP = "#25D366";
-const WIZ_CHANNEL_EMAIL = "#2563eb";
+const WIZ_CHANNEL_EMAIL = "var(--color-primary)";
 
 /** Fills the card’s icon tile — outer ring is drawn by IntegrationUniversalCard. */
 const integrationIconSlot: CSSProperties = {
@@ -53,7 +53,7 @@ function SectionHeader({ children }: { children: ReactNode }) {
         marginBottom: 14,
         marginTop: 0,
         paddingLeft: 12,
-        borderLeft: "3px solid rgba(37, 99, 235, 0.35)",
+        borderLeft: "3px solid rgba(var(--color-primary-rgb), 0.2)",
       }}
     >
       <p
@@ -107,7 +107,7 @@ function UnipileSuccessModal({ onClose }: { onClose: () => void }) {
             height: 64,
             margin: "0 auto 18px",
             borderRadius: 20,
-            background: "linear-gradient(145deg, rgba(37, 99, 235, 0.2) 0%, rgba(34, 197, 94, 0.18) 100%)",
+            background: "linear-gradient(145deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(34, 197, 94, 0.18) 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -895,8 +895,8 @@ export function IntegrationsHub() {
         <p
           className="mb-0 rounded-2xl px-4 py-3 text-[13px] leading-relaxed text-[var(--color-text-muted)]"
           style={{
-            background: "rgba(37, 99, 235, 0.06)",
-            border: "1px solid rgba(37, 99, 235, 0.12)",
+            background: "rgba(var(--color-primary-rgb), 0.2)",
+            border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
           }}
           role="status"
         >
@@ -1135,13 +1135,13 @@ export function IntegrationsHub() {
   .integrations-crm-grid { grid-template-columns: 1fr !important; }
 }
 .integration-universal-card[data-interactive="true"]:hover {
-  border-color: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(var(--color-primary-rgb), 0.2) !important;
   box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08) !important;
   transform: translateY(-1px);
 }
 .integration-universal-card[data-interactive="true"]:focus-within {
-  border-color: rgba(37, 99, 235, 0.28) !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(var(--color-primary-rgb), 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2) !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .integration-universal-card[data-interactive="true"]:hover {

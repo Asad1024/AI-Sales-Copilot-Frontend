@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Icons } from "@/components/ui/Icons";
 import {
   AirtableBrandIcon,
@@ -39,17 +39,68 @@ const grid: CSSProperties = {
 
 const cardBase: CSSProperties = {
   borderRadius: 16,
-  padding: "18px 14px",
+  padding: "16px 14px 14px",
   textAlign: "center" as const,
   border: "1px solid var(--color-border)",
   transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: 10,
-  minHeight: 132,
+  gap: 0,
+  minHeight: 158,
   justifyContent: "flex-start",
 };
+
+const iconSlot: CSSProperties = {
+  width: 52,
+  height: 52,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 12,
+  flexShrink: 0,
+};
+
+const cardTitle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  color: "var(--color-text)",
+  minHeight: 34,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  lineHeight: 1.2,
+  marginBottom: 6,
+};
+
+const cardHint: CSSProperties = {
+  fontSize: 12,
+  color: "var(--color-text-muted)",
+  lineHeight: 1.35,
+  minHeight: 32,
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "center",
+};
+
+function tileIcon(borderColor: string, child: ReactNode) {
+  return (
+    <div
+      style={{
+        width: 52,
+        height: 52,
+        borderRadius: 14,
+        background: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: `1px solid ${borderColor}`,
+      }}
+    >
+      {child}
+    </div>
+  );
+}
 
 export function LeadsImportEmptyGrid({
   canCreateLeads,
@@ -66,7 +117,7 @@ export function LeadsImportEmptyGrid({
       title: "Generate with AI",
       hint: "Describe your ICP",
       enabled: canCreateLeads,
-      icon: <GenerateLeadAIIcon size={52} sparklesSize={26} />,
+      icon: tileIcon("rgba(var(--color-primary-rgb), 0.28)", <GenerateLeadAIIcon size={30} sparklesSize={22} />),
       onClick: () => canCreateLeads && onGenerateAI(),
       cardBg: "var(--color-surface)",
     },
@@ -75,22 +126,7 @@ export function LeadsImportEmptyGrid({
       title: "Import CSV",
       hint: "Upload a file",
       enabled: canCreateLeads,
-      icon: (
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px solid rgba(33, 115, 70, 0.22)",
-          }}
-        >
-          <MicrosoftExcelBrandIcon size={30} />
-        </div>
-      ),
+      icon: tileIcon("rgba(33, 115, 70, 0.22)", <MicrosoftExcelBrandIcon size={30} />),
       onClick: () => canCreateLeads && onImportCSV(),
       cardBg: "var(--color-surface)",
     },
@@ -99,22 +135,7 @@ export function LeadsImportEmptyGrid({
       title: "Google Sheets",
       hint: sheetsConnected ? "Import from tab" : "Connect in Settings",
       enabled: canCreateLeads && sheetsConnected && Boolean(onImportSheets),
-      icon: (
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px solid rgba(15, 157, 88, 0.28)",
-          }}
-        >
-          <GoogleSheetsBrandIcon size={32} />
-        </div>
-      ),
+      icon: tileIcon("rgba(15, 157, 88, 0.28)", <GoogleSheetsBrandIcon size={32} />),
       onClick: () => sheetsConnected && onImportSheets?.(),
       cardBg: sheetsConnected ? "var(--color-surface)" : "var(--color-surface-secondary)",
     },
@@ -123,22 +144,7 @@ export function LeadsImportEmptyGrid({
       title: "Airtable",
       hint: airtableConnected ? "Import a table" : "Connect in Settings",
       enabled: canCreateLeads && airtableConnected && Boolean(onImportAirtable),
-      icon: (
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px solid rgba(24, 191, 255, 0.28)",
-          }}
-        >
-          <AirtableBrandIcon size={30} />
-        </div>
-      ),
+      icon: tileIcon("rgba(24, 191, 255, 0.28)", <AirtableBrandIcon size={30} />),
       onClick: () => airtableConnected && onImportAirtable?.(),
       cardBg: airtableConnected ? "var(--color-surface)" : "var(--color-surface-secondary)",
     },
@@ -153,7 +159,7 @@ export function LeadsImportEmptyGrid({
             height: 56,
             margin: "0 auto 14px",
             borderRadius: 16,
-            background: "rgba(37, 99, 235, 0.1)",
+            background: "rgba(var(--color-primary-rgb), 0.2)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -190,7 +196,7 @@ export function LeadsImportEmptyGrid({
                 if (!interactive) return;
                 e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.boxShadow = "0 12px 28px rgba(15, 23, 42, 0.1)";
-                e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
+                e.currentTarget.style.borderColor = "rgba(var(--color-primary-rgb), 0.2)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
@@ -198,9 +204,9 @@ export function LeadsImportEmptyGrid({
                 e.currentTarget.style.borderColor = "var(--color-border)";
               }}
             >
-              {item.icon}
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{item.title}</div>
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.35 }}>{item.hint}</div>
+              <div style={iconSlot}>{item.icon}</div>
+              <div style={cardTitle}>{item.title}</div>
+              <div style={cardHint}>{item.hint}</div>
             </button>
           );
         })}

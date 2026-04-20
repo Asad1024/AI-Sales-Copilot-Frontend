@@ -16,8 +16,8 @@ const roleConfig: Record<BaseMemberRole, { color: string; bgColor: string; icon:
     icon: "👑"
   },
   admin: {
-    color: "#2563EB",
-    bgColor: "rgba(37, 99, 235, 0.15)",
+    color: "var(--color-primary)",
+    bgColor: "rgba(var(--color-primary-rgb), 0.2)",
     icon: "⚡"
   },
   editor: {

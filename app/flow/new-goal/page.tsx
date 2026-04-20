@@ -25,7 +25,7 @@ const card: CSSProperties = {
   background: "var(--color-surface, #ffffff)",
   borderRadius: 16,
   border: "1px solid #e2e8f0",
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 40px rgba(79, 70, 229, 0.06)",
+  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 40px rgba(242, 159, 103, 0.06)",
   padding: "28px 28px 24px",
   position: "relative",
   overflow: "hidden",
@@ -63,12 +63,12 @@ export default function NewGoalPage() {
             gap: 8,
             padding: "6px 12px",
             borderRadius: 9999,
-            background: "#eef2ff",
-            border: "1px solid #c7d2fe",
+            background: "#fff4ec",
+            border: "1px solid #f8c8a9",
             marginBottom: 14,
           }}
         >
-          <Sparkles size={15} strokeWidth={2} color="#4f46e5" aria-hidden />
+          <Sparkles size={15} strokeWidth={2} color="#de8850" aria-hidden />
           <span style={{ fontSize: 12, fontWeight: 600, color: "#4338ca", letterSpacing: "0.02em" }}>AI outreach flow</span>
         </div>
         <h1
@@ -98,7 +98,7 @@ export default function NewGoalPage() {
             left: 0,
             right: 0,
             height: 3,
-            background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%)",
+            background: "linear-gradient(90deg, #de8850 0%, #e59662 50%, #eeab7a 100%)",
           }}
         />
 
@@ -137,7 +137,7 @@ export default function NewGoalPage() {
             transition: "border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease",
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = "#a5b4fc";
+            e.target.style.borderColor = "#f6b68b";
             e.target.style.background = "#fff";
             e.target.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.2)";
           }}
@@ -172,7 +172,7 @@ export default function NewGoalPage() {
                   transition: "border-color 0.15s ease, background 0.15s ease, transform 0.12s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#c7d2fe";
+                  e.currentTarget.style.borderColor = "#f8c8a9";
                   e.currentTarget.style.background = "#f5f3ff";
                 }}
                 onMouseLeave={(e) => {
@@ -201,9 +201,9 @@ export default function NewGoalPage() {
               fontWeight: 600,
               fontFamily: "inherit",
               cursor: loading || !goal.trim() ? "not-allowed" : "pointer",
-              background: loading || !goal.trim() ? "#e2e8f0" : "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
+              background: loading || !goal.trim() ? "#e2e8f0" : "linear-gradient(135deg, #de8850 0%, #e59662 100%)",
               color: loading || !goal.trim() ? "#94a3b8" : "#fff",
-              boxShadow: loading || !goal.trim() ? "none" : "0 4px 14px rgba(79, 70, 229, 0.35)",
+              boxShadow: loading || !goal.trim() ? "none" : "0 4px 14px rgba(242, 159, 103, 0.35)",
               transition: "transform 0.12s ease, box-shadow 0.12s ease",
             }}
           >

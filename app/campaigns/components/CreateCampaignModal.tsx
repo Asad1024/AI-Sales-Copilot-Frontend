@@ -166,7 +166,6 @@ export function CreateCampaignModal() {
                 padding: '10px 24px', 
                 fontSize: 14,
                 fontWeight: 600,
-                opacity: (creating || !newCampaign.name.trim() || !newCampaign.base_id) ? 0.6 : 1,
                 cursor: (creating || !newCampaign.name.trim() || !newCampaign.base_id) ? 'not-allowed' : 'pointer'
               }}
             >

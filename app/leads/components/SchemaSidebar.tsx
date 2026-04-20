@@ -187,7 +187,7 @@ export function SchemaSidebar({ isOpen, onClose }: SchemaSidebarProps) {
             style={{
               flex: 1,
               padding: "10px 14px",
-              background: "#2563eb",
+              background: "var(--color-primary)",
               border: "none",
               borderRadius: "6px",
               color: "#fff",
@@ -261,7 +261,7 @@ export function SchemaSidebar({ isOpen, onClose }: SchemaSidebarProps) {
                   background: "transparent",
                   border: "1px solid var(--color-border)",
                   borderRadius: "6px",
-                  color: "#2563eb",
+                  color: "var(--color-primary)",
                   fontSize: "13px",
                   fontWeight: 500,
                   cursor: "pointer",

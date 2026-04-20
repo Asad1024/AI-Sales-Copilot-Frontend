@@ -18,9 +18,9 @@ interface ProductTourProps {
   onSkip?: () => void;
 }
 
-const ACCENT = "#4F46E5";
-const ACCENT_SOFT = "#6366F1";
-const RING = "rgba(79, 70, 229, 0.5)";
+const ACCENT = "#DE8850";
+const ACCENT_SOFT = "#E59662";
+const RING = "rgba(242, 159, 103, 0.5)";
 /** Dimmed regions only — hole stays clear so the target is fully visible */
 const DIM_BG = "rgba(51, 65, 85, 0.42)";
 const DIM_FULL = "rgba(51, 65, 85, 0.38)";
@@ -131,7 +131,7 @@ function SpotlightFrame({ r }: { r: PaddedRect }) {
         height: r.height,
         borderRadius: 12,
         border: `2px solid ${ACCENT}`,
-        boxShadow: `0 0 0 4px ${RING}, 0 12px 40px rgba(79, 70, 229, 0.2)`,
+        boxShadow: `0 0 0 4px ${RING}, 0 12px 40px rgba(242, 159, 103, 0.2)`,
         zIndex: 9998,
         pointerEvents: "none",
       }}
@@ -330,7 +330,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
             borderRadius: 14,
             padding: "22px 22px 18px",
             border: "1px solid #E2E8F0",
-            boxShadow: "0 24px 48px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(79, 70, 229, 0.06)",
+            boxShadow: "0 24px 48px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(242, 159, 103, 0.06)",
             position: "relative",
             overflow: "hidden",
           }}
@@ -354,7 +354,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
             <div
               style={{
                 height: 4,
-                background: "#EEF2FF",
+                background: "#FFF4EC",
                 borderRadius: 4,
                 overflow: "hidden",
               }}
@@ -445,7 +445,7 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
                 fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: "inherit",
-                boxShadow: "0 1px 2px rgba(79, 70, 229, 0.2)",
+                boxShadow: "0 1px 2px rgba(242, 159, 103, 0.2)",
               }}
             >
               {currentStep === steps.length - 1 ? "Done" : "Next"}

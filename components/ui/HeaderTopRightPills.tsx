@@ -4,21 +4,12 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, ExternalLink, Settings, CreditCard, UsersRound, Puzzle, BarChart3, CircleHelp, LogOut, Rocket } from "lucide-react";
+import { Bell, ChevronDown, ExternalLink, Settings, CreditCard, UsersRound, Puzzle, BarChart3, CircleHelp, LogOut, Rocket, Coins } from "lucide-react";
 import { getUser, apiRequest, clearAuth } from "@/lib/apiClient";
 import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-
-function UpgradeSparkIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden focusable="false">
-      <path d="M7.2 2.4l1.64 4.16L13 8.2l-4.16 1.64L7.2 14 5.56 9.84 1.4 8.2l4.16-1.64L7.2 2.4z" />
-      <path d="M16.8 10.2l.99 2.51 2.51.99-2.51.99-.99 2.51-.99-2.51-2.51-.99 2.51-.99.99-2.51z" />
-    </svg>
-  );
-}
 
 /** Same outer height for tutorial pill and credits / upgrade pill */
 const HEADER_PILL_HEIGHT = 40;
@@ -148,6 +139,8 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
   const creditsUsed = Math.max(0, monthlyCredits - credits);
   const creditsTotal = monthlyCredits > 0 ? monthlyCredits : 100;
   const creditProgress = Math.min(100, Math.max(0, Math.round((creditsUsed / Math.max(1, creditsTotal)) * 100)));
+  const remainingCredits = Math.max(0, Number(credits || 0));
+  const remainingCreditsLabel = remainingCredits.toLocaleString();
   const openCreditsPopover = () => {
     if (creditsPopoverCloseTimer.current != null) {
       window.clearTimeout(creditsPopoverCloseTimer.current);
@@ -206,26 +199,56 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
               padding: "0 12px",
               fontSize: 14,
               fontWeight: 500,
-              color: "var(--color-primary)",
-              background: "rgba(37, 99, 235, 0.08)",
+              border: "1px solid var(--color-primary)",
+              color: "#ffffff",
+              background: "var(--color-primary)",
               textDecoration: "none",
-              transition: "background 0.15s ease, color 0.15s ease",
+              whiteSpace: "nowrap",
+              transition: "background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease",
             }}
             onFocus={openCreditsPopover}
             onBlur={closeCreditsPopoverSoon}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--color-primary)";
               e.currentTarget.style.color = "#fff";
+              e.currentTarget.style.borderColor = "var(--color-primary)";
+              e.currentTarget.style.boxShadow = "0 6px 16px rgba(var(--color-primary-rgb), 0.22)";
+              e.currentTarget.style.transform = "translateY(-1px)";
               openCreditsPopover();
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(37, 99, 235, 0.08)";
-              e.currentTarget.style.color = "var(--color-primary)";
+              e.currentTarget.style.background = "var(--color-primary)";
+              e.currentTarget.style.color = "#fff";
+              e.currentTarget.style.borderColor = "var(--color-primary)";
+              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.transform = "translateY(0)";
               closeCreditsPopoverSoon();
             }}
           >
-            <UpgradeSparkIcon size={16} />
-            Upgrade
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+              <span>Upgrade</span>
+            </span>
+            <span aria-hidden style={{ opacity: 0.55, fontWeight: 500 }}>
+              |
+            </span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                fontWeight: 700,
+                lineHeight: 1,
+                color: "#ffffff",
+                background: "transparent",
+                border: "none",
+                borderRadius: 0,
+                padding: 0,
+              }}
+            >
+              <Coins size={14} strokeWidth={2} />
+              {remainingCreditsLabel}
+            </span>
           </Link>
           {walletOpen && (
             <div
@@ -307,8 +330,8 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                   textDecoration: "none",
                   fontSize: 13,
                   fontWeight: 500,
-                  background: "rgba(37, 99, 235, 0.12)",
-                  color: "var(--color-primary)",
+                  background: "var(--color-primary)",
+                  color: "#fff",
                 }}
               >
                 Get more credits
@@ -400,7 +423,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                 width: 28,
                 height: 28,
                 borderRadius: 999,
-                background: "rgba(37, 99, 235, 0.12)",
+                background: "rgba(var(--color-primary-rgb), 0.2)",
                 color: "var(--color-primary)",
                 display: "inline-flex",
                 alignItems: "center",
@@ -477,7 +500,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                   style={{
                     padding: "3px 8px",
                     borderRadius: 9,
-                    background: "rgba(37, 99, 235, 0.12)",
+                    background: "rgba(var(--color-primary-rgb), 0.2)",
                     color: "var(--color-primary)",
                     fontSize: 12,
                     fontWeight: 500,
@@ -498,7 +521,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                   marginBottom: 8,
                   padding: "8px 10px",
                   borderRadius: 12,
-                  background: "rgba(37, 99, 235, 0.08)",
+                  background: "rgba(var(--color-primary-rgb), 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
@@ -508,12 +531,12 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                 }}
               >
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 32, height: 32, borderRadius: 9, background: "#fff", border: "1px solid rgba(37,99,235,0.18)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 9, background: "#fff", border: "1px solid rgba(var(--color-primary-rgb), 0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                     <Rocket size={15} strokeWidth={1.8} />
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.1 }}>Upgrade Account</span>
                 </span>
-                <span style={{ background: "rgba(37, 99, 235, 0.14)", color: "var(--color-primary)", borderRadius: 9999, padding: "5px 10px", fontSize: 12, fontWeight: 600, lineHeight: 1 }}>{planLabel} Account</span>
+                <span style={{ background: "rgba(var(--color-primary-rgb), 0.2)", color: "var(--color-primary)", borderRadius: 9999, padding: "5px 10px", fontSize: 12, fontWeight: 600, lineHeight: 1 }}>{planLabel} Account</span>
               </Link>
             ) : null}
 

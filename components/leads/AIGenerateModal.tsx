@@ -491,24 +491,24 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
         onClose={onClose}
         title="Generate leads with AI"
         subtitle="Describe your ideal customer — we'll add qualified rows to this workspace"
-        headerTint="var(--color-primary, #2563eb)"
-        icon={<Icons.Sun size={22} strokeWidth={2} style={{ color: "#ffffff" }} />}
-        headerTitleColor="#ffffff"
-        headerSubtitleColor="rgba(255,255,255,0.86)"
-        headerBorderColor="rgba(255,255,255,0.24)"
+        headerTint="linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.26) 0%, rgba(var(--color-primary-rgb), 0.14) 100%)"
+        icon={<Icons.Sun size={22} strokeWidth={2} style={{ color: "var(--color-primary)" }} />}
+        headerTitleColor="var(--color-text)"
+        headerSubtitleColor="var(--color-text-muted)"
+        headerBorderColor="rgba(var(--color-primary-rgb), 0.26)"
         hideHeaderBottomBorder
         headerIconContainerStyle={{
-          background: "rgba(255,255,255,0.2)",
-          border: "1px solid rgba(255,255,255,0.45)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0, 0, 0, 0.12)",
+          background: "rgba(var(--color-primary-rgb), 0.16)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.32)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 14px rgba(0, 0, 0, 0.08)",
           borderRadius: 12,
           width: 44,
           height: 44,
         }}
         headerCloseButtonStyle={{
-          background: "rgba(255,255,255,0.2)",
-          border: "1px solid rgba(255,255,255,0.38)",
-          color: "#f8fafc",
+          background: "rgba(var(--color-primary-rgb), 0.16)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.35)",
+          color: "var(--color-primary)",
           width: 40,
           height: 40,
           borderRadius: 12,
@@ -586,7 +586,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                             height: 14,
                             borderRadius: 999,
                             background:
-                              "linear-gradient(90deg, rgba(37,99,235,0.15) 0%, rgba(37,99,235,0.45) 50%, rgba(37,99,235,0.15) 100%)",
+                              "linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.2) 50%, rgba(var(--color-primary-rgb), 0.2) 100%)",
                             backgroundSize: "200px 100%",
                             animation: "shimmer 1.1s linear infinite",
                           }}
@@ -708,9 +708,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     height: 30,
                     borderRadius: 8,
                     border: speechListening
-                      ? "1px solid rgba(37, 99, 235, 0.45)"
+                      ? "1px solid rgba(var(--color-primary-rgb), 0.2)"
                       : "1px solid var(--color-border)",
-                    background: speechListening ? "rgba(37, 99, 235, 0.1)" : "var(--color-surface)",
+                    background: speechListening ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-surface)",
                     color: speechListening ? "var(--color-primary)" : "var(--color-text-muted)",
                     display: "inline-flex",
                     alignItems: "center",
@@ -931,7 +931,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 padding: hasContactGapsToEnrich ? "22px 24px 20px" : "28px 26px 24px",
                 borderBottom: hasContactGapsToEnrich ? "1px solid rgba(255,255,255,0.2)" : "none",
                 background: hasContactGapsToEnrich
-                  ? "linear-gradient(135deg, #1d4ed8 0%, #2563eb 48%, #3b82f6 100%)"
+                  ? "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, color-mix(in srgb, var(--color-primary) 86%, #ffffff) 100%)"
                   : "linear-gradient(145deg, #047857 0%, #059669 38%, #10b981 72%, #34d399 100%)",
               }}
             >
@@ -1098,8 +1098,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     style={{
                       borderRadius: 10,
                       padding: "12px 14px",
-                      background: "rgba(37, 99, 235, 0.08)",
-                      border: "1px solid rgba(37, 99, 235, 0.18)",
+                      background: "rgba(var(--color-primary-rgb), 0.2)",
+                      border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                       fontSize: 12,
                       color: "#57534e",
                       lineHeight: 1.55,

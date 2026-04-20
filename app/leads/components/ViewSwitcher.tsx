@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useViewStore } from "@/stores/useViewStore";
 import { useLeadStore } from "@/stores/useLeadStore";
@@ -224,12 +224,12 @@ export function ViewSwitcher() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: !activeViewId ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
+                    background: !activeViewId ? 'rgba(var(--color-primary-rgb), 0.2)' : 'transparent',
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '13px',
                     fontWeight: !activeViewId ? 600 : 400,
-                    color: !activeViewId ? '#2563eb' : 'var(--color-text)',
+                    color: !activeViewId ? 'var(--color-primary)' : 'var(--color-text)',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
@@ -255,12 +255,12 @@ export function ViewSwitcher() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '8px',
-                      background: activeViewId === view.id ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
+                      background: activeViewId === view.id ? 'rgba(var(--color-primary-rgb), 0.2)' : 'transparent',
                       border: 'none',
                       borderRadius: '4px',
                       fontSize: '13px',
                       fontWeight: activeViewId === view.id ? 600 : 400,
-                      color: activeViewId === view.id ? '#2563eb' : 'var(--color-text)',
+                      color: activeViewId === view.id ? 'var(--color-primary)' : 'var(--color-text)',
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
@@ -313,10 +313,10 @@ export function ViewSwitcher() {
                     borderRadius: '4px',
                     fontSize: '13px',
                     fontWeight: 500,
-                    color: '#2563eb',
+                    color: 'var(--color-primary)',
                     cursor: 'pointer',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(37, 99, 235, 0.08)'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--color-primary-rgb), 0.2)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <Icons.Plus size={14} />
@@ -394,8 +394,8 @@ export function ViewSwitcher() {
                 fontSize: '13px',
                 padding: '8px 12px',
                 borderRadius: '6px',
-                background: isShared ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                border: isShared ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid transparent',
+                background: isShared ? 'rgba(var(--color-primary-rgb), 0.2)' : 'transparent',
+                border: isShared ? '1px solid rgba(var(--color-primary-rgb), 0.2)' : '1px solid transparent',
                 transition: 'all 0.15s ease'
               }}>
                 <input
@@ -413,7 +413,7 @@ export function ViewSwitcher() {
                 {isShared && (
                   <span style={{ 
                     fontSize: '11px', 
-                    color: '#2563eb',
+                    color: 'var(--color-primary)',
                     fontWeight: 500
                   }}>
                     Visible to all team members
@@ -442,7 +442,7 @@ export function ViewSwitcher() {
                 disabled={!viewName.trim()}
                 style={{
                   padding: '8px 14px',
-                  background: viewName.trim() ? '#2563eb' : '#93c5fd',
+                  background: viewName.trim() ? 'var(--color-primary)' : '#f8c8a9',
                   border: 'none',
                   borderRadius: '6px',
                   fontSize: '13px',

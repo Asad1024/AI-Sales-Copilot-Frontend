@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useRef, useEffect } from "react";
 import { Icons } from "@/components/ui/Icons";
 import { useLeadStore } from "@/stores/useLeadStore";
@@ -200,8 +200,8 @@ export function BulkActionsMenu({
         padding: "8px 12px", 
         fontSize: "13px", 
         fontWeight: 600,
-        color: "#2563eb",
-        background: "rgba(37, 99, 235, 0.1)",
+        color: "var(--color-primary)",
+        background: "rgba(var(--color-primary-rgb), 0.2)",
         borderRadius: "6px",
         display: "flex",
         alignItems: "center",
@@ -273,7 +273,7 @@ export function BulkActionsMenu({
               padding: "6px 12px",
               borderRadius: "6px",
               border: "none",
-              background: "#2563eb",
+              background: "var(--color-primary)",
               color: "#fff",
               fontSize: "13px",
               fontWeight: 500,
@@ -337,7 +337,7 @@ export function BulkActionsMenu({
               padding: "6px 12px",
               borderRadius: "6px",
               border: "none",
-              background: processing || !bulkUpdateValue.trim() ? "#93c5fd" : "#2563eb",
+              background: processing || !bulkUpdateValue.trim() ? "#f8c8a9" : "var(--color-primary)",
               color: "#fff",
               fontSize: "13px",
               fontWeight: 500,
@@ -383,7 +383,7 @@ export function BulkActionsMenu({
               padding: "6px 12px",
               borderRadius: "6px",
               border: "none",
-              background: processing || !bulkTagValue.trim() ? "#93c5fd" : "#2563eb",
+              background: processing || !bulkTagValue.trim() ? "#f8c8a9" : "var(--color-primary)",
               color: "#fff",
               fontSize: "13px",
               fontWeight: 500,

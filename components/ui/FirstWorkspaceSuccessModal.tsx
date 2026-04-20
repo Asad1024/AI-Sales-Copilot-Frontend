@@ -49,11 +49,11 @@ function StepDot({
           border: isDone
             ? "none"
             : isCurrent
-              ? `${Math.round(RING)}px solid var(--color-primary, #2563EB)`
+              ? `${Math.round(RING)}px solid var(--color-primary)`
               : "1px solid #E5E7EB",
-          background: isDone ? "#059669" : isCurrent ? "rgba(37, 99, 235, 0.08)" : "#F9FAFB",
-          color: isDone ? "#FFFFFF" : isCurrent ? "var(--color-primary, #2563EB)" : "#9CA3AF",
-          boxShadow: isCurrent ? "0 0 0 4px rgba(37, 99, 235, 0.2)" : "none",
+          background: isDone ? "#059669" : isCurrent ? "rgba(var(--color-primary-rgb), 0.2)" : "#F9FAFB",
+          color: isDone ? "#FFFFFF" : isCurrent ? "var(--color-primary)" : "#9CA3AF",
+          boxShadow: isCurrent ? "0 0 0 4px rgba(var(--color-primary-rgb), 0.2)" : "none",
         }}
       >
         {isDone ? (
@@ -153,7 +153,7 @@ export function FirstWorkspaceSuccessModal({
               height: 48,
               borderRadius: 14,
               margin: "0 auto 16px",
-              background: "linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.12) 100%)",
+              background: "linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.12) 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

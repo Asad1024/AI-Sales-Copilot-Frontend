@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useRef } from "react";
 import { useNotificationStore, Notification } from "@/stores/useNotificationStore";
 import { Icons } from "@/components/ui/Icons";
@@ -99,7 +99,7 @@ export function NotificationBell() {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'var(--color-surface-secondary)';
-          e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.35)';
+          e.currentTarget.style.borderColor = 'rgba(var(--color-primary-rgb), 0.2)';
           e.currentTarget.style.color = 'var(--color-primary)';
         }}
         onMouseLeave={(e) => {
@@ -206,10 +206,10 @@ function NotificationDropdown({
             onClick={onMarkAllAsRead}
             style={{
               padding: '4px 12px',
-              background: 'rgba(37, 99, 235, 0.1)',
-              border: '1px solid rgba(37, 99, 235, 0.3)',
+              background: 'rgba(var(--color-primary-rgb), 0.2)',
+              border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
               borderRadius: '6px',
-              color: '#2563EB',
+              color: 'var(--color-primary)',
               fontSize: '12px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -274,7 +274,7 @@ function NotificationItem({
         padding: '16px',
         borderBottom: '1px solid var(--color-border)',
         cursor: 'pointer',
-        background: isUnread ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+        background: isUnread ? 'rgba(var(--color-primary-rgb), 0.2)' : 'transparent',
         transition: 'all 0.2s',
         display: 'flex',
         gap: '12px',
@@ -282,12 +282,12 @@ function NotificationItem({
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = isUnread
-          ? 'rgba(37, 99, 235, 0.1)'
+          ? 'rgba(var(--color-primary-rgb), 0.2)'
           : 'rgba(255, 255, 255, 0.05)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = isUnread
-          ? 'rgba(37, 99, 235, 0.05)'
+          ? 'rgba(var(--color-primary-rgb), 0.2)'
           : 'transparent';
       }}
     >
@@ -296,7 +296,7 @@ function NotificationItem({
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -342,7 +342,7 @@ function NotificationItem({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: '#2563EB',
+            background: 'var(--color-primary)',
             flexShrink: 0,
             marginTop: '4px',
           }}

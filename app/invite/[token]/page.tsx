@@ -240,7 +240,7 @@ export default function InvitePage() {
                 width: 56,
                 height: 56,
                 borderRadius: "50%",
-                background: "rgba(37, 99, 235, 0.15)",
+                background: "rgba(var(--color-primary-rgb), 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

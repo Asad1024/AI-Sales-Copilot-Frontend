@@ -3,9 +3,17 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
   Line,
-  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -24,16 +32,22 @@ import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
 import { Sunrise, Sun, Moon } from "lucide-react";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
+import { PremiumKpiSparkline } from "@/components/ui/PremiumKpiSparkline";
+
+const DASHBOARD_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type StatMetric = {
   title: string;
   value: string;
   trendPositive: boolean;
   sparkline: number[];
+  delta?: number | null;
+  chartType?: "step" | "bars" | "areaPulse";
   note?: string;
+  highlightValue?: boolean;
 };
 
-/** Stat grid labels — stronger hierarchy than section rails (color from .dashboard-metric-label) */
+/** Stat grid labels - stronger hierarchy than section rails (color from .dashboard-metric-label) */
 const metricLabelStyle = {
   fontSize: 12,
   fontWeight: 600 as const,
@@ -43,7 +57,7 @@ const metricLabelStyle = {
 
 function isMutedMetricValue(value: string): boolean {
   const t = value.trim();
-  if (t === "—" || t === "") return false;
+  if (t === "-" || t === "") return false;
   if (t === "0" || t === "0%") return true;
   if (/^0\.0+%$/.test(t)) return true;
   const normalized = t.replace(/,/g, "");
@@ -56,74 +70,14 @@ function isMutedMetricValue(value: string): boolean {
 type SparklineChartProps = {
   points: number[];
   positive: boolean;
+  chartType: "step" | "bars" | "areaPulse";
 };
 
-function SparklineChart({ points, positive }: SparklineChartProps) {
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const span = Math.max(1, max - min);
-  const isFlat = points.every((p) => Math.abs(p - points[0]) < 0.001);
-  // Fixed "Total Tickets" signature shape used by all cards.
-  // Repeated values create short straight runs; monotone keeps soft transitions elsewhere.
-  const ticketShapeTemplate = [0.22, 0.10, 0.46, 0.46, 0.66, 0.22, 0.50, 0.18, 0.48, 0.28, 0.42];
-  const shapedPoints = isFlat
-    ? ticketShapeTemplate.map(() => points[0])
-    : ticketShapeTemplate.map((ratio) => min + ratio * span);
-  const data = shapedPoints.map((value, index) => ({ index, value }));
-  const lineColor = "#2563EB";
-  const areaGradientId = `sparkline-area-${positive ? "positive" : "negative"}`;
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: 54,
-        borderRadius: 8,
-        background: isFlat
-          ? "transparent"
-          : "linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)",
-        padding: "2px 0",
-      }}
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 3, right: 1, left: 1, bottom: 1 }}>
-          <defs>
-            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity={0.22} />
-              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="index" hide />
-          <YAxis hide domain={[(dataMin: number) => dataMin - 0.05 * span, (dataMax: number) => dataMax + 0.02 * span]} />
-          {!isFlat ? (
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#${areaGradientId})`}
-              isAnimationActive={false}
-            />
-          ) : null}
-          <Line
-            type={isFlat ? "linear" : "monotone"}
-            dataKey="value"
-            stroke={lineColor}
-            strokeOpacity={0.92}
-            strokeWidth={1.9}
-            dot={false}
-            activeDot={false}
-            isAnimationActive={false}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
+function SparklineChart({ points, positive, chartType }: SparklineChartProps) {
+  return <PremiumKpiSparkline points={points} positive={positive} chartType={chartType} height={76} />;
 }
 
 export default function Dashboard() {
-  const ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [invitationSuccess, setInvitationSuccess] = useState<{
@@ -136,15 +90,41 @@ export default function Dashboard() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const analyticsCacheRef = useRef<Record<number, { data: any; timestamp: number }>>({});
-  const [dashboardInitialLoadPending, setDashboardInitialLoadPending] = useState(false);
+  const [dashboardInitialLoadPending, setDashboardInitialLoadPending] = useState(true);
+  const [dashboardAnalyticsReady, setDashboardAnalyticsReady] = useState(false);
+  const [dashboardCampaignsReady, setDashboardCampaignsReady] = useState(false);
   const [campaignListTab, setCampaignListTab] = useState<"recent" | "saved">("recent");
   const [savedCampaignIds, setSavedCampaignIds] = useState<number[]>([]);
+  const [metricHistory, setMetricHistory] = useState<{ leads: number[]; contacted: number[]; campaigns: number[] }>({
+    leads: [],
+    contacted: [],
+    campaigns: [],
+  });
 
   const { activeBaseId, bases, setActiveBaseId, refreshBases } = useBase();
   const activeBase = bases.find((b) => b.id === activeBaseId);
-  const { campaigns, fetchCampaigns, loading: campaignsLoading } = useCampaignStore();
+  const { campaigns, fetchCampaigns, hasCacheForBase } = useCampaignStore();
+  const isBootstrappingWorkspace = !activeBaseId && bases.length === 0;
   const hasLeads = Number(analyticsData?.totalLeads || 0) > 0;
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
+  const getCachedAnalytics = (baseId: number | null): { data: any; timestamp: number } | null => {
+    if (!baseId || typeof window === "undefined") return null;
+    const inMemory = analyticsCacheRef.current[baseId];
+    const now = Date.now();
+    if (inMemory && (now - inMemory.timestamp) < DASHBOARD_ANALYTICS_CACHE_TTL_MS) return inMemory;
+    try {
+      const raw = window.sessionStorage.getItem(`sparkai:dashboard:analytics:${baseId}`);
+      if (!raw) return inMemory ?? null;
+      const parsed = JSON.parse(raw) as { data?: any; timestamp?: number };
+      if (!parsed || typeof parsed.timestamp !== "number") return inMemory ?? null;
+      if ((now - parsed.timestamp) > DASHBOARD_ANALYTICS_CACHE_TTL_MS) return inMemory ?? null;
+      const cached = { data: parsed.data ?? null, timestamp: parsed.timestamp };
+      analyticsCacheRef.current[baseId] = cached;
+      return cached;
+    } catch {
+      return inMemory ?? null;
+    }
+  };
   useEffect(() => {
     const invited = searchParams.get("invited");
     if (invited === "true") {
@@ -208,53 +188,67 @@ export default function Dashboard() {
   useEffect(() => {
     if (!activeBaseId) {
       setDashboardInitialLoadPending(false);
+      setDashboardAnalyticsReady(true);
+      setDashboardCampaignsReady(true);
+      setAnalyticsData(null);
       return;
     }
-    setDashboardInitialLoadPending(true);
-  }, [activeBaseId]);
+    const cachedAnalytics = getCachedAnalytics(activeBaseId);
+    const hasCampaignCache = hasCacheForBase(activeBaseId);
+    if (cachedAnalytics?.data) {
+      setAnalyticsData(cachedAnalytics.data);
+      setDashboardAnalyticsReady(true);
+    } else {
+      setDashboardAnalyticsReady(false);
+    }
+    setDashboardCampaignsReady(hasCampaignCache);
+    setDashboardInitialLoadPending(!(Boolean(cachedAnalytics?.data) && hasCampaignCache));
+  }, [activeBaseId, hasCacheForBase]);
 
   useEffect(() => {
     if (!activeBaseId) return;
-    if (analyticsLoading || campaignsLoading) return;
-    setDashboardInitialLoadPending(false);
-  }, [activeBaseId, analyticsLoading, campaignsLoading]);
+    setDashboardInitialLoadPending(!(dashboardAnalyticsReady && dashboardCampaignsReady));
+  }, [activeBaseId, dashboardAnalyticsReady, dashboardCampaignsReady]);
 
   useEffect(() => {
     if (!activeBaseId) {
       setAnalyticsData(null);
       setAnalyticsLoading(false);
+      setDashboardAnalyticsReady(true);
       return;
     }
     let cancelled = false;
-    const cached = analyticsCacheRef.current[activeBaseId];
+    const cached = getCachedAnalytics(activeBaseId);
     const hasCached = Boolean(cached?.data);
-    if (hasCached) {
-      setAnalyticsData(cached.data);
-    } else {
-      setAnalyticsData(null);
-    }
-    const isFresh = hasCached && (Date.now() - cached.timestamp) < ANALYTICS_CACHE_TTL_MS;
-    if (isFresh) {
-      setAnalyticsLoading(false);
-      return;
-    }
-    // If cached data exists, refresh silently in background.
+    if (cached?.data) setAnalyticsData(cached.data);
+    setDashboardAnalyticsReady(hasCached);
     setAnalyticsLoading(!hasCached);
     (async () => {
       try {
         const data = await apiRequest(`/analytics?base_id=${activeBaseId}`);
         if (!cancelled) {
           setAnalyticsData(data);
-          analyticsCacheRef.current[activeBaseId] = {
+          const nextCache = {
             data,
             timestamp: Date.now(),
           };
+          analyticsCacheRef.current[activeBaseId] = nextCache;
+          try {
+            if (typeof window !== "undefined") {
+              window.sessionStorage.setItem(`sparkai:dashboard:analytics:${activeBaseId}`, JSON.stringify(nextCache));
+            }
+          } catch {
+            // ignore cache write failures
+          }
         }
       } catch (error) {
         console.error("Failed to fetch analytics:", error);
         if (!cancelled && !hasCached) setAnalyticsData(null);
       } finally {
-        if (!cancelled) setAnalyticsLoading(false);
+        if (!cancelled) {
+          setAnalyticsLoading(false);
+          setDashboardAnalyticsReady(true);
+        }
       }
     })();
     return () => {
@@ -263,8 +257,68 @@ export default function Dashboard() {
   }, [activeBaseId]);
 
   useEffect(() => {
-    fetchCampaigns(activeBaseId ?? null);
-  }, [activeBaseId, fetchCampaigns]);
+    if (!activeBaseId) return;
+    const id = window.setInterval(async () => {
+      try {
+        const latest = await apiRequest(`/analytics?base_id=${activeBaseId}`);
+        setAnalyticsData(latest);
+        const nextCache = { data: latest, timestamp: Date.now() };
+        analyticsCacheRef.current[activeBaseId] = nextCache;
+        try {
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(`sparkai:dashboard:analytics:${activeBaseId}`, JSON.stringify(nextCache));
+          }
+        } catch {
+          // ignore cache write failures
+        }
+      } catch {
+        // keep last visible values if polling fails
+      }
+    }, 20000);
+    return () => window.clearInterval(id);
+  }, [activeBaseId]);
+
+  useEffect(() => {
+    if (!activeBaseId) {
+      setDashboardCampaignsReady(true);
+      return;
+    }
+    let cancelled = false;
+    const hasCampaignCache = hasCacheForBase(activeBaseId);
+    setDashboardCampaignsReady(hasCampaignCache);
+    void (async () => {
+      try {
+        await fetchCampaigns(activeBaseId);
+      } catch (error) {
+        console.error("Failed to fetch campaigns for dashboard:", error);
+      } finally {
+        if (!cancelled) setDashboardCampaignsReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeBaseId, fetchCampaigns, hasCacheForBase]);
+
+  useEffect(() => {
+    if (!activeBaseId) {
+      setMetricHistory({ leads: [], contacted: [], campaigns: [] });
+      return;
+    }
+    const currentLeads = Number(analyticsData?.funnel?.totalLeads ?? analyticsData?.totalLeads ?? 0);
+    const currentContacted = Number(analyticsData?.funnel?.contacted ?? 0);
+    const currentCampaigns = Number(campaigns?.length ?? 0);
+    const pushNext = (arr: number[], value: number) => {
+      const safe = Number.isFinite(value) ? value : 0;
+      const next = arr.length > 0 && Math.abs(arr[arr.length - 1] - safe) < 0.0001 ? arr : [...arr, safe];
+      return next.slice(-12);
+    };
+    setMetricHistory((prev) => ({
+      leads: pushNext(prev.leads, currentLeads),
+      contacted: pushNext(prev.contacted, currentContacted),
+      campaigns: pushNext(prev.campaigns, currentCampaigns),
+    }));
+  }, [activeBaseId, analyticsData?.totalLeads, analyticsData?.funnel?.totalLeads, analyticsData?.funnel?.contacted, campaigns]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -309,7 +363,7 @@ export default function Dashboard() {
         id: "setup-steps",
         title: "Setup checklist",
         description:
-          "Follow workspace → leads → first campaign from the Get started panel on the dashboard (shown until your first campaign). The vertical timeline matches that order.",
+          "Follow workspace -> leads -> first campaign from the Get started panel on the dashboard (shown until your first campaign). The vertical timeline matches that order.",
         target: '[data-tour="dashboard-get-started"]',
         position: "bottom" as const,
         action: () => {
@@ -327,7 +381,7 @@ export default function Dashboard() {
       },
       {
         id: "complete",
-        title: "You’re ready",
+        title: "You're ready",
         description:
           "That is the core loop: choose a workspace, add leads, then open Campaigns to build and run sequences. Replay this tour anytime from Tutorial in the header.",
         position: "center" as const,
@@ -347,43 +401,101 @@ export default function Dashboard() {
     goToNewCampaignOrWorkspaces(router, activeBaseId);
   };
   const leadChange = Number(analyticsData?.leadChange ?? NaN);
-  const campaignChange = Number(analyticsData?.campaignChange ?? NaN);
-  const replyChange = Number(analyticsData?.replyChange ?? NaN);
+  const funnelTotalLeads = Number(analyticsData?.funnel?.totalLeads ?? analyticsData?.totalLeads ?? 0);
+  const contactedLeads = Number(analyticsData?.funnel?.contacted ?? 0);
+  const totalCampaignsInWorkspace = Number(campaigns?.length ?? 0);
+  const hasMeaningfulHistory = (values: number[]): boolean => {
+    if (values.length < 5) return false;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return max - min > 0.15;
+  };
+  const hasDeltaValue = (value: number): boolean => Number.isFinite(value) && Math.abs(value) > 0.001;
+  const buildMetricSparkline = (currentValue: number, deltaValue: number | null, minFloor = 0): number[] => {
+    const end = Math.max(minFloor, Number.isFinite(currentValue) ? currentValue : 0);
+    const change = Number.isFinite(deltaValue) ? Number(deltaValue) : 0;
+    if (end <= minFloor + 0.0001 && Math.abs(change) < 0.0001) {
+      return Array(10).fill(minFloor);
+    }
+    const start = Math.max(minFloor, end - change);
+    const span = Math.max(1, Math.abs(end - start), Math.abs(end) * 0.2);
+    const volatility = Math.max(0.35, span * 0.16);
+    const totalPoints = 10;
+    const generated = Array.from({ length: totalPoints }, (_, index) => {
+      const progress = index / (totalPoints - 1);
+      const baseline = start + (end - start) * progress;
+      const wave = Math.sin(progress * Math.PI * 2.2) * volatility * 0.35 + Math.sin(progress * Math.PI * 4.8 + 0.7) * volatility * 0.14;
+      const value = Math.max(minFloor, baseline + wave);
+      return Number(value.toFixed(2));
+    });
+    generated[generated.length - 1] = Number(end.toFixed(2));
+    return generated;
+  };
+  const stylizeSparkline = (series: number[], minFloor = 0): number[] => {
+    if (series.length < 3) return series;
+    const min = Math.min(...series);
+    const max = Math.max(...series);
+    if (max <= minFloor + 0.0001 && min <= minFloor + 0.0001) return series;
+    if ((max - min) >= 0.6) return series;
+    const base = series[series.length - 1] ?? minFloor;
+    const amplitude = Math.max(0.06, Math.min(0.32, Math.max(base, 1) * 0.04));
+    const shaped = series.map((_, index) => {
+      const swing = Math.sin(index * 1.06) * amplitude + Math.cos(index * 0.78 + 0.2) * amplitude * 0.48;
+      return Number(Math.max(minFloor, base + swing).toFixed(2));
+    });
+    shaped[shaped.length - 1] = Number(Math.max(minFloor, base).toFixed(2));
+    return shaped;
+  };
+  const showTotalLeadsTrend = funnelTotalLeads > 0 || hasMeaningfulHistory(metricHistory.leads) || hasDeltaValue(leadChange);
+  const showContactedTrend = contactedLeads > 0 || hasMeaningfulHistory(metricHistory.contacted);
+  const showCampaignsTrend = totalCampaignsInWorkspace > 0 || hasMeaningfulHistory(metricHistory.campaigns);
+  const totalLeadsSparkline = hasMeaningfulHistory(metricHistory.leads)
+    ? metricHistory.leads
+    : buildMetricSparkline(funnelTotalLeads, Number.isFinite(leadChange) ? leadChange : null, 0);
+  const contactedSparkline = hasMeaningfulHistory(metricHistory.contacted)
+    ? metricHistory.contacted
+    : buildMetricSparkline(contactedLeads, null, 0);
+  const campaignsSparkline = hasMeaningfulHistory(metricHistory.campaigns)
+    ? metricHistory.campaigns
+    : buildMetricSparkline(totalCampaignsInWorkspace, null, 0);
+  const totalLeadsSparklineStyled = stylizeSparkline(totalLeadsSparkline, 0);
+  const contactedSparklineStyled = stylizeSparkline(contactedSparkline, 0);
+  const campaignsSparklineStyled = stylizeSparkline(campaignsSparkline, 0);
 
   const overviewMetrics: StatMetric[] = [
     {
       title: "Active workspace",
-      value: activeBase?.name ?? "—",
+      value: activeBase?.name ?? "No workspace selected",
       trendPositive: true,
-      sparkline: activeBaseId ? [42, 43, 41, 45, 42, 46, 44, 47] : [40, 41, 39, 41, 39, 42, 40, 41],
-      note: activeBaseId ? "Current workspace" : "Create or select one",
+      delta: null,
+      chartType: "areaPulse",
+      sparkline: [1, 1, 2, 2, Math.max(1, bases.length - 1), Math.max(1, bases.length)],
+      note: `Total workspaces: ${Math.max(0, bases.length)}`,
+      highlightValue: true,
     },
     {
       title: "Total leads",
-      value: analyticsData?.totalLeads?.toLocaleString?.() ?? "0",
+      value: funnelTotalLeads.toLocaleString(),
       trendPositive: leadChange >= 0,
-      sparkline:
-        Number(analyticsData?.totalLeads || 0) > 0
-          ? [19, 20, 24, 22, 27, 21, 29, 25]
-          : [0, 0, 0, 0, 0, 0, 0, 0],
+      delta: Number.isFinite(leadChange) ? leadChange : null,
+      chartType: "areaPulse",
+      sparkline: showTotalLeadsTrend ? totalLeadsSparklineStyled : [],
     },
     {
-      title: "Active campaigns",
-      value: analyticsData?.activeCampaigns?.toString?.() ?? "0",
-      trendPositive: campaignChange >= 0,
-      sparkline:
-        Number(analyticsData?.activeCampaigns || 0) > 0
-          ? [8, 9, 12, 10, 14, 9, 13, 11]
-          : [0, 0, 0, 0, 0, 0, 0, 0],
+      title: "Contacted leads",
+      value: contactedLeads.toLocaleString(),
+      trendPositive: true,
+      delta: null,
+      chartType: "areaPulse",
+      sparkline: showContactedTrend ? contactedSparklineStyled : [],
     },
     {
-      title: "Reply rate",
-      value: typeof analyticsData?.replyRate === "number" ? `${analyticsData.replyRate.toFixed(1)}%` : "0%",
-      trendPositive: replyChange >= 0,
-      sparkline:
-        typeof analyticsData?.replyRate === "number" && analyticsData.replyRate > 0
-          ? [10, 11, 8, 12, 9, 11, 8, 10]
-          : [0, 0, 0, 0, 0, 0, 0, 0],
+      title: "Total campaigns in workspace",
+      value: totalCampaignsInWorkspace.toLocaleString(),
+      trendPositive: true,
+      delta: null,
+      chartType: "areaPulse",
+      sparkline: showCampaignsTrend ? campaignsSparklineStyled : [],
     },
   ];
 
@@ -440,8 +552,132 @@ export default function Dashboard() {
     );
   };
 
+  const toSafeNumber = (value: unknown): number => {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+  const parsedCampaigns = campaigns ?? [];
+  const dayLabels = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const weeklyPerformanceData = useMemo(() => {
+    const thisWeek = Array(7).fill(0);
+    const lastWeek = Array(7).fill(0);
+    const now = new Date();
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setHours(0, 0, 0, 0);
+    startOfThisWeek.setDate(now.getDate() - now.getDay());
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+    for (const c of parsedCampaigns) {
+      // Use launch timestamp only so the chart reflects exact campaign creation volume.
+      const stamp = c.created_at || c.updated_at;
+      if (!stamp) continue;
+      const d = new Date(stamp);
+      if (Number.isNaN(d.getTime())) continue;
+      const idx = d.getDay();
+      if (d >= startOfThisWeek) {
+        thisWeek[idx] += 1;
+      } else if (d >= startOfLastWeek && d < startOfThisWeek) {
+        lastWeek[idx] += 1;
+      }
+    }
+    return dayLabels.map((day, i) => ({ day, thisWeek: thisWeek[i], lastWeek: lastWeek[i] }));
+  }, [parsedCampaigns]);
+  const campaignStatusData = useMemo(() => {
+    const counts = { running: 0, draft: 0, paused: 0, completed: 0 };
+    for (const c of parsedCampaigns) {
+      if (c.status in counts) counts[c.status as keyof typeof counts] += 1;
+    }
+    return [
+      { name: "Running", value: counts.running, color: "var(--color-primary)" },
+      { name: "Draft", value: counts.draft, color: "#F8C8A9" },
+      { name: "Paused", value: counts.paused, color: "#FBE0CE" },
+      { name: "Completed", value: counts.completed, color: "color-mix(in srgb, var(--color-primary) 88%, #000000)" },
+    ].filter((item) => item.value > 0);
+  }, [parsedCampaigns]);
+  const sourceBreakdownData = useMemo(() => {
+    const counts: Record<string, number> = { Email: 0, LinkedIn: 0, WhatsApp: 0, Calls: 0 };
+    for (const c of parsedCampaigns) {
+      const channels = Array.isArray(c.channels) && c.channels.length > 0 ? c.channels : [c.channel];
+      for (const channel of channels) {
+        const key = String(channel || "").toLowerCase();
+        if (key === "email") counts.Email += 1;
+        if (key === "linkedin") counts.LinkedIn += 1;
+        if (key === "whatsapp") counts.WhatsApp += 1;
+        if (key === "call") counts.Calls += 1;
+      }
+    }
+    return Object.entries(counts).map(([source, campaigns]) => ({ source, campaigns }));
+  }, [parsedCampaigns]);
+  const channelResultsData = useMemo(() => {
+    const buckets: Record<string, { delivered: number; engaged: number }> = {
+      Email: { delivered: 0, engaged: 0 },
+      LinkedIn: { delivered: 0, engaged: 0 },
+      WhatsApp: { delivered: 0, engaged: 0 },
+      Calls: { delivered: 0, engaged: 0 },
+    };
+    for (const c of parsedCampaigns) {
+      const channels = Array.isArray(c.channels) && c.channels.length > 0 ? c.channels : [c.channel];
+      for (const channel of channels) {
+        const key = String(channel || "").toLowerCase();
+        if (key === "email" || key === "linkedin") {
+          buckets[key === "email" ? "Email" : "LinkedIn"].delivered += toSafeNumber(c.sent || c.delivered);
+          buckets[key === "email" ? "Email" : "LinkedIn"].engaged += toSafeNumber(c.replied) + toSafeNumber(c.clicked);
+        } else if (key === "whatsapp") {
+          buckets.WhatsApp.delivered += toSafeNumber(c.whatsapp_sent || c.sent);
+          buckets.WhatsApp.engaged += toSafeNumber(c.whatsapp_replied || c.replied);
+        } else if (key === "call") {
+          buckets.Calls.delivered += toSafeNumber(c.call_initiated || c.sent);
+          buckets.Calls.engaged += toSafeNumber(c.call_completed || c.replied);
+        }
+      }
+    }
+    return Object.entries(buckets).map(([channel, value]) => ({
+      channel,
+      delivered: value.delivered,
+      engaged: value.engaged,
+      ctr: value.delivered > 0 ? Math.round((value.engaged / value.delivered) * 100) : 0,
+    }));
+  }, [parsedCampaigns]);
+  const monthlyConversionsData = useMemo(() => {
+    const months: { month: string; current: Date; launched: number; engaged: number }[] = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        month: d.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+        current: d,
+        launched: 0,
+        engaged: 0,
+      });
+    }
+    for (const c of parsedCampaigns) {
+      const stamp = c.created_at || c.updated_at;
+      if (!stamp) continue;
+      const d = new Date(stamp);
+      if (Number.isNaN(d.getTime())) continue;
+      const idx = months.findIndex((m) => m.current.getFullYear() === d.getFullYear() && m.current.getMonth() === d.getMonth());
+      if (idx === -1) continue;
+      months[idx].launched += 1;
+      // Exact at campaign level: count launched campaigns that have any engagement.
+      const hasEngagement =
+        toSafeNumber(c.replied) > 0 ||
+        toSafeNumber(c.converted) > 0 ||
+        toSafeNumber(c.whatsapp_replied) > 0 ||
+        toSafeNumber(c.call_answered) > 0;
+      months[idx].engaged += hasEngagement ? 1 : 0;
+    }
+    return months.map(({ month, launched, engaged }) => ({ month, launched, engaged }));
+  }, [parsedCampaigns]);
+  const tooltipSharedStyle = {
+    border: "1px solid var(--color-border)",
+    borderRadius: 10,
+    background: "var(--color-surface)",
+    boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)",
+    fontSize: 12,
+  };
+
   const dashboardBody =
-    activeBaseId && dashboardInitialLoadPending && (analyticsLoading || campaignsLoading) ? (
+    isBootstrappingWorkspace || (activeBaseId && dashboardInitialLoadPending) ? (
     <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading dashboard" />
   ) : (
     <>
@@ -477,65 +713,141 @@ export default function Dashboard() {
             {userName}
           </span>
         </div>
-        <button type="button" className="btn-dashboard-outline" onClick={dashboardPrimaryAction.onClick}>
+        <button type="button" className="btn-dashboard-outline dashboard-header-primary-btn" onClick={dashboardPrimaryAction.onClick}>
           {dashboardPrimaryAction.icon}
           {dashboardPrimaryAction.label}
         </button>
       </div>
 
+      <div style={{ fontSize: 12, color: "var(--color-text-muted)", letterSpacing: "0.01em" }}>
+        Showing current stats compared to your previous period
+      </div>
+
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 10,
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 12,
         }}
       >
         {overviewMetrics.map((card) => {
           const valueMuted = isMutedMetricValue(String(card.value));
+          const isWorkspaceCard = card.title === "Active workspace";
+          const workspaceValue = String(card.value || "");
+          const workspaceValueLong = workspaceValue.length > 12;
+          const hasDelta = typeof card.delta === "number" && Number.isFinite(card.delta);
+          const deltaValue = hasDelta ? Number(card.delta) : 0;
+          const hasSparkline = card.sparkline.length > 1;
+          const firstPoint = hasSparkline ? Number(card.sparkline[0] || 0) : 0;
+          const lastPoint = hasSparkline ? Number(card.sparkline[card.sparkline.length - 1] || 0) : 0;
+          const inferredDeltaPct =
+            firstPoint > 0 ? ((lastPoint - firstPoint) / firstPoint) * 100 : lastPoint > 0 ? 100 : 0;
+          const displayDelta = hasDelta ? deltaValue : inferredDeltaPct;
+          const deltaAbs = Math.abs(displayDelta);
+          const deltaLabel = `${displayDelta >= 0 ? "+" : "-"}${deltaAbs.toFixed(1)}%`;
+          const deltaColor =
+            displayDelta > 0.0001 ? "#16a34a" : displayDelta < -0.0001 ? "#b91c1c" : "var(--color-text-muted)";
+
           return (
-          <div key={card.title} className="dashboard-stat-card" style={{ padding: "10px 12px 12px" }}>
-            <div style={{ marginBottom: 6 }}>
-              <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block" }}>
-                {card.title}
-              </span>
-            </div>
             <div
-              className="dashboard-stat-value"
+              key={card.title}
+              className="dashboard-stat-card"
               style={{
-                fontSize: 28,
-                fontWeight: card.title === "Active workspace" || card.title === "Total leads" ? 600 : 800,
-                letterSpacing: "-0.035em",
-                lineHeight: 1.12,
-                color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
-                fontFamily: "Inter, -apple-system, sans-serif",
-                wordBreak: "break-word",
+                padding: "10px 12px 12px",
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 224,
+                transition: "transform 0.16s ease, box-shadow 0.2s ease, border-color 0.2s ease",
+                background: "#ffffff",
+                border: "1px solid #e9eef4",
+                boxShadow: "0 1px 4px rgba(15, 23, 42, 0.06)",
               }}
             >
-              {card.value}
-            </div>
-            {card.title === "Active workspace" ? (
-              <div
-                style={{
-                  marginTop: 12,
-                  minHeight: 40,
-                  display: "flex",
-                  alignItems: "center",
-                  fontSize: 12,
-                  color: "var(--color-text-muted)",
-                  lineHeight: 1.35,
-                }}
-              >
-                {card.note}
+              <div style={{ marginBottom: 2, textAlign: "left", minHeight: 26 }}>
+                <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block", fontSize: 10, letterSpacing: "0.08em" }}>
+                  {card.title}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "var(--color-text-muted)",
+                    marginTop: 4,
+                    display: "block",
+                    minHeight: 14,
+                    visibility: card.note ? "visible" : "hidden",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  {card.note || " "}
+                </span>
               </div>
-            ) : (
-              <>
-                <div style={{ marginTop: 8 }}>
-                  <SparklineChart points={card.sparkline} positive={card.trendPositive} />
-                </div>
-                <div style={{ marginTop: 2, minHeight: 2 }} />
-              </>
-            )}
-          </div>
+              <div
+                className="dashboard-stat-value"
+                style={{
+                  fontSize: isWorkspaceCard ? (workspaceValueLong ? 21 : 30) : 46,
+                  fontWeight: 800,
+                  letterSpacing: isWorkspaceCard ? "-0.02em" : "-0.03em",
+                  lineHeight: 1,
+                  color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
+                  fontFamily: "Inter, -apple-system, sans-serif",
+                  wordBreak: "break-word",
+                  textShadow: "none",
+                  textAlign: "left",
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "flex-end",
+                  whiteSpace: isWorkspaceCard ? "nowrap" : "normal",
+                  overflow: isWorkspaceCard ? "hidden" : "visible",
+                  textOverflow: isWorkspaceCard ? "ellipsis" : "clip",
+                }}
+                title={isWorkspaceCard ? workspaceValue : undefined}
+              >
+                {card.value}
+              </div>
+              <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, minHeight: 16 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: "0.01em",
+                    color: deltaColor,
+                  }}
+                >
+                  {deltaLabel}
+                </span>
+              </div>
+              <div style={{ marginTop: "auto" }}>
+                {hasSparkline ? (
+                  <SparklineChart points={card.sparkline} positive={card.trendPositive} chartType={card.chartType ?? "areaPulse"} />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 76,
+                      borderRadius: 10,
+                      background:
+                        "linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.06) 0%, rgba(var(--color-primary-rgb), 0.02) 100%)",
+                      border: "1px solid rgba(var(--color-primary-rgb), 0.22)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 8px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: "var(--color-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      No trend data yet
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -573,7 +885,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
               You&apos;ve been added as{" "}
               <strong style={{ textTransform: "capitalize", color: "var(--color-text)" }}>{invitationSuccess.role}</strong>. This workspace is
-              open now — use the workspace switcher anytime to move between this team and your personal one.
+              open now - use the workspace switcher anytime to move between this team and your personal one.
             </div>
           </div>
           <button
@@ -662,7 +974,7 @@ export default function Dashboard() {
                 aria-selected={campaignListTab === "recent"}
                 onClick={() => setCampaignListTab("recent")}
                 style={{
-                  border: "none",
+                  border: campaignListTab === "recent" ? "1px solid var(--color-primary)" : "1px solid transparent",
                   borderRadius: 8,
                   padding: "8px 16px",
                   fontSize: 13,
@@ -670,8 +982,10 @@ export default function Dashboard() {
                   fontFamily: "inherit",
                   lineHeight: 1,
                   cursor: "pointer",
-                  background: campaignListTab === "recent" ? "rgba(37, 99, 235, 0.08)" : "transparent",
-                  color: campaignListTab === "recent" ? "var(--color-primary)" : "var(--color-text-muted)",
+                  background: campaignListTab === "recent" ? "var(--color-primary)" : "transparent",
+                  color: campaignListTab === "recent" ? "#ffffff" : "var(--color-text-muted)",
+                  boxShadow: campaignListTab === "recent" ? "0 6px 14px rgba(var(--color-primary-rgb), 0.24)" : "none",
+                  transition: "background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
                 }}
               >
                 Recent Campaigns
@@ -682,7 +996,7 @@ export default function Dashboard() {
                 aria-selected={campaignListTab === "saved"}
                 onClick={() => setCampaignListTab("saved")}
                 style={{
-                  border: "none",
+                  border: campaignListTab === "saved" ? "1px solid var(--color-primary)" : "1px solid transparent",
                   borderRadius: 8,
                   padding: "8px 16px",
                   fontSize: 13,
@@ -690,8 +1004,10 @@ export default function Dashboard() {
                   fontFamily: "inherit",
                   lineHeight: 1,
                   cursor: "pointer",
-                  background: campaignListTab === "saved" ? "rgba(37, 99, 235, 0.08)" : "transparent",
-                  color: campaignListTab === "saved" ? "var(--color-primary)" : "var(--color-text-muted)",
+                  background: campaignListTab === "saved" ? "var(--color-primary)" : "transparent",
+                  color: campaignListTab === "saved" ? "#ffffff" : "var(--color-text-muted)",
+                  boxShadow: campaignListTab === "saved" ? "0 6px 14px rgba(var(--color-primary-rgb), 0.24)" : "none",
+                  transition: "background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
                 }}
               >
                 Saved Campaigns
@@ -755,6 +1071,129 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+          gap: 12,
+          alignItems: "stretch",
+        }}
+      >
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 7", padding: "14px 16px", minHeight: 260 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 2 }}>Performance line chart</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Campaigns launched this week vs last week</div>
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#EAA46B" }} />
+                Launched this week
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#1F2937" }} />
+                Launched last week
+              </span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={190}>
+            <AreaChart data={weeklyPerformanceData} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="dashboard-weekly-area" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F4C995" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#F4C995" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={32} />
+              <Tooltip contentStyle={tooltipSharedStyle} />
+              <Area type="monotone" dataKey="thisWeek" stroke="#EAA46B" fill="url(#dashboard-weekly-area)" strokeWidth={2.2} />
+              <Line type="monotone" dataKey="lastWeek" stroke="#1F2937" strokeWidth={2} dot={{ r: 3, strokeWidth: 1.4, fill: "#1F2937", stroke: "#FFFFFF" }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 5", padding: "14px 16px", minHeight: 260 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Campaign status mix</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>Distribution by current stage</div>
+          <ResponsiveContainer width="100%" height={190}>
+            <PieChart>
+              <Pie data={campaignStatusData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={82} paddingAngle={3}>
+                {campaignStatusData.map((entry) => (
+                  <Cell key={entry.name} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={tooltipSharedStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 4", padding: "14px 16px", minHeight: 210 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Channel usage</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>Campaign count by outreach channel</div>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={sourceBreakdownData} margin={{ top: 0, right: 4, left: -14, bottom: 0 }}>
+              <XAxis dataKey="source" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Tooltip contentStyle={tooltipSharedStyle} />
+              <Bar dataKey="campaigns" fill="#F5B78F" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 8", padding: "14px 16px", minHeight: 210 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Channel results</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>Delivered vs engaged with engagement rate</div>
+          <ResponsiveContainer width="100%" height={140}>
+            <ComposedChart data={channelResultsData} margin={{ top: 0, right: 8, left: -14, bottom: 0 }} barGap={8}>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
+              <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={26} />
+              <YAxis yAxisId="right" orientation="right" hide domain={[0, 100]} />
+              <Tooltip contentStyle={tooltipSharedStyle} />
+              <Bar yAxisId="left" dataKey="delivered" fill="#DBEAFE" radius={[6, 6, 0, 0]} barSize={18} />
+              <Bar yAxisId="left" dataKey="engaged" fill="var(--color-primary)" radius={[6, 6, 0, 0]} barSize={8} />
+              <Line yAxisId="right" type="monotone" dataKey="ctr" stroke="#1F2937" strokeWidth={2} dot={{ r: 3, fill: "#1F2937" }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 12", padding: "14px 16px", minHeight: 240 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)", marginBottom: 2 }}>Market overview</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Launches and engaged campaigns by launch month</div>
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#1F2937" }} />
+                Campaigns launched
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#F4B26A" }} />
+                Campaigns with engagement
+              </span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={170}>
+            <ComposedChart data={monthlyConversionsData} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip
+                contentStyle={tooltipSharedStyle}
+                formatter={(value) =>
+                  typeof value === "number" ? `${value}` : String(value ?? "")
+                }
+              />
+              <Bar dataKey="engaged" fill="#F4B26A" radius={[6, 6, 0, 0]} barSize={16} />
+              <Bar dataKey="launched" fill="#1F2937" radius={[6, 6, 0, 0]} barSize={7} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </>
   );
 
@@ -767,3 +1206,4 @@ export default function Dashboard() {
     </>
   );
 }
+

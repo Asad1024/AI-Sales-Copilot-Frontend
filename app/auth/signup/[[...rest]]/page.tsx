@@ -246,7 +246,7 @@ export default function SignupPage() {
         flex: 1,
         background: isDark
           ? "linear-gradient(135deg, #0f172a 0%, #1f2937 48%, #14532d 100%)"
-          : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+          : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -425,7 +425,7 @@ export default function SignupPage() {
                     flex: 1,
                     height: "4px",
                     borderRadius: "2px",
-                    background: step === 1 ? "linear-gradient(90deg, #2563EB, #06B6D4)" : isDark ? "#334155" : "#e2e8f0",
+                    background: step === 1 ? "linear-gradient(90deg, var(--color-primary), #F29F67)" : isDark ? "#334155" : "#e2e8f0",
                     transition: "all 0.4s ease"
                   }}
                 />
@@ -469,10 +469,10 @@ export default function SignupPage() {
                 padding: "14px 16px",
                 borderRadius: "10px",
                 background: "#eff6ff",
-                border: "1px solid #bfdbfe",
+                border: "1px solid #fbe0ce",
                 marginBottom: "20px",
                 fontSize: "13px",
-                color: "#1e40af",
+                color: "#de8850",
                 lineHeight: 1.5,
               }}
             >
@@ -518,10 +518,10 @@ export default function SignupPage() {
                 padding: "14px 16px",
                 borderRadius: "10px",
                 background: "#eff6ff",
-                border: "1px solid #bfdbfe",
+                border: "1px solid #fbe0ce",
                 marginBottom: "20px",
                 fontSize: "13px",
-                color: "#1e40af",
+                color: "#de8850",
                 lineHeight: 1.5,
               }}
             >
@@ -646,7 +646,7 @@ export default function SignupPage() {
                   outline: "none",
                   transition: "all 0.2s ease"
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                 onBlur={(e) => { e.target.style.borderColor = name.trim() ? "#10b981" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
               />
               {name.trim() && (
@@ -692,7 +692,7 @@ export default function SignupPage() {
                   outline: "none",
                   transition: "all 0.2s ease"
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                 onBlur={(e) => { e.target.style.borderColor = email.includes('@') && email.includes('.') ? "#10b981" : "#e2e8f0"; e.target.style.boxShadow = "none"; }}
               />
               {email.includes('@') && email.includes('.') && (
@@ -742,7 +742,7 @@ export default function SignupPage() {
                   outline: "none",
                   transition: "all 0.2s ease"
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                 onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
               />
             </div>
@@ -775,7 +775,7 @@ export default function SignupPage() {
                     outline: "none",
                     transition: "all 0.2s ease"
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                  onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                   onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                 />
                 <button
@@ -837,7 +837,7 @@ export default function SignupPage() {
                     outline: "none",
                     transition: "all 0.2s ease"
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                  onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                   onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                 />
                 <button
@@ -888,7 +888,7 @@ export default function SignupPage() {
                   ? isDark
                     ? "#334155"
                     : "#cbd5e1"
-                  : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                  : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                 color: loading || !canSubmit
                   ? isDark
                     ? "#cbd5e1"
@@ -898,20 +898,20 @@ export default function SignupPage() {
                 fontWeight: "600",
                 cursor: loading || !canSubmit ? "not-allowed" : "pointer",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)",
+                boxShadow: loading || !canSubmit ? "none" : "0 4px 14px rgba(var(--color-primary-rgb), 0.2)",
                 position: "relative",
                 overflow: "hidden"
               }}
               onMouseOver={(e) => {
                 if (!loading && canSubmit) {
                   e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(37, 99, 235, 0.5)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(var(--color-primary-rgb), 0.2)";
                 }
               }}
               onMouseOut={(e) => {
                 if (!loading && canSubmit) {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.4)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(var(--color-primary-rgb), 0.2)";
                 }
               }}
             >
@@ -961,7 +961,7 @@ export default function SignupPage() {
                   : "/auth/login"
               }
               style={{
-                color: "#2563EB",
+                color: "var(--color-primary)",
                 textDecoration: "none",
                 fontWeight: "600"
               }}
@@ -974,7 +974,7 @@ export default function SignupPage() {
 
       <style jsx global>{`
         .auth-page[data-auth-theme="dark"] .auth-form-panel a {
-          color: #60a5fa !important;
+          color: #f5b78f !important;
         }
         .auth-page[data-auth-theme="dark"] .auth-form-panel label {
           color: #cbd5e1 !important;
@@ -991,8 +991,8 @@ export default function SignupPage() {
           background: #111827 !important;
         }
         .auth-page[data-auth-theme="dark"] .auth-form-panel input:focus {
-          border-color: #2563EB !important;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+          border-color: var(--color-primary) !important;
+          box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2) !important;
         }
 
         @keyframes spin {

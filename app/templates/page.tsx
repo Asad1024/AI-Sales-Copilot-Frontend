@@ -17,7 +17,7 @@ const TEMPLATE_CHANNEL_ROW_META: Record<
   string,
   { Icon: typeof Icons.Mail; color: string; label: string; useStroke: boolean }
 > = {
-  email: { Icon: Icons.Mail, color: "#2563eb", label: "Email", useStroke: true },
+  email: { Icon: Icons.Mail, color: "var(--color-primary)", label: "Email", useStroke: true },
   linkedin: { Icon: Icons.Linkedin, color: "#0077B5", label: "LinkedIn", useStroke: true },
   whatsapp: { Icon: Icons.WhatsApp, color: "#25D366", label: "WhatsApp", useStroke: false },
   call: { Icon: Icons.Phone, color: "#0d9488", label: "Call", useStroke: false },
@@ -156,7 +156,7 @@ function TemplateWorkspaceCard({
               {template.visibility === "workspace" && (
                 <>
                   <span style={{ opacity: 0.4 }}>·</span>
-                  <span style={{ color: "#818cf8", fontWeight: 600 }}>Shared</span>
+                  <span style={{ color: "#eeab7a", fontWeight: 600 }}>Shared</span>
                 </>
               )}
             </div>
@@ -418,7 +418,7 @@ export default function TemplatesPage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "email":
-        return "#2563eb";
+        return "var(--color-primary)";
       case "linkedin":
         return "#0077B5";
       case "whatsapp":
@@ -666,7 +666,7 @@ export default function TemplatesPage() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "none",
-                      background: selectedCategory === category ? "rgba(37, 99, 235,0.12)" : "transparent",
+                      background: selectedCategory === category ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
                       color: "var(--color-text)",
                       padding: "9px 10px",
                       borderRadius: 8,
@@ -676,7 +676,7 @@ export default function TemplatesPage() {
                     }}
                   >
                     <span>{category === "All" ? "All categories" : category}</span>
-                    {selectedCategory === category && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#818cf8" }} />}
+                    {selectedCategory === category && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#eeab7a" }} />}
                   </button>
                 ))}
               </div>
@@ -824,7 +824,7 @@ export default function TemplatesPage() {
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+                background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -835,7 +835,7 @@ export default function TemplatesPage() {
                 fontSize: '24px', 
                 fontWeight: '700', 
                 margin: 0,
-                background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+                background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -966,12 +966,12 @@ export default function TemplatesPage() {
               />
 
               <div style={{ 
-                background: 'rgba(37, 99, 235, 0.1)', 
+                background: 'rgba(var(--color-primary-rgb), 0.2)', 
                 borderRadius: '8px', 
                 padding: '12px', 
                 fontSize: '12px', 
                 color: 'var(--color-text-muted)',
-                border: '1px solid rgba(37, 99, 235, 0.3)'
+                border: '1px solid rgba(var(--color-primary-rgb), 0.2)'
               }}>
                 <strong>Tip:</strong> Use variables like {`{{first_name}}`}, {`{{company_name}}`}, {`{{industry}}`} to personalize your messages. AI will automatically fill these in based on lead data.
               </div>
@@ -982,7 +982,7 @@ export default function TemplatesPage() {
                 onClick={handleSaveTemplate}
                 disabled={saving || !formData.name.trim() || !formData.content.trim()}
                 style={{
-                  background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
                   border: 'none',
                   borderRadius: '10px',
                   padding: '12px 24px',
@@ -1109,7 +1109,7 @@ export default function TemplatesPage() {
                   {previewTemplate.visibility === "workspace" && (
                     <>
                       <span style={{ opacity: 0.45 }}>·</span>
-                      <span style={{ color: "#818cf8", fontWeight: 600 }}>Shared</span>
+                      <span style={{ color: "#eeab7a", fontWeight: 600 }}>Shared</span>
                     </>
                   )}
                 </div>

@@ -42,9 +42,9 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
     switch (status) {
       case "running":
         return {
-          bg: "rgba(37, 99, 235, 0.12)",
+          bg: "rgba(var(--color-primary-rgb), 0.2)",
           color: "var(--color-primary)",
-          border: "1px solid rgba(37, 99, 235, 0.28)",
+          border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
         };
       case "paused":
         return {
@@ -136,9 +136,9 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
                   fontWeight: 600,
                   padding: "3px 8px",
                   borderRadius: 8,
-                  background: "rgba(37, 99, 235, 0.08)",
+                  background: "rgba(var(--color-primary-rgb), 0.2)",
                   color: "var(--color-primary)",
-                  border: "1px solid rgba(37, 99, 235, 0.2)",
+                  border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
                 }}
               >
                 +{campaign.channels.length - 1} more
@@ -202,7 +202,7 @@ export function CampaignHeader({ campaign, baseName, updating, onToggleStatus, o
           </button>
           <button
             type="button"
-            className="btn-primary focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-2 rounded-[10px] px-4 text-[13px] font-semibold disabled:opacity-50"
+            className="btn-primary focus-ring inline-flex h-10 min-h-10 items-center justify-center gap-2 rounded-[10px] px-4 text-[13px] font-semibold"
             onClick={onToggleStatus}
             disabled={updating || campaign.status === "completed"}
           >

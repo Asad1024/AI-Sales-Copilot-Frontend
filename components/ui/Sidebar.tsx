@@ -91,7 +91,7 @@ interface NavItem {
 const iconSize = 18;
 /** Active nav: soft violet tint, primary label + icon */
 const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
-const ACTIVE_NAV_TEXT = "#2563EB";
+const ACTIVE_NAV_TEXT = "#ffffff";
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
@@ -101,7 +101,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
   const showCollapsedDividers = collapsed && !isMobile;
   const sidebarOpenLogoHeight = APP_BRAND_LOGO_HEIGHT;
-  const sidebarOpenHeaderHeight = 64;
+  const sidebarOpenHeaderHeight = 72;
 
   const sidebarWidth = isMobile ? Math.min(288, typeof window !== "undefined" ? window.innerWidth : 288) : collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
 
@@ -204,9 +204,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             fontSize: 15,
             fontWeight: active ? 600 : 500,
             fontFamily: "Inter, sans-serif",
-            transition: "background 150ms ease, color 150ms ease, padding 150ms ease, min-height 150ms ease",
+            transition: "background 150ms ease, color 150ms ease, border-color 150ms ease, padding 150ms ease, min-height 150ms ease",
             color: active ? ACTIVE_NAV_TEXT : "var(--sidebar-nav-text)",
             background: active ? ACTIVE_NAV_BG : "transparent",
+            border: active ? "1px solid #DE8850" : "1px solid transparent",
             position: "relative",
             marginBottom: 8,
           }}
@@ -214,15 +215,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             if (!active) {
               e.currentTarget.style.background = "var(--sidebar-nav-hover-bg)";
               e.currentTarget.style.color = "var(--sidebar-nav-hover-text)";
+              e.currentTarget.style.borderColor = "transparent";
             }
           }}
           onMouseLeave={(e) => {
             if (!active) {
               e.currentTarget.style.background = "transparent";
               e.currentTarget.style.color = "var(--sidebar-nav-text)";
+              e.currentTarget.style.borderColor = "transparent";
             } else {
               e.currentTarget.style.background = ACTIVE_NAV_BG;
               e.currentTarget.style.color = ACTIVE_NAV_TEXT;
+              e.currentTarget.style.borderColor = "#DE8850";
             }
           }}
         >
@@ -331,7 +335,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 transition: "color 150ms ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#2563EB";
+                e.currentTarget.style.color = "var(--color-primary)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = "var(--sidebar-nav-muted-icon)";

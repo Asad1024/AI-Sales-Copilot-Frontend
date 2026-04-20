@@ -276,7 +276,7 @@ export default function NotificationsPage() {
                   style={{
                     padding: "16px 18px",
                     opacity: busyId === n.id ? 0.65 : 1,
-                    borderLeft: unread ? "3px solid #2563EB" : undefined,
+                    borderLeft: unread ? "3px solid var(--color-primary)" : undefined,
                   }}
                 >
                   <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -288,8 +288,8 @@ export default function NotificationsPage() {
                             fontWeight: 600,
                             textTransform: "uppercase",
                             letterSpacing: "0.04em",
-                            color: "#2563EB",
-                            background: "rgba(37, 99, 235, 0.08)",
+                            color: "var(--color-primary)",
+                            background: "rgba(var(--color-primary-rgb), 0.2)",
                             padding: "2px 8px",
                             borderRadius: 6,
                           }}

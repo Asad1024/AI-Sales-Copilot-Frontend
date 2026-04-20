@@ -49,7 +49,7 @@ function AuthShell({
         <div style={{ textAlign: "center", marginTop: "24px" }}>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
             Need help?{" "}
-            <a href="mailto:support@riftreach.com" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
+            <a href="mailto:support@riftreach.com" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
               Contact support
             </a>
           </p>
@@ -149,7 +149,7 @@ function VerifyEmailContent() {
               width: "100%",
               padding: "12px 20px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
               color: "#fff",
               fontSize: "14px",
               fontWeight: "600",
@@ -190,7 +190,7 @@ function VerifyEmailContent() {
           width: "56px",
           height: "56px",
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

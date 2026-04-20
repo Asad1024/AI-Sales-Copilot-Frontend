@@ -16,21 +16,31 @@ import { TierBreakdown } from "./components/TierBreakdown";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 
+const CAMPAIGNS_TIER_INSIGHTS_CACHE_TTL_MS = 2 * 60 * 1000;
+
 export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId, bases, refreshBases } = useBaseStore();
+  const isBootstrappingWorkspace = !activeBaseId && bases.length === 0;
   const { pagination, setPagination } = useLeadStore();
   const {
     fetchCampaigns,
+    hasCacheForBase,
+    campaigns,
     filters,
     setFilters,
     getFilteredCampaigns,
     refreshCampaign,
-    hasCacheForBase,
   } = useCampaignStore();
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  /** One gate for campaigns list + stats + tier insights (avoids a second loader after fetchCampaigns). */
-  const [campaignsPageReady, setCampaignsPageReady] = useState(() => !activeBaseId);
+  /**
+   * Gate only first paint when there is no cached campaigns data.
+   * If cache exists, render instantly and revalidate in background.
+   */
+  const [campaignsPageReady, setCampaignsPageReady] = useState(
+    () => !activeBaseId || hasCacheForBase(activeBaseId) || campaigns.some((c) => Number(c.base_id) === Number(activeBaseId))
+  );
+  /** Tier/lead insights should never block initial campaigns render when cached data exists. */
   const [leadsReady, setLeadsReady] = useState(() => !activeBaseId);
   const [tierLeadsForInsights, setTierLeadsForInsights] = useState<any[]>([]);
   
@@ -50,21 +60,49 @@ export default function CampaignsPage() {
       return;
     }
     let cancelled = false;
-    const hasCachedCampaignsForBase = hasCacheForBase(activeBaseId);
-    // Keep existing list visible when we already have campaigns for this workspace.
-    setCampaignsPageReady(hasCachedCampaignsForBase);
-    setLeadsReady(false);
+    const hasCampaignsCache = hasCacheForBase(activeBaseId);
+    const hasInMemoryRowsForBase = campaigns.some((c) => Number(c.base_id) === Number(activeBaseId));
+    // Instant paint when cache exists; otherwise show loader until first fetch resolves.
+    setCampaignsPageReady(hasCampaignsCache || hasInMemoryRowsForBase);
 
-    // Load campaigns first (critical path for this page).
-    void fetchCampaigns(activeBaseId)
-      .catch((e) => {
+    // Campaigns: stale-while-revalidate via store cache.
+    void (async () => {
+      try {
+        await fetchCampaigns(activeBaseId);
+      } catch (e) {
         console.error("[CampaignsPage] campaigns load:", e);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setCampaignsPageReady(true);
-      });
+      }
+    })();
 
-    // Fetch leads/tier insights in parallel without blocking campaign rendering.
+    const insightsCacheKey = `sparkai:campaigns:tier-insights:${activeBaseId}`;
+    const now = Date.now();
+    let hasFreshInsightsCache = false;
+    try {
+      const raw = typeof window !== "undefined" ? window.sessionStorage.getItem(insightsCacheKey) : null;
+      if (raw) {
+        const cached = JSON.parse(raw) as { timestamp?: number; leads?: any[]; totalLeads?: number };
+        if (cached?.timestamp && (now - Number(cached.timestamp)) < CAMPAIGNS_TIER_INSIGHTS_CACHE_TTL_MS) {
+          const list = Array.isArray(cached?.leads) ? cached.leads : [];
+          setTierLeadsForInsights(list);
+          if (typeof cached?.totalLeads === "number") {
+            const perPage = useLeadStore.getState().pagination.leadsPerPage || 30;
+            setPagination({
+              totalLeads: cached.totalLeads,
+              totalPages: Math.max(1, Math.ceil(cached.totalLeads / perPage)),
+            });
+          }
+          hasFreshInsightsCache = true;
+          setLeadsReady(true);
+        }
+      }
+    } catch {
+      // ignore cache parsing/storage errors
+    }
+    if (!hasFreshInsightsCache) setLeadsReady(false);
+
+    // Leads/tier insights: refresh in background (non-blocking for page render).
     void (async () => {
       try {
         const leadsPayload = await apiRequest(`/leads?base_id=${activeBaseId}&page=1&limit=100`);
@@ -82,6 +120,20 @@ export default function CampaignsPage() {
             totalLeads: p.total,
             totalPages: Math.max(1, Math.ceil(p.total / perPage)),
           });
+          try {
+            if (typeof window !== "undefined") {
+              window.sessionStorage.setItem(
+                insightsCacheKey,
+                JSON.stringify({
+                  timestamp: Date.now(),
+                  leads: list,
+                  totalLeads: p.total,
+                })
+              );
+            }
+          } catch {
+            // ignore cache write failures
+          }
         }
       } catch (e) {
         console.error("[CampaignsPage] leads insights load:", e);
@@ -94,7 +146,7 @@ export default function CampaignsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeBaseId, fetchCampaigns, hasCacheForBase, setPagination]);
+  }, [activeBaseId, campaigns, fetchCampaigns, hasCacheForBase, setPagination]);
 
   // Listen for real-time campaign metrics updates via WebSocket
   useEffect(() => {
@@ -122,6 +174,25 @@ export default function CampaignsPage() {
   const totalLeads = pagination?.totalLeads ?? 0;
   const showNoLeadsBanner = Boolean(activeBaseId) && campaignsPageReady && leadsReady && totalLeads === 0;
 
+  if (isBootstrappingWorkspace) {
+    return (
+      <div
+        style={{
+          minHeight: "calc(100vh - 56px)",
+          width: "100%",
+          background: "var(--color-canvas)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+          gap: 12,
+          boxSizing: "border-box",
+        }}
+      >
+        <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
+      </div>
+    );
+  }
+
   if (!activeBaseId) {
     return (
       <div
@@ -146,6 +217,25 @@ export default function CampaignsPage() {
             </button>
           }
         />
+      </div>
+    );
+  }
+
+  if (!campaignsPageReady) {
+    return (
+      <div
+        style={{
+          minHeight: "calc(100vh - 56px)",
+          width: "100%",
+          background: "var(--color-canvas)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+          gap: 12,
+          boxSizing: "border-box",
+        }}
+      >
+        <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
       </div>
     );
   }
@@ -225,7 +315,7 @@ export default function CampaignsPage() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "none",
-                      background: filters.status === item.id ? "rgba(37, 99, 235,0.12)" : "transparent",
+                      background: filters.status === item.id ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
                       color: "var(--color-text)",
                       padding: "9px 10px",
                       borderRadius: 8,
@@ -235,7 +325,7 @@ export default function CampaignsPage() {
                     }}
                   >
                     <span>{item.label}</span>
-                    {filters.status === item.id && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#818cf8" }} />}
+                    {filters.status === item.id && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#eeab7a" }} />}
                   </button>
                 ))}
               </div>
@@ -271,15 +361,9 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
-      {activeBaseId && !campaignsPageReady ? (
-        <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
-      ) : (
-        <>
-          <CampaignStats />
-          <TierBreakdown leadsForTiers={tierLeadsForInsights} />
-          <CampaignGrid campaigns={filteredCampaigns} allowCreateCampaign={!showNoLeadsBanner} />
-        </>
-      )}
+      <CampaignStats />
+      <TierBreakdown leadsForTiers={tierLeadsForInsights} />
+      <CampaignGrid campaigns={filteredCampaigns} allowCreateCampaign={!showNoLeadsBanner} />
     </div>
   );
 }

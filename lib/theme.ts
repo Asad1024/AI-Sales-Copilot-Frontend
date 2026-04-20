@@ -1,4 +1,4 @@
-export type Theme = 'light' | 'dark' | 'system';
+﻿export type Theme = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
 
 export interface ThemeColors {
@@ -21,8 +21,8 @@ export interface ThemeColors {
 
 export const themes: Record<ResolvedTheme, ThemeColors> = {
   light: {
-    primary: '#2563EB',
-    accent: '#06B6D4',
+    primary: '#F29F67',
+    accent: '#F29F67',
     background: '#ffffff',
     surface: '#f8fafc',
     surfaceSecondary: '#f1f5f9',
@@ -32,14 +32,14 @@ export const themes: Record<ResolvedTheme, ThemeColors> = {
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     shadow: 'rgba(0, 0, 0, 0.1)',
-    success: '#2563EB',
+    success: '#F29F67',
     warning: '#ffa726',
     error: '#ff6b6b',
-    info: '#4ecdc4',
+    info: '#F29F67',
   },
   dark: {
-    primary: '#2563EB',
-    accent: '#06B6D4',
+    primary: '#F29F67',
+    accent: '#F29F67',
     background: '#0a0a0a',
     surface: '#1a1a1a',
     surfaceSecondary: '#2a2a2a',
@@ -49,10 +49,10 @@ export const themes: Record<ResolvedTheme, ThemeColors> = {
     border: 'rgba(255, 255, 255, 0.1)',
     borderLight: 'rgba(255, 255, 255, 0.05)',
     shadow: 'rgba(0, 0, 0, 0.3)',
-    success: '#2563EB',
+    success: '#F29F67',
     warning: '#ffa726',
     error: '#ff6b6b',
-    info: '#4ecdc4',
+    info: '#F29F67',
   },
 };
 

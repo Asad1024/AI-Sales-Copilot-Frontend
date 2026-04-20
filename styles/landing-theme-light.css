@@ -20,7 +20,7 @@
 /* Hero: airy gradient — ends on same canvas as the rest of the page */
 .landing-page.landing-theme-light .landing-hero-bg {
   background:
-    radial-gradient(ellipse 115% 95% at 50% -38%, rgba(37, 99, 235, 0.09), transparent 58%),
+    radial-gradient(ellipse 115% 95% at 50% -38%, rgba(242, 159, 103, 0.09), transparent 58%),
     linear-gradient(180deg, #f1f5f9 0%, #f8fafc 55%);
 }
 
@@ -70,7 +70,7 @@
 
 .landing-page.landing-theme-light .nav-link:hover {
   color: #0f172a;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(242, 159, 103, 0.1);
 }
 
 .landing-page.landing-theme-light .btn-login {
@@ -86,12 +86,12 @@
 
 .landing-page.landing-theme-light .btn-cta {
   border-radius: 9999px !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.22) !important;
+  box-shadow: 0 4px 16px rgba(242, 159, 103, 0.22) !important;
 }
 
 /* Hero preview feature pills (outer chip only — not inner title/description lines) */
 .landing-page.landing-theme-light .landing-hero-preview-pills li > span {
-  border: 1px solid rgba(37, 99, 235, 0.14) !important;
+  border: 1px solid rgba(242, 159, 103, 0.14) !important;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
   color: #0f172a;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
@@ -100,7 +100,7 @@
 
 .landing-page.landing-theme-light .landing-features-kicker {
   background: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(242, 159, 103, 0.22) !important;
   color: var(--color-primary) !important;
 }
 
@@ -108,15 +108,15 @@
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.09) !important;
   box-shadow:
-    0 1px 0 rgba(37, 99, 235, 0.05),
+    0 1px 0 rgba(242, 159, 103, 0.05),
     0 18px 42px rgba(15, 23, 42, 0.07) !important;
 }
 
 .landing-page.landing-theme-light .landing-feature-card:hover {
-  border-color: rgba(37, 99, 235, 0.28) !important;
+  border-color: rgba(242, 159, 103, 0.28) !important;
   box-shadow:
-    0 1px 0 rgba(37, 99, 235, 0.1),
-    0 24px 52px rgba(37, 99, 235, 0.12) !important;
+    0 1px 0 rgba(242, 159, 103, 0.1),
+    0 24px 52px rgba(242, 159, 103, 0.12) !important;
 }
 
 .landing-page.landing-theme-light .landing-hero-subtitle,
@@ -187,7 +187,7 @@
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.09) !important;
   box-shadow:
-    0 1px 0 rgba(37, 99, 235, 0.05),
+    0 1px 0 rgba(242, 159, 103, 0.05),
     0 20px 48px rgba(15, 23, 42, 0.07) !important;
 }
 
@@ -211,15 +211,15 @@
 
 
 .landing-page.landing-theme-light .step-pill {
-  background: rgba(37, 99, 235, 0.08) !important;
-  border-color: rgba(37, 99, 235, 0.2) !important;
+  background: rgba(242, 159, 103, 0.08) !important;
+  border-color: rgba(242, 159, 103, 0.2) !important;
 }
 
 .landing-page.landing-theme-light .step-icon {
-  background: rgba(37, 99, 235, 0.06) !important;
-  border: 1px solid rgba(37, 99, 235, 0.14) !important;
+  background: rgba(242, 159, 103, 0.06) !important;
+  border: 1px solid rgba(242, 159, 103, 0.14) !important;
   box-shadow: none !important;
-  color: #2563eb !important;
+  color: #f29f67 !important;
 }
 
 .landing-page.landing-theme-light .step-card,
@@ -231,10 +231,10 @@
 }
 
 .landing-page.landing-theme-light .step-card--mid {
-  border-color: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(242, 159, 103, 0.22) !important;
   box-shadow:
-    0 1px 0 rgba(37, 99, 235, 0.06),
-    0 22px 48px rgba(37, 99, 235, 0.1) !important;
+    0 1px 0 rgba(242, 159, 103, 0.06),
+    0 22px 48px rgba(242, 159, 103, 0.1) !important;
 }
 
 .landing-page.landing-theme-light .btn-hero-secondary {
@@ -338,12 +338,12 @@
 }
 .landing-page.landing-theme-light .scp-setup-fee-banner {
   background: linear-gradient(135deg, #ffffff 0%, color-mix(in srgb, var(--color-primary) 6%, #f8fafc) 100%) !important;
-  border-color: rgba(37, 99, 235, 0.18) !important;
-  box-shadow: 0 1px 0 rgba(37, 99, 235, 0.06), 0 14px 36px rgba(15, 23, 42, 0.06) !important;
+  border-color: rgba(242, 159, 103, 0.18) !important;
+  box-shadow: 0 1px 0 rgba(242, 159, 103, 0.06), 0 14px 36px rgba(15, 23, 42, 0.06) !important;
 }
 .landing-page.landing-theme-light .scp-setup-fee-banner-icon-wrap {
-  background: rgba(37, 99, 235, 0.1) !important;
-  border-color: rgba(37, 99, 235, 0.2) !important;
+  background: rgba(242, 159, 103, 0.1) !important;
+  border-color: rgba(242, 159, 103, 0.2) !important;
 }
 .landing-page.landing-theme-light .scp-setup-fee-banner-label {
   color: var(--color-primary) !important;
@@ -357,7 +357,7 @@
 .landing-page.landing-theme-light .scp-calling-banner {
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.09) !important;
-  box-shadow: 0 1px 0 rgba(37, 99, 235, 0.06), 0 18px 42px rgba(15, 23, 42, 0.07) !important;
+  box-shadow: 0 1px 0 rgba(242, 159, 103, 0.06), 0 18px 42px rgba(15, 23, 42, 0.07) !important;
 }
 .landing-page.landing-theme-light .scp-calling-banner-icon-wrap {
   color: var(--color-primary) !important;
@@ -369,8 +369,8 @@
   color: rgba(15, 23, 42, 0.62) !important;
 }
 .landing-page.landing-theme-light .scp-calling-banner-price-block {
-  background: rgba(37, 99, 235, 0.07) !important;
-  border-color: rgba(37, 99, 235, 0.16) !important;
+  background: rgba(242, 159, 103, 0.07) !important;
+  border-color: rgba(242, 159, 103, 0.16) !important;
 }
 
 .landing-page.landing-theme-light .pricing-card.scp-custom-top {
@@ -406,9 +406,9 @@
 }
 
 .landing-page.landing-theme-light .scp-custom-chip {
-  color: #5b21b6 !important;
-  background: rgba(37, 99, 235, 0.12) !important;
-  border-color: rgba(37, 99, 235, 0.3) !important;
+  color: #de8850 !important;
+  background: rgba(242, 159, 103, 0.12) !important;
+  border-color: rgba(242, 159, 103, 0.3) !important;
 }
 
 .landing-page.landing-theme-light .pricing-cta-primary {
@@ -525,7 +525,7 @@
 }
 
 .landing-page.landing-theme-light .landing-mobile-panel a:hover {
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(242, 159, 103, 0.08);
 }
 
 .landing-mobile-panel-close {

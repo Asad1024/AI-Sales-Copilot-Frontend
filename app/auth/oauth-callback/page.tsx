@@ -90,12 +90,12 @@ function OAuthCallbackContent() {
               display: "inline-block",
               padding: "12px 24px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
               color: "#fff",
               fontSize: "14px",
               fontWeight: "600",
               textDecoration: "none",
-              boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
+              boxShadow: "0 4px 14px rgba(var(--color-primary-rgb), 0.2)",
             }}
           >
             Back to sign in

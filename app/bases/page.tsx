@@ -1,7 +1,6 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { apiRequest, getUser } from "@/lib/apiClient";
 import { shouldRestrictWorkspaceManagement } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
@@ -14,12 +13,12 @@ import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
+import { PremiumKpiSparkline } from "@/components/ui/PremiumKpiSparkline";
 
 type OverviewMetric = {
   title: string;
   value: string;
-  trendPositive: boolean;
-  sparkline: number[];
+  chartType: "step" | "bars" | "areaPulse" | "radial";
 };
 
 const metricLabelStyle = {
@@ -40,66 +39,14 @@ function isMutedMetricValue(value: string): boolean {
   return !Number.isNaN(n) && n === 0;
 }
 
-function SparklineChart({ points, positive }: { points: number[]; positive: boolean }) {
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const span = Math.max(1, max - min);
-  const isFlat = points.every((p) => Math.abs(p - points[0]) < 0.001);
-  const ticketShapeTemplate = [0.22, 0.10, 0.46, 0.46, 0.66, 0.22, 0.50, 0.18, 0.48, 0.28, 0.42];
-  const shapedPoints = isFlat
-    ? ticketShapeTemplate.map(() => points[0])
-    : ticketShapeTemplate.map((ratio) => min + ratio * span);
-  const data = shapedPoints.map((value, index) => ({ index, value }));
-  const lineColor = "#2563EB";
-  const areaGradientId = `bases-sparkline-area-${positive ? "positive" : "negative"}`;
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: 54,
-        borderRadius: 8,
-        background: isFlat
-          ? "transparent"
-          : "linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)",
-        padding: "2px 0",
-      }}
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 3, right: 1, left: 1, bottom: 1 }}>
-          <defs>
-            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity={0.22} />
-              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="index" hide />
-          <YAxis hide domain={[(dataMin: number) => dataMin - 0.05 * span, (dataMax: number) => dataMax + 0.02 * span]} />
-          {!isFlat ? (
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#${areaGradientId})`}
-              isAnimationActive={false}
-            />
-          ) : null}
-          <Line
-            type={isFlat ? "linear" : "monotone"}
-            dataKey="value"
-            stroke={lineColor}
-            strokeOpacity={0.92}
-            strokeWidth={1.9}
-            dot={false}
-            activeDot={false}
-            isAnimationActive={false}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
+function MiniCardChart({ chartType }: { chartType: OverviewMetric["chartType"] }) {
+  const pointMap: Record<OverviewMetric["chartType"], number[]> = {
+    step: [18, 28, 26, 34, 33, 41, 44],
+    bars: [8, 11, 9, 13, 12, 15, 10],
+    areaPulse: [12, 18, 16, 25, 22, 30, 27],
+    radial: [18, 22, 26, 33, 41, 49, 58],
+  };
+  return <PremiumKpiSparkline points={pointMap[chartType]} positive chartType={chartType} height={76} />;
 }
 
 export default function BasesPage() {
@@ -291,26 +238,22 @@ export default function BasesPage() {
     {
       title: "Total workspaces",
       value: String(filtered.length),
-      trendPositive: true,
-      sparkline: filtered.length > 0 ? [8, 9, 12, 10, 14, 9, 13, 11] : [0, 0, 0, 0, 0, 0, 0, 0],
+      chartType: "step",
     },
     {
       title: "Workspace leads",
       value: totals.leads.toLocaleString(),
-      trendPositive: true,
-      sparkline: totals.leads > 0 ? [19, 20, 24, 22, 27, 21, 29, 25] : [0, 0, 0, 0, 0, 0, 0, 0],
+      chartType: "bars",
     },
     {
       title: "Active campaigns",
       value: totals.campaigns.toLocaleString(),
-      trendPositive: true,
-      sparkline: totals.campaigns > 0 ? [8, 9, 12, 10, 14, 9, 13, 11] : [0, 0, 0, 0, 0, 0, 0, 0],
+      chartType: "areaPulse",
     },
     {
       title: "Enriched leads",
       value: totals.enriched.toLocaleString(),
-      trendPositive: true,
-      sparkline: totals.enriched > 0 ? [10, 11, 8, 12, 9, 11, 8, 10] : [0, 0, 0, 0, 0, 0, 0, 0],
+      chartType: "radial",
     },
   ];
 
@@ -393,7 +336,7 @@ export default function BasesPage() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         border: "none",
-                        background: filter === item.id ? "rgba(37, 99, 235,0.12)" : "transparent",
+                        background: filter === item.id ? "rgba(var(--color-primary-rgb), 0.2)" : "transparent",
                         color: "var(--color-text)",
                         padding: "9px 10px",
                         borderRadius: 8,
@@ -403,7 +346,7 @@ export default function BasesPage() {
                       }}
                     >
                       <span>{item.label}</span>
-                      {filter === item.id && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#818cf8" }} />}
+                      {filter === item.id && <Icons.Check size={14} strokeWidth={1.5} style={{ color: "#eeab7a" }} />}
                     </button>
                   ))}
                 </div>
@@ -469,7 +412,7 @@ export default function BasesPage() {
                     {card.value}
                   </div>
                   <div style={{ marginTop: 8 }}>
-                    <SparklineChart points={card.sparkline} positive={card.trendPositive} />
+                    <MiniCardChart chartType={card.chartType} />
                   </div>
                 </div>
               );
@@ -612,7 +555,7 @@ export default function BasesPage() {
                 style={{ 
                   padding: '8px 20px', 
                   fontSize: '14px', 
-                  background: loadingCreate || !name.trim() ? 'rgba(37, 99, 235,0.45)' : 'var(--color-primary)', 
+                  background: loadingCreate || !name.trim() ? 'rgba(var(--color-primary-rgb), 0.2)' : 'var(--color-primary)', 
                   color: 'var(--color-text-inverse)', 
                   border: 'none', 
                   borderRadius: '6px', 

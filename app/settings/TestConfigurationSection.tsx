@@ -160,7 +160,7 @@ export function TestConfigurationSection() {
             key={label}
             type="button"
             onClick={open}
-            className="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(37,99,235,0.35)] focus-visible:ring-offset-2"
+            className="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--color-primary-rgb), 0.2)] focus-visible:ring-offset-2"
             aria-label={`Open ${label} test`}
             style={{
               textAlign: "left",
@@ -192,11 +192,11 @@ export function TestConfigurationSection() {
                   justifyContent: "center",
                 }}
               >
-                <Icon size={20} strokeWidth={1.5} style={{ color: "#a5b4fc" }} />
+                <Icon size={20} strokeWidth={1.5} style={{ color: "#f6b68b" }} />
               </div>
               <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--color-text)" }}>{label}</div>
               <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.4 }}>{description}</div>
-              <div style={{ marginTop: "auto", fontSize: 11, fontWeight: 600, color: "#818cf8", display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ marginTop: "auto", fontSize: 11, fontWeight: 600, color: "#eeab7a", display: "flex", alignItems: "center", gap: 4 }}>
                 Run test
                 <Icons.ChevronRight size={14} strokeWidth={1.5} />
               </div>

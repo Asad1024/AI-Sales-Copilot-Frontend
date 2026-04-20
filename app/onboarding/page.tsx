@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useRouter } from "next/navigation";
 import { useLayoutEffect, useState } from "react";
 import { apiRequest, authAPI, getUser, setUser, type User } from "@/lib/apiClient";
@@ -148,12 +148,12 @@ export default function OnboardingPage() {
             width: "64px",
             height: "64px",
             borderRadius: "16px",
-            background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 16px",
-            boxShadow: "0 8px 24px rgba(37, 99, 235, 0.3)"
+            boxShadow: "0 8px 24px rgba(var(--color-primary-rgb), 0.2)"
           }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -188,7 +188,7 @@ export default function OnboardingPage() {
                 width: "168px",
                 height: "4px",
                 borderRadius: "2px",
-                background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
               }}
             />
           ) : (
@@ -200,7 +200,7 @@ export default function OnboardingPage() {
                   height: "4px",
                   borderRadius: "2px",
                   background: s <= step
-                    ? "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)"
+                    ? "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)"
                     : "#e2e8f0",
                   transition: "background 0.3s ease"
                 }}
@@ -276,7 +276,7 @@ export default function OnboardingPage() {
                       outline: "none",
                       transition: "all 0.2s ease"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   />
                 </div>
@@ -301,7 +301,7 @@ export default function OnboardingPage() {
                       outline: "none",
                       transition: "all 0.2s ease"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   />
                 </div>
@@ -316,13 +316,13 @@ export default function OnboardingPage() {
                     border: "none",
                     background: !canProceed
                       ? "#cbd5e1"
-                      : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                      : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                     color: "#fff",
                     fontSize: "14px",
                     fontWeight: "600",
                     cursor: !canProceed ? "not-allowed" : "pointer",
                     transition: "all 0.2s ease",
-                    boxShadow: !canProceed ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)",
+                    boxShadow: !canProceed ? "none" : "0 4px 14px rgba(var(--color-primary-rgb), 0.2)",
                     marginTop: "8px"
                   }}
                 >
@@ -369,7 +369,7 @@ export default function OnboardingPage() {
                       backgroundRepeat: "no-repeat",
                       backgroundPosition: "right 12px center"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   >
                     <option value="" disabled>Select your role</option>
@@ -401,7 +401,7 @@ export default function OnboardingPage() {
                       backgroundRepeat: "no-repeat",
                       backgroundPosition: "right 12px center"
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235,0.1)"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--color-primary)"; e.target.style.boxShadow = "0 0 0 3px rgba(var(--color-primary-rgb), 0.2)"; }}
                     onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
                   >
                     {timezones.map((tz) => (
@@ -440,13 +440,13 @@ export default function OnboardingPage() {
                       border: "none",
                       background: saving || !canProceed
                         ? "#cbd5e1"
-                        : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
+                        : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
                       color: "#fff",
                       fontSize: "14px",
                       fontWeight: "600",
                       cursor: saving || !canProceed ? "not-allowed" : "pointer",
                       transition: "all 0.2s ease",
-                      boxShadow: saving || !canProceed ? "none" : "0 4px 14px rgba(37, 99, 235, 0.4)"
+                      boxShadow: saving || !canProceed ? "none" : "0 4px 14px rgba(var(--color-primary-rgb), 0.2)"
                     }}
                   >
                     {saving ? (

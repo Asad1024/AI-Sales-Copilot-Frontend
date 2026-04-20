@@ -8,8 +8,8 @@ import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { Icons } from "@/components/ui/Icons";
 
-const ACCENT = "#4f46e5";
-const ACCENT_MID = "#6366f1";
+const ACCENT = "#de8850";
+const ACCENT_MID = "#e59662";
 const SLATE_200 = "#e2e8f0";
 const SLATE_500 = "#64748b";
 const SLATE_700 = "#334155";
@@ -34,8 +34,8 @@ type LeadFilterChip = {
 const leadTagStyle: CSSProperties = {
   padding: "4px 10px",
   borderRadius: "999px",
-  background: "#eef2ff",
-  border: "1px solid #c7d2fe",
+  background: "#fff4ec",
+  border: "1px solid #f8c8a9",
   fontSize: "11px",
   color: ACCENT,
   fontWeight: 600,
@@ -209,8 +209,8 @@ export default function PlanPage() {
             gap: 8,
             padding: "5px 11px",
             borderRadius: 9999,
-            background: "#eef2ff",
-            border: "1px solid #c7d2fe",
+            background: "#fff4ec",
+            border: "1px solid #f8c8a9",
             marginBottom: 12,
           }}
         >
@@ -390,8 +390,8 @@ export default function PlanPage() {
                 width: 52,
                 height: 52,
                 borderRadius: 14,
-                background: "#eef2ff",
-                border: "1px solid #c7d2fe",
+                background: "#fff4ec",
+                border: "1px solid #f8c8a9",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -424,7 +424,7 @@ export default function PlanPage() {
               <span
                 style={{
                   display: "inline-block",
-                  background: "#eef2ff",
+                  background: "#fff4ec",
                   color: ACCENT,
                   padding: "3px 10px",
                   borderRadius: 9999,
@@ -432,7 +432,7 @@ export default function PlanPage() {
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
-                  border: "1px solid #e0e7ff",
+                  border: "1px solid #fee9da",
                 }}
               >
                 {currentCardData.badge}
@@ -502,8 +502,8 @@ export default function PlanPage() {
               <div style={{
                 padding: '20px',
                 borderRadius: '16px',
-                border: '1px solid rgba(37, 99, 235, 0.2)',
-                background: 'rgba(37, 99, 235, 0.05)'
+                border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
+                background: 'rgba(var(--color-primary-rgb), 0.2)'
               }}>
                 <h3 style={{
                   fontSize: '15px',
@@ -538,10 +538,10 @@ export default function PlanPage() {
                               style={{
                                 padding: '6px 12px',
                                 borderRadius: '999px',
-                                background: 'rgba(37, 99, 235, 0.12)',
-                                border: '1px solid rgba(37, 99, 235, 0.25)',
+                                background: 'rgba(var(--color-primary-rgb), 0.2)',
+                                border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
                                 fontSize: '12px',
-                                color: '#2563EB',
+                                color: 'var(--color-primary)',
                                 fontWeight: 600
                               }}
                             >
@@ -743,7 +743,7 @@ export default function PlanPage() {
               border: "none",
               background: `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)`,
               color: "#ffffff",
-              boxShadow: "0 4px 16px rgba(79, 70, 229, 0.35)",
+              boxShadow: "0 4px 16px rgba(242, 159, 103, 0.35)",
               fontFamily: "inherit",
               transition: "transform 0.12s ease, box-shadow 0.12s ease",
             }}
@@ -770,7 +770,7 @@ export default function PlanPage() {
               border: "none",
               background: `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT_MID} 100%)`,
               color: "#ffffff",
-              boxShadow: "0 4px 16px rgba(79, 70, 229, 0.35)",
+              boxShadow: "0 4px 16px rgba(242, 159, 103, 0.35)",
               fontFamily: "inherit",
               transition: "transform 0.12s ease, box-shadow 0.12s ease",
             }}
@@ -873,10 +873,10 @@ function CardContent({
                   alignItems: 'flex-start',
                   gap: '16px',
                   padding: '16px 20px',
-                  background: isEditing ? 'rgba(37, 99, 235, 0.05)' : 'var(--color-surface-secondary)',
+                  background: isEditing ? 'rgba(var(--color-primary-rgb), 0.2)' : 'var(--color-surface-secondary)',
                   borderRadius: '12px',
                   border: isEditing 
-                    ? '2px solid rgba(37, 99, 235, 0.3)' 
+                    ? '2px solid rgba(var(--color-primary-rgb), 0.2)' 
                     : '1px solid var(--elev-border)',
                   transition: 'all 0.2s ease',
                   position: 'relative'
@@ -886,7 +886,7 @@ function CardContent({
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
                   marginTop: '8px',
                   flexShrink: 0
                 }} />
@@ -919,7 +919,7 @@ function CardContent({
                             padding: '10px 14px',
                             fontSize: '15px',
                             fontWeight: '500',
-                            border: '1px solid rgba(37, 99, 235, 0.3)',
+                            border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
                             background: 'var(--elev-bg)'
                           }}
                           placeholder="Enter value..."
@@ -938,7 +938,7 @@ function CardContent({
                           padding: '10px 14px',
                           fontSize: '14px',
                           fontWeight: '500',
-                          border: '1px solid rgba(37, 99, 235, 0.3)',
+                          border: '1px solid rgba(var(--color-primary-rgb), 0.2)',
                           background: 'var(--elev-bg)'
                         }}
                         placeholder={placeholder || "Enter item..."}
@@ -1012,9 +1012,9 @@ function CardContent({
                   padding: '12px 20px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  color: '#2563EB',
-                  background: 'rgba(37, 99, 235, 0.1)',
-                  border: '1px dashed rgba(37, 99, 235, 0.4)',
+                  color: 'var(--color-primary)',
+                  background: 'rgba(var(--color-primary-rgb), 0.2)',
+                  border: '1px dashed rgba(var(--color-primary-rgb), 0.2)',
                   borderRadius: '12px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1024,12 +1024,12 @@ function CardContent({
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.6)';
+                  e.currentTarget.style.background = 'rgba(var(--color-primary-rgb), 0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(var(--color-primary-rgb), 0.2)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.4)';
+                  e.currentTarget.style.background = 'rgba(var(--color-primary-rgb), 0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(var(--color-primary-rgb), 0.2)';
                 }}
               >
                 <span>+</span>
@@ -1158,13 +1158,13 @@ function SequenceCardContent({
                   width: '36px',
                   height: '36px',
                   borderRadius: '8px',
-                  background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
+                  background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.2) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '14px',
                   fontWeight: '700',
-                  color: '#2563EB',
+                  color: 'var(--color-primary)',
                   flexShrink: 0
                 }}>
                   {idx + 1}
@@ -1242,13 +1242,13 @@ function SequenceCardContent({
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
+                background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.2) 0%, rgba(var(--color-primary-rgb), 0.2) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '14px',
                 fontWeight: '700',
-                color: '#2563EB',
+                color: 'var(--color-primary)',
                 flexShrink: 0
               }}>
                 {idx + 1}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useId } from "react";
 import { Icons } from "@/components/ui/Icons";
@@ -82,7 +82,7 @@ export default function ConfirmModal({
             <Icons.AlertCircle
               size={20}
               strokeWidth={1.5}
-              style={{ color: variant === "danger" ? "#f87171" : "#a5b4fc" }}
+              style={{ color: variant === "danger" ? "#f87171" : "#f6b68b" }}
             />
           </div>
           <div style={{ minWidth: 0 }}>

@@ -381,16 +381,36 @@ export default function ReportsPage() {
   const replyRate = typeof reportsData?.replyRate === "number" ? reportsData.replyRate : 0;
   const conversionRate = typeof reportsData?.conversionRate === "number" ? reportsData.conversionRate : 0;
 
+  const surfaceCard = {
+    background: "var(--color-surface)",
+    borderRadius: 14,
+    padding: 24,
+    border: "1px solid var(--color-border)",
+    boxShadow: "var(--elev-shadow)",
+  } as const;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="dashboard-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <BaseCard style={{
-        padding: '20px 24px',
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 16
+        padding: "16px 20px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 12,
+        borderRadius: 12,
+        border: "1px solid var(--color-border)",
+        background: "var(--color-surface)",
+        boxShadow: "var(--elev-shadow)"
       }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
+            Analytics
+          </h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
+            Workspace performance, health, and conversion trends
+          </p>
+        </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {periods.map((period) => (
@@ -398,17 +418,17 @@ export default function ReportsPage() {
               key={period.value}
               onClick={() => setSelectedPeriod(period.value)}
               style={{
-                background: selectedPeriod === period.value 
-                  ? 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)' 
+                background: selectedPeriod === period.value
+                  ? 'rgba(37, 99, 235, 0.12)'
                   : 'var(--color-surface-secondary)',
-                border: selectedPeriod === period.value 
-                  ? 'none' 
+                border: selectedPeriod === period.value
+                  ? '1px solid rgba(37, 99, 235, 0.35)'
                   : '1px solid var(--color-border)',
                 borderRadius: 8,
-                padding: '8px 16px',
-                color: selectedPeriod === period.value ? '#fff' : 'var(--color-text)',
+                padding: '8px 14px',
+                color: selectedPeriod === period.value ? 'var(--color-primary)' : 'var(--color-text)',
                 fontSize: 13,
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
@@ -420,9 +440,10 @@ export default function ReportsPage() {
           {!activeBaseId && (
             <div style={{ 
               padding: '8px 14px', 
-              background: 'rgba(255, 107, 107, 0.1)', 
+              background: 'var(--color-surface-secondary)', 
               borderRadius: 8,
-              color: '#ff6b6b',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-muted)',
               fontSize: 13,
               fontWeight: 500
             }}>
@@ -497,9 +518,9 @@ export default function ReportsPage() {
           </div>
 
           {/* Charts Row 1 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 16 }}>
             {/* Lead Trends */}
-            <BaseCard style={{ padding: 24 }}>
+            <BaseCard style={{ ...surfaceCard }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.TrendingUp size={18} style={{ color: '#2563EB' }} />
                 Lead Acquisition Trend
@@ -532,7 +553,7 @@ export default function ReportsPage() {
             </BaseCard>
 
             {/* Conversion Funnel */}
-            <BaseCard style={{ padding: 24 }}>
+            <BaseCard style={{ ...surfaceCard }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Target size={18} style={{ color: '#06B6D4' }} />
                 Conversion Funnel
@@ -550,12 +571,7 @@ export default function ReportsPage() {
           {/* Charts Row 2 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 20 }}>
             {/* Tier Distribution */}
-            <div style={{
-              background: 'var(--color-surface)',
-              borderRadius: 14,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
+            <div style={surfaceCard}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Flame size={18} style={{ color: '#ff6b6b' }} />
                 Lead Temperature
@@ -570,12 +586,7 @@ export default function ReportsPage() {
             </div>
 
             {/* Score Distribution */}
-            <div style={{
-              background: 'var(--color-surface)',
-              borderRadius: 14,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
+            <div style={surfaceCard}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Chart size={18} style={{ color: '#4ecdc4' }} />
                 Score Distribution
@@ -595,12 +606,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Data Quality Section */}
-          <div style={{
-            background: 'var(--color-surface)',
-            borderRadius: 14,
-            padding: 24,
-            border: '1px solid var(--color-border)'
-          }}>
+          <div style={surfaceCard}>
             <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icons.Sparkles size={18} style={{ color: '#06B6D4' }} />
               Data Quality
@@ -648,14 +654,9 @@ export default function ReportsPage() {
           </div>
 
           {/* Top Performers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 16 }}>
             {/* Top Campaigns */}
-            <div style={{
-              background: 'var(--color-surface)',
-              borderRadius: 14,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
+            <div style={surfaceCard}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Rocket size={18} style={{ color: '#06B6D4' }} />
                 Top Campaigns
@@ -699,12 +700,7 @@ export default function ReportsPage() {
             </div>
 
             {/* Top Leads */}
-            <div style={{
-              background: 'var(--color-surface)',
-              borderRadius: 14,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
+            <div style={surfaceCard}>
               <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Star size={18} style={{ color: '#ffa726' }} />
                 Top Scoring Leads
@@ -734,11 +730,9 @@ export default function ReportsPage() {
                           width: 24,
                           height: 24,
                           borderRadius: 6,
-                          background: i === 0 ? 'linear-gradient(135deg, #ffa726 0%, #ff9800 100%)' : 
-                                     i === 1 ? 'linear-gradient(135deg, #9e9e9e 0%, #757575 100%)' :
-                                     i === 2 ? 'linear-gradient(135deg, #cd7f32 0%, #a0522d 100%)' :
-                                     'var(--color-surface)',
-                          color: i < 3 ? '#fff' : 'var(--color-text-muted)',
+                          background: i < 3 ? 'rgba(37, 99, 235, 0.12)' : 'var(--color-surface-secondary)',
+                          border: i < 3 ? '1px solid rgba(37, 99, 235, 0.28)' : '1px solid var(--color-border)',
+                          color: i < 3 ? 'var(--color-primary)' : 'var(--color-text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -768,8 +762,9 @@ export default function ReportsPage() {
                           minWidth: 50
                         }}>
                           <div style={{
-                            background: `linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}cc 100%)`,
-                            color: '#fff',
+                            background: 'var(--color-surface-secondary)',
+                            color: scoreColor,
+                            border: `1px solid ${scoreColor}55`,
                             padding: '4px 10px',
                             borderRadius: 8,
                             fontSize: 14,
@@ -787,10 +782,7 @@ export default function ReportsPage() {
                         {/* Tier Badge */}
                         {lead.tier && (
                           <span style={{
-                            background: lead.tier === 'Hot' ? 'rgba(255, 107, 107, 0.15)' : 
-                                       lead.tier === 'Warm' ? 'rgba(255, 167, 38, 0.15)' : 
-                                       lead.tier === 'Converted' ? 'rgba(78, 205, 196, 0.15)' :
-                                       'rgba(158, 158, 158, 0.15)',
+                            background: 'var(--color-surface-secondary)',
                             color: lead.tier === 'Hot' ? '#ff6b6b' : 
                                    lead.tier === 'Warm' ? '#ffa726' : 
                                    lead.tier === 'Converted' ? '#4ecdc4' : '#9e9e9e',
@@ -798,12 +790,7 @@ export default function ReportsPage() {
                             borderRadius: 6,
                             fontSize: 11,
                             fontWeight: 600,
-                            border: `1px solid ${
-                              lead.tier === 'Hot' ? 'rgba(255, 107, 107, 0.3)' : 
-                              lead.tier === 'Warm' ? 'rgba(255, 167, 38, 0.3)' : 
-                              lead.tier === 'Converted' ? 'rgba(78, 205, 196, 0.3)' :
-                              'rgba(158, 158, 158, 0.3)'
-                            }`
+                            border: '1px solid var(--color-border)'
                           }}>
                             {lead.tier}
                           </span>

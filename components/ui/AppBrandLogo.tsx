@@ -13,17 +13,17 @@ export const APP_BRAND_LOGO_DARK = "/dark_logo.png";
 export const APP_BRAND_LOGO_LIGHT_COLLAPSE = "/light_collapse.png";
 /** Collapsed sidebar rail (dark theme). */
 export const APP_BRAND_LOGO_DARK_COLLAPSE = "/dark_collapse.png";
-/** Collapsed rail + login (`public/collapse_logo.png`) — replaces per-theme light/dark collapse assets. */
-export const APP_BRAND_LOGO_COLLAPSE_FILE = "/collapse_logo.png";
+/** Collapsed rail + login use the same mark as browser favicon. */
+export const APP_BRAND_LOGO_COLLAPSE_FILE = "/favicon.svg";
 
-/** Full wordmark: match landing nav (`height={52}`, `maxWidth: 270`). */
-export const APP_BRAND_LOGO_HEIGHT = 52;
-export const APP_BRAND_LOGO_MAX_WIDTH = 270;
+/** Full wordmark: slightly larger across landing, auth, and sidebars. */
+export const APP_BRAND_LOGO_HEIGHT = 58;
+export const APP_BRAND_LOGO_MAX_WIDTH = 300;
 /** Collapsed mark max width (square-ish); height uses {@link APP_BRAND_LOGO_HEIGHT} for consistent brand scale. */
-export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 64;
+export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 72;
 /** Narrow collapsed rail: slightly smaller mark so it fits the icon strip cleanly. */
-export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 38;
-export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 48;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 44;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 56;
 /** @deprecated Use `APP_BRAND_LOGO_LIGHT_COLLAPSE`. */
 export const APP_BRAND_LOGO_COLLAPSE = APP_BRAND_LOGO_LIGHT_COLLAPSE;
 /** @deprecated Use `APP_BRAND_LOGO_DARK_COLLAPSE`. */

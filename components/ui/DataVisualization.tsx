@@ -203,6 +203,25 @@ export const StatCard = ({
     );
   }
 
+  const changeBadgeStyle =
+    trend === "up"
+      ? {
+          background: "rgba(37, 99, 235, 0.12)",
+          color: "var(--color-primary)",
+          border: "1px solid rgba(37, 99, 235, 0.28)",
+        }
+      : trend === "down"
+        ? {
+            background: "rgba(239, 68, 68, 0.1)",
+            color: "#dc2626",
+            border: "1px solid rgba(239, 68, 68, 0.22)",
+          }
+        : {
+            background: "var(--color-surface-secondary)",
+            color: "var(--color-text-muted)",
+            border: "1px solid var(--color-border)",
+          };
+
   return (
     <div className="card-enhanced kpi-card ms-hover-scale">
       <div style={{ 
@@ -242,12 +261,12 @@ export const StatCard = ({
         </h3>
         {change && (
           <span style={{ 
-            background: trend === 'up' ? '#2563EB' : trend === 'down' ? '#ff6b6b' : '#888',
-            color: '#000000',
+            ...changeBadgeStyle,
             padding: '4px 12px', 
             borderRadius: '20px', 
             fontSize: '12px', 
-            fontWeight: '600' 
+            fontWeight: '600',
+            lineHeight: 1.2
           }}>
             {change}
           </span>

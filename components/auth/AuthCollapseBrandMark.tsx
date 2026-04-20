@@ -26,10 +26,10 @@ export function AuthCollapseBrandMark({ marginBottom = 24, style }: AuthCollapse
     >
       <AppBrandLogoLockup
         collapsed
-        height={56}
+        height={64}
         style={{
-          height: 56,
-          maxWidth: 56,
+          height: 64,
+          maxWidth: 64,
           width: "auto",
           objectFit: "contain",
           filter: "drop-shadow(0 12px 28px rgba(37, 99, 235, 0.22))",

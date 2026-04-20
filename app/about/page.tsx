@@ -37,7 +37,7 @@ export default function AboutPage() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
-            About Outriva
+            About Rift Reach
           </h1>
           <p style={{ fontSize: '20px', color: 'var(--color-text-muted)', maxWidth: '700px', margin: '0 auto', lineHeight: '1.7' }}>
             We're building the future of sales automation, making AI-powered outreach accessible to teams of all sizes.
@@ -50,7 +50,7 @@ export default function AboutPage() {
             Our Mission
           </h2>
           <p style={{ fontSize: '18px', color: 'var(--color-text-muted)', lineHeight: '1.8', margin: 0 }}>
-            At Outriva, we believe that every sales team deserves access to enterprise-grade AI tools. 
+            At Rift Reach, we believe that every sales team deserves access to enterprise-grade AI tools. 
             Our mission is to democratize AI-powered sales automation, helping businesses of all sizes 
             scale their outreach, find better leads, and close more deals—without the complexity.
           </p>

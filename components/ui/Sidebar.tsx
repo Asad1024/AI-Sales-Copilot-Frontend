@@ -100,6 +100,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
   const showCollapsedDividers = collapsed && !isMobile;
+  const sidebarOpenLogoHeight = APP_BRAND_LOGO_HEIGHT;
+  const sidebarOpenHeaderHeight = 64;
 
   const sidebarWidth = isMobile ? Math.min(288, typeof window !== "undefined" ? window.innerWidth : 288) : collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
 
@@ -267,8 +269,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div
           className="sidebar-premium-logo"
           style={{
-            height: collapsed && !isMobile ? 78 : 56,
-            minHeight: collapsed && !isMobile ? 78 : 56,
+            height: collapsed && !isMobile ? 78 : sidebarOpenHeaderHeight,
+            minHeight: collapsed && !isMobile ? 78 : sidebarOpenHeaderHeight,
             /* Align logo top with app PageHeader title row (header uses paddingTop 12px) */
             paddingTop: collapsed && !isMobile ? 12 : 0,
             paddingBottom: 0,
@@ -300,7 +302,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <AppBrandLogoLockup
               collapsed={collapsed && !isMobile}
-              height={collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT : APP_BRAND_LOGO_HEIGHT}
+              height={collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT : sidebarOpenLogoHeight}
               style={{
                 maxWidth:
                   collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH : APP_BRAND_LOGO_MAX_WIDTH,

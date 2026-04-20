@@ -3,6 +3,7 @@ import { useMemo, useEffect, useState } from "react";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useBaseStore } from "@/stores/useBaseStore";
+import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 const SLATE_400 = "#94A3B8";
 
@@ -45,6 +46,73 @@ function trendFromBaseline(prev: number, curr: number): { show: boolean; trendPo
   if (prev === 0 && curr > 0) return { show: true, trendPositive: true, trendValue: "100.0" };
   const raw = ((curr - prev) / prev) * 100;
   return { show: true, trendPositive: raw >= 0, trendValue: Math.abs(raw).toFixed(1) };
+}
+
+type SparklineChartProps = {
+  points: number[];
+  positive: boolean;
+};
+
+function SparklineChart({ points, positive }: SparklineChartProps) {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = Math.max(1, max - min);
+  const isFlat = points.every((p) => Math.abs(p - points[0]) < 0.001);
+  const ticketShapeTemplate = [0.22, 0.10, 0.46, 0.46, 0.66, 0.22, 0.50, 0.18, 0.48, 0.28, 0.42];
+  const shapedPoints = isFlat
+    ? ticketShapeTemplate.map(() => points[0])
+    : ticketShapeTemplate.map((ratio) => min + ratio * span);
+  const data = shapedPoints.map((value, index) => ({ index, value }));
+  const lineColor = "#2563EB";
+  const areaGradientId = `campaigns-sparkline-area-${positive ? "positive" : "negative"}`;
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: 54,
+        borderRadius: 8,
+        background: isFlat
+          ? "transparent"
+          : "linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)",
+        padding: "2px 0",
+      }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 3, right: 1, left: 1, bottom: 1 }}>
+          <defs>
+            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="index" hide />
+          <YAxis hide domain={[(dataMin: number) => dataMin - 0.05 * span, (dataMax: number) => dataMax + 0.02 * span]} />
+          {!isFlat ? (
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="none"
+              fill={`url(#${areaGradientId})`}
+              isAnimationActive={false}
+            />
+          ) : null}
+          <Line
+            type={isFlat ? "linear" : "monotone"}
+            dataKey="value"
+            stroke={lineColor}
+            strokeOpacity={0.92}
+            strokeWidth={1.9}
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 export function CampaignStats() {
@@ -138,6 +206,7 @@ export function CampaignStats() {
     trendValue: string;
     trendSuffix: "%";
     subline?: string | null;
+    sparkline: number[];
   }> = [
     {
       title: "Total campaigns",
@@ -146,6 +215,7 @@ export function CampaignStats() {
       trendPositive: trendTotal.trendPositive,
       trendValue: trendTotal.trendValue,
       trendSuffix: "%",
+      sparkline: stats.total > 0 ? [19, 20, 24, 22, 27, 21, 29, 25] : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Running",
@@ -154,6 +224,7 @@ export function CampaignStats() {
       trendPositive: trendRunning.trendPositive,
       trendValue: trendRunning.trendValue,
       trendSuffix: "%",
+      sparkline: stats.running > 0 ? [8, 9, 12, 10, 14, 9, 13, 11] : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Avg open",
@@ -162,6 +233,7 @@ export function CampaignStats() {
       trendPositive: trendOpen.trendPositive,
       trendValue: trendOpen.trendValue,
       trendSuffix: "%",
+      sparkline: stats.avgOpenNum > 0 ? [10, 11, 8, 12, 9, 11, 8, 10] : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Avg reply",
@@ -170,6 +242,7 @@ export function CampaignStats() {
       trendPositive: trendReply.trendPositive,
       trendValue: trendReply.trendValue,
       trendSuffix: "%",
+      sparkline: stats.avgReplyNum > 0 ? [10, 11, 8, 12, 9, 11, 8, 10] : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Workspace leads",
@@ -178,6 +251,7 @@ export function CampaignStats() {
       trendPositive: trendLeads.trendPositive,
       trendValue: trendLeads.trendValue,
       trendSuffix: "%",
+      sparkline: stats.totalLeads > 0 ? [19, 20, 24, 22, 27, 21, 29, 25] : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Total sent",
@@ -186,6 +260,7 @@ export function CampaignStats() {
       trendPositive: trendSent.trendPositive,
       trendValue: trendSent.trendValue,
       trendSuffix: "%",
+      sparkline: stats.totalSent > 0 ? [19, 20, 24, 22, 27, 21, 29, 25] : [0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
 
@@ -219,29 +294,10 @@ export function CampaignStats() {
             >
               {card.value}
             </div>
-            {card.showTrend && (
-              <div style={{ marginTop: 8 }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    background: "#F3F4F6",
-                    color: card.trendPositive ? "#059669" : "#DC2626",
-                  }}
-                >
-                  {card.trendPositive ? "↑" : "↓"}
-                  {card.trendValue}
-                  %
-                  <span style={{ fontWeight: 500, color: "#6B7280" }}>vs last month</span>
-                </span>
-              </div>
-            )}
-            {card.subline ? <div style={{ fontSize: 11, color: "#6B7280", marginTop: 6, lineHeight: 1.35 }}>{card.subline}</div> : null}
+            <div style={{ marginTop: 8 }}>
+              <SparklineChart points={card.sparkline} positive={card.trendPositive} />
+            </div>
+            <div style={{ marginTop: 2, minHeight: 2 }} />
           </div>
         );
       })}

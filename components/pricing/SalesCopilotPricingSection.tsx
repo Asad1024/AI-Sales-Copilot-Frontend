@@ -641,7 +641,7 @@ export default function SalesCopilotPricingSection({
             <Icons.Sparkles size={14} />
             Pricing
           </div>
-          <h2 className="section-title">Outriva Plans</h2>
+          <h2 className="section-title">Rift Reach Plans</h2>
           <p className="section-subtitle scp-landing-pricing-lead">
             Choose a tier, add voice anytime, or go Enterprise. Stripe handles billing.
           </p>

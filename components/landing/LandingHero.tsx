@@ -66,7 +66,7 @@ export default function LandingHero({ onStartTrial, inputSlot, belowInputSlot, f
           </p>
 
           <p className="mt-6 text-sm leading-snug text-[color:var(--color-text-muted)]">
-            <span className="font-medium text-[color:var(--color-text)]">500+</span> teams already growing with Outriva
+            <span className="font-medium text-[color:var(--color-text)]">500+</span> teams already growing with Rift Reach
           </p>
         </div>
 

@@ -5076,7 +5076,7 @@ export default function CampaignNew() {
                     className="input"
                     value={senderCompany}
                     onChange={(e) => setSenderCompany(e.target.value)}
-                    placeholder="e.g., Outriva"
+                    placeholder="e.g., Rift Reach"
                     style={{
                       width: "100%",
                       padding: "12px 16px",

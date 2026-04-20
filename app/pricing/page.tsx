@@ -27,8 +27,8 @@ export default function PricingPage() {
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
             <div
               style={{
-                height: "40px",
-                width: "40px",
+                height: "52px",
+                width: "52px",
                 borderRadius: "12px",
                 background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
                 display: "flex",
@@ -36,20 +36,20 @@ export default function PricingPage() {
                 justifyContent: "center",
               }}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
               </svg>
             </div>
             <span
               style={{
-                fontSize: "20px",
+                fontSize: "24px",
                 fontWeight: "700",
                 background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Outriva
+              Rift Reach
             </span>
           </Link>
           <div style={{ display: "flex", gap: "12px" }}>
@@ -65,7 +65,7 @@ export default function PricingPage() {
         <SalesCopilotPricingSection
           variant="portal"
           enableCheckout={false}
-          pageTitle="Outriva pricing"
+          pageTitle="Rift Reach pricing"
           intro="All prices in AED. Setup is one-time; monthly plans include enriched lead quotas and omni-channel outreach. Calling replaces the standard setup fee when enabled."
         />
 

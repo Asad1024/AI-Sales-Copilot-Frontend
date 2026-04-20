@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { apiRequest, getUser } from "@/lib/apiClient";
 import { shouldRestrictWorkspaceManagement } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
@@ -13,6 +14,93 @@ import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
+
+type OverviewMetric = {
+  title: string;
+  value: string;
+  trendPositive: boolean;
+  sparkline: number[];
+};
+
+const metricLabelStyle = {
+  fontSize: 12,
+  fontWeight: 600 as const,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+};
+
+function isMutedMetricValue(value: string): boolean {
+  const t = value.trim();
+  if (t === "—" || t === "") return false;
+  if (t === "0" || t === "0%") return true;
+  if (/^0\.0+%$/.test(t)) return true;
+  const normalized = t.replace(/,/g, "");
+  if (normalized === "0%") return true;
+  const n = parseFloat(normalized.replace("%", ""));
+  return !Number.isNaN(n) && n === 0;
+}
+
+function SparklineChart({ points, positive }: { points: number[]; positive: boolean }) {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = Math.max(1, max - min);
+  const isFlat = points.every((p) => Math.abs(p - points[0]) < 0.001);
+  const ticketShapeTemplate = [0.22, 0.10, 0.46, 0.46, 0.66, 0.22, 0.50, 0.18, 0.48, 0.28, 0.42];
+  const shapedPoints = isFlat
+    ? ticketShapeTemplate.map(() => points[0])
+    : ticketShapeTemplate.map((ratio) => min + ratio * span);
+  const data = shapedPoints.map((value, index) => ({ index, value }));
+  const lineColor = "#2563EB";
+  const areaGradientId = `bases-sparkline-area-${positive ? "positive" : "negative"}`;
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: 54,
+        borderRadius: 8,
+        background: isFlat
+          ? "transparent"
+          : "linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)",
+        padding: "2px 0",
+      }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 3, right: 1, left: 1, bottom: 1 }}>
+          <defs>
+            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="index" hide />
+          <YAxis hide domain={[(dataMin: number) => dataMin - 0.05 * span, (dataMax: number) => dataMax + 0.02 * span]} />
+          {!isFlat ? (
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="none"
+              fill={`url(#${areaGradientId})`}
+              isAnimationActive={false}
+            />
+          ) : null}
+          <Line
+            type={isFlat ? "linear" : "monotone"}
+            dataKey="value"
+            stroke={lineColor}
+            strokeOpacity={0.92}
+            strokeWidth={1.9}
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 export default function BasesPage() {
   const router = useRouter();
@@ -184,6 +272,48 @@ export default function BasesPage() {
     (basesLoading && bases.length === 0) ||
     (bases.length > 0 && filtered.length > 0 && statsLoadingAny);
 
+  const totals = useMemo(() => {
+    let leads = 0;
+    let campaigns = 0;
+    let enriched = 0;
+    let scored = 0;
+    for (const b of filtered) {
+      const s = baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 };
+      leads += Number(s.leads || 0);
+      campaigns += Number(s.campaigns || 0);
+      enriched += Number(s.enriched || 0);
+      scored += Number(s.scored || 0);
+    }
+    return { leads, campaigns, enriched, scored };
+  }, [filtered, baseQuickStats]);
+
+  const overviewMetrics: OverviewMetric[] = [
+    {
+      title: "Total workspaces",
+      value: String(filtered.length),
+      trendPositive: true,
+      sparkline: filtered.length > 0 ? [8, 9, 12, 10, 14, 9, 13, 11] : [0, 0, 0, 0, 0, 0, 0, 0],
+    },
+    {
+      title: "Workspace leads",
+      value: totals.leads.toLocaleString(),
+      trendPositive: true,
+      sparkline: totals.leads > 0 ? [19, 20, 24, 22, 27, 21, 29, 25] : [0, 0, 0, 0, 0, 0, 0, 0],
+    },
+    {
+      title: "Active campaigns",
+      value: totals.campaigns.toLocaleString(),
+      trendPositive: true,
+      sparkline: totals.campaigns > 0 ? [8, 9, 12, 10, 14, 9, 13, 11] : [0, 0, 0, 0, 0, 0, 0, 0],
+    },
+    {
+      title: "Enriched leads",
+      value: totals.enriched.toLocaleString(),
+      trendPositive: true,
+      sparkline: totals.enriched > 0 ? [10, 11, 8, 12, 9, 11, 8, 10] : [0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  ];
+
   if (basesPageBlocking) {
     return <GlobalPageLoader layout="page" ariaLabel="Loading workspaces" />;
   }
@@ -304,6 +434,46 @@ export default function BasesPage() {
                 Go to dashboard
               </button>
             </div>
+          </div>
+        )}
+
+        {filtered.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            {overviewMetrics.map((card) => {
+              const valueMuted = isMutedMetricValue(String(card.value));
+              return (
+                <div key={card.title} className="dashboard-stat-card" style={{ padding: "10px 12px 12px" }}>
+                  <div style={{ marginBottom: 6 }}>
+                    <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block" }}>
+                      {card.title}
+                    </span>
+                  </div>
+                  <div
+                    className="dashboard-stat-value"
+                    style={{
+                      fontSize: 28,
+                      fontWeight: card.title === "Workspace leads" ? 600 : 800,
+                      letterSpacing: "-0.035em",
+                      lineHeight: 1.12,
+                      color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
+                      fontFamily: "Inter, -apple-system, sans-serif",
+                    }}
+                  >
+                    {card.value}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <SparklineChart points={card.sparkline} positive={card.trendPositive} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 

@@ -74,9 +74,9 @@ export default function ContactPage() {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {[
-                  { icon: '📧', label: 'Email', value: 'hello@outriva.com' },
-                  { icon: '💬', label: 'Support', value: 'support@outriva.com' },
-                  { icon: '🌐', label: 'Website', value: 'www.outriva.com' }
+                  { icon: '📧', label: 'Email', value: 'hello@riftreach.com' },
+                  { icon: '💬', label: 'Support', value: 'support@riftreach.com' },
+                  { icon: '🌐', label: 'Website', value: 'www.riftreach.com' }
                 ].map((contact, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ fontSize: '24px' }}>{contact.icon}</div>

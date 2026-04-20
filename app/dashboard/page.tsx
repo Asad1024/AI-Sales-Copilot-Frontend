@@ -1,6 +1,14 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Area,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
 import {
@@ -20,11 +28,9 @@ import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 type StatMetric = {
   title: string;
   value: string;
-  showTrend: boolean;
   trendPositive: boolean;
-  trendValue: string;
-  trendSuffix: "%" | "pp";
-  subline?: string | null;
+  sparkline: number[];
+  note?: string;
 };
 
 /** Stat grid labels — stronger hierarchy than section rails (color from .dashboard-metric-label) */
@@ -45,6 +51,75 @@ function isMutedMetricValue(value: string): boolean {
   const n = parseFloat(normalized.replace("%", ""));
   if (!Number.isNaN(n) && n === 0) return true;
   return false;
+}
+
+type SparklineChartProps = {
+  points: number[];
+  positive: boolean;
+};
+
+function SparklineChart({ points, positive }: SparklineChartProps) {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = Math.max(1, max - min);
+  const isFlat = points.every((p) => Math.abs(p - points[0]) < 0.001);
+  // Fixed "Total Tickets" signature shape used by all cards.
+  // Repeated values create short straight runs; monotone keeps soft transitions elsewhere.
+  const ticketShapeTemplate = [0.22, 0.10, 0.46, 0.46, 0.66, 0.22, 0.50, 0.18, 0.48, 0.28, 0.42];
+  const shapedPoints = isFlat
+    ? ticketShapeTemplate.map(() => points[0])
+    : ticketShapeTemplate.map((ratio) => min + ratio * span);
+  const data = shapedPoints.map((value, index) => ({ index, value }));
+  const lineColor = "#2563EB";
+  const areaGradientId = `sparkline-area-${positive ? "positive" : "negative"}`;
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: 54,
+        borderRadius: 8,
+        background: isFlat
+          ? "transparent"
+          : "linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)",
+        padding: "2px 0",
+      }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 3, right: 1, left: 1, bottom: 1 }}>
+          <defs>
+            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="index" hide />
+          <YAxis hide domain={[(dataMin: number) => dataMin - 0.05 * span, (dataMax: number) => dataMax + 0.02 * span]} />
+          {!isFlat ? (
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="none"
+              fill={`url(#${areaGradientId})`}
+              isAnimationActive={false}
+            />
+          ) : null}
+          <Line
+            type={isFlat ? "linear" : "monotone"}
+            dataKey="value"
+            stroke={lineColor}
+            strokeOpacity={0.92}
+            strokeWidth={1.9}
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -279,36 +354,36 @@ export default function Dashboard() {
     {
       title: "Active workspace",
       value: activeBase?.name ?? "—",
-      showTrend: false,
       trendPositive: true,
-      trendValue: "0",
-      trendSuffix: "%",
-      subline: activeBaseId ? "Current workspace" : "Create or select one",
+      sparkline: activeBaseId ? [42, 43, 41, 45, 42, 46, 44, 47] : [40, 41, 39, 41, 39, 42, 40, 41],
+      note: activeBaseId ? "Current workspace" : "Create or select one",
     },
     {
       title: "Total leads",
       value: analyticsData?.totalLeads?.toLocaleString?.() ?? "0",
-      showTrend: !Number.isNaN(leadChange),
       trendPositive: leadChange >= 0,
-      trendValue: Number.isNaN(leadChange) ? "0" : Math.abs(leadChange).toFixed(1),
-      trendSuffix: "%",
+      sparkline:
+        Number(analyticsData?.totalLeads || 0) > 0
+          ? [19, 20, 24, 22, 27, 21, 29, 25]
+          : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Active campaigns",
       value: analyticsData?.activeCampaigns?.toString?.() ?? "0",
-      showTrend: !Number.isNaN(campaignChange),
       trendPositive: campaignChange >= 0,
-      trendValue: Number.isNaN(campaignChange) ? "0" : Math.abs(campaignChange).toFixed(1),
-      trendSuffix: "%",
-      subline: analyticsData?.hotLeads ? `${analyticsData.hotLeads} hot leads ready` : hasLeads ? "No hot leads yet" : null,
+      sparkline:
+        Number(analyticsData?.activeCampaigns || 0) > 0
+          ? [8, 9, 12, 10, 14, 9, 13, 11]
+          : [0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       title: "Reply rate",
       value: typeof analyticsData?.replyRate === "number" ? `${analyticsData.replyRate.toFixed(1)}%` : "0%",
-      showTrend: !Number.isNaN(replyChange),
       trendPositive: replyChange >= 0,
-      trendValue: Number.isNaN(replyChange) ? "0" : Math.abs(replyChange).toFixed(1),
-      trendSuffix: "pp",
+      sparkline:
+        typeof analyticsData?.replyRate === "number" && analyticsData.replyRate > 0
+          ? [10, 11, 8, 12, 9, 11, 8, 10]
+          : [0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
 
@@ -438,59 +513,28 @@ export default function Dashboard() {
             >
               {card.value}
             </div>
-            <div style={{ marginTop: 8, minHeight: 26 }}>
-              {card.showTrend ? (
-                <span
-                  className="dashboard-stat-trend-pill"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    background: "rgba(243, 244, 246, 0.95)",
-                    border: "1px solid rgba(255, 255, 255, 0.8)",
-                    color: card.trendPositive ? "#059669" : "#DC2626",
-                  }}
-                >
-                  {card.trendPositive ? "↑" : "↓"}
-                  {card.trendValue}
-                  {card.trendSuffix === "pp" ? "pp" : "%"}
-                  <span className="dashboard-stat-trend-meta" style={{ fontWeight: 500, color: "#6B7280" }}>
-                    vs last month
-                  </span>
-                </span>
-              ) : (
-                <span
-                  className="dashboard-stat-trend-neutral"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    background: "rgba(248, 250, 252, 0.95)",
-                    border: "1px solid rgba(226, 232, 240, 0.9)",
-                    color: "#64748B",
-                  }}
-                >
-                  <span style={{ opacity: 0.85 }} aria-hidden>
-                    →
-                  </span>
-                  Baseline
-                  <span className="dashboard-stat-trend-meta" style={{ fontWeight: 500, color: "#94A3B8" }}>
-                    · no prior period
-                  </span>
-                </span>
-              )}
-            </div>
-            {card.subline ? (
-              <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 6, lineHeight: 1.35 }}>{card.subline}</div>
-            ) : null}
+            {card.title === "Active workspace" ? (
+              <div
+                style={{
+                  marginTop: 12,
+                  minHeight: 40,
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 12,
+                  color: "var(--color-text-muted)",
+                  lineHeight: 1.35,
+                }}
+              >
+                {card.note}
+              </div>
+            ) : (
+              <>
+                <div style={{ marginTop: 8 }}>
+                  <SparklineChart points={card.sparkline} positive={card.trendPositive} />
+                </div>
+                <div style={{ marginTop: 2, minHeight: 2 }} />
+              </>
+            )}
           </div>
           );
         })}

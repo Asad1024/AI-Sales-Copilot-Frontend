@@ -111,13 +111,13 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
     if (pathname.startsWith("/upgrade")) {
       return {
         title: "Plans & upgrade",
-        description: "Outriva pricing and Stripe checkout (when configured).",
+        description: "Rift Reach pricing and Stripe checkout (when configured).",
       };
     }
     if (pathname.startsWith("/pricing")) {
       return {
         title: "Pricing",
-        description: "Outriva plans in AED and Stripe-powered checkout when enabled.",
+        description: "Rift Reach plans in AED and Stripe-powered checkout when enabled.",
       };
     }
     if (pathname.startsWith("/notifications")) {

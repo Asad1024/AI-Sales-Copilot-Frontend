@@ -354,7 +354,7 @@ export default function LandingPage() {
       name: 'Sarah Chen',
       role: 'VP of Sales',
       company: 'TechCorp',
-      quote: "Outriva transformed our outbound process. We went from 50 meetings/month to 200+ while our team actually got smaller. The AI personalization is incredible.",
+      quote: "Rift Reach transformed our outbound process. We went from 50 meetings/month to 200+ while our team actually got smaller. The AI personalization is incredible.",
       avatar: '#2563EB'
     },
     {
@@ -385,7 +385,7 @@ export default function LandingPage() {
         "Yes! We offer a 14-day free trial with full access to all features. No credit card required. You can generate up to 1,000 leads and send 500 emails during your trial to see real results.",
     },
     {
-      question: "How does Outriva prevent emails from going to spam?",
+      question: "How does Rift Reach prevent emails from going to spam?",
       answer:
         "We use AI-powered deliverability optimization including inbox warming, domain health monitoring, sending pattern analysis, and content optimization. Our customers see 98%+ inbox placement rates.",
     },
@@ -397,7 +397,7 @@ export default function LandingPage() {
     {
       question: "What integrations are available?",
       answer:
-        "Outriva integrates with all major CRMs (Salesforce, HubSpot, Pipedrive, Zoho), email providers (Gmail, Outlook, SMTP), LinkedIn, Slack, Zapier, and 100+ other tools via our API.",
+        "Rift Reach integrates with all major CRMs (Salesforce, HubSpot, Pipedrive, Zoho), email providers (Gmail, Outlook, SMTP), LinkedIn, Slack, Zapier, and 100+ other tools via our API.",
     },
   ];
   
@@ -2376,7 +2376,7 @@ export default function LandingPage() {
             <h2 id="integrations-heading" className="section-title">
               Works With Your Stack
             </h2>
-            <p className="section-subtitle">Connect Outriva with your favorite tools</p>
+            <p className="section-subtitle">Connect Rift Reach with your favorite tools</p>
           </RevealOnView>
 
           <div className="integrations-desktop hidden md:block">
@@ -2406,7 +2406,7 @@ export default function LandingPage() {
             <Icons.Play size={14} />
             Product Demo
           </div>
-          <h2 className="section-title">See Outriva in Action</h2>
+          <h2 className="section-title">See Rift Reach in Action</h2>
           <p className="section-subtitle">
             Watch how our AI transforms your sales workflow in under 3 minutes
           </p>
@@ -2488,7 +2488,7 @@ export default function LandingPage() {
             </div>
             <h2 className="section-title">Loved by Sales Teams</h2>
             <p className="section-subtitle">
-              See what our customers have to say about Outriva
+              See what our customers have to say about Rift Reach
             </p>
           </RevealOnView>
 
@@ -2514,7 +2514,7 @@ export default function LandingPage() {
             </div>
             <h2 className="section-title faq-section-title">Frequently Asked Questions</h2>
             <p className="section-subtitle">
-              Everything you need to know about Outriva
+              Everything you need to know about Rift Reach
             </p>
           </RevealOnView>
 
@@ -2562,13 +2562,13 @@ export default function LandingPage() {
               </div>
               <p>Your AI-powered workspace to scale outreach and close more deals.</p>
               <div className="footer-social">
-                <Link href="/about" className="social-link" aria-label="Outriva on LinkedIn">
+                <Link href="/about" className="social-link" aria-label="Rift Reach on LinkedIn">
                   <Icons.Linkedin size={18} />
                 </Link>
-                <Link href="/contact" className="social-link" aria-label="Contact Outriva">
+                <Link href="/contact" className="social-link" aria-label="Contact Rift Reach">
                   <Icons.MessageCircle size={18} />
                 </Link>
-                <Link href="/auth/signup" className="social-link" aria-label="Email Outriva">
+                <Link href="/auth/signup" className="social-link" aria-label="Email Rift Reach">
                   <Icons.Mail size={18} />
                 </Link>
               </div>
@@ -2600,7 +2600,7 @@ export default function LandingPage() {
           </RevealOnView>
 
           <RevealOnView className="footer-bottom">
-            <span className="footer-copyright">© 2026 Outriva. All rights reserved.</span>
+            <span className="footer-copyright">© 2026 Rift Reach. All rights reserved.</span>
             <div className="footer-links">
               <Link href="/privacy">Privacy Policy</Link>
               <span className="footer-links-sep" aria-hidden>

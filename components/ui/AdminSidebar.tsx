@@ -155,6 +155,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const refreshUnreadCount = useNotificationStore((s) => s.refreshUnreadCount);
+  const sidebarOpenLogoHeight = APP_BRAND_LOGO_HEIGHT;
+  const sidebarOpenHeaderHeight = 64;
 
   const sidebarWidth = isMobile
     ? Math.min(288, typeof window !== "undefined" ? window.innerWidth : 288)
@@ -365,8 +367,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <div
           className="sidebar-premium-logo"
           style={{
-            height: 56,
-            minHeight: 56,
+            height: collapsed && !isMobile ? 56 : sidebarOpenHeaderHeight,
+            minHeight: collapsed && !isMobile ? 56 : sidebarOpenHeaderHeight,
             paddingTop: 0,
             paddingBottom: 0,
             paddingRight: collapsed && !isMobile ? 10 : 12,
@@ -396,7 +398,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           >
             <AppBrandLogoLockup
               collapsed={collapsed && !isMobile}
-              height={APP_BRAND_LOGO_HEIGHT}
+              height={collapsed && !isMobile ? APP_BRAND_LOGO_HEIGHT : sidebarOpenLogoHeight}
               style={{
                 maxWidth: collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH : APP_BRAND_LOGO_MAX_WIDTH,
               }}

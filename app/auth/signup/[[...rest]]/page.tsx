@@ -366,7 +366,7 @@ export default function SignupPage() {
               lineHeight: "1.6",
               margin: "0 0 12px 0"
             }}>
-              "Outriva transformed how we approach outbound. We're booking 3x more meetings with half the effort."
+              "Rift Reach transformed how we approach outbound. We're booking 3x more meetings with half the effort."
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{

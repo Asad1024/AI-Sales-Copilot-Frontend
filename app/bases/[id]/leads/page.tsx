@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { useNotification } from "@/context/NotificationContext";
@@ -34,6 +35,74 @@ const AddLinkedInLeadModal = dynamic(
   () => import("@/components/leads/AddLinkedInLeadModal").then((m) => ({ default: m.AddLinkedInLeadModal })),
   { ssr: false },
 );
+
+type SparklineChartProps = {
+  points: number[];
+  positive: boolean;
+};
+
+function SparklineChart({ points, positive }: SparklineChartProps) {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = Math.max(1, max - min);
+  const isFlat = points.every((p) => Math.abs(p - points[0]) < 0.001);
+  const ticketShapeTemplate = [0.22, 0.10, 0.46, 0.46, 0.66, 0.22, 0.50, 0.18, 0.48, 0.28, 0.42];
+  const shapedPoints = isFlat
+    ? ticketShapeTemplate.map(() => points[0])
+    : ticketShapeTemplate.map((ratio) => min + ratio * span);
+  const data = shapedPoints.map((value, index) => ({ index, value }));
+  const lineColor = "#2563EB";
+  const areaGradientId = `leads-sparkline-area-${positive ? "positive" : "negative"}`;
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: 54,
+        borderRadius: 8,
+        background: isFlat
+          ? "transparent"
+          : "linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)",
+        padding: "2px 0",
+      }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 3, right: 1, left: 1, bottom: 1 }}>
+          <defs>
+            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="index" hide />
+          <YAxis hide domain={[(dataMin: number) => dataMin - 0.05 * span, (dataMax: number) => dataMax + 0.02 * span]} />
+          {!isFlat ? (
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="none"
+              fill={`url(#${areaGradientId})`}
+              isAnimationActive={false}
+            />
+          ) : null}
+          <Line
+            type={isFlat ? "linear" : "monotone"}
+            dataKey="value"
+            stroke={lineColor}
+            strokeOpacity={0.92}
+            strokeWidth={1.9}
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function BaseLeadsPage() {
   const router = useRouter();
   const params = useParams();
@@ -547,18 +616,21 @@ export default function BaseLeadsPage() {
             value: pagination.totalLeads,
             hint: "Total records",
             icon: <Icons.Users size={18} strokeWidth={1.5} />,
+            sparkline: pagination.totalLeads > 0 ? [19, 20, 24, 22, 27, 21, 29, 25] : [0, 0, 0, 0, 0, 0, 0, 0],
           },
           {
             label: "On this page",
             value: filteredLeads.length,
             hint: "After filters",
             icon: <Icons.List size={18} strokeWidth={1.5} />,
+            sparkline: filteredLeads.length > 0 ? [10, 11, 8, 12, 9, 11, 8, 10] : [0, 0, 0, 0, 0, 0, 0, 0],
           },
           {
             label: "Selected",
             value: selectedLeads.length,
             hint: "Bulk actions",
             icon: <Icons.CheckCircle size={18} strokeWidth={1.5} />,
+            sparkline: selectedLeads.length > 0 ? [8, 9, 12, 10, 14, 9, 13, 11] : [0, 0, 0, 0, 0, 0, 0, 0],
           },
         ].map((stat) => (
           <div
@@ -595,6 +667,9 @@ export default function BaseLeadsPage() {
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: "var(--color-text)", marginTop: 4, lineHeight: 1 }}>
                 {stat.value.toLocaleString()}
+              </div>
+              <div style={{ marginTop: 8, maxWidth: 210 }}>
+                <SparklineChart points={stat.sparkline} positive={true} />
               </div>
               <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>{stat.hint}</div>
             </div>

@@ -148,7 +148,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          Get Started with Outriva
+          Get Started with Rift Reach
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0 }}>
           Follow these steps to set up your first campaign

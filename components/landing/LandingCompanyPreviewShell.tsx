@@ -250,7 +250,7 @@ export function LandingCompanyPreviewSearchInput({ className }: { className?: st
   );
 }
 
-export function LandingCompanyPreviewBody() {
+export function LandingCompanyPreviewBody({ showSignupCtas = true }: { showSignupCtas?: boolean }) {
   const {
     companyQuery,
     companySuggestions,
@@ -671,48 +671,50 @@ export function LandingCompanyPreviewBody() {
                   </div>
                 </div>
               ))}
-              <div
-                style={{
-                  borderTop: `1px solid ${variant === "hero" ? "var(--color-border-light)" : "var(--color-border)"}`,
-                  padding: "12px 14px",
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  background: "var(--color-surface)",
-                }}
-              >
-                <Link
-                  href="/auth/signup"
-                  className="landing-team-results-link"
-                  data-arrow-revealed={teamPreviewSeeFullArrowRevealed ? "true" : "false"}
-                  onMouseEnter={() => setTeamPreviewSeeFullArrowRevealed(true)}
-                >
-                  <span className="landing-team-results-text">See the full results</span>
-                  <span className="landing-team-results-arrow" aria-hidden>
-                    <ArrowRight size={16} strokeWidth={2} />
-                  </span>
-                </Link>
-                <Link
-                  href="/auth/signup"
+              {showSignupCtas ? (
+                <div
                   style={{
-                    display: "inline-flex",
+                    borderTop: `1px solid ${variant === "hero" ? "var(--color-border-light)" : "var(--color-border)"}`,
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexWrap: "wrap",
                     alignItems: "center",
-                    justifyContent: "center",
-                    padding: "10px 18px",
-                    borderRadius: 10,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "#ffffff",
-                    background: "#2563eb",
-                    boxShadow: "0 1px 2px rgba(37, 99, 235, 0.25)",
-                    flexShrink: 0,
+                    justifyContent: "space-between",
+                    gap: 12,
+                    background: "var(--color-surface)",
                   }}
                 >
-                  Sign-up for free
-                </Link>
-              </div>
+                  <Link
+                    href="/auth/signup"
+                    className="landing-team-results-link"
+                    data-arrow-revealed={teamPreviewSeeFullArrowRevealed ? "true" : "false"}
+                    onMouseEnter={() => setTeamPreviewSeeFullArrowRevealed(true)}
+                  >
+                    <span className="landing-team-results-text">See the full results</span>
+                    <span className="landing-team-results-arrow" aria-hidden>
+                      <ArrowRight size={16} strokeWidth={2} />
+                    </span>
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "10px 18px",
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      background: "#2563eb",
+                      boxShadow: "0 1px 2px rgba(37, 99, 235, 0.25)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Sign-up for free
+                  </Link>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </>

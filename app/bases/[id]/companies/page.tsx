@@ -165,7 +165,7 @@ export default function BaseCompaniesPage() {
                 <LandingCompanyPreviewHeroPills />
 
                 <div className="mt-6 min-w-0">
-                  <LandingCompanyPreviewBody />
+                  <LandingCompanyPreviewBody showSignupCtas={false} />
                 </div>
               </div>
             </div>

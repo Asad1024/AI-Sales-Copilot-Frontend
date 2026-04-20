@@ -145,8 +145,8 @@ export default function OnboardingPage() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{
-            width: "56px",
-            height: "56px",
+            width: "64px",
+            height: "64px",
             borderRadius: "16px",
             background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 48%, #06B6D4 100%)",
             display: "flex",
@@ -155,7 +155,7 @@ export default function OnboardingPage() {
             margin: "0 auto 16px",
             boxShadow: "0 8px 24px rgba(37, 99, 235, 0.3)"
           }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
           </div>
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
             margin: "0 0 8px 0",
             letterSpacing: "-0.02em"
           }}>
-            Welcome to Outriva
+            Welcome to Rift Reach
           </h1>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
             {skippedIntro

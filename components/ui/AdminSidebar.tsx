@@ -20,9 +20,8 @@ import {
   LogOut,
 } from "lucide-react";
 import {
-  APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH,
-  APP_BRAND_LOGO_HEIGHT,
-  APP_BRAND_LOGO_MAX_WIDTH,
+  APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT,
+  APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH,
   AppBrandLogoLockup,
 } from "@/components/ui/AppBrandLogo";
 import { getUser, clearAuth, type User } from "@/lib/apiClient";
@@ -155,7 +154,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const refreshUnreadCount = useNotificationStore((s) => s.refreshUnreadCount);
-  const sidebarOpenLogoHeight = APP_BRAND_LOGO_HEIGHT;
+  const sidebarOpenLogoHeight = 34;
+  const sidebarOpenLogoMaxWidth = 180;
   const sidebarOpenHeaderHeight = 72;
 
   const sidebarWidth = isMobile
@@ -398,9 +398,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           >
             <AppBrandLogoLockup
               collapsed={collapsed && !isMobile}
-              height={collapsed && !isMobile ? APP_BRAND_LOGO_HEIGHT : sidebarOpenLogoHeight}
+              height={collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT : sidebarOpenLogoHeight}
               style={{
-                maxWidth: collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH : APP_BRAND_LOGO_MAX_WIDTH,
+                maxWidth: collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH : sidebarOpenLogoMaxWidth,
               }}
             />
             {!(collapsed && !isMobile) && (

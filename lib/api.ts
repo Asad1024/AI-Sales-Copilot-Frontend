@@ -55,6 +55,7 @@ export type CompanyPreviewRecord = {
 };
 
 export type CompanyEmployeePreview = {
+  person_id?: string | null;
   full_name: string;
   title: string | null;
   email_masked: string | null;
@@ -332,6 +333,46 @@ export const api = {
     });
   },
 
+  /**
+   * Company-page test preview via Prospeo (authenticated, workspace scoped).
+   */
+  async fetchCompanyProspeoPreview(
+    baseId: number,
+    payload:
+      | string
+      | { name: string; company_id?: string | null; domain?: string | null; linkedin_url?: string | null; employee_limit?: number }
+  ) {
+    const body =
+      typeof payload === "string"
+        ? { name: payload.trim() }
+        : {
+            name: payload.name.trim(),
+            ...(payload.company_id != null && String(payload.company_id).trim() !== ""
+              ? { company_id: String(payload.company_id).trim() }
+              : {}),
+            ...(payload.domain != null && String(payload.domain).trim() !== ""
+              ? { domain: String(payload.domain).trim() }
+              : {}),
+            ...(payload.linkedin_url != null && String(payload.linkedin_url).trim() !== ""
+              ? { linkedin_url: String(payload.linkedin_url).trim() }
+              : {}),
+            ...(typeof payload.employee_limit === "number" && Number.isFinite(payload.employee_limit)
+              ? { employee_limit: Math.max(1, Math.min(50, Math.trunc(payload.employee_limit))) }
+              : {}),
+          };
+    return apiRequest<{
+      company_name: string;
+      company: CompanyPreviewRecord | null;
+      employees: CompanyEmployeePreview[];
+      employees_preview?: CompanyEmployeePreview[];
+      credits_charged?: number;
+      credits_balance?: number | null;
+    }>(`/api/bases/${baseId}/company-prospeo-preview`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
   /** Owner credit pool for a workspace (same as header wallet). */
   async getWorkspaceCreditsSummary(baseId: number) {
     return apiRequest<{
@@ -351,11 +392,19 @@ export const api = {
     );
   },
 
-  async getLandingCompanyDetails(paramsInput: { company_id?: string; domain?: string; name?: string }) {
+  async getLandingCompanyDetails(paramsInput: {
+    company_id?: string;
+    domain?: string;
+    name?: string;
+    employee_limit?: number;
+  }) {
     const params = new URLSearchParams();
     if (paramsInput.company_id) params.set("company_id", paramsInput.company_id);
     if (paramsInput.domain) params.set("domain", paramsInput.domain);
     if (paramsInput.name) params.set("name", paramsInput.name);
+    if (typeof paramsInput.employee_limit === "number" && Number.isFinite(paramsInput.employee_limit)) {
+      params.set("employee_limit", String(Math.max(1, Math.min(200, Math.trunc(paramsInput.employee_limit)))));
+    }
     return apiRequest<{
       company: CompanyPreviewRecord;
       employees_preview?: CompanyEmployeePreview[];
@@ -364,6 +413,45 @@ export const api = {
       `/api/ai/company-preview/details?${params.toString()}`,
       { skipAuth: true }
     );
+  },
+
+  async enrichCompanyPreviewPerson(
+    baseId: number,
+    payload: {
+      name?: string;
+      company_name?: string;
+      company_id?: string | null;
+      domain?: string | null;
+      person_id?: string | null;
+      linkedin_url?: string | null;
+      full_name?: string | null;
+    }
+  ) {
+    return apiRequest<{
+      accepted: boolean;
+      status: "queued" | "processing";
+      job_id: string;
+      enrichment_id: string;
+      person_id?: string | null;
+      full_name?: string | null;
+      linkedin_url?: string | null;
+    }>(`/api/bases/${baseId}/company-preview/enrich-person`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getCompanyPreviewEnrichPersonStatus(baseId: number, jobId: string) {
+    return apiRequest<{
+      job_id: string;
+      enrichment_id: string | null;
+      status: "queued" | "processing" | "completed" | "failed";
+      found: boolean;
+      contact: CompanyEmployeePreview | null;
+      error: string | null;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/bases/${baseId}/company-preview/enrich-person/${encodeURIComponent(jobId)}`);
   },
 
   async updateLead(id: number, updates: any) {

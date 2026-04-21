@@ -8,10 +8,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  ComposedChart,
   Line,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -71,6 +68,26 @@ type SparklineChartProps = {
   points: number[];
   positive: boolean;
   chartType: "step" | "bars" | "areaPulse";
+};
+
+type LeadTrendPoint = {
+  day: string;
+  leads: number;
+  conversions: number;
+};
+
+type ChannelOutcomeRow = {
+  channel: string;
+  sent: number;
+  engaged: number;
+  rate: number;
+};
+
+type TopCampaignRow = {
+  name: string;
+  sent: number;
+  replies: number;
+  rate: number;
 };
 
 function SparklineChart({ points, positive, chartType }: SparklineChartProps) {
@@ -556,118 +573,94 @@ export default function Dashboard() {
     const n = Number(value);
     return Number.isFinite(n) && n >= 0 ? n : 0;
   };
-  const parsedCampaigns = campaigns ?? [];
-  const dayLabels = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  const weeklyPerformanceData = useMemo(() => {
-    const thisWeek = Array(7).fill(0);
-    const lastWeek = Array(7).fill(0);
-    const now = new Date();
-    const startOfThisWeek = new Date(now);
-    startOfThisWeek.setHours(0, 0, 0, 0);
-    startOfThisWeek.setDate(now.getDate() - now.getDay());
-    const startOfLastWeek = new Date(startOfThisWeek);
-    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-    for (const c of parsedCampaigns) {
-      // Use launch timestamp only so the chart reflects exact campaign creation volume.
-      const stamp = c.created_at || c.updated_at;
-      if (!stamp) continue;
-      const d = new Date(stamp);
-      if (Number.isNaN(d.getTime())) continue;
-      const idx = d.getDay();
-      if (d >= startOfThisWeek) {
-        thisWeek[idx] += 1;
-      } else if (d >= startOfLastWeek && d < startOfThisWeek) {
-        lastWeek[idx] += 1;
-      }
-    }
-    return dayLabels.map((day, i) => ({ day, thisWeek: thisWeek[i], lastWeek: lastWeek[i] }));
-  }, [parsedCampaigns]);
-  const campaignStatusData = useMemo(() => {
-    const counts = { running: 0, draft: 0, paused: 0, completed: 0 };
-    for (const c of parsedCampaigns) {
-      if (c.status in counts) counts[c.status as keyof typeof counts] += 1;
-    }
-    return [
-      { name: "Running", value: counts.running, color: "var(--color-primary)" },
-      { name: "Draft", value: counts.draft, color: "#F8C8A9" },
-      { name: "Paused", value: counts.paused, color: "#FBE0CE" },
-      { name: "Completed", value: counts.completed, color: "color-mix(in srgb, var(--color-primary) 88%, #000000)" },
-    ].filter((item) => item.value > 0);
-  }, [parsedCampaigns]);
-  const sourceBreakdownData = useMemo(() => {
-    const counts: Record<string, number> = { Email: 0, LinkedIn: 0, WhatsApp: 0, Calls: 0 };
-    for (const c of parsedCampaigns) {
-      const channels = Array.isArray(c.channels) && c.channels.length > 0 ? c.channels : [c.channel];
-      for (const channel of channels) {
-        const key = String(channel || "").toLowerCase();
-        if (key === "email") counts.Email += 1;
-        if (key === "linkedin") counts.LinkedIn += 1;
-        if (key === "whatsapp") counts.WhatsApp += 1;
-        if (key === "call") counts.Calls += 1;
-      }
-    }
-    return Object.entries(counts).map(([source, campaigns]) => ({ source, campaigns }));
-  }, [parsedCampaigns]);
-  const channelResultsData = useMemo(() => {
-    const buckets: Record<string, { delivered: number; engaged: number }> = {
-      Email: { delivered: 0, engaged: 0 },
-      LinkedIn: { delivered: 0, engaged: 0 },
-      WhatsApp: { delivered: 0, engaged: 0 },
-      Calls: { delivered: 0, engaged: 0 },
-    };
-    for (const c of parsedCampaigns) {
-      const channels = Array.isArray(c.channels) && c.channels.length > 0 ? c.channels : [c.channel];
-      for (const channel of channels) {
-        const key = String(channel || "").toLowerCase();
-        if (key === "email" || key === "linkedin") {
-          buckets[key === "email" ? "Email" : "LinkedIn"].delivered += toSafeNumber(c.sent || c.delivered);
-          buckets[key === "email" ? "Email" : "LinkedIn"].engaged += toSafeNumber(c.replied) + toSafeNumber(c.clicked);
-        } else if (key === "whatsapp") {
-          buckets.WhatsApp.delivered += toSafeNumber(c.whatsapp_sent || c.sent);
-          buckets.WhatsApp.engaged += toSafeNumber(c.whatsapp_replied || c.replied);
-        } else if (key === "call") {
-          buckets.Calls.delivered += toSafeNumber(c.call_initiated || c.sent);
-          buckets.Calls.engaged += toSafeNumber(c.call_completed || c.replied);
-        }
-      }
-    }
-    return Object.entries(buckets).map(([channel, value]) => ({
-      channel,
-      delivered: value.delivered,
-      engaged: value.engaged,
-      ctr: value.delivered > 0 ? Math.round((value.engaged / value.delivered) * 100) : 0,
+  const periodLabel = (() => {
+    const p = String(analyticsData?.period || "30d").toLowerCase();
+    if (p === "7d") return "Last 7 days";
+    if (p === "90d") return "Last 90 days";
+    return "Last 30 days";
+  })();
+  const dailyPerformanceData = useMemo<LeadTrendPoint[]>(() => {
+    const rows = Array.isArray(analyticsData?.dailyTrends) ? analyticsData.dailyTrends : [];
+    return rows.map((row: any) => {
+      const d = new Date(String(row?.date || ""));
+      return {
+        day: Number.isNaN(d.getTime())
+          ? String(row?.date || "")
+          : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        leads: toSafeNumber(row?.leads),
+        conversions: toSafeNumber(row?.conversions),
+      };
+    });
+  }, [analyticsData?.dailyTrends]);
+  const fallbackLeadTrendData = useMemo<LeadTrendPoint[]>(() => {
+    const hist = Array.isArray(metricHistory?.leads) ? metricHistory.leads.slice(-10) : [];
+    return hist.map((value, index, arr) => ({
+      day: `T-${arr.length - 1 - index}`,
+      leads: toSafeNumber(value),
+      conversions: 0,
     }));
-  }, [parsedCampaigns]);
-  const monthlyConversionsData = useMemo(() => {
-    const months: { month: string; current: Date; launched: number; engaged: number }[] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i -= 1) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        month: d.toLocaleString("en-US", { month: "short" }).toUpperCase(),
-        current: d,
-        launched: 0,
-        engaged: 0,
-      });
-    }
-    for (const c of parsedCampaigns) {
-      const stamp = c.created_at || c.updated_at;
-      if (!stamp) continue;
-      const d = new Date(stamp);
-      if (Number.isNaN(d.getTime())) continue;
-      const idx = months.findIndex((m) => m.current.getFullYear() === d.getFullYear() && m.current.getMonth() === d.getMonth());
-      if (idx === -1) continue;
-      months[idx].launched += 1;
-      // Exact at campaign level: count launched campaigns that have any engagement.
-      const hasEngagement =
-        toSafeNumber(c.replied) > 0 ||
-        toSafeNumber(c.converted) > 0 ||
-        toSafeNumber(c.whatsapp_replied) > 0 ||
-        toSafeNumber(c.call_answered) > 0;
-      months[idx].engaged += hasEngagement ? 1 : 0;
-    }
-    return months.map(({ month, launched, engaged }) => ({ month, launched, engaged }));
-  }, [parsedCampaigns]);
+  }, [metricHistory?.leads]);
+  const hasDailyActivityData = dailyPerformanceData.some((row) => row.leads > 0 || row.conversions > 0);
+  const hasFallbackLeadData = fallbackLeadTrendData.some((row) => row.leads > 0);
+  const resolvedLeadTrendData = hasDailyActivityData ? dailyPerformanceData : fallbackLeadTrendData;
+  const hasAnyLeadTrendRows = resolvedLeadTrendData.length > 0;
+  const leadTrendSubtitle = hasDailyActivityData
+    ? `New leads and conversions over time (${periodLabel})`
+    : hasFallbackLeadData
+      ? `Recent lead count snapshots (fallback view)`
+      : `No activity data yet (${periodLabel})`;
+  const funnelChartData = useMemo(() => {
+    const funnel = analyticsData?.funnel || {};
+    return [
+      { stage: "Total", value: toSafeNumber(funnel?.totalLeads), color: "#F5B78F" },
+      { stage: "Contacted", value: toSafeNumber(funnel?.contacted), color: "#EAA46B" },
+      { stage: "Replied", value: toSafeNumber(funnel?.replied), color: "#1F2937" },
+      { stage: "Converted", value: toSafeNumber(funnel?.converted), color: "var(--color-primary)" },
+    ];
+  }, [analyticsData?.funnel]);
+  const channelResultsData = useMemo<ChannelOutcomeRow[]>(() => {
+    const metrics = analyticsData?.channelMetrics || {};
+    const emailSent = toSafeNumber(metrics?.email?.sent);
+    const emailEngaged = toSafeNumber(metrics?.email?.replied);
+    const linkedInSent = toSafeNumber(metrics?.linkedin?.sent);
+    const linkedInEngaged = toSafeNumber(metrics?.linkedin?.replied);
+    const whatsappSent = toSafeNumber(metrics?.whatsapp?.sent);
+    const whatsappEngaged = toSafeNumber(metrics?.whatsapp?.replied);
+    const callSent = toSafeNumber(metrics?.call?.initiated);
+    const callEngaged = toSafeNumber(metrics?.call?.answered);
+    const rows = [
+      { channel: "Email", sent: emailSent, engaged: emailEngaged },
+      { channel: "LinkedIn", sent: linkedInSent, engaged: linkedInEngaged },
+      { channel: "WhatsApp", sent: whatsappSent, engaged: whatsappEngaged },
+      { channel: "Calls", sent: callSent, engaged: callEngaged },
+    ];
+    return rows.map((row) => ({
+      ...row,
+      rate: row.sent > 0 ? Math.round((row.engaged / row.sent) * 100) : 0,
+    }));
+  }, [analyticsData?.channelMetrics]);
+  const hasChannelOutcomeData = channelResultsData.some((row) => row.sent > 0 || row.engaged > 0);
+  const topCampaignsData = useMemo<TopCampaignRow[]>(() => {
+    const rowsFromAnalytics = Array.isArray(analyticsData?.topCampaigns) ? analyticsData.topCampaigns : [];
+    const fallbackRows = filteredCampaigns.slice(0, 6).map((row: any) => ({
+      name: String(row?.name || `Campaign #${row?.id ?? ""}`),
+      sent_count: toSafeNumber(row?.sent_count),
+      reply_count: toSafeNumber(row?.reply_count),
+      reply_rate: toSafeNumber(row?.reply_rate),
+    }));
+    const rows = rowsFromAnalytics.length > 0 ? rowsFromAnalytics : fallbackRows;
+    return rows
+      .slice(0, 6)
+      .map((row: any) => ({
+        name: String(row?.name || `Campaign #${row?.id ?? ""}`),
+        sent: toSafeNumber(row?.sent_count),
+        replies: toSafeNumber(row?.reply_count),
+        rate: Number(toSafeNumber(row?.reply_rate).toFixed(1)),
+      }))
+      .sort((a: { sent: number }, b: { sent: number }) => b.sent - a.sent);
+  }, [analyticsData?.topCampaigns, filteredCampaigns]);
+  const hasTopCampaignData = topCampaignsData.some((row) => row.sent > 0 || row.replies > 0);
+  const topCampaignMaxSent = Math.max(1, ...topCampaignsData.map((row) => row.sent));
   const tooltipSharedStyle = {
     border: "1px solid var(--color-border)",
     borderRadius: 10,
@@ -1083,115 +1076,218 @@ export default function Dashboard() {
         <div className="dashboard-surface-card" style={{ gridColumn: "span 7", padding: "14px 16px", minHeight: 260 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 2 }}>Performance line chart</div>
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Campaigns launched this week vs last week</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 2 }}>Lead activity trend</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{leadTrendSubtitle}</div>
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: "#EAA46B" }} />
-                Launched this week
+                Leads added
               </span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: "#1F2937" }} />
-                Launched last week
+                Conversions
               </span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={190}>
-            <AreaChart data={weeklyPerformanceData} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="dashboard-weekly-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F4C995" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#F4C995" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={32} />
-              <Tooltip contentStyle={tooltipSharedStyle} />
-              <Area type="monotone" dataKey="thisWeek" stroke="#EAA46B" fill="url(#dashboard-weekly-area)" strokeWidth={2.2} />
-              <Line type="monotone" dataKey="lastWeek" stroke="#1F2937" strokeWidth={2} dot={{ r: 3, strokeWidth: 1.4, fill: "#1F2937", stroke: "#FFFFFF" }} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {hasAnyLeadTrendRows ? (
+            <ResponsiveContainer width="100%" height={190}>
+              <AreaChart data={resolvedLeadTrendData} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="dashboard-daily-area" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#F4C995" stopOpacity={0.42} />
+                    <stop offset="100%" stopColor="#F4C995" stopOpacity={0.06} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={32}
+                  allowDecimals={false}
+                  domain={[0, "auto"]}
+                />
+                <Tooltip contentStyle={tooltipSharedStyle} />
+                <Area type="monotone" dataKey="leads" stroke="#EAA46B" fill="url(#dashboard-daily-area)" strokeWidth={2.2} />
+                <Line type="monotone" dataKey="conversions" stroke="#1F2937" strokeWidth={2} dot={{ r: 2.6, strokeWidth: 1.2, fill: "#1F2937", stroke: "#FFFFFF" }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div
+              style={{
+                height: 190,
+                borderRadius: 12,
+                border: "1px dashed var(--color-border)",
+                background: "var(--color-surface-secondary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-text-muted)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+              }}
+            >
+              No lead activity to chart yet
+            </div>
+          )}
         </div>
 
         <div className="dashboard-surface-card" style={{ gridColumn: "span 5", padding: "14px 16px", minHeight: 260 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Campaign status mix</div>
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>Distribution by current stage</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Funnel stages</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
+            Total to Contacted to Replied to Converted ({periodLabel})
+          </div>
           <ResponsiveContainer width="100%" height={190}>
-            <PieChart>
-              <Pie data={campaignStatusData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={82} paddingAngle={3}>
-                {campaignStatusData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
+            <BarChart data={funnelChartData} margin={{ top: 0, right: 8, left: -12, bottom: 0 }}>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
+              <XAxis dataKey="stage" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={32} />
+              <Tooltip contentStyle={tooltipSharedStyle} />
+              <Bar dataKey="value" radius={[7, 7, 0, 0]}>
+                {funnelChartData.map((entry, index) => (
+                  <Cell key={`${entry.stage}-${index}`} fill={entry.color} />
                 ))}
-              </Pie>
-              <Tooltip contentStyle={tooltipSharedStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="dashboard-surface-card" style={{ gridColumn: "span 4", padding: "14px 16px", minHeight: 210 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Channel usage</div>
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>Campaign count by outreach channel</div>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={sourceBreakdownData} margin={{ top: 0, right: 4, left: -14, bottom: 0 }}>
-              <XAxis dataKey="source" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-              <YAxis hide />
-              <Tooltip contentStyle={tooltipSharedStyle} />
-              <Bar dataKey="campaigns" fill="#F5B78F" radius={[6, 6, 0, 0]} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
-
-        <div className="dashboard-surface-card" style={{ gridColumn: "span 8", padding: "14px 16px", minHeight: 210 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Channel results</div>
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>Delivered vs engaged with engagement rate</div>
-          <ResponsiveContainer width="100%" height={140}>
-            <ComposedChart data={channelResultsData} margin={{ top: 0, right: 8, left: -14, bottom: 0 }} barGap={8}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
-              <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={26} />
-              <YAxis yAxisId="right" orientation="right" hide domain={[0, 100]} />
-              <Tooltip contentStyle={tooltipSharedStyle} />
-              <Bar yAxisId="left" dataKey="delivered" fill="#DBEAFE" radius={[6, 6, 0, 0]} barSize={18} />
-              <Bar yAxisId="left" dataKey="engaged" fill="var(--color-primary)" radius={[6, 6, 0, 0]} barSize={8} />
-              <Line yAxisId="right" type="monotone" dataKey="ctr" stroke="#1F2937" strokeWidth={2} dot={{ r: 3, fill: "#1F2937" }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="dashboard-surface-card" style={{ gridColumn: "span 12", padding: "14px 16px", minHeight: 240 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)", marginBottom: 2 }}>Market overview</div>
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Launches and engaged campaigns by launch month</div>
-            </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#1F2937" }} />
-                Campaigns launched
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-muted)" }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#F4B26A" }} />
-                Campaigns with engagement
-              </span>
-            </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
+            Shows unique leads at each funnel stage from analytics API.
           </div>
-          <ResponsiveContainer width="100%" height={170}>
-            <ComposedChart data={monthlyConversionsData} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip
-                contentStyle={tooltipSharedStyle}
-                formatter={(value) =>
-                  typeof value === "number" ? `${value}` : String(value ?? "")
-                }
-              />
-              <Bar dataKey="engaged" fill="#F4B26A" radius={[6, 6, 0, 0]} barSize={16} />
-              <Bar dataKey="launched" fill="#1F2937" radius={[6, 6, 0, 0]} barSize={7} />
-            </ComposedChart>
-          </ResponsiveContainer>
+        </div>
+
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 8", padding: "14px 16px", minHeight: 220 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Channel outcomes</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
+            Sent vs engaged by channel ({periodLabel})
+          </div>
+          {hasChannelOutcomeData ? (
+            <>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={channelResultsData} margin={{ top: 0, right: 8, left: -14, bottom: 0 }} barGap={8}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
+                  <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipSharedStyle} />
+                  <Bar dataKey="sent" fill="#DBEAFE" radius={[6, 6, 0, 0]} barSize={14} />
+                  <Bar dataKey="engaged" fill="var(--color-primary)" radius={[6, 6, 0, 0]} barSize={14} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+                {channelResultsData.map((row) => (
+                  <div
+                    key={row.channel}
+                    style={{
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      background: "var(--color-surface-secondary)",
+                    }}
+                  >
+                    <div style={{ fontSize: 10, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      {row.channel}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{row.rate}%</div>
+                    <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                      {row.engaged}/{row.sent} engaged
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                height: 184,
+                borderRadius: 12,
+                border: "1px dashed var(--color-border)",
+                background: "var(--color-surface-secondary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-text-muted)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+              }}
+            >
+              No channel activity to compare yet
+            </div>
+          )}
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)" }}>For calls, engagement = answered calls.</div>
+        </div>
+
+        <div className="dashboard-surface-card" style={{ gridColumn: "span 4", padding: "14px 16px", minHeight: 220 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Top campaigns</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
+            Ranked by sent volume ({periodLabel})
+          </div>
+          {hasTopCampaignData ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 2 }}>
+              {topCampaignsData.slice(0, 5).map((row, index) => (
+                <div key={`${row.name}-${index}`} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "var(--color-text)",
+                        maxWidth: "70%",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={row.name}
+                    >
+                      {index + 1}. {row.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                      {row.sent} sent · {row.replies} replies · {row.rate}%
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 8,
+                      borderRadius: 999,
+                      background: "rgba(var(--color-primary-rgb), 0.14)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${Math.max(8, Math.round((row.sent / topCampaignMaxSent) * 100))}%`,
+                        height: "100%",
+                        borderRadius: 999,
+                        background: "linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.62) 0%, var(--color-primary) 100%)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                height: 170,
+                borderRadius: 12,
+                border: "1px dashed var(--color-border)",
+                background: "var(--color-surface-secondary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-text-muted)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+              }}
+            >
+              No campaign send data yet
+            </div>
+          )}
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--color-text-muted)" }}>Now showing sent, replies, and reply-rate clearly.</div>
         </div>
       </div>
     </>

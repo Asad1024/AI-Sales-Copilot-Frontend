@@ -125,11 +125,9 @@ export function CampaignStats() {
 
   const b = baseline;
   const trendTotal = b ? trendFromBaseline(b.total, stats.total) : { show: false, trendPositive: true, trendValue: "0" };
-  const trendRunning = b ? trendFromBaseline(b.running, stats.running) : { show: false, trendPositive: true, trendValue: "0" };
   const trendLeads = b ? trendFromBaseline(b.totalLeads, stats.totalLeads) : { show: false, trendPositive: true, trendValue: "0" };
   const trendSent = b ? trendFromBaseline(b.totalSent, stats.totalSent) : { show: false, trendPositive: true, trendValue: "0" };
   const trendOpen = b ? trendFromBaseline(b.avgOpen, stats.avgOpenNum) : { show: false, trendPositive: true, trendValue: "0" };
-  const trendReply = b ? trendFromBaseline(b.avgReply, stats.avgReplyNum) : { show: false, trendPositive: true, trendValue: "0" };
 
   const buildSeries = (values: number[], fallback: number): number[] => {
     const cleaned = values.filter((n) => Number.isFinite(n) && n >= 0);
@@ -157,10 +155,6 @@ export function CampaignStats() {
       [statusCounts.running, statusCounts.draft, statusCounts.paused, statusCounts.completed, stats.total],
       stats.total
     );
-    const runningCampaignsSeries = buildSeries(
-      campaignsByTime.map((_, idx) => campaignsByTime.slice(0, idx + 1).filter((c) => c.status === "running").length),
-      stats.running
-    );
     const openRateSeries = buildSeries(
       campaignsByTime.map((c) => {
         const sent = Number(c.sent || 0);
@@ -168,14 +162,6 @@ export function CampaignStats() {
         return sent > 0 ? (opened / sent) * 100 : 0;
       }),
       stats.avgOpenNum
-    );
-    const replyRateSeries = buildSeries(
-      campaignsByTime.map((c) => {
-        const sent = Number(c.sent || 0);
-        const replied = Number(c.replied || 0);
-        return sent > 0 ? (replied / sent) * 100 : 0;
-      }),
-      stats.avgReplyNum
     );
     const leadsSeries = buildSeries(
       campaignsByTime.map((c) => Number(c.leads || 0)),
@@ -187,13 +173,11 @@ export function CampaignStats() {
     );
     return {
       totalCampaignsSeries,
-      runningCampaignsSeries,
       openRateSeries,
-      replyRateSeries,
       leadsSeries,
       sentSeries,
     };
-  }, [campaignsByTime, stats.total, stats.running, stats.avgOpenNum, stats.avgReplyNum, stats.totalLeads, stats.totalSent]);
+  }, [campaignsByTime, stats.total, stats.avgOpenNum, stats.totalLeads, stats.totalSent]);
 
   const items: Array<{
     title: string;
@@ -217,16 +201,6 @@ export function CampaignStats() {
       chartType: "step",
     },
     {
-      title: "Running",
-      value: String(stats.running),
-      showTrend: trendRunning.show,
-      trendPositive: trendRunning.trendPositive,
-      trendValue: trendRunning.trendValue,
-      trendSuffix: "%",
-      sparkline: sparklineSeries.runningCampaignsSeries,
-      chartType: "bars",
-    },
-    {
       title: "Avg open",
       value: `${stats.avgOpenRate}%`,
       showTrend: trendOpen.show,
@@ -235,16 +209,6 @@ export function CampaignStats() {
       trendSuffix: "%",
       sparkline: sparklineSeries.openRateSeries,
       chartType: "radial",
-    },
-    {
-      title: "Avg reply",
-      value: `${stats.avgReplyRate}%`,
-      showTrend: trendReply.show,
-      trendPositive: trendReply.trendPositive,
-      trendValue: trendReply.trendValue,
-      trendSuffix: "%",
-      sparkline: sparklineSeries.replyRateSeries,
-      chartType: "areaPulse",
     },
     {
       title: "Workspace leads",
@@ -272,7 +236,7 @@ export function CampaignStats() {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+        gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
         gap: 12,
         width: "100%",
         minWidth: 0,

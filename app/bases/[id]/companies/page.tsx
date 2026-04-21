@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { AlertTriangle, Building2 } from "lucide-react";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { Icons } from "@/components/ui/Icons";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import {
   LandingCompanyPreviewBody,
-  LandingCompanyPreviewHeroPills,
   LandingCompanyPreviewProvider,
   LandingCompanyPreviewSearchInput,
 } from "@/components/landing/LandingCompanyPreviewShell";
@@ -95,7 +94,7 @@ export default function BaseCompaniesPage() {
       {permissionsLoading ? (
         <GlobalPageLoader layout="embedded" fill minHeight={400} ariaLabel="Loading" />
       ) : (
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        <div style={{ width: "100%", maxWidth: "100%", margin: "0 auto" }}>
           <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
             <span
               style={{
@@ -126,46 +125,35 @@ export default function BaseCompaniesPage() {
                 Companies
               </h1>
               <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
-                {workspaceName ? (
-                  <>
-                    Same live preview as the marketing homepage — suggestions, firmographics, and team preview use the
-                    public landing APIs (daily limits apply).
-                  </>
-                ) : (
-                  <>Same live preview as the homepage — public landing APIs and limits.</>
-                )}
+                Search companies and preview available team contacts.
               </p>
             </div>
           </div>
 
-          <LandingCompanyPreviewProvider variant="app">
+          <LandingCompanyPreviewProvider variant="app" employeeLimit={30} baseId={baseId}>
             <div className="relative min-w-0 w-full">
-              <div className="landing-hero-preview-shell relative max-w-full overflow-x-clip overflow-hidden rounded-[1.5rem] border border-[color:color-mix(in_srgb,var(--color-border)_88%,transparent)] bg-[color:var(--color-surface)] p-7 shadow-[0_12px_40px_rgba(15,23,42,0.07),0_1px_0_rgba(255,255,255,0.65)_inset] sm:rounded-[1.65rem] sm:p-10">
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
-                    Try it live
-                  </span>
-                  <span className="landing-live-preview-badge inline-flex shrink-0 items-center gap-2 rounded-full border border-[color:color-mix(in_srgb,var(--color-primary)_35%,var(--color-border))] bg-gradient-to-r from-[color:color-mix(in_srgb,var(--color-primary)_12%,transparent)] to-[color:color-mix(in_srgb,var(--color-accent)_10%,transparent)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-primary)] shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]">
-                    <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                      <span className="landing-live-preview-ping absolute inline-flex h-full w-full animate-ping rounded-full bg-[color:var(--color-primary)] opacity-40" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[color:var(--color-primary)] shadow-[0_0_8px_color-mix(in_srgb,var(--color-primary)_55%,transparent)]" />
-                    </span>
-                    Live preview
-                  </span>
-                </div>
-
-                <h2 className="mt-3 max-w-full text-[clamp(12px,3.1vw,15px)] font-semibold leading-snug tracking-tight text-balance text-[color:var(--color-text)]">
-                  Search any company — see enriched intel before you sign up
-                </h2>
-
-                <div className="mt-6 min-w-0">
+              <div className="landing-hero-preview-shell relative -mx-2 w-[calc(100%+16px)] max-w-none overflow-x-clip overflow-hidden rounded-[1.5rem] border border-[color:color-mix(in_srgb,var(--color-border)_88%,transparent)] bg-[color:var(--color-surface)] p-7 shadow-[0_12px_40px_rgba(15,23,42,0.07),0_1px_0_rgba(255,255,255,0.65)_inset] sm:-mx-4 sm:w-[calc(100%+32px)] sm:rounded-[1.65rem] sm:p-10">
+                <div className="mt-2 min-w-0">
                   <LandingCompanyPreviewSearchInput className="landing-hero-search flex w-full min-w-0 items-center overflow-hidden rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-background)] shadow-[0_1px_2px_rgba(15,23,42,0.04)]" />
                 </div>
 
-                <LandingCompanyPreviewHeroPills />
+                <div
+                  className="mt-3 -mx-2 w-[calc(100%+16px)] rounded-xl border border-[color:color-mix(in_srgb,var(--color-primary)_45%,var(--color-border)_55%)] bg-[color:color-mix(in_srgb,var(--color-primary)_14%,var(--color-surface)_86%)] px-5 py-3 text-[13px] leading-5 text-[color:var(--color-text)] sm:-mx-3 sm:w-[calc(100%+24px)]"
+                  role="note"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[color:var(--color-primary)]" />
+                    <div>
+                      <div className="font-semibold">Temporary preview data</div>
+                      <div className="mt-0.5 text-[color:var(--color-text-muted)]">
+                        This data is not saved. Download the employee list if you need to keep it. Refreshing the page clears the current preview.
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="mt-6 min-w-0">
-                  <LandingCompanyPreviewBody showSignupCtas={false} />
+                  <LandingCompanyPreviewBody showSignupCtas={false} showEmployeeLinkedIn={true} />
                 </div>
               </div>
             </div>
@@ -175,3 +163,4 @@ export default function BaseCompaniesPage() {
     </div>
   );
 }
+

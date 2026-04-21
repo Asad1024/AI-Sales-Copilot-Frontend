@@ -160,6 +160,11 @@ const CAMPAIGN_TEMPLATE_VARIABLES = [
   "{{role}}",
   "{{industry}}",
   "{{region}}",
+  "{{sender_name}}",
+  "{{sender_company}}",
+  "{{product_service}}",
+  "{{value_proposition}}",
+  "{{call_to_action}}",
 ] as const;
 
 function insertTokenInField(
@@ -452,8 +457,12 @@ function previewCallOpeningWithSamples(text: string): string {
     .replace(/\{\{first_name\}\}/g, "Sarah")
     .replace(/\{\{last_name\}\}/g, "Johnson")
     .replace(/\{\{company_name\}\}/g, "TechCorp Inc")
+    .replace(/\{\{company\}\}/g, "TechCorp Inc")
     .replace(/\{\{role\}\}/g, "CTO")
     .replace(/\{\{industry\}\}/g, "Software")
+    .replace(/\{\{region\}\}/g, "Dubai")
+    .replace(/\{\{sender_name\}\}/g, "Alex Rivera")
+    .replace(/\{\{sender_company\}\}/g, "Spark AI")
     .replace(/\{\{product_service\}\}/g, "our AI platform")
     .replace(/\{\{value_proposition\}\}/g, "automate 80% of their workflows")
     .replace(/\{\{call_to_action\}\}/g, "scheduling a free consultation");
@@ -1140,6 +1149,8 @@ export default function CampaignNew() {
     );
   }
   const [step, setStep] = useState<Step>(1);
+  /** Highest completed step index (current step is pending until user moves past it). */
+  const [maxReachedStep, setMaxReachedStep] = useState<number>(0);
   const [name, setName] = useState("");
   const [campaignNameBlurred, setCampaignNameBlurred] = useState(false);
   const [channels, setChannels] = useState<string[]>(["email"]);
@@ -1245,6 +1256,19 @@ export default function CampaignNew() {
     Partial<Record<ScheduleThrottleChannel, string>>
   >({});
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLeadDropdownOpen, setConfirmLeadDropdownOpen] = useState(false);
+  const [confirmDetailPreview, setConfirmDetailPreview] = useState<
+    | null
+    | {
+        title: string;
+        layout: "text" | "list" | "kb" | "voice" | "lead";
+        text?: string;
+        list?: string[];
+        kbFiles?: Array<{ id: string; name: string; sizeLabel?: string }>;
+        voice?: { id: string; name: string };
+        lead?: Lead;
+      }
+  >(null);
   /** Wizard footer: show loading while draft persists on Next/Back */
   const [wizardNavBusy, setWizardNavBusy] = useState<"next" | "back" | null>(null);
   /** Stepper click: show inline loader on target step (do not use footer "Back" saving state). */
@@ -1266,7 +1290,7 @@ export default function CampaignNew() {
   const [callToAction, setCallToAction] = useState("Schedule a demo");
   const [senderName, setSenderName] = useState("");
   const [senderCompany, setSenderCompany] = useState("");
-  const [senderDetailsExpanded, setSenderDetailsExpanded] = useState(false);
+  const [senderDetailsExpanded, setSenderDetailsExpanded] = useState(true);
 
   // Lead data
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -1371,10 +1395,26 @@ export default function CampaignNew() {
   const [kbDeleteLoading, setKbDeleteLoading] = useState(false);
 
   useEffect(() => {
+    // Mark only previous steps as completed. If user is on step 11, completed max is 10.
+    setMaxReachedStep((prev) => Math.max(prev, Math.max(0, step - 1)));
+  }, [step]);
+
+  useEffect(() => {
+    setMaxReachedStep(0);
+  }, [editParam]);
+
+  useEffect(() => {
     if (kbAiPhase === "questions" && kbAiQuestions.length > 0) {
       setKbAiHighlightIdx(0);
     }
   }, [kbAiPhase, kbAiQuestions.length]);
+
+  useEffect(() => {
+    if (!confirmOpen) {
+      setConfirmLeadDropdownOpen(false);
+      setConfirmDetailPreview(null);
+    }
+  }, [confirmOpen]);
   
   // Call agent configuration state
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>("");
@@ -1472,6 +1512,7 @@ export default function CampaignNew() {
   const [draftCampaignId, setDraftCampaignId] = useState<number | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false); // Flag to prevent auto-save during launch
+  const launchInProgressRef = useRef(false);
 
   const draftCampaignIdRef = useRef<number | null>(null);
   /** When we POST a new draft then `router.replace(?edit=)`, skip reload/hydration reset — client state is already correct. */
@@ -1531,6 +1572,11 @@ export default function CampaignNew() {
 
   // Get total steps from calculated flow
   const totalSteps = stepFlow.length;
+
+  useEffect(() => {
+    // Keep completed marker within current step-flow length.
+    setMaxReachedStep((prev) => Math.min(prev, Math.max(0, totalSteps - 1)));
+  }, [totalSteps]);
 
   // Get current step info
   const currentStepInfo = useMemo(() => {
@@ -1976,7 +2022,13 @@ export default function CampaignNew() {
   ) => {
     const next = persistQueueRef.current.then(async () => {
       const ctx = wizardPersistCtxRef.current;
-      if (!ctx.draftHydrated || !ctx.name.trim() || !ctx.activeBaseId || ctx.isLaunching) {
+      if (
+        !ctx.draftHydrated ||
+        !ctx.name.trim() ||
+        !ctx.activeBaseId ||
+        ctx.isLaunching ||
+        launchInProgressRef.current
+      ) {
         return draftCampaignIdRef.current;
       }
       setSavingDraft(true);
@@ -2171,8 +2223,7 @@ export default function CampaignNew() {
     const needVoices =
       currentStepInfo?.stepType === "call_voice_selection" ||
       ((currentStepInfo?.stepType === "review" || currentStepInfo?.stepType === "launch") &&
-        channels.includes("call") &&
-        Boolean(selectedVoiceId?.trim()));
+        channels.includes("call"));
     if (!needVoices) return;
     let cancelled = false;
     const fetchVoices = async () => {
@@ -2237,7 +2288,7 @@ export default function CampaignNew() {
     return () => {
       cancelled = true;
     };
-  }, [currentStepInfo?.stepType, channels, selectedVoiceId]);
+  }, [currentStepInfo?.stepType, channels]);
 
   // Load draft campaign when editing (?edit=:id)
   useEffect(() => {
@@ -2601,7 +2652,13 @@ export default function CampaignNew() {
   useEffect(() => {
     const onPageHide = () => {
       const ctx = wizardPersistCtxRef.current;
-      if (!ctx.draftHydrated || !ctx.name.trim() || !ctx.activeBaseId || ctx.isLaunching) {
+      if (
+        !ctx.draftHydrated ||
+        !ctx.name.trim() ||
+        !ctx.activeBaseId ||
+        ctx.isLaunching ||
+        launchInProgressRef.current
+      ) {
         return;
       }
       try {
@@ -3149,6 +3206,72 @@ export default function CampaignNew() {
       }));
     }
   }, [recommendedEmailThrottle, recommendedLinkedInThrottle, channels]);
+
+  /**
+   * Auto-manage daily limits from lead volume + follow-ups.
+   * Example: 10 leads + 0 follow-ups => 10/day.
+   * Example: 10 leads + 2 follow-ups => 30/day (capped by channel max).
+   *
+   * We only recompute when campaign inputs change (leads/follow-ups/channels),
+   * so manual edits stay intact until those inputs change again.
+   */
+  useEffect(() => {
+    if (totalLeads <= 0) return;
+
+    const followupCount = Math.max(0, schedule.followups ?? 0);
+    const perLeadTouches = 1 + followupCount;
+    const baseAutoDaily = Math.min(
+      SCHEDULE_DAILY_LIMIT_MAX,
+      Math.max(1, totalLeads * perLeadTouches)
+    );
+
+    setSchedule((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      if (channels.includes("email")) {
+        const target = Math.min(emailThrottleMax, baseAutoDaily);
+        if ((prev.email?.throttle ?? 0) !== target) {
+          next.email = { throttle: target };
+          changed = true;
+        }
+      }
+
+      if (channels.includes("linkedin")) {
+        const target = Math.min(linkedinSliderMax, baseAutoDaily);
+        if ((prev.linkedin?.throttle ?? 0) !== target) {
+          next.linkedin = { throttle: target };
+          changed = true;
+        }
+      }
+
+      if (channels.includes("whatsapp")) {
+        const target = Math.min(whatsappThrottleMax, baseAutoDaily);
+        if ((prev.whatsapp?.throttle ?? 0) !== target) {
+          next.whatsapp = { throttle: target };
+          changed = true;
+        }
+      }
+
+      if (channels.includes("call")) {
+        const target = Math.min(callThrottleMax, baseAutoDaily);
+        if ((prev.call?.throttle ?? 0) !== target) {
+          next.call = { throttle: target };
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [
+    totalLeads,
+    schedule.followups,
+    channels,
+    emailThrottleMax,
+    linkedinSliderMax,
+    whatsappThrottleMax,
+    callThrottleMax,
+  ]);
 
   /** Sync schedule if stored throttle exceeds slider max (slider `stored` was capped visually but state kept e.g. 200). */
   useEffect(() => {
@@ -3805,6 +3928,22 @@ export default function CampaignNew() {
     await playVoicePreview(voiceId);
   };
 
+  const closeConfirmDetailPreview = () => {
+    if (confirmDetailPreview?.layout === "voice" && confirmDetailPreview.voice?.id) {
+      const vid = confirmDetailPreview.voice.id;
+      if (previewingVoiceId === vid || previewLoadingVoiceId === vid) {
+        stopVoicePreview();
+      }
+    }
+    setConfirmDetailPreview(null);
+  };
+
+  useEffect(() => {
+    if (!confirmOpen && confirmDetailPreview?.layout === "voice") {
+      stopVoicePreview();
+    }
+  }, [confirmOpen, confirmDetailPreview?.layout]);
+
   const isVoiceCloneSampleFile = (f: File) =>
     f.type.startsWith("audio/") || /\.(wav|mp3|m4a|webm|aac|flac|ogg)$/i.test(f.name);
 
@@ -3990,6 +4129,8 @@ export default function CampaignNew() {
       selectedWhatsAppMessageIndices,
       valueProposition,
       callToAction,
+      senderName,
+      senderCompany,
       segments,
       selectedLeadCount: totalLeads,
       schedule,
@@ -4013,6 +4154,8 @@ export default function CampaignNew() {
       selectedWhatsAppMessageIndices,
       valueProposition,
       callToAction,
+      senderName,
+      senderCompany,
       segments,
       totalLeads,
       schedule,
@@ -4383,33 +4526,54 @@ export default function CampaignNew() {
         text-align: left;
         padding: 12px 14px;
         margin: 0;
-        border: none;
+        border: 1px solid var(--color-border);
         border-radius: 10px;
-        background: transparent;
+        background: var(--color-surface);
         cursor: pointer;
-        transition: background 0.15s ease;
-        border-left: 3px solid transparent;
+        transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        border-left: 3px solid rgba(var(--color-primary-rgb), 0.35);
         box-sizing: border-box;
       }
       .campaign-wizard-root .call-opening-starter:hover {
-        background: rgba(15, 23, 42, 0.04);
+        background: rgba(var(--color-primary-rgb), 0.2);
+        border-color: rgba(var(--color-primary-rgb), 0.55);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(var(--color-primary-rgb), 0.18);
       }
       .campaign-wizard-root .call-opening-starter[data-selected="true"] {
         background: rgba(var(--color-primary-rgb), 0.2);
+        border-color: rgba(var(--color-primary-rgb), 0.65);
         border-left-color: var(--color-primary);
+        box-shadow: 0 8px 18px rgba(var(--color-primary-rgb), 0.16);
+      }
+      .campaign-wizard-root .call-opening-starter:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.28), 0 8px 18px rgba(var(--color-primary-rgb), 0.16);
       }
       .campaign-wizard-root .call-opening-chip:disabled,
       .campaign-wizard-root .call-opening-starter:disabled {
         opacity: 1;
         cursor: not-allowed;
-        border-left-color: transparent;
+        border-left-color: rgba(var(--color-primary-rgb), 0.35);
+        border-color: rgba(var(--color-primary-rgb), 0.35);
+        box-shadow: none;
+        transform: none;
         background: rgba(var(--color-primary-rgb), 0.12);
+        color: var(--color-primary);
+      }
+      .campaign-wizard-root .call-opening-starter-cta {
+        margin-top: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
         color: var(--color-primary);
       }
       .campaign-wizard-root .call-opening-starters-wrap {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
         padding: 4px 0 0;
       }
       .campaign-wizard-root .call-opening-starters-label {
@@ -4559,6 +4723,7 @@ export default function CampaignNew() {
             <WizardCircularStepper
               steps={stepFlow}
               currentStepNumber={step}
+              completedThroughStepNumber={maxReachedStep}
               onStepClick={(n) => void jumpToWizardStep(n)}
               navigationDisabled={wizardAnyNavBusy}
               loadingStepNumber={wizardStepperLoadingStep}
@@ -5047,7 +5212,7 @@ export default function CampaignNew() {
                 textAlign: "left",
               }}
             >
-              <span>Sender Details (Optional)</span>
+              <span>Sender Details *</span>
               <Icons.ChevronDown
                 size={20}
                 style={{
@@ -5059,7 +5224,7 @@ export default function CampaignNew() {
               />
             </button>
             <p style={{ margin: "0 0 8px 4px", fontSize: 12, color: "var(--color-text-muted)" }}>
-              Used to personalize message signatures
+              Required to personalize message signatures
             </p>
             {senderDetailsExpanded ? (
               <div
@@ -5078,7 +5243,7 @@ export default function CampaignNew() {
                     htmlFor="wizard-sender-name"
                     style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 14 }}
                   >
-                    Your name
+                    Your name *
                   </label>
                   <input
                     id="wizard-sender-name"
@@ -5086,6 +5251,7 @@ export default function CampaignNew() {
                     value={senderName}
                     onChange={(e) => setSenderName(e.target.value)}
                     placeholder="e.g., John Smith"
+                    required
                     style={{
                       width: "100%",
                       padding: "12px 16px",
@@ -5102,7 +5268,7 @@ export default function CampaignNew() {
                     htmlFor="wizard-sender-company"
                     style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 14 }}
                   >
-                    Your company
+                    Your company *
                   </label>
                   <input
                     id="wizard-sender-company"
@@ -5110,6 +5276,7 @@ export default function CampaignNew() {
                     value={senderCompany}
                     onChange={(e) => setSenderCompany(e.target.value)}
                     placeholder="e.g., Rift Reach"
+                    required
                     style={{
                       width: "100%",
                       padding: "12px 16px",
@@ -8153,7 +8320,7 @@ export default function CampaignNew() {
             </p>
           </div>
 
-          {loadingVoices ? (
+          {loadingVoices && availableVoices.length === 0 ? (
             <div
               style={{
                 paddingLeft: VOICE_STEP_CONTENT_GUTTER,
@@ -8963,6 +9130,10 @@ export default function CampaignNew() {
                         >
                           {template.description}
                         </div>
+                        <div className="call-opening-starter-cta">
+                          Click to use
+                          <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
+                        </div>
                       </button>
                     );
                   })}
@@ -9274,15 +9445,16 @@ export default function CampaignNew() {
                   value={systemPersona}
                   disabled={systemPersonaFetchLoading}
                   onChange={(e) => setSystemPersona(e.target.value)}
-                  placeholder={`You are a professional sales representative from [Your Company]. Your goals:
+                  placeholder={`You are a professional sales representative from {{sender_company}}. Your goals:
 
-• Build rapport and understand the prospect's needs
-• Explain [Your Product/Service] and its benefits clearly
-• Handle objections professionally
-• Aim for appropriate next steps (e.g. follow-up, demo)
-• Stay polite, knowledgeable, and solution-focused
+- Build rapport and understand the prospect's needs
+- Explain {{product_service}} and its benefits clearly
+- Handle objections professionally
+- Aim for appropriate next steps (for example, {{call_to_action}})
+- Stay polite, knowledgeable, and solution-focused
 
-Guidelines: listen actively, ask qualifying questions, focus on value over features, be persistent but respectful, end positively even if there's no immediate sale.`}
+Use placeholders only from supported fields:
+{{first_name}}, {{last_name}}, {{full_name}}, {{company_name}}, {{role}}, {{industry}}, {{region}}, {{sender_name}}, {{sender_company}}, {{product_service}}, {{value_proposition}}, {{call_to_action}}.`}
                 />
                 <div className="call-opening-meta">
                   {systemPersona.length.toLocaleString()} chars · {countWordsForCallOpening(systemPersona).toLocaleString()}{" "}
@@ -9811,7 +9983,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               </div>
             </div>
 
-            {channels.includes("email") && (
+            {channels.includes("email") && (schedule.followups || 0) > 0 && (
               <div
                 style={{
                   display: "flex",
@@ -9916,53 +10088,46 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                     1–30 days between each follow-up (default 3)
                   </span>
                 </div>
-                {schedule.followups > 0 ? (
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-                    {Array.from({ length: schedule.followups + 1 }, (_, i) => {
-                      const delayDays = schedule.followupDelay || 3;
-                      const day = i * delayDays;
-                      return (
-                        <span key={`fu-${i}-${day}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {i > 0 && (
-                            <ArrowRight
-                              size={16}
-                              strokeWidth={2}
-                              aria-hidden
-                              style={{ flexShrink: 0, opacity: 0.35 }}
-                            />
-                          )}
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              borderRadius: 9999,
-                              border: "1px solid var(--color-border)",
-                              padding: "4px 10px",
-                              fontSize: 12,
-                              fontWeight: 500,
-                              background: "var(--color-surface-secondary)",
-                              color: "var(--color-text)",
-                            }}
-                          >
-                            <Icons.Mail
-                              size={14}
-                              strokeWidth={1.75}
-                              style={{ opacity: 0.9, color: WIZ_CHANNEL_EMAIL }}
-                              aria-hidden
-                            />
-                            Day {day}
-                          </span>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                  {Array.from({ length: schedule.followups + 1 }, (_, i) => {
+                    const delayDays = schedule.followupDelay || 3;
+                    const day = i * delayDays;
+                    return (
+                      <span key={`fu-${i}-${day}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {i > 0 && (
+                          <ArrowRight
+                            size={16}
+                            strokeWidth={2}
+                            aria-hidden
+                            style={{ flexShrink: 0, opacity: 0.35 }}
+                          />
+                        )}
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            borderRadius: 9999,
+                            border: "1px solid var(--color-border)",
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            fontWeight: 500,
+                            background: "var(--color-surface-secondary)",
+                            color: "var(--color-text)",
+                          }}
+                        >
+                          <Icons.Mail
+                            size={14}
+                            strokeWidth={1.75}
+                            style={{ opacity: 0.9, color: WIZ_CHANNEL_EMAIL }}
+                            aria-hidden
+                          />
+                          Day {day}
                         </span>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-hint" style={{ margin: 0, fontSize: 13, lineHeight: 1.45 }}>
-                    Turn on follow-up emails in the <strong>Email follow-ups</strong> step to send multiple
-                    touches. You can still set the delay here; it applies when follow-ups are enabled.
-                  </p>
-                )}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -11080,9 +11245,9 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                 <div
                   style={{
                     padding: 20,
-                    background: "rgba(var(--color-primary-rgb), 0.2)",
+                    background: "var(--color-surface)",
                     borderRadius: 12,
-                    border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
+                    border: "1px solid var(--elev-border)",
                     height: "100%",
                     boxSizing: "border-box",
                   }}
@@ -11187,14 +11352,20 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         }}
                         disabled={testingCall || !testCallPhoneNumber.trim()}
                         style={{
-                          padding: "10px 20px",
+                          padding: "12px 24px",
                           fontSize: 14,
                           fontWeight: 600,
-                          borderRadius: 8,
+                          borderRadius: 10,
+                          background: "var(--color-primary)",
+                          color: "#fff",
+                          border: "1px solid var(--color-primary)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 8,
+                          minHeight: 44,
+                          opacity: testingCall || !testCallPhoneNumber.trim() ? 0.72 : 1,
+                          cursor: testingCall || !testCallPhoneNumber.trim() ? "not-allowed" : "pointer",
                         }}
                       >
                         {testingCall ? (
@@ -11205,7 +11376,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         ) : (
                           <>
                             <Icons.Phone size={16} />
-                            Test call
+                            Test Call
                           </>
                         )}
                       </button>
@@ -14414,7 +14585,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
           }}
         >
           <div style={{ 
-            width:'min(600px,96vw)', 
+            width:'min(980px,96vw)', 
             maxHeight: '90vh',
             background:'var(--color-surface)', 
             border:'none',
@@ -14429,7 +14600,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
             <div style={{
               padding: '24px 28px',
               borderBottom: '1px solid var(--elev-border)',
-              background: 'rgba(var(--color-primary-rgb), 0.2)',
+              background: 'var(--color-surface-secondary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -14484,243 +14655,494 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
               flex: 1
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Campaign Overview */}
                 <div style={{
                   padding: '16px',
                   borderRadius: 12,
                   background: 'var(--color-surface-secondary)',
                   border: '1px solid var(--elev-border)'
                 }}>
-                  <div style={{ 
-                    fontSize: 12, 
-                    fontWeight: 700, 
-                    color: 'var(--color-text-muted)', 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: 12
-                  }}>
-                    Campaign Overview
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <Icons.Target size={16} style={{ color: 'var(--color-primary)' }} />
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>{name || 'Untitled Campaign'}</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icons.Target size={16} style={{ color: 'var(--color-primary)' }} />
-                      <span style={{ fontWeight: 600, fontSize: 15 }}>{name}</span>
-                    </div>
-                    <div style={{ 
-                      fontSize: 13, 
-                      color: 'var(--color-text-muted)',
-                      marginLeft: 24,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}>
-                      {channels.map((ch, idx) => {
-                        const ChannelIcon = CHANNEL_CONFIGS[ch]?.icon || Icons.Mail;
-                        return (
-                          <span key={ch} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {idx > 0 && <span style={{ margin: '0 4px' }}>+</span>}
-                            <ChannelIcon size={14} />
-                            <span style={{ textTransform: 'capitalize' }}>{ch}</span>
-                          </span>
-                        );
-                      })}
-                      {' → '}
-                      {segments.length > 0 ? (
-                        segments.length === 1 ? (
-                          <span style={{ fontWeight: 600, color: "var(--color-text)" }}>
-                            {`"${segments[0]}"`} ({totalLeads} lead{totalLeads !== 1 ? "s" : ""})
-                          </span>
-                        ) : (
-                          <span style={{ fontWeight: 600, color: "var(--color-text)" }}>
-                            {segments.length} segments · {totalLeads} unique lead{totalLeads !== 1 ? "s" : ""}
-                          </span>
-                        )
-                      ) : (
-                        <span style={{ color: '#ef4444' }}>no segments</span>
-                      )}
-                    </div>
-                    {selectedLeadsForSamples.length > 0 ? (
-                      <div
-                        style={{
-                          marginLeft: 24,
-                          marginTop: 8,
-                          fontSize: 12,
-                          color: "var(--color-text-muted)",
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
-                          {explicitCampaignTargetLeadIds != null && explicitCampaignTargetLeadIds.length > 0
-                            ? "Selected recipients"
-                            : "Recipients"}
-                        </div>
-                        {selectedLeadsForSamples.slice(0, 10).map((l) => {
-                          const nm = [l.first_name, l.last_name].filter(Boolean).join(" ").trim();
-                          const label = nm || l.email || `Lead #${l.id}`;
-                          return (
-                            <div key={l.id} style={{ marginBottom: 2 }}>
-                              · {label}
-                            </div>
-                          );
-                        })}
-                        {selectedLeadsForSamples.length > 10 ? (
-                          <div>+{selectedLeadsForSamples.length - 10} more</div>
-                        ) : null}
-                      </div>
-                    ) : null}
+                  <div style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {channels.map((ch) => {
+                      const channelId = ch as ChannelType;
+                      return (
+                        <span key={ch} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid var(--color-border)', borderRadius: 999, padding: '3px 10px' }}>
+                          <ReviewChannelGlyph channel={channelId} size={13} />
+                          <span>{CHANNEL_CONFIGS[channelId]?.label || ch}</span>
+                        </span>
+                      );
+                    })}
+                    <span style={{ marginLeft: 4 }}>
+                      {totalLeads} selected lead{totalLeads !== 1 ? 's' : ''}
+                    </span>
                   </div>
                 </div>
 
-                {/* Configuration Details */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {/* Email Configuration */}
-                  {channels.includes('email') && (
-                    <div style={{
-                      padding: '14px 16px',
-                      borderRadius: 10,
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--elev-border)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <Icons.Mail size={18} style={{ color: 'var(--color-primary)' }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>Email Configuration</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Provider</span>
-                          {emailIntegration ? (
-                            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
-                              <Icons.CheckCircle size={14} />
-                              {emailIntegration.provider === 'smtp' ? 'SMTP Connected' : 'Resend Connected'}
-                              {emailIntegration.config?.from_email && (
-                                <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
-                                  ({emailIntegration.config.from_email})
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                              <Icons.AlertCircle size={14} />
-                              Not connected
-                            </span>
-                          )}
-                        </div>
-                        {selectedMessageIndices.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Email drafts</span>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>
-                              {selectedMessageIndices.length === 1 
-                                ? '1 draft selected'
-                                : `${selectedMessageIndices.length} drafts selected`
-                              }
-                            </span>
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Throttle</span>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {schedule.email?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}/day
-                          </span>
-                        </div>
-                        {schedule.followups > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Follow-ups</span>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>
-                              {schedule.followups} (delay: {schedule.followupDelay || 3} days)
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* LinkedIn Configuration */}
-                  {channels.includes('linkedin') && linkedInStepConfig && (
-                    <div style={{
-                      padding: '14px 16px',
-                      borderRadius: 10,
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--elev-border)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <Icons.Linkedin size={18} style={{ color: '#0077b5' }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>LinkedIn Configuration</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Action</span>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {linkedInStepConfig.action === 'invitation_only' 
-                              ? 'Connection invitation only'
-                              : 'Connection invitation with message'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Throttle</span>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {schedule.linkedin?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}/day
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* WhatsApp Configuration */}
-                  {channels.includes('whatsapp') && selectedWhatsAppMessageIndices.length > 0 && (
-                    <div style={{
-                      padding: '14px 16px',
-                      borderRadius: 10,
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--elev-border)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <Icons.WhatsApp size={18} style={{ color: '#25D366' }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>WhatsApp Configuration</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>WhatsApp message</span>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {selectedWhatsAppMessageIndices.length === 1 &&
-                            selectedWhatsAppMessageIndices[0] !== undefined
-                              ? `${whatsAppDraftBadgeLabel(selectedWhatsAppMessageIndices[0])} in use`
-                              : "Select one suggestion on the WhatsApp step"}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Throttle</span>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {schedule.whatsapp?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}/day
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Schedule */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
                   <div style={{
                     padding: '14px 16px',
                     borderRadius: 10,
                     background: 'var(--color-surface)',
-                    border: '1px solid var(--elev-border)'
+                    border: '1px solid var(--elev-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                      <Icons.Clock size={18} style={{ color: 'var(--color-primary)' }} />
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>Schedule</span>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                      Selected Leads
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 28 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Start</span>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>
-                          {schedule.start ? new Date(schedule.start).toLocaleString() : 'Unscheduled'}
-                        </span>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => setConfirmLeadDropdownOpen((v) => !v)}
+                      style={{
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface-secondary)'
+                      }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>
+                        {selectedLeadsForSamples.length} lead{selectedLeadsForSamples.length !== 1 ? 's' : ''} selected
+                      </span>
+                      <ChevronDown size={16} style={{ transform: confirmLeadDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s ease' }} />
+                    </button>
+                    {confirmLeadDropdownOpen && (
+                      <div style={{
+                        maxHeight: 230,
+                        overflowY: 'auto',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 10,
+                        background: 'var(--color-surface-secondary)',
+                        padding: 10,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8
+                      }}>
+                        {selectedLeadsForSamples.length > 0 ? selectedLeadsForSamples.map((l) => {
+                          const nm = [l.first_name, l.last_name].filter(Boolean).join(' ').trim();
+                          const label = nm || l.email || `Lead #${l.id}`;
+                          const sub =
+                            l.company && l.role
+                              ? `${l.role} · ${l.company}`
+                              : l.company || l.role || l.email || l.phone || '';
+                          return (
+                            <div
+                              key={l.id}
+                              style={{
+                                fontSize: 13,
+                                padding: '9px 10px',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: 10,
+                                background: 'var(--color-surface)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 10
+                              }}
+                            >
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {label}
+                                </div>
+                                {sub ? (
+                                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {sub}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                onClick={() =>
+                                  setConfirmDetailPreview({
+                                    title: label,
+                                    layout: "lead",
+                                    lead: l,
+                                  })
+                                }
+                                style={{
+                                  minWidth: 'auto',
+                                  padding: '6px 10px',
+                                  borderRadius: 8,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  flexShrink: 0
+                                }}
+                                title="View lead details"
+                              >
+                                <Icons.Eye size={14} aria-hidden />
+                                View
+                              </button>
+                            </div>
+                          );
+                        }) : (
+                          <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>No leads selected.</div>
+                        )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>End</span>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>
-                          {schedule.end ? new Date(schedule.end).toLocaleString() : 'Unscheduled'}
-                        </span>
-                      </div>
+                    )}
+
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                      <div><strong style={{ color: 'var(--color-text)' }}>Start:</strong> {schedule.launch_now ? 'Immediately on launch' : (schedule.start ? new Date(schedule.start).toLocaleString() : 'Not set')}</div>
+                      <div><strong style={{ color: 'var(--color-text)' }}>End:</strong> {schedule.end ? new Date(schedule.end).toLocaleString() : 'Not set'}</div>
+                      <div><strong style={{ color: 'var(--color-text)' }}>Timezone:</strong> {schedule.timezone || 'Asia/Karachi'}</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                      {channels.includes('email') && <div><strong style={{ color: 'var(--color-text)' }}>Email/day:</strong> {schedule.email?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}</div>}
+                      {channels.includes('linkedin') && <div><strong style={{ color: 'var(--color-text)' }}>LinkedIn/day:</strong> {schedule.linkedin?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}</div>}
+                      {channels.includes('whatsapp') && <div><strong style={{ color: 'var(--color-text)' }}>WhatsApp/day:</strong> {schedule.whatsapp?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}</div>}
+                      {channels.includes('call') && <div><strong style={{ color: 'var(--color-text)' }}>Calls/day:</strong> {schedule.call?.throttle ?? SCHEDULE_DAILY_LIMIT_MAX}</div>}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 10,
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--elev-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                      Preview Details
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {(channels.includes('email') || channels.includes('whatsapp') || channels.includes('linkedin')) && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: 'var(--color-text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.45,
+                          }}
+                        >
+                          Messaging Templates
+                        </div>
+                      )}
+                      {channels.includes('email') && selectedMessageIndices.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>Email Templates</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                            {selectedMessageIndices
+                              .map((idx) => ({ idx, msg: messages[idx] }))
+                              .filter((it) => typeof it.msg === 'string' && it.msg.trim().length > 0)
+                              .map((it, order) => {
+                                const parsed = parseMessage(it.msg as string);
+                                const title = order === 0 ? 'Initial Email' : `Follow-up ${order}`;
+                                return (
+                                  <button
+                                    key={`confirm-email-${it.idx}-${order}`}
+                                    type="button"
+                                    className="btn-ghost"
+                                    onClick={() =>
+                                      setEmailWizardPreview({
+                                        title,
+                                        metaLine: "Launch confirmation · Email",
+                                        subject: parsed.subject || "",
+                                        body: parsed.body || (it.msg as string),
+                                        kind: "email",
+                                      })
+                                    }
+                                    style={{
+                                      justifyContent: 'space-between',
+                                      padding: '10px 12px',
+                                      borderRadius: 12,
+                                      border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                                      background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                                    }}
+                                  >
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                      <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(var(--color-primary-rgb),0.18)' }}>
+                                        <Icons.Mail size={13} aria-hidden style={{ color: WIZ_CHANNEL_EMAIL }} />
+                                      </span>
+                                      <span style={{ minWidth: 0, textAlign: 'left' }}>
+                                        <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+                                        <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>Open preview</span>
+                                      </span>
+                                    </span>
+                                    <Icons.Eye size={15} aria-hidden />
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+
+                      {channels.includes('whatsapp') && selectedWhatsAppMessageIndices.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>WhatsApp Template</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                            {selectedWhatsAppMessageIndices
+                              .map((idx) => ({ idx, msg: whatsAppMessages[idx] }))
+                              .filter((it) => typeof it.msg === 'string' && it.msg.trim().length > 0)
+                              .map((it, order) => (
+                                <button
+                                  key={`confirm-wa-${it.idx}-${order}`}
+                                  type="button"
+                                  className="btn-ghost"
+                                  onClick={() =>
+                                    setEmailWizardPreview({
+                                      title: selectedWhatsAppMessageIndices.length > 1 ? `WhatsApp ${order + 1}` : "WhatsApp",
+                                      metaLine: "Launch confirmation · WhatsApp",
+                                      subject: "",
+                                      body: (it.msg as string) || "",
+                                      kind: "whatsapp",
+                                    })
+                                  }
+                                  style={{
+                                    justifyContent: 'space-between',
+                                    padding: '10px 12px',
+                                    borderRadius: 12,
+                                    border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                                    background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                                  }}
+                                >
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                    <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(37,211,102,0.15)' }}>
+                                      <Icons.WhatsApp size={13} aria-hidden style={{ color: WIZ_CHANNEL_WHATSAPP }} />
+                                    </span>
+                                    <span style={{ minWidth: 0, textAlign: 'left' }}>
+                                      <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {selectedWhatsAppMessageIndices.length > 1 ? `Template ${order + 1}` : "WhatsApp"}
+                                      </span>
+                                      <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>Open preview</span>
+                                    </span>
+                                  </span>
+                                  <Icons.Eye size={15} aria-hidden />
+                                </button>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {channels.includes('linkedin') &&
+                        linkedInStepConfig &&
+                        Array.from(
+                          new Set(
+                            [
+                              ...(Array.isArray(linkedInStepConfig.templates) ? linkedInStepConfig.templates : []),
+                              linkedInStepConfig.message || "",
+                            ]
+                              .map((v) => (typeof v === "string" ? v.trim() : ""))
+                              .filter((v) => v.length > 0)
+                          )
+                        ).length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>LinkedIn Templates</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                            {Array.from(
+                              new Set(
+                                [
+                                  ...(Array.isArray(linkedInStepConfig.templates) ? linkedInStepConfig.templates : []),
+                                  linkedInStepConfig.message || "",
+                                ]
+                                  .map((v) => (typeof v === "string" ? v.trim() : ""))
+                                  .filter((v) => v.length > 0)
+                              )
+                            ).map((tpl, idx) => (
+                              <button
+                                key={`confirm-li-${idx}`}
+                                type="button"
+                                className="btn-ghost"
+                                onClick={() =>
+                                  setEmailWizardPreview({
+                                    title: `LinkedIn ${idx + 1}`,
+                                    metaLine: "Launch confirmation · LinkedIn",
+                                    subject: "",
+                                    body: tpl,
+                                    kind: "linkedin",
+                                  })
+                                }
+                                style={{
+                                  justifyContent: 'space-between',
+                                  padding: '10px 12px',
+                                  borderRadius: 12,
+                                  border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                                  background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                                }}
+                              >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                  <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,102,194,0.14)' }}>
+                                    <Icons.Linkedin size={13} aria-hidden style={{ color: WIZ_CHANNEL_LINKEDIN }} />
+                                  </span>
+                                  <span style={{ minWidth: 0, textAlign: 'left' }}>
+                                    <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      Template {idx + 1}
+                                    </span>
+                                    <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>Open preview</span>
+                                  </span>
+                                </span>
+                                <Icons.Eye size={15} aria-hidden />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(channels.includes('call') &&
+                        (initialPrompt.trim().length > 0 ||
+                          systemPersona.trim().length > 0 ||
+                          !!selectedVoiceId ||
+                          knowledgeBaseFiles.length > 0)) && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: 'var(--color-text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.45,
+                            marginTop: 2,
+                          }}
+                        >
+                          Calling Setup
+                        </div>
+                      )}
+
+                      {channels.includes('call') && initialPrompt.trim().length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() =>
+                            setEmailWizardPreview({
+                              title: "Opening Message",
+                              metaLine: "Launch confirmation · Call script",
+                              subject: "",
+                              body: initialPrompt,
+                              kind: "whatsapp",
+                            })
+                          }
+                          style={{
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            borderRadius: 12,
+                            border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                            background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,148,136,0.14)' }}>
+                              <MessageCircle size={13} aria-hidden style={{ color: WIZ_CHANNEL_CALL }} />
+                            </span>
+                            <span style={{ textAlign: 'left' }}>
+                              <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>Opening Message</span>
+                              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>Open script preview</span>
+                            </span>
+                          </span>
+                          <Icons.Eye size={15} aria-hidden />
+                        </button>
+                      )}
+
+                      {channels.includes('call') && systemPersona.trim().length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() =>
+                            setEmailWizardPreview({
+                              title: "Assistant Style",
+                              metaLine: "Launch confirmation · Assistant system style",
+                              subject: "",
+                              body: systemPersona,
+                              kind: "whatsapp",
+                            })
+                          }
+                          style={{
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            borderRadius: 12,
+                            border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                            background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,148,136,0.14)' }}>
+                              <Sparkles size={13} aria-hidden style={{ color: WIZ_CHANNEL_CALL }} />
+                            </span>
+                            <span style={{ textAlign: 'left' }}>
+                              <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>Assistant Style</span>
+                              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>Open script preview</span>
+                            </span>
+                          </span>
+                          <Icons.Eye size={15} aria-hidden />
+                        </button>
+                      )}
+
+                      {channels.includes('call') && !!selectedVoiceId && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => {
+                            const selectedVoiceName =
+                              availableVoices.find((v) => v.id === selectedVoiceId)?.name || selectedVoiceId;
+                            setConfirmDetailPreview({
+                              title: 'Voice',
+                              layout: 'voice',
+                              voice: { id: selectedVoiceId, name: selectedVoiceName || "Not selected" }
+                            });
+                          }}
+                          style={{
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            borderRadius: 12,
+                            border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                            background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,148,136,0.14)' }}>
+                              <Play size={13} aria-hidden style={{ color: WIZ_CHANNEL_CALL }} />
+                            </span>
+                            <span style={{ textAlign: 'left' }}>
+                              <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>Voice</span>
+                              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>Open voice preview</span>
+                            </span>
+                          </span>
+                          <Icons.Eye size={15} aria-hidden />
+                        </button>
+                      )}
+
+                      {channels.includes('call') && knowledgeBaseFiles.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => {
+                            const kbItems = knowledgeBaseFiles.map((f) => ({
+                              id: f.id,
+                              name: f.name,
+                              sizeLabel: formatKbFileSize(f.sizeBytes),
+                            }));
+                            setConfirmDetailPreview({ title: 'Knowledge Base', layout: 'kb', kbFiles: kbItems });
+                          }}
+                          style={{
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            borderRadius: 12,
+                            border: '1px solid rgba(var(--color-primary-rgb), 0.24)',
+                            background: 'linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)))'
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 24, height: 24, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,148,136,0.14)' }}>
+                              <FileText size={13} aria-hidden style={{ color: WIZ_CHANNEL_CALL }} />
+                            </span>
+                            <span style={{ textAlign: 'left' }}>
+                              <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>Knowledge Base</span>
+                              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>View and download files</span>
+                            </span>
+                          </span>
+                          <Icons.Eye size={15} aria-hidden />
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+                      Click any item to preview before final launch.
                     </div>
                   </div>
                 </div>
@@ -14792,7 +15214,50 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                       return;
                     }
                   }
-                  
+
+                  const now = new Date();
+                  if (!schedule.end) {
+                    showWarning('Schedule required', 'Set an end time in Schedule before launching.');
+                    void goToWizardStepByType('schedule');
+                    return;
+                  }
+                  const endDate = new Date(schedule.end);
+                  if (Number.isNaN(endDate.getTime())) {
+                    showWarning('Invalid end time', 'Update end time in Schedule to a valid date/time.');
+                    void goToWizardStepByType('schedule');
+                    return;
+                  }
+                  if (schedule.launch_now) {
+                    if (endDate <= now) {
+                      showWarning('End time passed', 'End time is in the past. Update it in Schedule, then launch.');
+                      void goToWizardStepByType('schedule');
+                      return;
+                    }
+                  } else {
+                    if (!schedule.start) {
+                      showWarning('Start time required', 'Set a start time in Schedule before launching.');
+                      void goToWizardStepByType('schedule');
+                      return;
+                    }
+                    const startDate = new Date(schedule.start);
+                    if (Number.isNaN(startDate.getTime())) {
+                      showWarning('Invalid start time', 'Update start time in Schedule to a valid date/time.');
+                      void goToWizardStepByType('schedule');
+                      return;
+                    }
+                    if (startDate <= now) {
+                      showWarning('Start time passed', 'Start time is in the past. Update it in Schedule, then launch.');
+                      void goToWizardStepByType('schedule');
+                      return;
+                    }
+                    if (endDate <= startDate) {
+                      showWarning('Invalid schedule window', 'End time must be after start time.');
+                      void goToWizardStepByType('schedule');
+                      return;
+                    }
+                  }
+                   
+                  launchInProgressRef.current = true;
                   setLaunching(true);
                   setIsLaunching(true); // Prevent auto-save during launch
                   try {
@@ -15084,10 +15549,8 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                         showError('Launch failed', errorMessage + (errorDetails ? `\n\nDetails: ${JSON.stringify(errorDetails)}` : ''));
                       }
                       
-                      // Don't navigate if it's a validation error (user should fix it)
-                      if (error?.response?.status === 400) {
-                        return; // Stay on the page so user can fix the issue
-                      }
+                      // Never navigate when launch API fails.
+                      return;
                     }
                     
                     // Navigate to campaigns page
@@ -15098,6 +15561,7 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
                   } finally {
                     setLaunching(false);
                     setIsLaunching(false); // Re-enable auto-save
+                    launchInProgressRef.current = false;
                   }
                 }}
                 disabled={(channels.includes('linkedin') && !linkedInStepConfig) || launching}
@@ -15163,6 +15627,335 @@ Guidelines: listen actively, ask qualifying questions, focus on value over featu
         </div>
       )}
 
+      {confirmDetailPreview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-detail-preview-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10060,
+            background: "rgba(15, 23, 42, 0.52)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={closeConfirmDetailPreview}
+        >
+          <div
+            style={{
+              width: "min(920px, 96vw)",
+              maxHeight: "86vh",
+              overflow: "hidden",
+              background: "var(--elev-bg)",
+              borderRadius: 20,
+              boxShadow: "var(--elev-shadow-lg)",
+              border: "1px solid var(--elev-border)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "18px 22px",
+                borderBottom: "1px solid var(--elev-border)",
+                background:
+                  "linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 12%, var(--color-surface)) 0%, var(--color-surface) 100%)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  Preview
+                </div>
+                <h4 id="confirm-detail-preview-title" style={{ margin: "4px 0 0", fontSize: 17, fontWeight: 700 }}>
+                  {confirmDetailPreview.title}
+                </h4>
+              </div>
+              <button type="button" className="btn-ghost" onClick={closeConfirmDetailPreview} style={{ minWidth: "auto", padding: 8 }}>
+                <Icons.X size={18} />
+              </button>
+            </div>
+
+            <div style={{ maxHeight: "calc(86vh - 88px)", overflowY: "auto", padding: "18px 22px" }}>
+            {confirmDetailPreview.layout === "list" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {(confirmDetailPreview.list || []).length > 0 ? (
+                  (confirmDetailPreview.list || []).map((line, idx) => (
+                    <div
+                      key={`confirm-list-${idx}`}
+                      style={{
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 10,
+                        background: "var(--color-surface-secondary)",
+                        padding: "10px 12px",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {line}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>No content available.</div>
+                )}
+              </div>
+            ) : confirmDetailPreview.layout === "kb" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {(confirmDetailPreview.kbFiles || []).length > 0 ? (
+                  (confirmDetailPreview.kbFiles || []).map((f) => (
+                    <div
+                      key={`confirm-kb-${f.id}`}
+                      style={{
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 10,
+                        background: "var(--color-surface-secondary)",
+                        padding: "10px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {f.name}
+                        </div>
+                        {f.sizeLabel ? (
+                          <div style={{ marginTop: 2, fontSize: 12, color: "var(--color-text-muted)" }}>{f.sizeLabel}</div>
+                        ) : null}
+                      </div>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          disabled={reviewKbLoading?.fileId === f.id}
+                          onClick={() => {
+                            setReviewKbLoading({ fileId: f.id, action: "view" });
+                            void fetchKbPdfBlob(f.id, false)
+                              .catch((err) => showError("Knowledge base", (err as Error)?.message || "Could not open file"))
+                              .finally(() => setReviewKbLoading(null));
+                          }}
+                          style={{ minWidth: "auto", padding: "6px 10px", borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 6 }}
+                        >
+                          {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "view" ? (
+                            <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                          ) : (
+                            <Icons.Eye size={14} aria-hidden />
+                          )}
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          disabled={reviewKbLoading?.fileId === f.id}
+                          onClick={() => {
+                            setReviewKbLoading({ fileId: f.id, action: "download" });
+                            void fetchKbPdfBlob(f.id, true)
+                              .catch((err) => showError("Knowledge base", (err as Error)?.message || "Could not download"))
+                              .finally(() => setReviewKbLoading(null));
+                          }}
+                          style={{ minWidth: "auto", padding: "6px 10px", borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 6 }}
+                        >
+                          {reviewKbLoading?.fileId === f.id && reviewKbLoading?.action === "download" ? (
+                            <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                          ) : (
+                            <Icons.Download size={14} aria-hidden />
+                          )}
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>No files available.</div>
+                )}
+              </div>
+            ) : confirmDetailPreview.layout === "voice" ? (
+              <div
+                style={{
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 14,
+                  background: "var(--color-surface-secondary)",
+                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 12,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(13,148,136,0.14)",
+                    }}
+                  >
+                    <Play size={16} aria-hidden style={{ color: WIZ_CHANNEL_CALL }} />
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {confirmDetailPreview.voice?.name || "Voice"}
+                    </div>
+                    <div style={{ marginTop: 2, fontSize: 12, color: "var(--color-text-muted)" }}>
+                      Test the selected voice before launch
+                    </div>
+                  </div>
+                </div>
+                {confirmDetailPreview.voice?.id ? (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={previewLoadingVoiceId === confirmDetailPreview.voice.id}
+                    onClick={() => void toggleVoicePreview(confirmDetailPreview.voice!.id)}
+                    style={{
+                      width: "fit-content",
+                      minWidth: 150,
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    {previewLoadingVoiceId === confirmDetailPreview.voice.id ? (
+                      <RefreshCw size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                    ) : previewingVoiceId === confirmDetailPreview.voice.id ? (
+                      <Pause size={14} strokeWidth={2} aria-hidden />
+                    ) : (
+                      <Play size={14} strokeWidth={2} aria-hidden />
+                    )}
+                    {previewingVoiceId === confirmDetailPreview.voice.id ? "Pause voice" : "Preview voice"}
+                  </button>
+                ) : null}
+              </div>
+            ) : confirmDetailPreview.layout === "lead" ? (
+              <div
+                style={{
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 14,
+                  background: "var(--color-surface-secondary)",
+                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                {(() => {
+                  const l = confirmDetailPreview.lead;
+                  if (!l) {
+                    return (
+                      <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                        Lead details are not available.
+                      </div>
+                    );
+                  }
+                  const fullName = [l.first_name, l.last_name].filter(Boolean).join(" ").trim();
+                  const displayName = fullName || l.email || `Lead #${l.id}`;
+                  const linkedInUrl = getLinkedInUrlFromLead(l);
+                  return (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 12,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(var(--color-primary-rgb),0.16)",
+                          }}
+                        >
+                          <Icons.User size={16} aria-hidden style={{ color: "var(--color-primary)" }} />
+                        </span>
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: 16,
+                              fontWeight: 700,
+                              color: "var(--color-text)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {displayName}
+                          </div>
+                          <div style={{ marginTop: 2, fontSize: 12, color: "var(--color-text-muted)" }}>
+                            Lead ID: {l.id}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Role</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.role || "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Company</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.company || "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Email</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.email || "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Phone</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.phone || "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Tier</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.tier || "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Score</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.score ?? "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Industry</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)" }}>{l.industry || "—"}</div>
+                        </div>
+                        <div style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: 10, background: "var(--color-surface)" }}>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>LinkedIn</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text)", overflowWrap: "anywhere" }}>{linkedInUrl || "—"}</div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div
+                style={{
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 14,
+                  background: "var(--color-surface-secondary)",
+                  padding: "14px 16px",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {confirmDetailPreview.text || "No content available."}
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
+

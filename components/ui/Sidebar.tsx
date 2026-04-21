@@ -16,8 +16,6 @@ import {
 import {
   APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT,
   APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH,
-  APP_BRAND_LOGO_HEIGHT,
-  APP_BRAND_LOGO_MAX_WIDTH,
   APP_BRAND_NAME,
   AppBrandLogoLockup,
 } from "@/components/ui/AppBrandLogo";
@@ -100,7 +98,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
   const showCollapsedDividers = collapsed && !isMobile;
-  const sidebarOpenLogoHeight = APP_BRAND_LOGO_HEIGHT;
+  const sidebarOpenLogoHeight = 34;
+  const sidebarOpenLogoMaxWidth = 180;
   const sidebarOpenHeaderHeight = 72;
 
   const sidebarWidth = isMobile ? Math.min(288, typeof window !== "undefined" ? window.innerWidth : 288) : collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
@@ -309,7 +308,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               height={collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT : sidebarOpenLogoHeight}
               style={{
                 maxWidth:
-                  collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH : APP_BRAND_LOGO_MAX_WIDTH,
+                  collapsed && !isMobile ? APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH : sidebarOpenLogoMaxWidth,
                 margin: collapsed && !isMobile ? "0 auto" : undefined,
               }}
             />

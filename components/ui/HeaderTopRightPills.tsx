@@ -94,19 +94,28 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
       void syncCredits();
     };
     const onBase = () => void syncCredits();
+    const onCreditsChanged = (event: Event) => {
+      const custom = event as CustomEvent<{ baseId?: number | null }>;
+      const changedBaseId = custom?.detail?.baseId;
+      if (changedBaseId == null || activeBaseId == null || Number(changedBaseId) === Number(activeBaseId)) {
+        void syncCredits();
+      }
+    };
     const onVisible = () => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") void syncCredits();
     };
     if (typeof window === "undefined") return;
     window.addEventListener("sparkai:user-changed", onUser);
     window.addEventListener("sparkai:active-base-changed", onBase);
+    window.addEventListener("sparkai:workspace-credits-changed", onCreditsChanged as EventListener);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener("sparkai:user-changed", onUser);
       window.removeEventListener("sparkai:active-base-changed", onBase);
+      window.removeEventListener("sparkai:workspace-credits-changed", onCreditsChanged as EventListener);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [syncCredits]);
+  }, [activeBaseId, syncCredits]);
 
   useEffect(() => {
     return () => {

@@ -1,862 +1,803 @@
-﻿"use client";
-import { useState, useEffect } from "react";
-import { StatCard, ProgressBar, CircularProgress } from "@/components/ui/DataVisualization";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
-import { Icons } from "@/components/ui/Icons";
 import BaseCard from "@/components/ui/BaseCard";
+import { Icons } from "@/components/ui/Icons";
 
-// Enhanced Line Chart Component for trends with better context
-const LineChart = ({ 
-  data, 
-  dataKey,
-  color = "var(--color-primary)",
-  height = 220
-}: {
-  data: { date: string; [key: string]: any }[];
-  dataKey: string;
-  color?: string;
-  height?: number;
-}) => {
-  if (!data || data.length === 0) return null;
-  
-  const values = data.map(d => d[dataKey] || 0);
-  const max = Math.max(...values, 1);
-  const min = 0; // Start from 0 for better context
-  const range = max - min || 1;
-  const total = values.reduce((a, b) => a + b, 0);
-  const average = total / values.length;
-  const peak = Math.max(...values);
-  const peakDay = data[values.indexOf(peak)]?.date;
-  
-  const chartWidth = 100;
-  const chartHeight = height - 60; // Leave space for labels
-  const leftPadding = 8;
-  
-  const points = data.map((d, i) => {
-    const x = leftPadding + (i / (data.length - 1 || 1)) * (chartWidth - leftPadding * 2);
-    const y = 30 + chartHeight - ((d[dataKey] - min) / range) * chartHeight;
-    return { x, y, value: d[dataKey], date: d.date };
-  });
-  
-  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaD = `${pathD} L ${chartWidth - leftPadding} ${30 + chartHeight} L ${leftPadding} ${30 + chartHeight} Z`;
-  
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+type TrendRow = {
+  date: string;
+  leads: number;
+  conversions: number;
+};
+
+type CampaignRow = {
+  id: number;
+  name: string;
+  channel?: string | null;
+  status?: string | null;
+  sent_count?: number;
+  reply_count?: number;
+  reply_rate?: number;
+};
+
+type TopLeadRow = {
+  id: number;
+  name: string;
+  company?: string | null;
+  score?: number | null;
+  tier?: string | null;
+};
+
+type ChannelMetrics = {
+  email?: { sent?: number; replied?: number; replyRate?: number };
+  whatsapp?: { sent?: number; replied?: number; replyRate?: number };
+  linkedin?: { sent?: number; replied?: number; replyRate?: number };
+  call?: {
+    initiated?: number;
+    answered?: number;
+    completed?: number;
+    answerRate?: number;
+    completionRate?: number;
   };
-  
+};
+
+type AnalyticsPayload = {
+  totalLeads?: number;
+  activeCampaigns?: number;
+  hotLeads?: number;
+  conversions?: number;
+  conversionRate?: number;
+  leadChange?: number;
+  conversionChange?: number;
+  funnel?: {
+    totalLeads?: number;
+    contacted?: number;
+    replied?: number;
+    converted?: number;
+  };
+  dailyTrends?: TrendRow[];
+  topCampaigns?: CampaignRow[];
+  topLeads?: TopLeadRow[];
+  enrichmentRate?: number;
+  phoneRate?: number;
+  emailRate?: number;
+  enrichedLeads?: number;
+  leadsWithPhone?: number;
+  leadsWithEmail?: number;
+  channelMetrics?: ChannelMetrics;
+  generated_at?: string;
+};
+
+function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function pct(value: number, total: number): number {
+  if (total <= 0) return 0;
+  return (value / total) * 100;
+}
+
+function formatCompact(v: number): string {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(v);
+}
+
+function formatWhole(v: number): string {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
+}
+
+function formatDelta(v: number): string {
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${v.toFixed(1)}%`;
+}
+
+const PERIODS = [
+  { value: "7d", label: "7 Days" },
+  { value: "30d", label: "30 Days" },
+  { value: "90d", label: "90 Days" },
+] as const;
+
+function KpiCard({
+  title,
+  value,
+  hint,
+  accent,
+  delta,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  accent: string;
+  delta?: string;
+}) {
   return (
-    <div style={{ width: '100%', position: 'relative' }}>
-      {/* Summary Stats */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
-        gap: 12, 
-        marginBottom: 16,
-        padding: '12px 14px',
-        background: 'var(--color-surface-secondary)',
-        borderRadius: 10,
-        border: '1px solid var(--color-border)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color }}>
-            {total.toLocaleString()}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
-            Total Added
-          </div>
+    <BaseCard
+      style={{
+        borderRadius: 14,
+        border: "1px solid var(--color-border)",
+        background:
+          "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, rgba(var(--color-primary-rgb),0.06) 100%)",
+        boxShadow: "var(--elev-shadow)",
+        padding: "16px 18px",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: 999,
+          padding: "4px 10px",
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: accent,
+          border: `1px solid ${accent}33`,
+          background: `${accent}14`,
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 34, fontWeight: 800, lineHeight: 1, color: "var(--color-text)" }}>
+        {value}
+      </div>
+      <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{hint}</span>
+        {delta ? (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: delta.startsWith("+") ? "#15803d" : delta.startsWith("-") ? "#dc2626" : "var(--color-text-muted)",
+            }}
+          >
+            {delta}
+          </span>
+        ) : null}
+      </div>
+    </BaseCard>
+  );
+}
+
+function TrendChart({ trends }: { trends: TrendRow[] }) {
+  if (!trends.length) {
+    return <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>No trend data available yet.</div>;
+  }
+
+  const values = trends.map((t) => num(t.leads));
+  const max = Math.max(...values, 1);
+  const min = 0;
+  const w = 100;
+  const h = 38;
+  const topPad = 3;
+  const bottomPad = 5;
+
+  const points = trends.map((row, i) => {
+    const x = (i / Math.max(trends.length - 1, 1)) * w;
+    const y = topPad + (1 - (num(row.leads) - min) / Math.max(max - min, 1)) * (h - topPad - bottomPad);
+    return { x, y, v: num(row.leads), date: row.date };
+  });
+
+  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const area = `${line} L ${w},${h - bottomPad} L 0,${h - bottomPad} Z`;
+  const total = values.reduce((a, b) => a + b, 0);
+  const avg = total / values.length;
+  const peak = Math.max(...values);
+  const startLabel = new Date(trends[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const endLabel = new Date(trends[trends.length - 1].date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+        <div style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Total</div>
+          <div style={{ marginTop: 4, fontSize: 18, fontWeight: 700 }}>{formatWhole(total)}</div>
         </div>
-        <div style={{ textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>
-            {average.toFixed(1)}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
-            Daily Average
-          </div>
+        <div style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Daily Avg</div>
+          <div style={{ marginTop: 4, fontSize: 18, fontWeight: 700 }}>{avg.toFixed(1)}</div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#4ecdc4' }}>
-            {peak}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
-            Peak Day
-          </div>
+        <div style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Peak Day</div>
+          <div style={{ marginTop: 4, fontSize: 18, fontWeight: 700 }}>{formatWhole(peak)}</div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div style={{ position: 'relative' }}>
-        {/* Y-axis labels */}
-        <div style={{ 
-          position: 'absolute', 
-          left: 0, 
-          top: 30, 
-          height: chartHeight, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          justifyContent: 'space-between',
-          fontSize: 9,
-          color: 'var(--color-text-muted)',
-          width: 24,
-          textAlign: 'right',
-          paddingRight: 4
-        }}>
-          <span>{max}</span>
-          <span>{Math.round(max / 2)}</span>
-          <span>0</span>
-        </div>
-        
-        <svg viewBox={`0 0 ${chartWidth} ${height - 30}`} style={{ width: '100%', height: height - 30 }}>
+      <div
+        style={{
+          borderRadius: 12,
+          border: "1px solid rgba(var(--color-primary-rgb),0.24)",
+          background:
+            "linear-gradient(180deg, rgba(var(--color-primary-rgb),0.12) 0%, rgba(var(--color-primary-rgb),0.03) 100%)",
+          padding: "10px 12px",
+        }}
+      >
+        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 170, display: "block" }} preserveAspectRatio="none">
           <defs>
-            <linearGradient id={`gradient-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+            <linearGradient id="lead-trend-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.02" />
             </linearGradient>
           </defs>
-          
-          {/* Grid lines */}
-          <line x1={leftPadding} y1={30} x2={chartWidth - leftPadding} y2={30} stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="2,2" />
-          <line x1={leftPadding} y1={30 + chartHeight/2} x2={chartWidth - leftPadding} y2={30 + chartHeight/2} stroke="var(--color-border)" strokeWidth="0.5" strokeDasharray="2,2" />
-          <line x1={leftPadding} y1={30 + chartHeight} x2={chartWidth - leftPadding} y2={30 + chartHeight} stroke="var(--color-border)" strokeWidth="0.5" />
-          
-          {/* Area fill */}
-          <path d={areaD} fill={`url(#gradient-${dataKey})`} />
-          
-          {/* Line */}
-          <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          
-          {/* Data points with values */}
+          <path d={area} fill="url(#lead-trend-fill)" />
+          <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth="1.4" strokeLinecap="round" />
           {points.map((p, i) => (
-            <g key={i}>
-              <circle cx={p.x} cy={p.y} r="4" fill={color} stroke="#fff" strokeWidth="1.5" />
-              {/* Show value on hover area - simplified for now */}
-            </g>
+            <circle key={i} cx={p.x} cy={p.y} r="0.85" fill="var(--color-primary)" />
           ))}
         </svg>
-      </div>
-      
-      {/* X-axis labels */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        fontSize: 10, 
-        color: 'var(--color-text-muted)', 
-        marginTop: 6,
-        paddingLeft: 24
-      }}>
-        <span>{formatDate(data[0]?.date)}</span>
-        <span>{formatDate(data[Math.floor(data.length / 2)]?.date)}</span>
-        <span>{formatDate(data[data.length - 1]?.date)}</span>
-      </div>
-      
-      {/* Legend */}
-      <div style={{ 
-        fontSize: 11, 
-        color: 'var(--color-text-muted)', 
-        marginTop: 12,
-        textAlign: 'center',
-        fontStyle: 'italic'
-      }}>
-        New leads added per day over the selected period
-      </div>
-    </div>
-  );
-};
-
-// Bar Chart Component
-const BarChart = ({ 
-  data, 
-  height = 180,
-  colors
-}: {
-  data: { label: string; value: number; color?: string }[];
-  height?: number;
-  colors?: string[];
-}) => {
-  if (!data || data.length === 0) return null;
-  
-  const max = Math.max(...data.map(d => d.value), 1);
-  const defaultColors = ['var(--color-primary)', '#F29F67', '#ff6b6b', '#4ecdc4', '#ffa726', '#888'];
-  
-  return (
-    <div style={{ display: 'flex', alignItems: 'end', gap: 8, height, padding: '0 4px' }}>
-      {data.map((d, i) => {
-        const barHeight = (d.value / max) * (height - 30);
-        const color = d.color || colors?.[i] || defaultColors[i % defaultColors.length];
-        return (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text)' }}>{d.value}</div>
-            <div style={{
-              width: '100%',
-              height: Math.max(barHeight, 4),
-              background: `linear-gradient(180deg, ${color} 0%, ${color}80 100%)`,
-              borderRadius: '4px 4px 0 0',
-              transition: 'height 0.3s ease'
-            }} />
-            <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textAlign: 'center', whiteSpace: 'nowrap' }}>
-              {d.label}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// Funnel Component
-const FunnelChart = ({ data }: { data: { label: string; value: number; color: string }[] }) => {
-  if (!data || data.length === 0) return null;
-  
-  const max = data[0]?.value || 1;
-  
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {data.map((item, i) => {
-        const width = Math.max((item.value / max) * 100, 20);
-        const rate = i > 0 && data[i - 1].value > 0 
-          ? ((item.value / data[i - 1].value) * 100).toFixed(1) 
-          : null;
-        
-        return (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 90, fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>
-              {item.label}
-            </div>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <div style={{
-                width: `${width}%`,
-                height: 32,
-                background: `linear-gradient(90deg, ${item.color} 0%, ${item.color}80 100%)`,
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'width 0.3s ease'
-              }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                  {item.value.toLocaleString()}
-                </span>
-              </div>
-            </div>
-            {rate && (
-              <div style={{ width: 50, fontSize: 11, color: 'var(--color-text-muted)', textAlign: 'right' }}>
-                {rate}%
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// Donut Chart for Tier Distribution
-const DonutChart = ({ 
-  data, 
-  size = 160 
-}: { 
-  data: { label: string; value: number; color: string }[];
-  size?: number;
-}) => {
-  const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
-  const strokeWidth = 24;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  
-  let currentOffset = 0;
-  
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-      <div style={{ position: 'relative', width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          {data.map((d, i) => {
-            const percentage = d.value / total;
-            const strokeDasharray = circumference * percentage;
-            const strokeDashoffset = -currentOffset;
-            currentOffset += circumference * percentage;
-            
-            return (
-              <circle
-                key={i}
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke={d.color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={`${strokeDasharray} ${circumference}`}
-                strokeDashoffset={strokeDashoffset}
-                style={{ transition: 'stroke-dasharray 0.3s ease' }}
-              />
-            );
-          })}
-        </svg>
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text)' }}>{total}</div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Total</div>
+        <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--color-text-muted)" }}>
+          <span>{startLabel}</span>
+          <span>{endLabel}</span>
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 12, height: 12, borderRadius: 3, background: d.color }} />
-            <span style={{ fontSize: 13, color: 'var(--color-text)' }}>{d.label}</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: d.color, marginLeft: 'auto' }}>{d.value}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
-};
+}
+
+function FunnelView({
+  total,
+  contacted,
+  qualified,
+  converted,
+}: {
+  total: number;
+  contacted: number;
+  qualified: number;
+  converted: number;
+}) {
+  const stages = [
+    { label: "Total Leads", value: total, color: "var(--color-primary)" },
+    { label: "Contacted", value: contacted, color: "#F29F67" },
+    { label: "Qualified", value: qualified, color: "#10b981" },
+    { label: "Converted", value: converted, color: "#0ea5e9" },
+  ];
+
+  const top = Math.max(total, 1);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {stages.map((s, idx) => {
+        const width = Math.max((s.value / top) * 100, s.value > 0 ? 18 : 6);
+        const conversionFromPrev = idx > 0 ? pct(s.value, Math.max(stages[idx - 1].value, 1)) : 100;
+        return (
+          <div key={s.label} style={{ display: "grid", gridTemplateColumns: "96px 1fr 64px", gap: 10, alignItems: "center" }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>{s.label}</div>
+            <div style={{ height: 30, borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)", position: "relative", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${width}%`,
+                  height: "100%",
+                  background: `linear-gradient(90deg, ${s.color} 0%, ${s.color}CC 100%)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {formatWhole(s.value)}
+              </div>
+            </div>
+            <div style={{ textAlign: "right", fontSize: 11, fontWeight: 700, color: idx === 0 ? "var(--color-text-muted)" : "var(--color-text)" }}>
+              {idx === 0 ? "base" : `${conversionFromPrev.toFixed(1)}%`}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CoverageMeter({ label, value, detail, color }: { label: string; value: number; detail: string; color: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color }}>{value.toFixed(1)}%</span>
+      </div>
+      <div style={{ height: 10, borderRadius: 999, background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", overflow: "hidden" }}>
+        <div style={{ width: `${Math.max(0, Math.min(value, 100))}%`, height: "100%", background: `linear-gradient(90deg, ${color} 0%, ${color}CC 100%)` }} />
+      </div>
+      <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{detail}</span>
+    </div>
+  );
+}
+
+function statusTone(status: string | null | undefined): { bg: string; fg: string; bd: string } {
+  const s = String(status || "").toLowerCase();
+  if (s === "running" || s === "active") return { bg: "#dcfce7", fg: "#166534", bd: "#bbf7d0" };
+  if (s === "completed") return { bg: "#e0f2fe", fg: "#075985", bd: "#bae6fd" };
+  if (s === "draft") return { bg: "#fef3c7", fg: "#92400e", bd: "#fde68a" };
+  return { bg: "var(--color-surface-secondary)", fg: "var(--color-text-muted)", bd: "var(--color-border)" };
+}
 
 export default function ReportsPage() {
   const { activeBaseId } = useBase();
-  const [selectedPeriod, setSelectedPeriod] = useState("30d");
+  const [selectedPeriod, setSelectedPeriod] = useState<(typeof PERIODS)[number]["value"]>("30d");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reportsData, setReportsData] = useState<any>(null);
+  const [data, setData] = useState<AnalyticsPayload | null>(null);
 
-  const periods = [
-    { value: "7d", label: "7 Days" },
-    { value: "30d", label: "30 Days" },
-    { value: "90d", label: "90 Days" }
-  ];
+  const loadAnalytics = async () => {
+    if (!activeBaseId) {
+      setData(null);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const json = (await apiRequest(`/analytics?base_id=${activeBaseId}&period=${selectedPeriod}`)) as AnalyticsPayload;
+      setData(json);
+    } catch (e) {
+      setData(null);
+      setError((e as { message?: string })?.message || "Failed to load analytics.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchReports = async () => {
-      if (!activeBaseId) {
-        setReportsData(null);
-        setError(null);
-        return;
-      }
+    void loadAnalytics();
+  }, [activeBaseId, selectedPeriod]);
 
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await apiRequest(`/analytics?base_id=${activeBaseId}&period=${selectedPeriod}`);
-        setReportsData(data);
-      } catch (error) {
-        console.error('Failed to fetch reports:', error);
-        setError((error as any)?.message || 'Failed to fetch analytics');
-        setReportsData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReports();
-  }, [selectedPeriod, activeBaseId]);
+  const funnel = data?.funnel || {};
+  const totalLeads = num(funnel.totalLeads ?? data?.totalLeads);
+  const contacted = num(funnel.contacted);
+  const qualified = num(data?.hotLeads);
+  const converted = num(funnel.converted ?? data?.conversions);
+  const activeCampaigns = num(data?.activeCampaigns);
+  const conversionRate = num(data?.conversionRate);
 
-  const tierData = reportsData?.tierDistribution ? [
-    { label: 'Hot', value: reportsData.tierDistribution.hot || 0, color: '#ff6b6b' },
-    { label: 'Warm', value: reportsData.tierDistribution.warm || 0, color: '#ffa726' },
-    { label: 'Cold', value: reportsData.tierDistribution.cold || 0, color: '#64b5f6' },
-    { label: 'Converted', value: reportsData.tierDistribution.converted || 0, color: '#4ecdc4' },
-    { label: 'Unassigned', value: reportsData.tierDistribution.none || 0, color: '#888' }
-  ].filter(d => d.value > 0) : [];
+  const channelRows = useMemo(() => {
+    const cm = data?.channelMetrics;
+    return [
+      {
+        key: "email",
+        label: "Email",
+        icon: <Icons.Mail size={16} style={{ color: "var(--color-primary)" }} />,
+        primary: num(cm?.email?.sent),
+        secondaryLabel: "Replies",
+        secondary: num(cm?.email?.replied),
+      },
+      {
+        key: "whatsapp",
+        label: "WhatsApp",
+        icon: <Icons.WhatsApp size={16} style={{ color: "#22c55e" }} />,
+        primary: num(cm?.whatsapp?.sent),
+        secondaryLabel: "Replies",
+        secondary: num(cm?.whatsapp?.replied),
+      },
+      {
+        key: "linkedin",
+        label: "LinkedIn",
+        icon: <Icons.Linkedin size={16} style={{ color: "#0a66c2" }} />,
+        primary: num(cm?.linkedin?.sent),
+        secondaryLabel: "Replies",
+        secondary: num(cm?.linkedin?.replied),
+      },
+      {
+        key: "call",
+        label: "Calls",
+        icon: <Icons.Phone size={16} style={{ color: "#0d9488" }} />,
+        primary: num(cm?.call?.initiated),
+        secondaryLabel: "Answered",
+        secondary: num(cm?.call?.answered),
+        tertiaryLabel: "Completed",
+        tertiary: num(cm?.call?.completed),
+      },
+    ];
+  }, [data?.channelMetrics]);
 
-  const scoreData = reportsData?.scoreDistribution?.filter((d: any) => d.count > 0).map((d: any) => ({
-    label: d.label,
-    value: d.count
-  })) || [];
-
-  const funnelData = reportsData?.funnel ? [
-    { label: 'Total Leads', value: reportsData.funnel.totalLeads || 0, color: 'var(--color-primary)' },
-    { label: 'Contacted', value: reportsData.funnel.contacted || 0, color: '#F29F67' },
-    { label: 'Replied', value: reportsData.funnel.replied || 0, color: '#ffa726' },
-    { label: 'Converted', value: reportsData.funnel.converted || 0, color: '#4ecdc4' }
-  ] : [];
-
-  const leadChange = typeof reportsData?.leadChange === "number" ? reportsData.leadChange : 0;
-  const replyChange = typeof reportsData?.replyChange === "number" ? reportsData.replyChange : 0;
-  const conversionChange = typeof reportsData?.conversionChange === "number" ? reportsData.conversionChange : 0;
-  const replyRate = typeof reportsData?.replyRate === "number" ? reportsData.replyRate : 0;
-  const conversionRate = typeof reportsData?.conversionRate === "number" ? reportsData.conversionRate : 0;
-
-  const surfaceCard = {
-    background: "var(--color-surface)",
-    borderRadius: 14,
-    padding: 24,
-    border: "1px solid var(--color-border)",
-    boxShadow: "var(--elev-shadow)",
-  } as const;
+  const insights = useMemo(() => {
+    const items: string[] = [];
+    const contactRate = pct(contacted, Math.max(totalLeads, 1));
+    const convertFromContact = pct(converted, Math.max(contacted, 1));
+    if (totalLeads > 0) {
+      items.push(`${contactRate.toFixed(1)}% of leads were contacted in this period.`);
+    }
+    if (contacted > 0) {
+      items.push(`${convertFromContact.toFixed(1)}% of contacted leads reached conversion.`);
+    }
+    if (num(data?.enrichmentRate) < 50) {
+      items.push("Data enrichment is under 50%; increasing enrichment will improve routing and personalization quality.");
+    }
+    if (activeCampaigns === 0 && totalLeads > 0) {
+      items.push("No active campaigns detected. Launching at least one campaign will unlock engagement signals.");
+    }
+    if (!items.length) {
+      items.push("Activity is stable. Keep campaign cadence consistent and monitor contacted-to-converted movement.");
+    }
+    return items.slice(0, 4);
+  }, [activeCampaigns, contacted, converted, data?.enrichmentRate, totalLeads]);
 
   return (
     <div className="dashboard-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <BaseCard style={{
-        padding: "16px 20px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 12,
-        borderRadius: 12,
-        border: "1px solid var(--color-border)",
-        background: "var(--color-surface)",
-        boxShadow: "var(--elev-shadow)"
-      }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
-            Analytics
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
-            Workspace performance, health, and conversion trends
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {periods.map((period) => (
-            <button
-              key={period.value}
-              onClick={() => setSelectedPeriod(period.value)}
-              style={{
-                background: selectedPeriod === period.value
-                  ? 'rgba(var(--color-primary-rgb), 0.2)'
-                  : 'var(--color-surface-secondary)',
-                border: selectedPeriod === period.value
-                  ? '1px solid rgba(var(--color-primary-rgb), 0.2)'
-                  : '1px solid var(--color-border)',
-                borderRadius: 8,
-                padding: '8px 14px',
-                color: selectedPeriod === period.value ? 'var(--color-primary)' : 'var(--color-text)',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {period.label}
-            </button>
-          ))}
-          
-          {!activeBaseId && (
-            <div style={{ 
-              padding: '8px 14px', 
-              background: 'var(--color-surface-secondary)', 
-              borderRadius: 8,
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text-muted)',
-              fontSize: 13,
-              fontWeight: 500
-            }}>
-              Select a workspace
+      <BaseCard
+        style={{
+          borderRadius: 14,
+          border: "1px solid rgba(var(--color-primary-rgb),0.24)",
+          background:
+            "radial-gradient(circle at top right, rgba(var(--color-primary-rgb),0.22), transparent 60%), var(--color-surface)",
+          boxShadow: "var(--elev-shadow)",
+          padding: "16px 18px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--color-text)" }}>
+              Analytics Intelligence
+            </h2>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
+              Performance cockpit focused on reliable activity and conversion signals.
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", padding: 4, borderRadius: 999, background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", gap: 4 }}>
+              {PERIODS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setSelectedPeriod(p.value)}
+                  style={{
+                    border: "none",
+                    cursor: "pointer",
+                    borderRadius: 999,
+                    padding: "7px 12px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: selectedPeriod === p.value ? "var(--color-primary)" : "transparent",
+                    color: selectedPeriod === p.value ? "#fff" : "var(--color-text)",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => void loadAnalytics()}
+              className="btn-ghost"
+              disabled={loading || !activeBaseId}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              <Icons.RefreshCw
+                size={15}
+                style={{
+                  color: "var(--color-text-muted)",
+                  animation: loading ? "spin 1s linear infinite" : "none",
+                }}
+              />
+              Refresh
+            </button>
+          </div>
         </div>
       </BaseCard>
 
-      {error && (
-        <div style={{
-          borderRadius: 12,
-          padding: 16,
-          border: '1px solid rgba(255, 107, 107, 0.25)',
-          background: 'rgba(255, 107, 107, 0.08)'
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Failed to load analytics</div>
-          <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{error}</div>
-        </div>
-      )}
+      {!activeBaseId ? (
+        <BaseCard
+          style={{
+            borderRadius: 14,
+            border: "1px dashed var(--color-border)",
+            background: "var(--color-surface)",
+            padding: 24,
+            textAlign: "center",
+          }}
+        >
+          <Icons.Folder size={30} style={{ color: "var(--color-text-muted)", opacity: 0.65 }} />
+          <div style={{ marginTop: 10, fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>Select a workspace to view analytics</div>
+          <div style={{ marginTop: 4, fontSize: 12, color: "var(--color-text-muted)" }}>
+            Analytics are calculated per workspace.
+          </div>
+        </BaseCard>
+      ) : null}
+
+      {error ? (
+        <BaseCard
+          style={{
+            borderRadius: 12,
+            border: "1px solid #fecaca",
+            background: "#fef2f2",
+            padding: 16,
+            color: "#991b1b",
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Unable to load analytics</div>
+          <div style={{ marginTop: 4, fontSize: 12 }}>{error}</div>
+        </BaseCard>
+      ) : null}
 
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} style={{
-              background: 'var(--color-surface)',
-              borderRadius: 12,
-              padding: 24,
-              border: '1px solid var(--color-border)'
-            }}>
-              <div className="loading-skeleton" style={{ height: 14, width: '60%', marginBottom: 12 }} />
-              <div className="loading-skeleton" style={{ height: 32, width: '50%' }} />
-            </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+          {[1, 2, 3, 4].map((k) => (
+            <BaseCard key={k} style={{ borderRadius: 14, border: "1px solid var(--color-border)", background: "var(--color-surface)", padding: 18 }}>
+              <div className="loading-skeleton" style={{ height: 12, width: "58%", marginBottom: 12 }} />
+              <div className="loading-skeleton" style={{ height: 34, width: "45%", marginBottom: 10 }} />
+              <div className="loading-skeleton" style={{ height: 10, width: "70%" }} />
+            </BaseCard>
           ))}
         </div>
-      ) : reportsData ? (
+      ) : null}
+
+      {!loading && data ? (
         <>
-          {/* Key Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            <StatCard
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+            <KpiCard
               title="Total Leads"
-              value={reportsData.totalLeads?.toLocaleString() || '0'}
-              change={`${leadChange >= 0 ? '+' : ''}${leadChange.toFixed(1)}%`}
-              trend={leadChange > 0 ? 'up' : leadChange < 0 ? 'down' : 'stable'}
-              icon={<Icons.Users size={20} />}
-              color="var(--color-primary)"
+              value={formatCompact(totalLeads)}
+              hint={`${formatWhole(totalLeads)} leads in workspace`}
+              accent="var(--color-primary)"
+              delta={formatDelta(num(data.leadChange))}
             />
-            <StatCard
-              title="Reply Rate"
-              value={`${replyRate.toFixed(1)}%`}
-              change={`${replyChange >= 0 ? '+' : ''}${replyChange.toFixed(1)} pp`}
-              trend={replyChange > 0 ? 'up' : replyChange < 0 ? 'down' : 'stable'}
-              icon={<Icons.MessageCircle size={20} />}
-              color="#F29F67"
+            <KpiCard
+              title="Active Campaigns"
+              value={formatWhole(activeCampaigns)}
+              hint="Campaigns currently running"
+              accent="#0ea5e9"
             />
-            <StatCard
+            <KpiCard
+              title="Leads Contacted"
+              value={formatWhole(contacted)}
+              hint={`${pct(contacted, Math.max(totalLeads, 1)).toFixed(1)}% of workspace leads`}
+              accent="#F29F67"
+            />
+            <KpiCard
               title="Conversions"
-              value={reportsData.conversions?.toLocaleString() || '0'}
-              change={`${conversionChange >= 0 ? '+' : ''}${conversionChange.toFixed(1)}%`}
-              trend={conversionChange > 0 ? 'up' : conversionChange < 0 ? 'down' : 'stable'}
-              icon={<Icons.CheckCircle size={20} />}
-              color="#4ecdc4"
-            />
-            <StatCard
-              title="Hot Leads"
-              value={reportsData.hotLeads?.toLocaleString() || '0'}
-              change="ready to convert"
-              trend="up"
-              icon={<Icons.Flame size={20} />}
-              color="#ff6b6b"
+              value={formatWhole(converted)}
+              hint={`${conversionRate.toFixed(1)}% conversion rate`}
+              accent="#10b981"
+              delta={formatDelta(num(data.conversionChange))}
             />
           </div>
 
-          {/* Charts Row 1 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 16 }}>
-            {/* Lead Trends */}
-            <BaseCard style={{ ...surfaceCard }}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.TrendingUp size={18} style={{ color: 'var(--color-primary)' }} />
-                Lead Acquisition Trend
-              </h3>
-              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
-                How many new leads were added each day
-              </p>
-              {reportsData.dailyTrends && reportsData.dailyTrends.length > 0 ? (
-                <LineChart 
-                  data={reportsData.dailyTrends} 
-                  dataKey="leads" 
-                  color="var(--color-primary)"
-                  height={240}
-                />
-              ) : (
-                <div style={{ 
-                  color: 'var(--color-text-muted)', 
-                  fontSize: 14, 
-                  textAlign: 'center', 
-                  padding: '40px 20px',
-                  background: 'var(--color-surface-secondary)',
-                  borderRadius: 10,
-                  border: '1px dashed var(--color-border)'
-                }}>
-                  <Icons.Chart size={32} style={{ opacity: 0.4, marginBottom: 8 }} />
-                  <div>No trend data available</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>Add leads to see your growth trend</div>
-                </div>
-              )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
+            <BaseCard
+              style={{
+                borderRadius: 14,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--elev-shadow)",
+                padding: 16,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Icons.TrendingUp size={16} style={{ color: "var(--color-primary)" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Lead Velocity Trend</h3>
+              </div>
+              <TrendChart trends={Array.isArray(data.dailyTrends) ? data.dailyTrends : []} />
             </BaseCard>
 
-            {/* Conversion Funnel */}
-            <BaseCard style={{ ...surfaceCard }}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Target size={18} style={{ color: '#F29F67' }} />
-                Conversion Funnel
-              </h3>
-              {funnelData.length > 0 ? (
-                <FunnelChart data={funnelData} />
-              ) : (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 14, textAlign: 'center', padding: 40 }}>
-                  No funnel data available
-                </div>
-              )}
+            <BaseCard
+              style={{
+                borderRadius: 14,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--elev-shadow)",
+                padding: 16,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Icons.Target size={16} style={{ color: "#F29F67" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Pipeline Funnel</h3>
+              </div>
+              <FunnelView total={totalLeads} contacted={contacted} qualified={qualified} converted={converted} />
             </BaseCard>
           </div>
 
-          {/* Charts Row 2 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 20 }}>
-            {/* Tier Distribution */}
-            <div style={surfaceCard}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Flame size={18} style={{ color: '#ff6b6b' }} />
-                Lead Temperature
-              </h3>
-              {tierData.length > 0 ? (
-                <DonutChart data={tierData} size={140} />
-              ) : (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 14, textAlign: 'center', padding: 40 }}>
-                  No tier data available
-                </div>
-              )}
-            </div>
-
-            {/* Score Distribution */}
-            <div style={surfaceCard}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Chart size={18} style={{ color: '#4ecdc4' }} />
-                Score Distribution
-              </h3>
-              {scoreData.length > 0 ? (
-                <BarChart 
-                  data={scoreData} 
-                  height={160}
-                  colors={['#ef4444', '#f97316', '#eab308', '#22c55e', 'var(--color-primary)', '#888']}
-                />
-              ) : (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 14, textAlign: 'center', padding: 40 }}>
-                  No score data available
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Data Quality Section */}
-          <div style={surfaceCard}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icons.Sparkles size={18} style={{ color: '#F29F67' }} />
-              Data Quality
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 14, color: 'var(--color-text)' }}>Enrichment Coverage</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#F29F67' }}>
-                    {reportsData.enrichmentRate?.toFixed(1) || 0}%
-                  </span>
-                </div>
-                <ProgressBar value={reportsData.enrichmentRate || 0} max={100} color="#F29F67" showPercentage={false} />
-                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                  {reportsData.enrichedLeads || 0} of {reportsData.totalLeads || 0} leads enriched
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
+            <BaseCard
+              style={{
+                borderRadius: 14,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--elev-shadow)",
+                padding: 16,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <Icons.Radio size={16} style={{ color: "#0ea5e9" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Channel Activity</h3>
               </div>
-              
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 14, color: 'var(--color-text)' }}>Phone Numbers</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-primary)' }}>
-                    {reportsData.phoneRate?.toFixed(1) || 0}%
-                  </span>
-                </div>
-                <ProgressBar value={reportsData.phoneRate || 0} max={100} color="var(--color-primary)" showPercentage={false} />
-                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                  {reportsData.leadsWithPhone || 0} leads with phone numbers
-                </div>
-              </div>
-              
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 14, color: 'var(--color-text)' }}>Email Addresses</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#4ecdc4' }}>
-                    {reportsData.emailRate?.toFixed(1) || 0}%
-                  </span>
-                </div>
-                <ProgressBar value={reportsData.emailRate || 0} max={100} color="#4ecdc4" showPercentage={false} />
-                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                  {reportsData.leadsWithEmail || 0} leads with email addresses
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Top Performers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 16 }}>
-            {/* Top Campaigns */}
-            <div style={surfaceCard}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Rocket size={18} style={{ color: '#F29F67' }} />
-                Top Campaigns
-              </h3>
-              {reportsData.topCampaigns && reportsData.topCampaigns.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {reportsData.topCampaigns.slice(0, 5).map((campaign: any, i: number) => (
-                    <div key={campaign.id || i} style={{
-                      background: 'var(--color-surface-secondary)',
-                      borderRadius: 10,
-                      padding: 14,
-                      border: '1px solid var(--color-border)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>{campaign.name}</span>
-                        <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                          {campaign.sent_count} sent
-                        </span>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
+                {channelRows.map((ch) => (
+                  <div
+                    key={ch.key}
+                    style={{
+                      borderRadius: 12,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-secondary)",
+                      padding: "12px 12px 10px",
+                      minHeight: 110,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
+                        {ch.icon}
+                        {ch.label}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          <ProgressBar 
-                            value={campaign.reply_rate || 0} 
-                            max={100} 
-                            color="#F29F67" 
-                            showPercentage={false}
-                          />
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#F29F67', minWidth: 50 }}>
-                          {(campaign.reply_rate || 0).toFixed(1)}%
-                        </span>
-                      </div>
+                      <span style={{ fontSize: 10, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Activity</span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 14, textAlign: 'center', padding: 32 }}>
-                  No campaign data available
-                </div>
-              )}
-            </div>
+                    <div style={{ marginTop: 8, fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{formatWhole(ch.primary)}</div>
+                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--color-text-muted)" }}>
+                      <span>{ch.secondaryLabel}: {formatWhole(ch.secondary)}</span>
+                      {typeof ch.tertiary === "number" ? (
+                        <span>
+                          {ch.tertiaryLabel}: {formatWhole(ch.tertiary)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 11, color: "var(--color-text-muted)" }}>
+                Reply metrics are shown when replies are tracked; call metrics show initiated, answered, and completed activity.
+              </div>
+            </BaseCard>
 
-            {/* Top Leads */}
-            <div style={surfaceCard}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icons.Star size={18} style={{ color: '#ffa726' }} />
-                Top Scoring Leads
-              </h3>
-              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
-                Leads ranked by AI quality score (0-100)
-              </p>
-              {reportsData.topLeads && reportsData.topLeads.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {reportsData.topLeads.slice(0, 5).map((lead: any, i: number) => {
-                    const score = typeof lead.score === 'number' ? lead.score : 0;
-                    const scoreColor = score >= 80 ? 'var(--color-primary)' : score >= 60 ? '#ffa726' : '#ff6b6b';
-                    const scoreLabel = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Low';
-                    
+            <BaseCard
+              style={{
+                borderRadius: 14,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--elev-shadow)",
+                padding: 16,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <Icons.CheckCircle size={16} style={{ color: "#10b981" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Data Readiness</h3>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <CoverageMeter
+                  label="Enrichment Coverage"
+                  value={num(data.enrichmentRate)}
+                  detail={`${formatWhole(num(data.enrichedLeads))} enriched of ${formatWhole(totalLeads)} leads`}
+                  color="#F29F67"
+                />
+                <CoverageMeter
+                  label="Email Availability"
+                  value={num(data.emailRate)}
+                  detail={`${formatWhole(num(data.leadsWithEmail))} leads with email`}
+                  color="#2563eb"
+                />
+                <CoverageMeter
+                  label="Phone Availability"
+                  value={num(data.phoneRate)}
+                  detail={`${formatWhole(num(data.leadsWithPhone))} leads with phone`}
+                  color="#0ea5e9"
+                />
+              </div>
+            </BaseCard>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
+            <BaseCard
+              style={{
+                borderRadius: 14,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--elev-shadow)",
+                padding: 16,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Icons.Rocket size={16} style={{ color: "var(--color-primary)" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Campaign Ranking</h3>
+              </div>
+              {Array.isArray(data.topCampaigns) && data.topCampaigns.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {data.topCampaigns.slice(0, 5).map((c, idx) => {
+                    const status = statusTone(c.status);
                     return (
-                      <div key={lead.id || i} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '12px 14px',
-                        background: 'var(--color-surface-secondary)',
-                        borderRadius: 10,
-                        border: '1px solid var(--color-border)'
-                      }}>
-                        {/* Rank */}
-                        <div style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 6,
-                          background: i < 3 ? 'rgba(var(--color-primary-rgb), 0.2)' : 'var(--color-surface-secondary)',
-                          border: i < 3 ? '1px solid rgba(var(--color-primary-rgb), 0.2)' : '1px solid var(--color-border)',
-                          color: i < 3 ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          flexShrink: 0
-                        }}>
-                          {i + 1}
-                        </div>
-                        
-                        {/* Lead Info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {lead.name || 'Unknown Lead'}
+                      <div key={c.id || idx} style={{ borderRadius: 10, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)", padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {c.name || `Campaign ${c.id}`}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {lead.company || 'No company'}
-                          </div>
-                        </div>
-                        
-                        {/* Score Badge */}
-                        <div style={{ 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          alignItems: 'center',
-                          gap: 2,
-                          minWidth: 50
-                        }}>
-                          <div style={{
-                            background: 'var(--color-surface-secondary)',
-                            color: scoreColor,
-                            border: `1px solid ${scoreColor}55`,
-                            padding: '4px 10px',
-                            borderRadius: 8,
-                            fontSize: 14,
-                            fontWeight: 700,
-                            minWidth: 40,
-                            textAlign: 'center'
-                          }}>
-                            {score}
-                          </div>
-                          <div style={{ fontSize: 9, color: scoreColor, fontWeight: 500 }}>
-                            {scoreLabel}
-                          </div>
-                        </div>
-                        
-                        {/* Tier Badge */}
-                        {lead.tier && (
-                          <span style={{
-                            background: 'var(--color-surface-secondary)',
-                            color: lead.tier === 'Hot' ? '#ff6b6b' : 
-                                   lead.tier === 'Warm' ? '#ffa726' : 
-                                   lead.tier === 'Converted' ? '#4ecdc4' : '#9e9e9e',
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            border: '1px solid var(--color-border)'
-                          }}>
-                            {lead.tier}
+                          <span style={{ borderRadius: 999, border: `1px solid ${status.bd}`, background: status.bg, color: status.fg, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
+                            {String(c.status || "unknown")}
                           </span>
-                        )}
+                        </div>
+                        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, fontSize: 11 }}>
+                          <div>
+                            <div style={{ color: "var(--color-text-muted)" }}>Sent</div>
+                            <div style={{ marginTop: 2, fontWeight: 700 }}>{formatWhole(num(c.sent_count))}</div>
+                          </div>
+                          <div>
+                            <div style={{ color: "var(--color-text-muted)" }}>Replies</div>
+                            <div style={{ marginTop: 2, fontWeight: 700 }}>{formatWhole(num(c.reply_count))}</div>
+                          </div>
+                          <div>
+                            <div style={{ color: "var(--color-text-muted)" }}>Rate</div>
+                            <div style={{ marginTop: 2, fontWeight: 700 }}>{num(c.reply_rate).toFixed(1)}%</div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div style={{ 
-                  color: 'var(--color-text-muted)', 
-                  fontSize: 14, 
-                  textAlign: 'center', 
-                  padding: '40px 20px',
-                  background: 'var(--color-surface-secondary)',
-                  borderRadius: 10,
-                  border: '1px dashed var(--color-border)'
-                }}>
-                  <Icons.Users size={32} style={{ opacity: 0.4, marginBottom: 8 }} />
-                  <div>No scored leads yet</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>Score your leads to see rankings here</div>
-                </div>
+                <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>No campaign analytics yet.</div>
               )}
-            </div>
+            </BaseCard>
+
+            <BaseCard
+              style={{
+                borderRadius: 14,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--elev-shadow)",
+                padding: 16,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Icons.Star size={16} style={{ color: "#eab308" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Top Lead Scores</h3>
+              </div>
+              {Array.isArray(data.topLeads) && data.topLeads.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {data.topLeads.slice(0, 5).map((lead, idx) => {
+                    const score = num(lead.score);
+                    const chipColor = score >= 80 ? "#16a34a" : score >= 60 ? "#f59e0b" : "#ef4444";
+                    return (
+                      <div key={lead.id || idx} style={{ borderRadius: 10, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 10 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name || `Lead ${lead.id}`}</div>
+                          <div style={{ marginTop: 2, fontSize: 11, color: "var(--color-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {lead.company || "No company"} {lead.tier ? `- ${lead.tier}` : ""}
+                          </div>
+                        </div>
+                        <span style={{ borderRadius: 999, border: `1px solid ${chipColor}66`, background: `${chipColor}1A`, color: chipColor, padding: "4px 10px", fontSize: 12, fontWeight: 800 }}>
+                          {score}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>No scored leads available yet.</div>
+              )}
+            </BaseCard>
           </div>
 
-          {/* Timestamp */}
-          {reportsData.generated_at && (
-            <div style={{ 
-              textAlign: 'center', 
-              fontSize: 12, 
-              color: 'var(--color-text-muted)',
-              padding: '8px 0'
-            }}>
-              Last updated: {new Date(reportsData.generated_at).toLocaleString()}
+          <BaseCard
+            style={{
+              borderRadius: 14,
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface)",
+              boxShadow: "var(--elev-shadow)",
+              padding: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Icons.Lightbulb size={16} style={{ color: "var(--color-primary)" }} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Actionable Insights</h3>
             </div>
-          )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 8 }}>
+              {insights.map((text, i) => (
+                <div key={i} style={{ borderRadius: 10, border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)", padding: "10px 12px", fontSize: 12.5, color: "var(--color-text)" }}>
+                  {text}
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: "var(--color-text-muted)" }}>
+              Last refreshed: {data.generated_at ? new Date(data.generated_at).toLocaleString() : "just now"}
+            </div>
+          </BaseCard>
         </>
-      ) : activeBaseId ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '80px 24px',
-          background: 'var(--color-surface)',
-          borderRadius: 16,
-          border: '1px dashed var(--color-border)'
-        }}>
-          <Icons.Chart size={48} style={{ color: 'var(--color-text-muted)', opacity: 0.5, marginBottom: 16 }} />
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 16 }}>
-            Loading analytics data...
-          </p>
-        </div>
-      ) : (
-        <div style={{
-          textAlign: 'center',
-          padding: '80px 24px',
-          background: 'var(--color-surface)',
-          borderRadius: 16,
-          border: '1px dashed var(--color-border)'
-        }}>
-          <Icons.Folder size={48} style={{ color: 'var(--color-text-muted)', opacity: 0.5, marginBottom: 16 }} />
-          <h3 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Select a Workspace</h3>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
-            Choose a workspace from the sidebar to view analytics
-          </p>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

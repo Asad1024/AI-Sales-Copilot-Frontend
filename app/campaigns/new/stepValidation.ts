@@ -46,6 +46,96 @@ function isValidEmailTemplateContent(raw: string): boolean {
   return body.length > 0;
 }
 
+/**
+ * Keep in sync with backend `template.service.ts` placeholder aliases.
+ */
+const SUPPORTED_CURLY_PLACEHOLDERS = new Set<string>([
+  "first_name",
+  "firstname",
+  "last_name",
+  "lastname",
+  "full_name",
+  "fullname",
+  "company_name",
+  "company",
+  "role",
+  "industry",
+  "region",
+  "sender_name",
+  "sendername",
+  "sender_company",
+  "sendercompany",
+  "product_service",
+  "productservice",
+  "value_proposition",
+  "valueproposition",
+  "call_to_action",
+  "calltoaction",
+]);
+
+const SUPPORTED_BRACKET_PLACEHOLDERS = new Set<string>([
+  "first name",
+  "first_name",
+  "last name",
+  "last_name",
+  "full name",
+  "full_name",
+  "company",
+  "company name",
+  "company_name",
+  "role",
+  "industry",
+  "region",
+  "your name",
+  "sender name",
+  "sender_name",
+  "your company",
+  "sender company",
+  "sender_company",
+  "product/service",
+  "product service",
+  "product_service",
+  "value proposition",
+  "value_proposition",
+  "call to action",
+  "call_to_action",
+  "schedule a demo",
+]);
+
+function normalizeBracketPlaceholderToken(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getFirstUnsupportedPlaceholder(raw: string): string | null {
+  const input = String(raw ?? "");
+  if (!input.trim()) return null;
+
+  const curlyRegex = /\{\{\s*([^{}]+?)\s*\}\}/g;
+  let curlyMatch: RegExpExecArray | null = null;
+  while ((curlyMatch = curlyRegex.exec(input)) !== null) {
+    const token = String(curlyMatch[1] ?? "").trim().toLowerCase();
+    if (!token) continue;
+    if (!SUPPORTED_CURLY_PLACEHOLDERS.has(token)) {
+      return `{{${token}}}`;
+    }
+  }
+
+  // Bracket placeholder style: [Your Name], [Schedule a Demo], etc.
+  const bracketRegex = /\[\s*([^[\]]+?)\s*\]/g;
+  let bracketMatch: RegExpExecArray | null = null;
+  while ((bracketMatch = bracketRegex.exec(input)) !== null) {
+    const rawToken = String(bracketMatch[1] ?? "").trim();
+    if (!rawToken) continue;
+    if (!/[a-z]/i.test(rawToken)) continue;
+    const token = normalizeBracketPlaceholderToken(rawToken);
+    if (!SUPPORTED_BRACKET_PLACEHOLDERS.has(token)) {
+      return `[${rawToken}]`;
+    }
+  }
+
+  return null;
+}
+
 export interface ValidationContext {
   step: number;
   channels: ChannelType[];
@@ -55,6 +145,8 @@ export interface ValidationContext {
   productService?: string;
   valueProposition?: string;
   callToAction?: string;
+  senderName?: string;
+  senderCompany?: string;
   segments?: string[];
   /** Distinct selected leads on the lead step (wizard); used for 30-lead cap. */
   selectedLeadCount?: number;
@@ -115,7 +207,13 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
     }
     
     case 'core_details_part1':
-      return !!(context.productService && context.valueProposition && context.callToAction);
+      return !!(
+        context.productService?.trim() &&
+        context.valueProposition?.trim() &&
+        context.callToAction?.trim() &&
+        context.senderName?.trim() &&
+        context.senderCompany?.trim()
+      );
     
     case 'core_details_part2':
       return !!(context.segments && context.segments.length > 0);
@@ -132,6 +230,7 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
       if (msgs.length < need) return false;
       for (let i = 0; i < need; i++) {
         if (!isValidEmailTemplateContent(msgs[i])) return false;
+        if (getFirstUnsupportedPlaceholder(msgs[i])) return false;
       }
       for (let i = 0; i < need; i++) {
         if (!selected.includes(i)) return false;
@@ -144,13 +243,24 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
     
     case 'linkedin_templates':
       if (context.linkedInStepConfig?.action === 'invitation_with_message') {
-        return !!(context.linkedInStepConfig.message && context.linkedInStepConfig.message.trim().length > 0);
+        if (!(context.linkedInStepConfig.message && context.linkedInStepConfig.message.trim().length > 0)) {
+          return false;
+        }
+        if (getFirstUnsupportedPlaceholder(context.linkedInStepConfig.message)) {
+          return false;
+        }
       }
       return true;
     
-    case 'whatsapp_templates':
-      // Allow either AI-generated drafts or user-edited sample messages — must have ≥1 selected non-empty body
-      return isWhatsAppTemplatesStepValid(context);
+    case 'whatsapp_templates': {
+      if (!isWhatsAppTemplatesStepValid(context)) return false;
+      const i = context.selectedWhatsAppMessageIndices?.[0];
+      if (typeof i === "number" && i >= 0) {
+        const msg = context.whatsAppMessages?.[i] ?? "";
+        if (getFirstUnsupportedPlaceholder(msg)) return false;
+      }
+      return true;
+    }
     
     case 'call_knowledge_base':
       return !!(context.knowledgeBaseFiles && context.knowledgeBaseFiles.length > 0);
@@ -159,7 +269,8 @@ export function canProceedToNextStep(context: ValidationContext): boolean {
       return !!context.selectedVoiceId;
     
     case 'call_initial_prompt':
-      return !!context.initialPrompt && context.initialPrompt.trim().length > 0;
+      if (!(context.initialPrompt && context.initialPrompt.trim().length > 0)) return false;
+      return !getFirstUnsupportedPlaceholder(context.initialPrompt);
     
     case 'call_system_persona':
       return !!context.systemPersona && context.systemPersona.trim().length > 0;
@@ -235,6 +346,8 @@ export function getValidationError(context: ValidationContext): string | null {
       if (!context.productService) return 'Product/Service is required';
       if (!context.valueProposition) return 'Value Proposition is required';
       if (!context.callToAction) return 'Call-to-Action is required';
+      if (!context.senderName?.trim()) return 'Sender name is required';
+      if (!context.senderCompany?.trim()) return 'Sender company is required';
       return null;
     
     case 'core_details_part2':
@@ -265,6 +378,10 @@ export function getValidationError(context: ValidationContext): string | null {
         if (!isValidEmailTemplateContent(msgs[i])) {
           return `Email ${i + 1}: add a subject and body (or a non-empty body if not using Subject:).`;
         }
+        const unsupported = getFirstUnsupportedPlaceholder(msgs[i]);
+        if (unsupported) {
+          return `Email ${i + 1}: unsupported placeholder ${unsupported}. Use only supported placeholders.`;
+        }
       }
       for (let i = 0; i < need; i++) {
         if (!selected.includes(i)) {
@@ -281,11 +398,14 @@ export function getValidationError(context: ValidationContext): string | null {
       return null;
     
     case 'linkedin_templates':
-      if (
-        context.linkedInStepConfig?.action === 'invitation_with_message' &&
-        !context.linkedInStepConfig.message?.trim()
-      ) {
-        return 'Please enter a LinkedIn connection message';
+      if (context.linkedInStepConfig?.action === 'invitation_with_message') {
+        if (!context.linkedInStepConfig.message?.trim()) {
+          return 'Please enter a LinkedIn connection message';
+        }
+        const unsupported = getFirstUnsupportedPlaceholder(context.linkedInStepConfig.message);
+        if (unsupported) {
+          return `LinkedIn message has unsupported placeholder ${unsupported}.`;
+        }
       }
       return null;
     
@@ -305,6 +425,10 @@ export function getValidationError(context: ValidationContext): string | null {
       if (!(msgs[i] ?? "").trim()) {
         return `Suggestion ${i + 1} is empty. Edit the message or pick another suggestion.`;
       }
+      const unsupported = getFirstUnsupportedPlaceholder(msgs[i]);
+      if (unsupported) {
+        return `WhatsApp message has unsupported placeholder ${unsupported}.`;
+      }
       return null;
     }
     
@@ -323,6 +447,12 @@ export function getValidationError(context: ValidationContext): string | null {
     case 'call_initial_prompt':
       if (!context.initialPrompt || context.initialPrompt.trim().length === 0) {
         return 'Please enter an initial prompt for your call agent';
+      }
+      {
+        const unsupported = getFirstUnsupportedPlaceholder(context.initialPrompt);
+        if (unsupported) {
+          return `Opening message has unsupported placeholder ${unsupported}.`;
+        }
       }
       return null;
     

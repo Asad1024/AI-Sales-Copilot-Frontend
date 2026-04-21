@@ -10,7 +10,6 @@ import { OverviewTab } from "./components/OverviewTab";
 import { LeadsTab } from "./components/LeadsTab";
 import { SequenceTab } from "./components/SequenceTab";
 import { AnalyticsTab } from "./components/AnalyticsTab";
-import { InboxTab } from "./components/InboxTab";
 import { CallTranscriptsTab } from "./components/CallTranscriptsTab";
 import { EditCampaignModal } from "./components/EditCampaignModal";
 import { LeadActivityModal } from "./components/LeadActivityModal";
@@ -106,7 +105,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { showError, showSuccess } = useNotification();
   const { activeBaseId, bases } = useBase();
-  const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'inbox'|'leads'|'transcripts'>('overview');
+  const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'leads'|'transcripts'>('overview');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -407,10 +406,6 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
         {tab === 'analytics' && (
           <AnalyticsTab campaign={campaign} />
-        )}
-
-        {tab === 'inbox' && (
-          <InboxTab />
         )}
 
         {tab === 'transcripts' && (

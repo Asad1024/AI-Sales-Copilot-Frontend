@@ -15,6 +15,8 @@ const LABEL_INACTIVE = "var(--color-text-muted, #9ca3af)";
 const MAX_VISIBLE_STEPS = 8;
 /** Right padding when chevron overlay is shown so the last circle does not sit under it. */
 const STEP_SCROLL_END_GUTTER = 22;
+/** Left padding when chevron overlay is shown so the first circle does not sit under it. */
+const STEP_SCROLL_START_GUTTER = 22;
 
 type StepperMetrics = {
   colWidth: number;
@@ -69,6 +71,8 @@ function rowWidthForSlots(slotCount: number, m: StepperMetrics): number {
 type Props = {
   steps: StepInfo[];
   currentStepNumber: number;
+  /** Keep steps checked up to this step even if user jumps back to earlier step. */
+  completedThroughStepNumber?: number;
   /** When set, clicking a step jumps there (parent persists + sets step). */
   onStepClick?: (stepNumber: number) => void;
   /** True while parent is saving / navigating — step targets ignore clicks. */
@@ -84,20 +88,24 @@ type Props = {
 export function WizardCircularStepper({
   steps,
   currentStepNumber,
+  completedThroughStepNumber,
   onStepClick,
   navigationDisabled = false,
   loadingStepNumber = null,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const n = steps.length;
   const m = WIZARD_STEPPER_METRICS;
+  const completedThrough = Math.max(currentStepNumber, completedThroughStepNumber ?? currentStepNumber);
 
   const updateScrollEdges = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const max = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 2);
     setCanScrollRight(max > 2 && el.scrollLeft < max - 2);
   }, []);
 
@@ -170,14 +178,14 @@ export function WizardCircularStepper({
 
   const renderStepColumn = (s: StepInfo, globalIdx: number) => {
     const isCurrent = s.stepNumber === currentStepNumber;
-    const isPast = s.stepNumber < currentStepNumber;
-    const isFuture = !isCurrent && !isPast;
+    const isCompleted = !isCurrent && s.stepNumber <= completedThrough;
+    const isFuture = !isCurrent && !isCompleted;
     const isLoadingJump = loadingStepNumber != null && loadingStepNumber === s.stepNumber;
     const label = WIZARD_STEP_SHORT_LABEL[s.stepType] || s.stepType;
 
     const leftComplete =
-      globalIdx > 0 && currentStepNumber > steps[globalIdx - 1]!.stepNumber;
-    const rightComplete = currentStepNumber > s.stepNumber;
+      globalIdx > 0 && completedThrough > steps[globalIdx - 1]!.stepNumber;
+    const rightComplete = completedThrough > s.stepNumber;
 
     const circleSize =
       isLoadingJump || isCurrent ? m.circleCurrent : m.circleOther;
@@ -198,14 +206,14 @@ export function WizardCircularStepper({
           border: `${borderW}px solid ${
             isLoadingJump || isCurrent
               ? ACCENT
-              : isPast
+              : isCompleted
                 ? ACCENT
                 : "var(--color-border, #e2e8f0)"
           }`,
           background:
             isLoadingJump || isCurrent
               ? "var(--color-surface, #fff)"
-              : isPast
+              : isCompleted
                 ? ACCENT
                 : "var(--color-surface, #fff)",
           boxShadow: "none",
@@ -217,7 +225,7 @@ export function WizardCircularStepper({
           fontSize: isCurrent ? m.numFontCurrent : m.numFontOther,
           fontWeight: 700,
           fontVariantNumeric: "tabular-nums",
-          color: isPast ? "#fff" : isCurrent || isLoadingJump ? ACCENT : LABEL_INACTIVE,
+          color: isCompleted ? "#fff" : isCurrent || isLoadingJump ? ACCENT : LABEL_INACTIVE,
         }}
       >
         {isLoadingJump ? (
@@ -227,7 +235,7 @@ export function WizardCircularStepper({
             style={{ color: ACCENT, animation: "spin 0.85s linear infinite" }}
             aria-hidden
           />
-        ) : isPast ? (
+        ) : isCompleted ? (
           <Icons.Check
             size={isCurrent ? m.checkCurrent : m.checkOther}
             strokeWidth={2.5}
@@ -243,7 +251,7 @@ export function WizardCircularStepper({
       <span
         style={{
           fontSize: m.labelFont,
-          fontWeight: isCurrent ? 700 : isPast ? 600 : 500,
+          fontWeight: isCurrent ? 700 : isCompleted ? 600 : 500,
           color: isCurrent ? ACCENT : isFuture ? LABEL_INACTIVE : ACCENT,
           textAlign: "center",
           lineHeight: 1.25,
@@ -400,6 +408,7 @@ export function WizardCircularStepper({
                 overflowX: "auto",
                 overflowY: "hidden",
                 paddingBottom: 6,
+                paddingLeft: !canScrollRight && canScrollLeft ? STEP_SCROLL_START_GUTTER : 0,
                 paddingRight: canScrollRight ? STEP_SCROLL_END_GUTTER : 0,
                 boxSizing: "border-box",
                 overscrollBehaviorX: "contain",
@@ -417,6 +426,43 @@ export function WizardCircularStepper({
                 {segments}
               </div>
             </div>
+            {!canScrollRight && canScrollLeft ? (
+              <button
+                type="button"
+                aria-label="Scroll to previous steps"
+                title="Previous steps"
+                onClick={() => {
+                  const el = scrollRef.current;
+                  if (!el) return;
+                  const delta = Math.min(360, Math.max(160, Math.floor(el.clientWidth * 0.5)));
+                  el.scrollBy({ left: -delta, behavior: "smooth" });
+                  window.setTimeout(() => updateScrollEdges(), 280);
+                }}
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  width: 32,
+                  height: connectorBandHeight,
+                  margin: 0,
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "none",
+                  borderRadius: 0,
+                  background:
+                    "linear-gradient(270deg, transparent 0%, color-mix(in srgb, var(--color-surface, #fff) 75%, transparent) 38%, var(--color-surface, #fff) 72%)",
+                  color: ACCENT,
+                  cursor: "pointer",
+                  boxShadow: "none",
+                  zIndex: 2,
+                  pointerEvents: "auto",
+                }}
+              >
+                <Icons.ChevronLeft size={20} strokeWidth={2.25} aria-hidden />
+              </button>
+            ) : null}
             {canScrollRight ? (
               <button
                 type="button"

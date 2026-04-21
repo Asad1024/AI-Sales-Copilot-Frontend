@@ -64,9 +64,6 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
   const calculatedOpenRate = emailSent && campaign.opened 
     ? ((campaign.opened / emailSent) * 100).toFixed(1) 
     : '0';
-  const calculatedReplyRate = emailSent && campaign.replied 
-    ? ((campaign.replied / emailSent) * 100).toFixed(1) 
-    : '0';
   const calculatedConversionRate = campaign.replied && campaign.converted 
     ? ((campaign.converted / campaign.replied) * 100).toFixed(1) 
     : '0';
@@ -104,14 +101,6 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
             : '0';
           const espRate = campaign.esp_accept_rate
             ?? (emailSent && processed > 0 ? ((processed / emailSent) * 100).toFixed(1) : '0');
-          const ec = campaign.event_counts || {};
-          const webhookLine = [
-            `processed ${ec.processed ?? 0}`,
-            `delivered ${ec.delivered ?? 0}`,
-            `opened ${(ec.opened ?? 0) + (ec.email_opened ?? 0)}`,
-            `clicked ${ec.clicked ?? 0}`,
-            `replied ${(ec.replied ?? 0) + (ec.email_reply ?? 0)}`,
-          ].join(' · ');
           
           channelSections.push(
             <div key="email" style={{ 
@@ -127,7 +116,7 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                   Email Metrics
                 </h3>
                 <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
-                  Track email delivery, opens, clicks, and replies
+                  Track email delivery, opens, and clicks
                 </p>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 16 }}>
@@ -137,30 +126,12 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                 <Kpi title="Delivered (inbox)" value={campaign.delivered || 0} icon={Icons.CheckCircle} />
                 <Kpi title="Opened" value={campaign.opened || 0} icon={Icons.Eye} />
                 <Kpi title="Clicked" value={campaign.clicked || 0} icon={Icons.ExternalLink} />
-                <Kpi title="Replied" value={campaign.replied || 0} icon={Icons.MessageCircle} />
-              </div>
-              <div style={{
-                marginBottom: 20,
-                padding: '12px 14px',
-                borderRadius: 10,
-                background: 'var(--color-surface-secondary)',
-                border: '1px solid var(--elev-border)',
-                fontSize: 12,
-                color: 'var(--color-text-muted)',
-                lineHeight: 1.5,
-              }}>
-                <strong style={{ color: 'var(--color-text)' }}>Webhook / EventLog counts</strong>
-                <div style={{ marginTop: 6 }}>{webhookLine}</div>
-                <div style={{ marginTop: 6, fontSize: 11 }}>
-                  “Resend accepted” counts <code style={{ fontSize: 11 }}>email.sent</code> webhooks. “Delivered (inbox)” needs <code style={{ fontSize: 11 }}>email.delivered</code>.
-                </div>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
                 <Kpi title="Inbox delivery rate" value={`${emailDeliveryRate}%`} icon={Icons.Chart} />
                 <Kpi title="ESP accept rate" value={`${espRate}%`} icon={Icons.Chart} />
                 <Kpi title="Open rate (vs sent)" value={`${calculatedOpenRate}%`} icon={Icons.Chart} />
                 <Kpi title="Click rate (vs sent)" value={`${emailClickRate}%`} icon={Icons.Chart} />
-                <Kpi title="Reply rate (vs sent)" value={`${calculatedReplyRate}%`} icon={Icons.Target} />
               </div>
             </div>
           );
@@ -169,14 +140,6 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         // WhatsApp Channel Metrics
         if (activeChannels.includes('whatsapp')) {
           const waSent = campaign.whatsapp_sent ?? 0;
-          const waDel = campaign.whatsapp_delivered ?? 0;
-          const waRep = campaign.whatsapp_replied ?? 0;
-          const waDelRate = waSent > 0 ? ((waDel / waSent) * 100).toFixed(1) : (campaign.whatsapp_delivery_rate || '0.0');
-          const waRepRate = waSent > 0 ? ((waRep / waSent) * 100).toFixed(1) : (campaign.whatsapp_reply_rate || '0.0');
-          const waMsg =
-            campaign.whatsapp_last_message_preview ||
-            campaign.whatsapp_template_preview ||
-            '';
           channelSections.push(
             <div key="whatsapp" style={{ 
               marginBottom: 40,
@@ -191,38 +154,11 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                   WhatsApp Metrics
                 </h3>
                 <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
-                  Track messages sent, delivered, and replies for WhatsApp campaigns
+                  Outbound WhatsApp delivery metrics
                 </p>
               </div>
-              {waMsg ? (
-                <div style={{
-                  marginBottom: 20,
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  background: 'var(--color-surface-secondary)',
-                  border: '1px solid var(--elev-border)',
-                  fontSize: 13,
-                  color: 'var(--color-text)',
-                  whiteSpace: 'pre-wrap',
-                  lineHeight: 1.45,
-                  maxHeight: 220,
-                  overflow: 'auto',
-                }}>
-                  <strong style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Message (last send or template)</strong>
-                  <div style={{ marginTop: 8 }}>{waMsg}</div>
-                </div>
-              ) : null}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
                 <Kpi title="Sent" value={waSent} icon={Icons.Send} />
-                <Kpi title="Delivered" value={waDel} icon={Icons.CheckCircle} />
-                <Kpi title="Replied" value={waRep} icon={Icons.MessageCircle} />
-                {campaign.whatsapp_no_whatsapp && campaign.whatsapp_no_whatsapp > 0 && (
-                  <Kpi title="Skipped (No WhatsApp)" value={campaign.whatsapp_no_whatsapp} icon={Icons.AlertCircle} />
-                )}
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
-                <Kpi title="Delivery Rate" value={`${waDelRate}%`} icon={Icons.Chart} />
-                <Kpi title="Reply Rate" value={`${waRepRate}%`} icon={Icons.Target} />
               </div>
             </div>
           );

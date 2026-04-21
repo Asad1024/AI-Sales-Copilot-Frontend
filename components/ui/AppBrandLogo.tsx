@@ -16,14 +16,14 @@ export const APP_BRAND_LOGO_DARK_COLLAPSE = "/dark_collapse.png";
 /** Collapsed rail + login (`public/collapse_logo.png`) — replaces per-theme light/dark collapse assets. */
 export const APP_BRAND_LOGO_COLLAPSE_FILE = "/collapse_logo.png";
 
-/** Full wordmark: slightly larger across landing, auth, and sidebars. */
-export const APP_BRAND_LOGO_HEIGHT = 64;
-export const APP_BRAND_LOGO_MAX_WIDTH = 330;
+/** Full wordmark: compact size across landing, auth, and sidebars. */
+export const APP_BRAND_LOGO_HEIGHT = 42;
+export const APP_BRAND_LOGO_MAX_WIDTH = 218;
 /** Collapsed mark max width (square-ish); height uses {@link APP_BRAND_LOGO_HEIGHT} for consistent brand scale. */
-export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 80;
+export const APP_BRAND_LOGO_COLLAPSE_MAX_WIDTH = 50;
 /** Narrow collapsed rail: slightly smaller mark so it fits the icon strip cleanly. */
-export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 50;
-export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 62;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_HEIGHT = 34;
+export const APP_BRAND_LOGO_COLLAPSE_RAIL_MAX_WIDTH = 43;
 /** @deprecated Use `APP_BRAND_LOGO_LIGHT_COLLAPSE`. */
 export const APP_BRAND_LOGO_COLLAPSE = APP_BRAND_LOGO_LIGHT_COLLAPSE;
 /** @deprecated Use `APP_BRAND_LOGO_DARK_COLLAPSE`. */

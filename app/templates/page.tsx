@@ -973,7 +973,7 @@ export default function TemplatesPage() {
                 color: 'var(--color-text-muted)',
                 border: '1px solid rgba(var(--color-primary-rgb), 0.2)'
               }}>
-                <strong>Tip:</strong> Use variables like {`{{first_name}}`}, {`{{company_name}}`}, {`{{industry}}`} to personalize your messages. AI will automatically fill these in based on lead data.
+                <strong>Tip:</strong> Use supported placeholders like {`{{first_name}}`}, {`{{company_name}}`}, {`{{role}}`}, {`{{sender_name}}`}, {`{{sender_company}}`}, {`{{product_service}}`}, and {`{{call_to_action}}`}. Bracket style (for example, [Your Name], [Your Company], [Schedule a Demo]) is also supported.
               </div>
             </div>
 

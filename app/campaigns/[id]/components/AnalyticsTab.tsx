@@ -28,6 +28,8 @@ interface Campaign {
   healthScore?: number;
   ai_insight?: string;
   channels?: string[];
+  whatsapp_template_preview?: string | null;
+  whatsapp_last_message_preview?: string | null;
   whatsapp_sent?: number;
   whatsapp_delivered?: number;
   whatsapp_seen?: number;
@@ -59,9 +61,6 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
   const emailSent = campaign.email_sent ?? campaign.sent ?? 0;
   const calculatedOpenRate = emailSent && campaign.opened 
     ? ((campaign.opened / emailSent) * 100).toFixed(1) 
-    : '0';
-  const calculatedReplyRate = emailSent && campaign.replied 
-    ? ((campaign.replied / emailSent) * 100).toFixed(1) 
     : '0';
   const calculatedConversionRate = campaign.replied && campaign.converted 
     ? ((campaign.converted / campaign.replied) * 100).toFixed(1) 
@@ -130,7 +129,6 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                   <MetricCard title="Opened" value={campaign.opened || 0} subtitle={campaign.openRate ? `${campaign.openRate}% open rate` : undefined} gradient="linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1) 0%, rgba(var(--color-primary-rgb), 0.05) 100%)" color="#F29F67" />
                   <MetricCard title="Clicked" value={campaign.clicked || 0} subtitle={campaign.clickRate ? `${campaign.clickRate}% click rate` : undefined} gradient="linear-gradient(135deg, rgba(var(--color-support-blue-rgb), 0.2) 0%, rgba(var(--color-support-blue-rgb), 0.2) 100%)" color="var(--color-support-blue)" />
-                  <MetricCard title="Replied" value={campaign.replied || 0} subtitle={campaign.replyRate ? `${campaign.replyRate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)" color="#22c55e" />
                 </div>
               </div>
               
@@ -177,13 +175,11 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
                   WhatsApp Metrics
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
-                  Track messages sent, delivered, and replies for WhatsApp campaigns
+                  Outbound WhatsApp delivery metrics
                 </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                 <MetricCard title="Sent" value={campaign.whatsapp_sent ?? 0} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
-                <MetricCard title="Delivered" value={campaign.whatsapp_delivered ?? 0} subtitle={campaign.whatsapp_delivery_rate ? `${campaign.whatsapp_delivery_rate}% delivery rate` : undefined} gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)" color="#10b981" />
-                <MetricCard title="Replied" value={campaign.whatsapp_replied ?? 0} subtitle={campaign.whatsapp_reply_rate ? `${campaign.whatsapp_reply_rate}% reply rate` : undefined} gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)" color="#8b5cf6" />
               </div>
             </div>
           )}
@@ -347,4 +343,3 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
     </div>
   );
 }
-

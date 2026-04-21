@@ -253,8 +253,8 @@ export default function LandingPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [landingAppearance, setLandingAppearance] = useState<"light" | "dark">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const landingLogoHeight = APP_BRAND_LOGO_HEIGHT + 8;
-  const landingLogoMaxWidth = APP_BRAND_LOGO_MAX_WIDTH + 34;
+  const landingLogoHeight = APP_BRAND_LOGO_HEIGHT;
+  const landingLogoMaxWidth = APP_BRAND_LOGO_MAX_WIDTH + 6;
 
   useEffect(() => {
     try {
@@ -2616,4 +2616,3 @@ export default function LandingPage() {
     </div>
   );
 }
-

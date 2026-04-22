@@ -37,6 +37,13 @@ type BillingSummary = {
   transactions_pagination?: TransactionsPagination;
 };
 
+function formatPlanKeyDisplay(key: string | null) {
+  if (!key) return "—";
+  const k = key.trim();
+  if (!k) return "—";
+  return k.charAt(0).toUpperCase() + k.slice(1).toLowerCase();
+}
+
 function formatMoney(cents: number, currency: string) {
   const major = cents / 100;
   const cur = currency?.toUpperCase() || "AED";
@@ -168,10 +175,10 @@ export function PaymentSettingsPanel() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 6px", color: "var(--color-text)" }}>Billing & payments</h2>
-        <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 10px", color: "var(--color-text)" }}>Billing & payments</h2>
+        <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.6, maxWidth: "52rem" }}>
           Subscriptions and one-time charges processed by Stripe. Credits reflect your current plan allowance (usage rules
           coming next).
         </p>
@@ -180,11 +187,12 @@ export function PaymentSettingsPanel() {
       {success && (
         <div
           style={{
-            padding: "12px 14px",
-            borderRadius: 10,
-            background: "rgba(var(--color-primary-rgb), 0.2)",
-            border: "1px solid rgba(var(--color-primary-rgb), 0.2)",
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: "rgba(var(--color-primary-rgb), 0.14)",
+            border: "1px solid rgba(var(--color-primary-rgb), 0.28)",
             fontSize: 14,
+            lineHeight: 1.5,
             color: "var(--color-text)",
           }}
         >
@@ -193,7 +201,7 @@ export function PaymentSettingsPanel() {
       )}
 
       {error && (
-        <div style={{ padding: "12px 14px", borderRadius: 10, background: "#fef2f2", color: "#b91c1c", fontSize: 14 }}>
+        <div style={{ padding: "14px 16px", borderRadius: 12, background: "#fef2f2", color: "#b91c1c", fontSize: 14, lineHeight: 1.5 }}>
           {error}
         </div>
       )}
@@ -205,34 +213,34 @@ export function PaymentSettingsPanel() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              gap: 12,
+              gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))",
+              gap: 16,
             }}
           >
-            <div className="card-enhanced" style={{ padding: 16, borderRadius: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+            <div className="card-enhanced" style={{ padding: "18px 18px 20px", borderRadius: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                 Current plan
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "var(--color-text)" }}>{planLabel}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 8, color: "var(--color-text)" }}>{planLabel}</div>
             </div>
-            <div className="card-enhanced" style={{ padding: 16, borderRadius: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+            <div className="card-enhanced" style={{ padding: "18px 18px 20px", borderRadius: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                 Credits balance
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "var(--color-primary)" }}>{summary.credits_balance}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 8, color: "var(--color-primary)" }}>{summary.credits_balance}</div>
             </div>
-            <div className="card-enhanced" style={{ padding: 16, borderRadius: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+            <div className="card-enhanced" style={{ padding: "18px 18px 20px", borderRadius: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                 Monthly allowance
               </div>
-              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: "var(--color-text)" }}>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 8, color: "var(--color-text)" }}>
                 {summary.monthly_lead_credits}
               </div>
             </div>
           </div>
 
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 10px", color: "var(--color-text)" }}>Transactions</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: "8px 0 14px", color: "var(--color-text)" }}>Transactions</h3>
             {txnTotal === 0 ? (
               <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0 }}>No payments yet.</p>
             ) : (
@@ -240,35 +248,37 @@ export function PaymentSettingsPanel() {
                 <div style={{ overflowX: "auto", border: "1px solid var(--color-border)", borderRadius: 12 }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background: "var(--color-surface)", textAlign: "left" }}>
-                        <th style={{ padding: "10px 12px", fontWeight: 600 }}>Date</th>
-                        <th style={{ padding: "10px 12px", fontWeight: 600 }}>Plan</th>
-                        <th style={{ padding: "10px 12px", fontWeight: 600 }}>Amount</th>
-                        <th style={{ padding: "10px 12px", fontWeight: 600 }}>Status</th>
-                        <th style={{ padding: "10px 12px", fontWeight: 600 }}>Note</th>
-                        <th style={{ padding: "10px 12px", fontWeight: 600 }}>Receipt</th>
+                      <tr style={{ background: "var(--color-surface-secondary, #f1f5f9)", textAlign: "left" }}>
+                        <th style={{ padding: "12px 14px", fontWeight: 600 }}>Date</th>
+                        <th style={{ padding: "12px 14px", fontWeight: 600 }}>Plan</th>
+                        <th style={{ padding: "12px 14px", fontWeight: 600 }}>Amount</th>
+                        <th style={{ padding: "12px 14px", fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: "12px 14px", fontWeight: 600 }}>Note</th>
+                        <th style={{ padding: "12px 14px", fontWeight: 600 }}>Receipt</th>
                       </tr>
                     </thead>
                     <tbody>
                       {summary.transactions.length === 0 ? (
                         <tr>
-                          <td colSpan={6} style={{ padding: "16px 12px", color: "var(--color-text-muted)", textAlign: "center" }}>
+                          <td colSpan={6} style={{ padding: "20px 14px", color: "var(--color-text-muted)", textAlign: "center" }}>
                             No rows on this page.
                           </td>
                         </tr>
                       ) : (
                         summary.transactions.map((t) => (
                           <tr key={t.id} style={{ borderTop: "1px solid var(--color-border)" }}>
-                            <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>
+                            <td style={{ padding: "12px 14px", color: "var(--color-text)", verticalAlign: "top" }}>
                               {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
                             </td>
-                            <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{t.plan_key || "—"}</td>
-                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>{formatMoney(t.amount_cents, t.currency)}</td>
-                            <td style={{ padding: "10px 12px" }}>{t.status}</td>
-                            <td style={{ padding: "10px 12px", color: "var(--color-text-muted)", maxWidth: 280 }}>
+                            <td style={{ padding: "12px 14px", color: "var(--color-text)", verticalAlign: "top" }}>
+                              {formatPlanKeyDisplay(t.plan_key)}
+                            </td>
+                            <td style={{ padding: "12px 14px", fontWeight: 600, verticalAlign: "top" }}>{formatMoney(t.amount_cents, t.currency)}</td>
+                            <td style={{ padding: "12px 14px", verticalAlign: "top" }}>{t.status}</td>
+                            <td style={{ padding: "12px 14px", color: "var(--color-text-muted)", maxWidth: 280, verticalAlign: "top" }}>
                               {t.description || "—"}
                             </td>
-                            <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
+                            <td style={{ padding: "12px 14px", whiteSpace: "nowrap", verticalAlign: "top" }}>
                               {t.invoice_url ? (
                                 <a
                                   href={t.invoice_url}
@@ -295,8 +305,8 @@ export function PaymentSettingsPanel() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       flexWrap: "wrap",
-                      gap: 10,
-                      marginTop: 12,
+                      gap: 12,
+                      marginTop: 16,
                     }}
                   >
                     <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
@@ -334,7 +344,7 @@ export function PaymentSettingsPanel() {
             )}
           </div>
 
-          <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "24px 0 0", lineHeight: 1.55 }}>
             Profile cache: plan {getUser()?.billing_plan_key ?? "—"} · credits {getUser()?.credits_balance ?? "—"}.{" "}
             {restrictBilling ? (
               <>Billing is managed by your workspace owner.</>

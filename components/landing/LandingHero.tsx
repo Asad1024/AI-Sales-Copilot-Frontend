@@ -8,6 +8,8 @@ import { LandingCompanyPreviewHeroPills } from "@/components/landing/LandingComp
 
 export type LandingHeroProps = {
   onStartTrial: () => void;
+  /** When true, primary CTA is “Go to Dashboard” (signed-in visitors). */
+  sessionActive?: boolean;
   /** Search field + icon (placed after headline, before feature pills). */
   inputSlot: ReactNode;
   /** Suggestions list, loading, errors, company preview — below pills. */
@@ -16,7 +18,13 @@ export type LandingHeroProps = {
   footerSlot: ReactNode;
 };
 
-export default function LandingHero({ onStartTrial, inputSlot, belowInputSlot, footerSlot }: LandingHeroProps) {
+export default function LandingHero({
+  onStartTrial,
+  sessionActive = false,
+  inputSlot,
+  belowInputSlot,
+  footerSlot,
+}: LandingHeroProps) {
   return (
     <section
       className="landing-hero-marketing relative flex min-h-screen flex-col justify-start overflow-hidden pb-12 pt-[var(--landing-nav-clearance,8rem)] [padding-left:var(--landing-gutter)] [padding-right:var(--landing-gutter)] sm:pb-16"
@@ -46,15 +54,19 @@ export default function LandingHero({ onStartTrial, inputSlot, belowInputSlot, f
             <Button
               type="button"
               variant="primary"
-              className="!min-h-[52px] !rounded-full !border-0 !px-8 !text-base !font-medium !shadow-[0_4px_14px_rgba(var(--color-primary-rgb), 0.2)] transition hover:!shadow-[0_6px_20px_rgba(var(--color-primary-rgb), 0.2)]"
+              className="!min-h-[52px] !rounded-full !border-0 !px-8 !text-base !font-medium !whitespace-nowrap !shadow-[0_4px_14px_rgba(var(--color-primary-rgb), 0.2)] transition hover:!shadow-[0_6px_20px_rgba(var(--color-primary-rgb), 0.2)]"
               onClick={onStartTrial}
             >
-              <Icons.Rocket size={20} className="shrink-0" />
-              Start Free Trial
+              {sessionActive ? (
+                <Icons.Dashboard size={20} className="shrink-0" />
+              ) : (
+                <Icons.Rocket size={20} className="shrink-0" />
+              )}
+              {sessionActive ? "Go to Dashboard" : "Get Started"}
             </Button>
             <Link
               href="#demo"
-              className="btn-secondary-outline inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border-[color:color-mix(in_srgb,var(--color-border)_92%,var(--color-primary))] px-8 text-base font-medium shadow-[0_1px_2px_rgba(15,23,42,0.04)] no-underline transition hover:shadow-[0_4px_14px_rgba(15,23,42,0.06)]"
+              className="btn-secondary-outline inline-flex min-h-[52px] items-center justify-center gap-2 whitespace-nowrap rounded-full border-[color:color-mix(in_srgb,var(--color-border)_92%,var(--color-primary))] px-8 text-base font-medium shadow-[0_1px_2px_rgba(15,23,42,0.04)] no-underline transition hover:shadow-[0_4px_14px_rgba(15,23,42,0.06)]"
             >
               <Icons.Play size={18} className="shrink-0 text-[color:var(--color-primary)]" aria-hidden />
               See How It Works

@@ -58,7 +58,9 @@ export default function ForgotPasswordPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: isDark ? "#050a16" : "#f8fafc",
+      background: isDark
+        ? "radial-gradient(circle at top, #0d1527 0%, #050508 48%, #030306 100%)"
+        : "#f8fafc",
       padding: "20px"
     }}>
       <div style={{

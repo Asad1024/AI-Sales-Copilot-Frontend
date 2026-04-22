@@ -125,7 +125,9 @@ export default function LoginPage() {
       style={{
       minHeight: "100vh",
       display: "flex",
-      background: isDark ? "#050a16" : "#f8fafc",
+      background: isDark
+        ? "radial-gradient(circle at top, #0d1527 0%, #050508 48%, #030306 100%)"
+        : "#f8fafc",
       opacity: mounted ? 1 : 0,
       transition: "opacity 0.6s ease-in-out",
       position: "relative",
@@ -136,7 +138,7 @@ export default function LoginPage() {
       <div style={{
         flex: 1,
         background: isDark
-          ? "linear-gradient(135deg, #0f172a 0%, #1f2937 48%, #14532d 100%)"
+          ? "radial-gradient(circle at 18% 88%, rgba(242,159,103,0.1) 0%, transparent 44%), radial-gradient(circle at 78% 12%, rgba(56,189,248,0.16) 0%, transparent 42%), linear-gradient(180deg, #0d1527 0%, #050508 52%, #030306 100%)"
           : "linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #000000) 0%, var(--color-primary) 48%, #F29F67 100%)",
         display: "flex",
         flexDirection: "column",

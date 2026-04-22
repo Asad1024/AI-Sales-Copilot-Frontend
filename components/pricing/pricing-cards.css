@@ -1,0 +1,638 @@
+/**
+ * Pricing tier cards — minimal, high-end SaaS aesthetic.
+ * No nested “boxes in boxes”, no gradient price text, no row dividers.
+ */
+
+/* Outer shell: optional “most popular” pill sits above the card, not inside it */
+.scp-tier-wrap {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.scp-tier-wrap--badged {
+  padding-top: 22px;
+}
+
+.scp-tier-wrap > .scp-pc {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.scp-tier-external-badge {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 4;
+  /* Slight lift so there’s a hair more air between pill and card edge */
+  transform: translate(-50%, calc(-50% - 3px));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border: 2px solid var(--color-surface, #fff);
+}
+
+.landing-page:not(.landing-theme-light) .scp-tier-external-badge {
+  border-color: #121826;
+}
+
+.landing-page.landing-theme-light .scp-tier-external-badge {
+  border-color: #fff;
+}
+
+.scp-pc {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
+  text-align: left;
+  --scp-r: 16px;
+  --scp-pad: 28px;
+  --scp-pad-x: 24px;
+  padding: var(--scp-pad) var(--scp-pad-x);
+  border-radius: var(--scp-r);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.scp-pc[data-density="compact"] {
+  --scp-pad: 22px;
+  --scp-pad-x: 20px;
+  --scp-r: 14px;
+}
+
+/* Header */
+.scp-pc__head {
+  margin-bottom: 20px;
+}
+
+.scp-pc__title {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.scp-pc[data-density="compact"] .scp-pc__title {
+  font-size: 1.125rem;
+}
+
+.scp-pc__lead {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  max-width: 36ch;
+}
+
+/* Price hero — one band, typographic only */
+.scp-pc__hero {
+  margin-bottom: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--scp-line, rgba(0, 0, 0, 0.06));
+}
+
+.scp-pc__priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.scp-pc__amount {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-pc[data-density="compact"] .scp-pc__amount {
+  font-size: 1.75rem;
+}
+
+.scp-pc__amount--lg {
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.scp-pc__period {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.scp-pc__quoteline {
+  margin: 12px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  max-width: 38ch;
+}
+
+/* Features */
+.scp-pc__blocks {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-bottom: 8px;
+}
+
+/* Subscription tiers: keep “Workspace” blocks aligned across columns (tallest “Each month” wins). */
+.scp-pc__beforeWorkspaceStretch {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  flex: 0 0 auto;
+}
+
+@media (min-width: 1025px) {
+  .scp-tier-grid .scp-pc__beforeWorkspaceStretch {
+    min-height: 296px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .scp-tier-grid .scp-pc__beforeWorkspaceStretch {
+    min-height: 0;
+  }
+}
+
+@media (min-width: 521px) {
+  .scp-portal-tier-grid .scp-pc__beforeWorkspaceStretch {
+    min-height: 272px;
+  }
+
+  .scp-portal-tier-grid .scp-pc[data-density="compact"] .scp-pc__beforeWorkspaceStretch {
+    min-height: 252px;
+  }
+}
+
+@media (max-width: 520px) {
+  .scp-portal-tier-grid .scp-pc__beforeWorkspaceStretch {
+    min-height: 0;
+  }
+}
+
+.scp-pc__block {
+  margin: 0;
+}
+
+.scp-pc__blockTitle {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scp-pc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scp-pc[data-density="compact"] .scp-pc__list {
+  gap: 10px;
+}
+
+.scp-pc__item {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: none;
+}
+
+.scp-pc[data-density="compact"] .scp-pc__item {
+  font-size: 0.8125rem;
+}
+
+.scp-pc__tick {
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.92;
+}
+
+.scp-pc__itemText {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Footer */
+.scp-pc__footer {
+  margin-top: auto;
+  padding-top: 22px;
+  border-top: 1px solid var(--scp-line, rgba(0, 0, 0, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scp-pc__note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.scp-pc__btn {
+  width: 100%;
+  margin: 0;
+  padding: 13px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.scp-pc__btn:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.scp-pc[data-density="compact"] .scp-pc__btn {
+  padding: 12px 16px;
+  font-size: 0.8125rem;
+}
+
+.scp-pc__btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: transparent;
+}
+
+.scp-pc__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.scp-pc__btn--secondary {
+  background: transparent;
+}
+
+.scp-pc__btn--ghost {
+  width: 100%;
+  padding: 13px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 10px;
+  border: 1px solid var(--scp-line, rgba(0, 0, 0, 0.1));
+  background: transparent;
+}
+
+.scp-pc--app a.scp-pc__btn--primary {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* ========= Landing — dark ========= */
+.landing-page:not(.landing-theme-light) .scp-pc--landing {
+  --scp-line: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 20px 48px -24px rgba(0, 0, 0, 0.5);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 24px 56px -20px rgba(0, 0, 0, 0.55);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__lead {
+  color: rgba(241, 245, 249, 0.55);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__hero {
+  text-align: center;
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__priceRow {
+  justify-content: center;
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__amount {
+  color: #fff;
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__period {
+  color: rgba(241, 245, 249, 0.45);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__quoteline {
+  margin-left: auto;
+  margin-right: auto;
+  color: rgba(241, 245, 249, 0.5);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__blockTitle {
+  color: rgba(241, 245, 249, 0.4);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__item {
+  color: rgba(241, 245, 249, 0.82);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__tick {
+  color: var(--color-primary);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__note {
+  color: rgba(241, 245, 249, 0.45);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__btn--secondary {
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing .scp-pc__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--landing.scp-pc--featured {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, rgba(255, 255, 255, 0.1));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 25%, transparent), 0 24px 56px -18px rgba(0, 0, 0, 0.55);
+}
+
+/* ========= Landing — light ========= */
+.landing-page.landing-theme-light .scp-pc--landing {
+  --scp-line: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 40px -20px rgba(15, 23, 42, 0.08);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing:hover {
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 20px 48px -18px rgba(15, 23, 42, 0.1);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__lead {
+  color: rgba(15, 23, 42, 0.52);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__hero {
+  text-align: center;
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__priceRow {
+  justify-content: center;
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__amount {
+  color: #0f172a;
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__period {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__quoteline {
+  margin-left: auto;
+  margin-right: auto;
+  color: rgba(15, 23, 42, 0.52);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__blockTitle {
+  color: rgba(15, 23, 42, 0.42);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__item {
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__tick {
+  color: var(--color-primary);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__note {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__btn--secondary {
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+  background: #fff;
+}
+
+.landing-page.landing-theme-light .scp-pc--landing .scp-pc__btn--secondary:hover {
+  background: rgba(15, 23, 42, 0.03);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.landing-page.landing-theme-light .scp-pc--landing.scp-pc--featured {
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent), 0 20px 48px -16px rgba(15, 23, 42, 0.1);
+}
+
+/* ========= App (portal) ========= */
+.scp-pc--app {
+  --scp-line: color-mix(in srgb, var(--color-border, #e2e8f0) 100%, transparent);
+  color: var(--color-text, #0f172a);
+  background: var(--color-surface, #fff);
+  border: 1px solid color-mix(in srgb, var(--color-border, #e5e7eb) 100%, var(--color-text) 4%);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 4%, transparent), 0 12px 32px -16px color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.scp-pc--app:hover {
+  border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-text) 8%);
+}
+
+.scp-pc--app .scp-pc__lead {
+  color: var(--color-text-muted);
+}
+
+.scp-pc--app .scp-pc__amount {
+  color: var(--color-text, #0f172a);
+}
+
+.scp-pc--app .scp-pc__period {
+  color: var(--color-text-muted);
+}
+
+.scp-pc--app .scp-pc__quoteline {
+  color: var(--color-text-muted);
+}
+
+.scp-pc--app .scp-pc__blockTitle {
+  color: var(--color-text-muted);
+}
+
+.scp-pc--app .scp-pc__tick {
+  color: var(--color-primary);
+}
+
+.scp-pc--app .scp-pc__note {
+  color: var(--color-text-muted);
+}
+
+.scp-pc--app .scp-pc__btn--ghost {
+  border-color: color-mix(in srgb, var(--color-border) 90%, var(--color-primary) 10%);
+  color: var(--color-text-muted);
+}
+
+.scp-pc--app.scp-pc--featured {
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border, #e5e7eb));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 16px 40px -14px color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+.scp-pc--app.scp-pc--featured .scp-pc__hero,
+.scp-pc--app.scp-pc--featured .scp-pc__head {
+  text-align: center;
+}
+
+.scp-pc--app.scp-pc--featured .scp-pc__priceRow {
+  justify-content: center;
+}
+
+.scp-pc--app.scp-pc--featured .scp-pc__lead {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ========= Upgrade / portal pricing shell ========= */
+.scp-upgrade-pricing-root {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+/* Voice + enterprise extras: two-up grid (portal billing) */
+.scp-pricing-extras-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+  margin-top: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .scp-pricing-extras-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scp-pricing-extras-grid .scp-portal-extra-row {
+  height: 100%;
+}
+
+/* Landing pricing extras: “Custom” name stands out inside description */
+.scp-landing-enterprise-name {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.scp-landing-enterprise-sep {
+  font-weight: 500;
+  opacity: 0.45;
+}
+
+.scp-portal-extra-row__body {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.scp-portal-extra-row__title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.scp-portal-extra-row__desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.scp-portal-extra-row__desc strong,
+.scp-portal-extra-row__desc .scp-portal-extra-row__plan-name {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.scp-portal-extra-row__price {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.scp-portal-extra-row__amount {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.scp-portal-extra-row__sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Current subscription tier — strong primary ring + footer chip */
+.scp-pc--current-plan.scp-pc--landing {
+  box-shadow:
+    0 0 0 3px var(--color-primary),
+    0 20px 52px -18px color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc--current-plan.scp-pc--landing {
+  box-shadow:
+    0 0 0 3px var(--color-primary),
+    0 24px 56px -14px rgba(0, 0, 0, 0.45);
+}
+
+.landing-page.landing-theme-light .scp-pc--current-plan.scp-pc--landing {
+  box-shadow:
+    0 0 0 3px var(--color-primary),
+    0 20px 48px -16px color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.scp-pc--current-plan.scp-pc--app {
+  box-shadow:
+    0 0 0 3px var(--color-primary),
+    0 16px 40px -14px color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+.scp-pc__btn--current-foot {
+  font-weight: 700 !important;
+  color: var(--color-primary) !important;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, var(--color-border, #e5e7eb)) !important;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface, #fff)) !important;
+}
+
+.landing-page:not(.landing-theme-light) .scp-pc__btn--current-foot {
+  color: #fff !important;
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent) !important;
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent) !important;
+}

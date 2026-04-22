@@ -29,8 +29,11 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
     pathname.startsWith("/demo") ||
     pathname.startsWith("/flow");
   const isOnboardingPage = pathname?.startsWith("/onboarding");
+  const isUpgradePage = pathname?.startsWith("/upgrade");
+  const isContactPage = pathname?.startsWith("/contact");
+  const isMarketingFullBleedShell = isUpgradePage || isContactPage;
   const isAdminPage = pathname?.startsWith("/admin");
-  const showHeaderSidebar = !isPublicPage && !isOnboardingPage;
+  const showHeaderSidebar = !isPublicPage && !isOnboardingPage && !isMarketingFullBleedShell;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -114,6 +117,12 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
         description: "Rift Reach pricing and Stripe checkout (when configured).",
       };
     }
+    if (pathname.startsWith("/contact")) {
+      return {
+        title: "Contact",
+        description: "Reach the Rift Reach team — sales, support, and partnerships.",
+      };
+    }
     if (pathname.startsWith("/pricing")) {
       return {
         title: "Pricing",
@@ -124,6 +133,12 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
       return {
         title: "Notifications",
         description: "Account activity, workspace changes, security, and system alerts.",
+      };
+    }
+    if (pathname.startsWith("/settings/chart-gallery")) {
+      return {
+        title: "Chart gallery",
+        description: "Reference chart types with dummy sample data (ECharts).",
       };
     }
     if (pathname.startsWith("/settings")) {
@@ -191,6 +206,23 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
                     </div>
                   </main>
                 </div>
+              </WebSocketProvider>
+            </AuthGuard>
+          ) : isMarketingFullBleedShell ? (
+            <AuthGuard>
+              <WebSocketProvider>
+                <EmailVerificationBanner />
+                <main
+                  style={{
+                    minHeight: "100vh",
+                    margin: 0,
+                    padding: 0,
+                    background: "transparent",
+                    color: "var(--color-text)",
+                  }}
+                >
+                  {children}
+                </main>
               </WebSocketProvider>
             </AuthGuard>
           ) : isOnboardingPage ? (

@@ -22,12 +22,14 @@ interface UserRow {
   billing_plan_key?: string | null;
   credits_balance?: number;
   monthly_lead_credits?: number;
+  ai_prompt_tokens_balance?: number;
+  monthly_ai_prompt_tokens?: number;
 }
 
 const SUBSCRIPTION_PLAN_OPTIONS = [
-  { key: "basic" as const, label: "Basic", credits: 300 },
-  { key: "pro" as const, label: "Pro", credits: 500 },
-  { key: "premium" as const, label: "Premium", credits: 1000 },
+  { key: "basic" as const, label: "Basic", credits: 300, aiTokens: 25_000 },
+  { key: "pro" as const, label: "Pro", credits: 500, aiTokens: 75_000 },
+  { key: "premium" as const, label: "Premium", credits: 1000, aiTokens: 150_000 },
 ];
 
 type CredKey =
@@ -91,6 +93,10 @@ export default function AdminUsersPage() {
   const [subModalUser, setSubModalUser] = useState<UserRow | null>(null);
   const [subPlanKey, setSubPlanKey] = useState<"basic" | "pro" | "premium">("basic");
   const [subSaving, setSubSaving] = useState(false);
+  const [tokenModalUser, setTokenModalUser] = useState<UserRow | null>(null);
+  const [tokenBalanceInput, setTokenBalanceInput] = useState("");
+  const [tokenMonthlyInput, setTokenMonthlyInput] = useState("");
+  const [tokenSaving, setTokenSaving] = useState(false);
 
   const closeCredModal = () => {
     setCredShowAll(false);
@@ -99,6 +105,51 @@ export default function AdminUsersPage() {
 
   const closeSubModal = () => {
     setSubModalUser(null);
+  };
+
+  const closeTokenModal = () => {
+    setTokenModalUser(null);
+  };
+
+  const openManageTokens = (u: UserRow) => {
+    setTokenModalUser(u);
+    setTokenBalanceInput(String(Number(u.ai_prompt_tokens_balance ?? 0)));
+    setTokenMonthlyInput(String(Number(u.monthly_ai_prompt_tokens ?? 0)));
+  };
+
+  const saveUserTokens = async () => {
+    if (!tokenModalUser) return;
+    const bal = Number.parseInt(tokenBalanceInput.replace(/\s/g, ""), 10);
+    if (!Number.isFinite(bal) || bal < 0 || bal > 99_000_000) {
+      showError("Invalid balance", "Enter a whole number between 0 and 99,000,000.");
+      return;
+    }
+    let monthly: number | undefined;
+    if (tokenMonthlyInput.trim() !== "") {
+      const m = Number.parseInt(tokenMonthlyInput.replace(/\s/g, ""), 10);
+      if (!Number.isFinite(m) || m < 0 || m > 99_000_000) {
+        showError("Invalid monthly", "Enter a whole number between 0 and 99,000,000, or leave empty to keep unchanged.");
+        return;
+      }
+      monthly = m;
+    }
+    setTokenSaving(true);
+    try {
+      await apiRequest(`/admin/users/${tokenModalUser.id}/ai-prompt-tokens`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          ai_prompt_tokens_balance: bal,
+          ...(typeof monthly === "number" ? { monthly_ai_prompt_tokens: monthly } : {}),
+        }),
+      });
+      closeTokenModal();
+      fetchUsers();
+      showSuccess("Tokens updated", `${tokenModalUser.name}'s AI prompt token settings were saved.`);
+    } catch (error: unknown) {
+      showError("Save failed", error instanceof Error ? error.message : "Failed to save tokens");
+    } finally {
+      setTokenSaving(false);
+    }
   };
 
   const openManageSubscription = (u: UserRow) => {
@@ -132,7 +183,7 @@ export default function AdminUsersPage() {
     const ok = await confirm({
       title: "Cancel subscription?",
       message:
-        "This clears their plan and sets credits to zero. If they have a Stripe subscription, we will try to cancel it there as well.",
+        "This clears their plan, sets lead credits to zero, and clears AI prompt tokens. If they have a Stripe subscription, we will try to cancel it there as well.",
       confirmLabel: "Cancel subscription",
       variant: "danger",
     });
@@ -446,6 +497,11 @@ export default function AdminUsersPage() {
                           label: "Manage subscription",
                           onClick: () => openManageSubscription(row),
                         },
+                        {
+                          key: "tokens",
+                          label: "Manage AI prompt tokens",
+                          onClick: () => openManageTokens(row),
+                        },
                         { key: "role", label: row.role === "admin" ? "Make user" : "Make admin", onClick: () => handleUpdateRole(row) },
                         { key: "del", label: "Delete", danger: true, onClick: () => handleDeleteUser(row.id) },
                       ]}
@@ -526,6 +582,10 @@ export default function AdminUsersPage() {
               Credits: <strong>{Number(subModalUser.credits_balance ?? 0)}</strong>
               {" · "}
               Monthly allowance: <strong>{Number(subModalUser.monthly_lead_credits ?? 0)}</strong>
+              {" · "}
+              AI prompt tokens: <strong>{Number(subModalUser.ai_prompt_tokens_balance ?? 0).toLocaleString()}</strong>
+              {" / "}
+              <strong>{Number(subModalUser.monthly_ai_prompt_tokens ?? 0).toLocaleString()}</strong> monthly cap
             </p>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Grant / change plan</label>
             <select
@@ -537,20 +597,20 @@ export default function AdminUsersPage() {
             >
               {SUBSCRIPTION_PLAN_OPTIONS.map((p) => (
                 <option key={p.key} value={p.key}>
-                  {p.label} — {p.credits} credits / month
+                  {p.label} — {p.credits} credits / month · {p.aiTokens.toLocaleString()} AI prompt tokens
                 </option>
               ))}
             </select>
             <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 20 }}>
-              Applying a plan sets their credit balance to that plan&apos;s monthly allowance (same as after checkout). If
-              they had a paid Stripe subscription, it is canceled first so billing does not overlap.
+              Applying a plan sets lead credits and AI prompt tokens to that tier&apos;s monthly pools (same as after
+              checkout). If they had a paid Stripe subscription, it is canceled first so billing does not overlap.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button type="button" className="btn-primary" disabled={subSaving} onClick={() => void applySubscriptionPlan()}>
                 {subSaving ? "Saving…" : "Apply selected plan"}
               </button>
               <button type="button" className="btn-ghost" disabled={subSaving} onClick={() => void cancelUserSubscription()}>
-                Cancel subscription and zero credits
+                Cancel subscription (zero credits and tokens)
               </button>
               <button type="button" className="btn-ghost" disabled={subSaving} onClick={closeSubModal}>
                 Close
@@ -558,6 +618,55 @@ export default function AdminUsersPage() {
             </div>
           </div>,
           520
+        )}
+
+      {tokenModalUser &&
+        modalShell(
+          `AI prompt tokens — ${tokenModalUser.name}`,
+          closeTokenModal,
+          <div>
+            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
+              1 token = 1 character deducted from the user&apos;s balance after a successful AI lead generation (when at
+              least one lead is saved). Max prompt length in the product is 500 characters per run.
+            </p>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Token balance</label>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={99_000_000}
+              value={tokenBalanceInput}
+              onChange={(e) => setTokenBalanceInput(e.target.value)}
+              style={{ width: "100%", marginBottom: 16 }}
+              disabled={tokenSaving}
+            />
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+              Monthly cap (optional, for display)
+            </label>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={99_000_000}
+              placeholder="Leave empty to keep current"
+              value={tokenMonthlyInput}
+              onChange={(e) => setTokenMonthlyInput(e.target.value)}
+              style={{ width: "100%", marginBottom: 8 }}
+              disabled={tokenSaving}
+            />
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 20 }}>
+              Changing only the balance leaves the monthly snapshot as-is unless you set a new monthly cap above.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button type="button" className="btn-ghost" disabled={tokenSaving} onClick={closeTokenModal}>
+                Cancel
+              </button>
+              <button type="button" className="btn-primary" disabled={tokenSaving} onClick={() => void saveUserTokens()}>
+                {tokenSaving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>,
+          480
         )}
 
       {credUser &&

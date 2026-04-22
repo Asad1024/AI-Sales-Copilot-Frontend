@@ -3495,7 +3495,7 @@ input.schedule-daily-range[type="range"]::-moz-range-thumb {
 .scp-portal-tier-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 20px;
 }
 @media (max-width: 1100px) {
   .scp-portal-tier-grid {

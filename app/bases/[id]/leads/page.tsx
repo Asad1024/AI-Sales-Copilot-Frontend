@@ -18,7 +18,9 @@ import { Icons } from "@/components/ui/Icons";
 import { LeadsImportEmptyGrid } from "@/app/leads/components/LeadsImportEmptyGrid";
 import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import { leadHasAsyncContactEnrichResult } from "@/lib/contactEnrichmentStatus";
-import { PremiumKpiSparkline } from "@/components/ui/PremiumKpiSparkline";
+import { PremiumKpiCard, PREMIUM_KPI_GRID_STYLE } from "@/components/ui/PremiumKpiCard";
+import { resolveKpiChartValues, type LeadsStatsResponse } from "@/lib/kpiStatsApi";
+import { getPremiumKpiOverviewChartVariant } from "@/lib/kpiDashboardChartBatches";
 
 const EnhancedCsvImportModal = dynamic(() => import("@/components/leads/EnhancedCsvImportModal").then(m => ({ default: m.EnhancedCsvImportModal })), { ssr: false });
 const AIGenerateModal = dynamic(() => import("@/components/leads/AIGenerateModal"), { ssr: false });
@@ -97,6 +99,7 @@ export default function BaseLeadsPage() {
   const enrichmentBannerStartedAtRef = useRef<number | null>(null);
   const [enrichmentBannerElapsedSec, setEnrichmentBannerElapsedSec] = useState(0);
   const [firstWorkspaceModalOpen, setFirstWorkspaceModalOpen] = useState(false);
+  const [leadsKpiStats, setLeadsKpiStats] = useState<LeadsStatsResponse | null>(null);
 
   const enrichmentQueueProgress = useMemo(() => {
     const ids = pendingEnrichmentLeadIds;
@@ -132,47 +135,72 @@ export default function BaseLeadsPage() {
   }, [enrichmentBannerActive]);
 
   const filteredLeads = getFilteredLeads();
-  const selectedLeadRows = useMemo(
-    () => filteredLeads.filter((lead) => selectedLeads.includes(Number(lead.id))),
-    [filteredLeads, selectedLeads]
-  );
-  const buildLeadSeries = useCallback((rows: any[], fallback: number): number[] => {
-    const total = Math.max(0, Number.isFinite(fallback) ? Number(fallback) : rows.length);
-    if (total <= 0) return [0];
-
-    const timeline = rows
-      .map((l) => new Date(l?.created_at || l?.updated_at || 0).getTime())
-      .filter((t) => Number.isFinite(t) && t > 0)
-      .sort((a, b) => a - b);
-
-    if (timeline.length >= 3) {
-      const start = timeline[0];
-      const end = timeline[timeline.length - 1];
-      const range = end - start;
-      if (range > 0) {
-        const bins = Array(10).fill(0);
-        for (const ts of timeline) {
-          const progress = (ts - start) / range;
-          const idx = Math.min(9, Math.max(0, Math.floor(progress * 10)));
-          bins[idx] += 1;
-        }
-        let running = 0;
-        const cumulative = bins.map((v) => {
-          running += v;
-          return running;
-        });
-        if (cumulative[cumulative.length - 1] > 0) return cumulative;
-      }
-    }
-
-    const startValue = Math.max(0, Math.round(total * 0.34));
-    const midValue = Math.max(startValue, Math.round(total * 0.62));
-    const nearEndValue = Math.max(midValue, Math.round(total * 0.86));
-    return [startValue, startValue, midValue, midValue, nearEndValue, total, total];
-  }, []);
   const currentBaseId = baseId || activeBaseId;
   const showWelcomeHint = searchParams.get("welcome") === "1";
   const firstWorkspaceCelebration = searchParams.get("first_workspace") === "1";
+  useEffect(() => {
+    if (!currentBaseId) {
+      setLeadsKpiStats(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = (await apiRequest(`/leads/stats?base_id=${currentBaseId}`)) as LeadsStatsResponse;
+        if (!cancelled) setLeadsKpiStats(data);
+      } catch {
+        if (!cancelled) setLeadsKpiStats(null);
+      }
+    };
+    void load();
+    const id = window.setInterval(load, 25000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [currentBaseId]);
+
+  const leadsKpiRows = useMemo(() => {
+    const k = leadsKpiStats;
+    const tlC = k?.totalLeads?.current ?? pagination.totalLeads;
+    const clC = k?.contactedLeads?.current ?? 0;
+    const enC = k?.enrichedLeads?.current ?? 0;
+    const convC = k?.conversionRate?.current ?? 0;
+    return [
+      {
+        label: "Total leads",
+        hint: "Full workspace",
+        value: Math.round(tlC).toLocaleString(),
+        icon: <Icons.Users size={18} strokeWidth={1.5} />,
+        sparkline: resolveKpiChartValues(k?.totalLeads?.chartSeries, k?.totalLeads?.snapshots, tlC),
+      },
+      {
+        label: "Contacted leads",
+        hint: "Unique contacts with a sent event",
+        value: Math.round(clC).toLocaleString(),
+        icon: <Icons.Send size={18} strokeWidth={1.5} />,
+        sparkline: resolveKpiChartValues(k?.contactedLeads?.chartSeries, k?.contactedLeads?.snapshots, clC),
+      },
+      {
+        label: "Enriched leads",
+        hint: "Records with enrichment data",
+        value: Math.round(enC).toLocaleString(),
+        icon: <Icons.Sparkles size={18} strokeWidth={1.5} />,
+        sparkline: resolveKpiChartValues(k?.enrichedLeads?.chartSeries, k?.enrichedLeads?.snapshots, enC),
+      },
+      {
+        label: "Conversion rate",
+        hint: "Percent (workspace metric)",
+        value: Number(convC.toFixed(1)),
+        icon: <Icons.Target size={18} strokeWidth={1.5} />,
+        sparkline: resolveKpiChartValues(
+          k?.conversionRate?.chartSeries,
+          k?.conversionRate?.snapshots,
+          convC
+        ),
+      },
+    ];
+  }, [leadsKpiStats, pagination.totalLeads]);
 
   useEffect(() => {
     if (!baseId || !firstWorkspaceCelebration) return;
@@ -578,88 +606,19 @@ export default function BaseLeadsPage() {
         </div>
       )}
 
-      {/* Stats */}
-      {(() => {
-        const leadsStatCards = [
-          {
-            label: "In workspace",
-            value: pagination.totalLeads,
-            hint: "Total records",
-            icon: <Icons.Users size={18} strokeWidth={1.5} />,
-            sparkline: buildLeadSeries(leads, pagination.totalLeads),
-            chartType: "areaPulse" as const,
-          },
-          {
-            label: "On this page",
-            value: filteredLeads.length,
-            hint: "After filters",
-            icon: <Icons.List size={18} strokeWidth={1.5} />,
-            sparkline: buildLeadSeries(filteredLeads, filteredLeads.length),
-            chartType: "areaPulse" as const,
-          },
-          {
-            label: "Selected",
-            value: selectedLeads.length,
-            hint: "Bulk actions",
-            icon: <Icons.CheckCircle size={18} strokeWidth={1.5} />,
-            sparkline: buildLeadSeries(selectedLeadRows, selectedLeads.length),
-            chartType: "areaPulse" as const,
-          },
-        ];
-        return (
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {leadsStatCards.map((stat) => (
-          <div
+      <div style={PREMIUM_KPI_GRID_STYLE}>
+        {leadsKpiRows.map((stat, i) => (
+          <PremiumKpiCard
             key={stat.label}
-            style={{
-              padding: "16px 18px",
-              borderRadius: 14,
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 14,
-              boxShadow: "0 1px 2px var(--color-shadow)",
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: "rgba(var(--color-primary-rgb), 0.2)",
-                color: "var(--color-primary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              {stat.icon}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {stat.label}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: "var(--color-text)", marginTop: 4, lineHeight: 1 }}>
-                {stat.value.toLocaleString()}
-              </div>
-              <div style={{ marginTop: 8, width: "100%" }}>
-                <PremiumKpiSparkline points={stat.sparkline} positive={true} chartType={stat.chartType} height={76} />
-              </div>
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>{stat.hint}</div>
-            </div>
-          </div>
+            title={stat.label}
+            value={stat.value}
+            note={stat.hint}
+            icon={stat.icon}
+            sparklineValues={stat.sparkline}
+            echartsVariant={getPremiumKpiOverviewChartVariant(i)}
+          />
         ))}
       </div>
-        );
-      })()}
 
       {/* Enrichment in progress */}
       {pendingEnrichmentLeadIds.length > 0 && (

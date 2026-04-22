@@ -22,6 +22,9 @@ export interface User {
   billing_plan_key?: string | null;
   credits_balance?: number;
   monthly_lead_credits?: number;
+  /** AI lead-gen prompt pool (1 token = 1 character). */
+  ai_prompt_tokens_balance?: number;
+  monthly_ai_prompt_tokens?: number;
 }
 
 export interface AuthResponse {
@@ -307,6 +310,8 @@ export type LeadGenStreamCompletePayload = {
   message?: string;
   icp_context?: unknown;
   completion_credits?: unknown;
+  tokens_deducted?: number;
+  ai_prompt_tokens_balance?: number;
 };
 
 /**

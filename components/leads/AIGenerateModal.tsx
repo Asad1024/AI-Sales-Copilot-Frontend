@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { apiRequest, streamGenerateLeads } from "@/lib/apiClient";
+import { apiRequest, streamGenerateLeads, setUser, getUser, type User } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
@@ -60,6 +60,10 @@ function overallLeadGenPercent(stage: string, done: number, total: number): numb
   return Math.min(100, Math.max(0, Math.round(lo + frac * (hi - lo))));
 }
 
+const AI_LEAD_PROMPT_MAX_CHARS = 500;
+const AI_LEAD_COUNT_MIN = 10;
+const AI_LEAD_COUNT_MAX = 100;
+
 function getSpeechRecognitionCtor(): unknown {
   if (typeof window === "undefined") return null;
   const w = window as unknown as {
@@ -88,6 +92,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const [postGenSuccess, setPostGenSuccess] = useState<{ count: number } | null>(null);
   const [speechListening, setSpeechListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  /** AI prompt token allowance from server (refreshed when modal opens and after a successful run). */
+  const [meTokens, setMeTokens] = useState<{ bal: number; monthly: number } | null>(null);
   const speechRecRef = useRef<{
     continuous: boolean;
     interimResults: boolean;
@@ -203,7 +209,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
       const finals = speechAccumulatedFinalRef.current;
       const sep =
         prefix.length > 0 && (finals.length > 0 || interim.length > 0) && !prefix.endsWith(" ") ? " " : "";
-      setPrompt(prefix + sep + finals + interim);
+      const combined = prefix + sep + finals + interim;
+      setPrompt(combined.slice(0, AI_LEAD_PROMPT_MAX_CHARS));
       setError("");
     };
 
@@ -235,6 +242,27 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     if (open) {
       setPostGenSuccess(null);
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const d = (await apiRequest(`/auth/me?_=${Date.now()}`)) as { user?: User };
+        if (cancelled || !d?.user) return;
+        setUser(d.user);
+        setMeTokens({
+          bal: Number(d.user.ai_prompt_tokens_balance ?? 0),
+          monthly: Number(d.user.monthly_ai_prompt_tokens ?? 0),
+        });
+      } catch {
+        if (!cancelled) setMeTokens({ bal: 0, monthly: 0 });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -281,6 +309,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     return () => window.clearInterval(id);
   }, [suggestionLoadingTopic]);
 
+  const promptTokenCost = prompt.trim().length;
+  const tokenBalance = meTokens?.bal ?? 0;
+  const tokenMonthly = meTokens?.monthly ?? 0;
+  const insufficientTokens = meTokens !== null && promptTokenCost > 0 && tokenBalance < promptTokenCost;
+
   const genPct = useMemo(() => {
     if (!generating) return 0;
     return overallLeadGenPercent(genStream.stage, genStream.done, genStream.total);
@@ -296,7 +329,10 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     !(typeof genStream.label === "string" && genStream.label.includes(`${genStream.done}/${genStream.total}`));
   const generationComplete = Boolean(postGenSuccess) && !generating;
 
-  const clampLeadCount = useCallback((value: number) => Math.min(100, Math.max(1, value)), []);
+  const clampLeadCount = useCallback(
+    (value: number) => Math.min(AI_LEAD_COUNT_MAX, Math.max(AI_LEAD_COUNT_MIN, value)),
+    []
+  );
   const decrementCount = useCallback(() => setCount((v) => clampLeadCount(v - 1)), [clampLeadCount]);
   const incrementCount = useCallback(() => setCount((v) => clampLeadCount(v + 1)), [clampLeadCount]);
 
@@ -332,6 +368,27 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
 
       const rows = Array.isArray(complete.leads) ? complete.leads : [];
       if (rows.length > 0) {
+        try {
+          const d = (await apiRequest(`/auth/me?_=${Date.now()}`)) as { user?: User };
+          if (d?.user) {
+            setUser(d.user);
+            setMeTokens({
+              bal: Number(d.user.ai_prompt_tokens_balance ?? 0),
+              monthly: Number(d.user.monthly_ai_prompt_tokens ?? 0),
+            });
+          } else if (typeof complete.ai_prompt_tokens_balance === "number") {
+            const u = getUser();
+            if (u) {
+              setUser({ ...u, ai_prompt_tokens_balance: complete.ai_prompt_tokens_balance });
+              setMeTokens((prev) => ({
+                bal: complete.ai_prompt_tokens_balance as number,
+                monthly: prev?.monthly ?? Number(u.monthly_ai_prompt_tokens ?? 0),
+              }));
+            }
+          }
+        } catch {
+          /* ignore refresh errors */
+        }
         setGenStream((s) => ({
           ...s,
           done: rows.length,
@@ -407,14 +464,17 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
       if (!p) {
         throw new Error("No prompt returned from AI");
       }
-      setPrompt(p);
+      setPrompt(p.slice(0, AI_LEAD_PROMPT_MAX_CHARS));
       setProgress("");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not generate prompt";
       setError(msg);
       setProgress("");
       setPrompt(
-        `Find B2B decision-makers for: ${topic}. Include specific job titles, industries, locations (e.g. United States or your target region), and company size (e.g. 50–500 employees or startups). Add signals that help narrow to qualified prospects.`
+        `Find B2B decision-makers for: ${topic}. Include specific job titles, industries, locations (e.g. United States or your target region), and company size (e.g. 50–500 employees or startups). Add signals that help narrow to qualified prospects.`.slice(
+          0,
+          AI_LEAD_PROMPT_MAX_CHARS
+        )
       );
     } finally {
       setSuggestionLoadingTopic(null);
@@ -453,6 +513,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
       }
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         if (m.generating || m.suggestionLoadingTopic || !m.prompt.trim() || !m.activeBaseId) return;
+        const cost = m.prompt.trim().length;
+        const bal = Number(getUser()?.ai_prompt_tokens_balance ?? 0);
+        if (cost > 0 && bal < cost) return;
         e.preventDefault();
         void handleGenerateRef.current();
       }
@@ -624,7 +687,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             </label>
             <p id="ai-lead-prompt-hint" className="ai-generate-hint">
               Name the role, industry, region, and company size (e.g. 50–500 employees). More detail usually means better
-              matches.
+              matches. Max {AI_LEAD_PROMPT_MAX_CHARS} characters.
             </p>
             <div
               style={{
@@ -638,8 +701,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 ref={promptInputRef}
                 id="ai-lead-prompt"
                 value={prompt}
+                maxLength={AI_LEAD_PROMPT_MAX_CHARS}
                 onChange={(e) => {
-                  setPrompt(e.target.value);
+                  setPrompt(e.target.value.slice(0, AI_LEAD_PROMPT_MAX_CHARS));
                   if (selectedSuggestion) setSelectedSuggestion(null);
                   setError("");
                 }}
@@ -688,7 +752,16 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 >
                   {speechListening ? "Speak now — we're listening…" : "Tip: mention seniority, geography, and firmographics."}
                 </span>
-                <span className="ai-generate-char-count">{prompt.length.toLocaleString()} characters</span>
+                <span
+                  className="ai-generate-char-count"
+                  style={
+                    prompt.length >= AI_LEAD_PROMPT_MAX_CHARS
+                      ? { color: "var(--color-warning, #d97706)", fontWeight: 600 }
+                      : undefined
+                  }
+                >
+                  {prompt.length.toLocaleString()}/{AI_LEAD_PROMPT_MAX_CHARS} characters
+                </span>
                 <button
                   type="button"
                   onClick={() => void toggleSpeechInput()}
@@ -799,9 +872,49 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             }}
           >
             <p className="ai-generate-target-line">
-              We&apos;ll request up to <strong>{count}</strong> new {count === 1 ? "lead" : "leads"} and add them to your
-              list (subject to availability).
+              We&apos;ll aim for <strong>{count}</strong> new {count === 1 ? "lead" : "leads"} (minimum{" "}
+              <strong>{AI_LEAD_COUNT_MIN}</strong> per run) and add them to your list (subject to availability).
             </p>
+            {meTokens !== null ? (
+              <p
+                className="ai-generate-target-line"
+                style={{
+                  marginTop: -4,
+                  marginBottom: 0,
+                  color: insufficientTokens ? "#b45309" : undefined,
+                }}
+              >
+                AI prompt tokens: <strong>{tokenBalance.toLocaleString()}</strong>
+                {tokenMonthly > 0 ? (
+                  <>
+                    {" "}
+                    / {tokenMonthly.toLocaleString()} this period
+                    {promptTokenCost > 0 ? (
+                      <>
+                        {" "}
+                        · this prompt: <strong>{promptTokenCost.toLocaleString()}</strong> tokens
+                      </>
+                    ) : (
+                      <> · type above to see how many tokens this run will use</>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    remaining
+                    {promptTokenCost > 0 ? (
+                      <>
+                        {" "}
+                        · this prompt: <strong>{promptTokenCost.toLocaleString()}</strong> tokens
+                      </>
+                    ) : (
+                      <> · each character in your prompt uses one token</>
+                    )}
+                  </>
+                )}
+                {insufficientTokens ? " — not enough tokens to run." : ""}
+              </p>
+            ) : null}
 
             <div className="ai-generate-primary-row">
               <div className="ai-generate-qty-stepper" style={generating ? { opacity: 0.75 } : undefined}>
@@ -833,7 +946,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 disabled={
                   generating ||
                   Boolean(suggestionLoadingTopic) ||
-                  (!postGenSuccess && !prompt.trim())
+                  (!postGenSuccess && !prompt.trim()) ||
+                  (!postGenSuccess && insufficientTokens)
                 }
                 aria-busy={generating}
               >

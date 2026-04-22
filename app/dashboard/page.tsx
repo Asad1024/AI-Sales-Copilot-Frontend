@@ -29,27 +29,23 @@ import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
 import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
 import { Sunrise, Sun, Moon } from "lucide-react";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
-import { PremiumKpiSparkline } from "@/components/ui/PremiumKpiSparkline";
+import { PremiumKpiCard, PREMIUM_KPI_GRID_STYLE } from "@/components/ui/PremiumKpiCard";
+import type { EnterpriseChartVariant } from "@/components/dashboard/KpiEnterpriseChart";
+import { KPI_DASHBOARD_WORKSPACE_CHART_VARIANT } from "@/lib/kpiDashboardChartBatches";
+import { resolveKpiChartValues, type DashboardStatsResponse } from "@/lib/kpiStatsApi";
 
 const DASHBOARD_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type StatMetric = {
   title: string;
   value: string;
-  trendPositive: boolean;
-  sparkline: number[];
-  delta?: number | null;
-  chartType?: "step" | "bars" | "areaPulse";
   note?: string;
-  highlightValue?: boolean;
-};
-
-/** Stat grid labels - stronger hierarchy than section rails (color from .dashboard-metric-label) */
-const metricLabelStyle = {
-  fontSize: 12,
-  fontWeight: 600 as const,
-  letterSpacing: "0.06em",
-  textTransform: "uppercase" as const,
+  /** First KPI: large name + total count, no chart well. */
+  workspaceLayout?: { activeName: string; total: string };
+  valueKind?: "text" | "number";
+  sparkline?: number[];
+  /** Apache ECharts mini chart style. */
+  echartsVariant?: EnterpriseChartVariant;
 };
 
 function isMutedMetricValue(value: string): boolean {
@@ -63,12 +59,6 @@ function isMutedMetricValue(value: string): boolean {
   if (!Number.isNaN(n) && n === 0) return true;
   return false;
 }
-
-type SparklineChartProps = {
-  points: number[];
-  positive: boolean;
-  chartType: "step" | "bars" | "areaPulse";
-};
 
 type LeadTrendPoint = {
   day: string;
@@ -90,9 +80,8 @@ type TopCampaignRow = {
   rate: number;
 };
 
-function SparklineChart({ points, positive, chartType }: SparklineChartProps) {
-  return <PremiumKpiSparkline points={points} positive={positive} chartType={chartType} height={76} />;
-}
+const CHANNEL_SENT_BAR_COLOR = "#93C5FD";
+const CHANNEL_ENGAGED_BAR_COLOR = "#F29F67";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -112,17 +101,19 @@ export default function Dashboard() {
   const [dashboardCampaignsReady, setDashboardCampaignsReady] = useState(false);
   const [campaignListTab, setCampaignListTab] = useState<"recent" | "saved">("recent");
   const [savedCampaignIds, setSavedCampaignIds] = useState<number[]>([]);
-  const [metricHistory, setMetricHistory] = useState<{ leads: number[]; contacted: number[]; campaigns: number[] }>({
-    leads: [],
-    contacted: [],
-    campaigns: [],
-  });
+  const [dashboardKpiStats, setDashboardKpiStats] = useState<DashboardStatsResponse | null>(null);
 
   const { activeBaseId, bases, setActiveBaseId, refreshBases } = useBase();
   const activeBase = bases.find((b) => b.id === activeBaseId);
   const { campaigns, fetchCampaigns, hasCacheForBase } = useCampaignStore();
   const isBootstrappingWorkspace = !activeBaseId && bases.length === 0;
-  const hasLeads = Number(analyticsData?.totalLeads || 0) > 0;
+  const hasLeads =
+    Number(
+      dashboardKpiStats?.totalLeads?.current ??
+        analyticsData?.funnel?.totalLeads ??
+        analyticsData?.totalLeads ??
+        0
+    ) > 0;
   const hasCampaigns = (campaigns?.length ?? 0) > 0;
   const getCachedAnalytics = (baseId: number | null): { data: any; timestamp: number } | null => {
     if (!baseId || typeof window === "undefined") return null;
@@ -319,23 +310,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!activeBaseId) {
-      setMetricHistory({ leads: [], contacted: [], campaigns: [] });
+      setDashboardKpiStats(null);
       return;
     }
-    const currentLeads = Number(analyticsData?.funnel?.totalLeads ?? analyticsData?.totalLeads ?? 0);
-    const currentContacted = Number(analyticsData?.funnel?.contacted ?? 0);
-    const currentCampaigns = Number(campaigns?.length ?? 0);
-    const pushNext = (arr: number[], value: number) => {
-      const safe = Number.isFinite(value) ? value : 0;
-      const next = arr.length > 0 && Math.abs(arr[arr.length - 1] - safe) < 0.0001 ? arr : [...arr, safe];
-      return next.slice(-12);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = (await apiRequest(`/dashboard/stats?base_id=${activeBaseId}`)) as DashboardStatsResponse;
+        if (!cancelled) setDashboardKpiStats(data);
+      } catch {
+        if (!cancelled) setDashboardKpiStats(null);
+      }
     };
-    setMetricHistory((prev) => ({
-      leads: pushNext(prev.leads, currentLeads),
-      contacted: pushNext(prev.contacted, currentContacted),
-      campaigns: pushNext(prev.campaigns, currentCampaigns),
-    }));
-  }, [activeBaseId, analyticsData?.totalLeads, analyticsData?.funnel?.totalLeads, analyticsData?.funnel?.contacted, campaigns]);
+    void load();
+    const id = window.setInterval(load, 20000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [activeBaseId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -417,104 +410,97 @@ export default function Dashboard() {
   const goToCreateCampaign = () => {
     goToNewCampaignOrWorkspaces(router, activeBaseId);
   };
-  const leadChange = Number(analyticsData?.leadChange ?? NaN);
   const funnelTotalLeads = Number(analyticsData?.funnel?.totalLeads ?? analyticsData?.totalLeads ?? 0);
-  const contactedLeads = Number(analyticsData?.funnel?.contacted ?? 0);
+  const contactedLeadsFunnel = Number(analyticsData?.funnel?.contacted ?? 0);
   const totalCampaignsInWorkspace = Number(campaigns?.length ?? 0);
-  const hasMeaningfulHistory = (values: number[]): boolean => {
-    if (values.length < 5) return false;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    return max - min > 0.15;
-  };
-  const hasDeltaValue = (value: number): boolean => Number.isFinite(value) && Math.abs(value) > 0.001;
-  const buildMetricSparkline = (currentValue: number, deltaValue: number | null, minFloor = 0): number[] => {
-    const end = Math.max(minFloor, Number.isFinite(currentValue) ? currentValue : 0);
-    const change = Number.isFinite(deltaValue) ? Number(deltaValue) : 0;
-    if (end <= minFloor + 0.0001 && Math.abs(change) < 0.0001) {
-      return Array(10).fill(minFloor);
-    }
-    const start = Math.max(minFloor, end - change);
-    const span = Math.max(1, Math.abs(end - start), Math.abs(end) * 0.2);
-    const volatility = Math.max(0.35, span * 0.16);
-    const totalPoints = 10;
-    const generated = Array.from({ length: totalPoints }, (_, index) => {
-      const progress = index / (totalPoints - 1);
-      const baseline = start + (end - start) * progress;
-      const wave = Math.sin(progress * Math.PI * 2.2) * volatility * 0.35 + Math.sin(progress * Math.PI * 4.8 + 0.7) * volatility * 0.14;
-      const value = Math.max(minFloor, baseline + wave);
-      return Number(value.toFixed(2));
-    });
-    generated[generated.length - 1] = Number(end.toFixed(2));
-    return generated;
-  };
-  const stylizeSparkline = (series: number[], minFloor = 0): number[] => {
-    if (series.length < 3) return series;
-    const min = Math.min(...series);
-    const max = Math.max(...series);
-    if (max <= minFloor + 0.0001 && min <= minFloor + 0.0001) return series;
-    if ((max - min) >= 0.6) return series;
-    const base = series[series.length - 1] ?? minFloor;
-    const amplitude = Math.max(0.06, Math.min(0.32, Math.max(base, 1) * 0.04));
-    const shaped = series.map((_, index) => {
-      const swing = Math.sin(index * 1.06) * amplitude + Math.cos(index * 0.78 + 0.2) * amplitude * 0.48;
-      return Number(Math.max(minFloor, base + swing).toFixed(2));
-    });
-    shaped[shaped.length - 1] = Number(Math.max(minFloor, base).toFixed(2));
-    return shaped;
-  };
-  const showTotalLeadsTrend = funnelTotalLeads > 0 || hasMeaningfulHistory(metricHistory.leads) || hasDeltaValue(leadChange);
-  const showContactedTrend = contactedLeads > 0 || hasMeaningfulHistory(metricHistory.contacted);
-  const showCampaignsTrend = totalCampaignsInWorkspace > 0 || hasMeaningfulHistory(metricHistory.campaigns);
-  const totalLeadsSparkline = hasMeaningfulHistory(metricHistory.leads)
-    ? metricHistory.leads
-    : buildMetricSparkline(funnelTotalLeads, Number.isFinite(leadChange) ? leadChange : null, 0);
-  const contactedSparkline = hasMeaningfulHistory(metricHistory.contacted)
-    ? metricHistory.contacted
-    : buildMetricSparkline(contactedLeads, null, 0);
-  const campaignsSparkline = hasMeaningfulHistory(metricHistory.campaigns)
-    ? metricHistory.campaigns
-    : buildMetricSparkline(totalCampaignsInWorkspace, null, 0);
-  const totalLeadsSparklineStyled = stylizeSparkline(totalLeadsSparkline, 0);
-  const contactedSparklineStyled = stylizeSparkline(contactedSparkline, 0);
-  const campaignsSparklineStyled = stylizeSparkline(campaignsSparkline, 0);
 
-  const overviewMetrics: StatMetric[] = [
-    {
-      title: "Active workspace",
-      value: activeBase?.name ?? "No workspace selected",
-      trendPositive: true,
-      delta: null,
-      chartType: "areaPulse",
-      sparkline: [1, 1, 2, 2, Math.max(1, bases.length - 1), Math.max(1, bases.length)],
-      note: `Total workspaces: ${Math.max(0, bases.length)}`,
-      highlightValue: true,
-    },
-    {
-      title: "Total leads",
-      value: funnelTotalLeads.toLocaleString(),
-      trendPositive: leadChange >= 0,
-      delta: Number.isFinite(leadChange) ? leadChange : null,
-      chartType: "areaPulse",
-      sparkline: showTotalLeadsTrend ? totalLeadsSparklineStyled : [],
-    },
-    {
-      title: "Contacted leads",
-      value: contactedLeads.toLocaleString(),
-      trendPositive: true,
-      delta: null,
-      chartType: "areaPulse",
-      sparkline: showContactedTrend ? contactedSparklineStyled : [],
-    },
-    {
-      title: "Total campaigns in workspace",
-      value: totalCampaignsInWorkspace.toLocaleString(),
-      trendPositive: true,
-      delta: null,
-      chartType: "areaPulse",
-      sparkline: showCampaignsTrend ? campaignsSparklineStyled : [],
-    },
-  ];
+  const overviewMetrics: StatMetric[] = useMemo(() => {
+    const k = dashboardKpiStats;
+    const tw = Math.max(0, bases.length);
+    const flatZero: number[] = Array.from({ length: 7 }, () => 0);
+    if (!activeBaseId) {
+      return [
+        {
+          title: "Active workspace",
+          value: "",
+          valueKind: "text",
+          workspaceLayout: {
+            activeName: "No workspace selected",
+            total: String(Math.max(0, tw)),
+          },
+          sparkline: resolveKpiChartValues(undefined, undefined, Math.max(0, tw)),
+          echartsVariant: KPI_DASHBOARD_WORKSPACE_CHART_VARIANT,
+        },
+        {
+          title: "Total leads",
+          value: "0",
+          sparkline: flatZero,
+          echartsVariant: "areaTrend",
+        },
+        {
+          title: "Contacted leads",
+          value: "0",
+          sparkline: flatZero,
+          echartsVariant: "miniBubble",
+        },
+        {
+          title: "Total campaigns in workspace",
+          value: "0",
+          sparkline: flatZero,
+          echartsVariant: "miniCandlestick",
+        },
+      ];
+    }
+    const wsName = k?.activeWorkspace?.name ?? activeBase?.name ?? "Workspace";
+    const totalWs = k?.activeWorkspace?.totalWorkspaces ?? tw;
+    const tlCurrent = k?.totalLeads?.current ?? funnelTotalLeads;
+    const clCurrent = k?.contactedLeads?.current ?? contactedLeadsFunnel;
+    const tcCurrent = k?.totalCampaigns?.current ?? totalCampaignsInWorkspace;
+    return [
+      {
+        title: "Active workspace",
+        value: "",
+        valueKind: "text",
+        workspaceLayout: {
+          activeName: wsName,
+          total: Math.round(totalWs).toLocaleString(),
+        },
+        sparkline: resolveKpiChartValues(
+          undefined,
+          k?.activeWorkspace?.countSnapshots,
+          Math.round(totalWs)
+        ),
+        echartsVariant: KPI_DASHBOARD_WORKSPACE_CHART_VARIANT,
+      },
+      {
+        title: "Total leads",
+        value: Math.round(tlCurrent).toLocaleString(),
+        sparkline: resolveKpiChartValues(k?.totalLeads?.chartSeries, k?.totalLeads?.snapshots, tlCurrent),
+        echartsVariant: "areaTrend",
+      },
+      {
+        title: "Contacted leads",
+        value: Math.round(clCurrent).toLocaleString(),
+        sparkline: resolveKpiChartValues(k?.contactedLeads?.chartSeries, k?.contactedLeads?.snapshots, clCurrent),
+        echartsVariant: "miniBubble",
+      },
+      {
+        title: "Total campaigns in workspace",
+        value: Math.round(tcCurrent).toLocaleString(),
+        sparkline: resolveKpiChartValues(k?.totalCampaigns?.chartSeries, k?.totalCampaigns?.snapshots, tcCurrent),
+        echartsVariant: "miniCandlestick",
+      },
+    ];
+  }, [
+    activeBaseId,
+    activeBase?.name,
+    bases.length,
+    dashboardKpiStats,
+    analyticsData,
+    funnelTotalLeads,
+    contactedLeadsFunnel,
+    totalCampaignsInWorkspace,
+  ]);
 
   const dashboardPrimaryAction = (() => {
     if (!activeBaseId) {
@@ -593,13 +579,19 @@ export default function Dashboard() {
     });
   }, [analyticsData?.dailyTrends]);
   const fallbackLeadTrendData = useMemo<LeadTrendPoint[]>(() => {
-    const hist = Array.isArray(metricHistory?.leads) ? metricHistory.leads.slice(-10) : [];
-    return hist.map((value, index, arr) => ({
-      day: `T-${arr.length - 1 - index}`,
-      leads: toSafeNumber(value),
-      conversions: 0,
-    }));
-  }, [metricHistory?.leads]);
+    const snaps = dashboardKpiStats?.totalLeads?.snapshots;
+    if (!Array.isArray(snaps) || snaps.length === 0) return [];
+    return snaps.map((s) => {
+      const d = new Date(s.recordedAt);
+      return {
+        day: Number.isNaN(d.getTime())
+          ? String(s.recordedAt)
+          : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        leads: toSafeNumber(s.value),
+        conversions: 0,
+      };
+    });
+  }, [dashboardKpiStats?.totalLeads?.snapshots]);
   const hasDailyActivityData = dailyPerformanceData.some((row) => row.leads > 0 || row.conversions > 0);
   const hasFallbackLeadData = fallbackLeadTrendData.some((row) => row.leads > 0);
   const resolvedLeadTrendData = hasDailyActivityData ? dailyPerformanceData : fallbackLeadTrendData;
@@ -607,7 +599,7 @@ export default function Dashboard() {
   const leadTrendSubtitle = hasDailyActivityData
     ? `New leads and conversions over time (${periodLabel})`
     : hasFallbackLeadData
-      ? `Recent lead count snapshots (fallback view)`
+      ? `Lead totals from saved server snapshots`
       : `No activity data yet (${periodLabel})`;
   const funnelChartData = useMemo(() => {
     const funnel = analyticsData?.funnel || {};
@@ -660,6 +652,7 @@ export default function Dashboard() {
       .sort((a: { sent: number }, b: { sent: number }) => b.sent - a.sent);
   }, [analyticsData?.topCampaigns, filteredCampaigns]);
   const hasTopCampaignData = topCampaignsData.some((row) => row.sent > 0 || row.replies > 0);
+  const hasTopCampaignReplySignal = topCampaignsData.some((row) => row.replies > 0 || row.rate > 0);
   const topCampaignMaxSent = Math.max(1, ...topCampaignsData.map((row) => row.sent));
   const tooltipSharedStyle = {
     border: "1px solid var(--color-border)",
@@ -712,135 +705,24 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div style={{ fontSize: 12, color: "var(--color-text-muted)", letterSpacing: "0.01em" }}>
-        Showing current stats compared to your previous period
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 12,
-        }}
-      >
+      <div style={PREMIUM_KPI_GRID_STYLE}>
         {overviewMetrics.map((card) => {
           const valueMuted = isMutedMetricValue(String(card.value));
           const isWorkspaceCard = card.title === "Active workspace";
-          const workspaceValue = String(card.value || "");
-          const workspaceValueLong = workspaceValue.length > 12;
-          const hasDelta = typeof card.delta === "number" && Number.isFinite(card.delta);
-          const deltaValue = hasDelta ? Number(card.delta) : 0;
-          const hasSparkline = card.sparkline.length > 1;
-          const firstPoint = hasSparkline ? Number(card.sparkline[0] || 0) : 0;
-          const lastPoint = hasSparkline ? Number(card.sparkline[card.sparkline.length - 1] || 0) : 0;
-          const inferredDeltaPct =
-            firstPoint > 0 ? ((lastPoint - firstPoint) / firstPoint) * 100 : lastPoint > 0 ? 100 : 0;
-          const displayDelta = hasDelta ? deltaValue : inferredDeltaPct;
-          const deltaAbs = Math.abs(displayDelta);
-          const deltaLabel = `${displayDelta >= 0 ? "+" : "-"}${deltaAbs.toFixed(1)}%`;
-          const deltaColor =
-            displayDelta > 0.0001 ? "#16a34a" : displayDelta < -0.0001 ? "#b91c1c" : "var(--color-text-muted)";
 
           return (
-            <div
+            <PremiumKpiCard
               key={card.title}
-              className="dashboard-stat-card"
-              style={{
-                padding: "10px 12px 12px",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 224,
-                transition: "transform 0.16s ease, box-shadow 0.2s ease, border-color 0.2s ease",
-                background: "#ffffff",
-                border: "1px solid #e9eef4",
-                boxShadow: "0 1px 4px rgba(15, 23, 42, 0.06)",
-              }}
-            >
-              <div style={{ marginBottom: 2, textAlign: "left", minHeight: 26 }}>
-                <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block", fontSize: 10, letterSpacing: "0.08em" }}>
-                  {card.title}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: "var(--color-text-muted)",
-                    marginTop: 4,
-                    display: "block",
-                    minHeight: 14,
-                    visibility: card.note ? "visible" : "hidden",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  {card.note || " "}
-                </span>
-              </div>
-              <div
-                className="dashboard-stat-value"
-                style={{
-                  fontSize: isWorkspaceCard ? (workspaceValueLong ? 21 : 30) : 46,
-                  fontWeight: 800,
-                  letterSpacing: isWorkspaceCard ? "-0.02em" : "-0.03em",
-                  lineHeight: 1,
-                  color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
-                  fontFamily: "Inter, -apple-system, sans-serif",
-                  wordBreak: "break-word",
-                  textShadow: "none",
-                  textAlign: "left",
-                  minHeight: 44,
-                  display: "flex",
-                  alignItems: "flex-end",
-                  whiteSpace: isWorkspaceCard ? "nowrap" : "normal",
-                  overflow: isWorkspaceCard ? "hidden" : "visible",
-                  textOverflow: isWorkspaceCard ? "ellipsis" : "clip",
-                }}
-                title={isWorkspaceCard ? workspaceValue : undefined}
-              >
-                {card.value}
-              </div>
-              <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, minHeight: 16 }}>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: "0.01em",
-                    color: deltaColor,
-                  }}
-                >
-                  {deltaLabel}
-                </span>
-              </div>
-              <div style={{ marginTop: "auto" }}>
-                {hasSparkline ? (
-                  <SparklineChart points={card.sparkline} positive={card.trendPositive} chartType={card.chartType ?? "areaPulse"} />
-                ) : (
-                  <div
-                    style={{
-                      width: "100%",
-                      height: 76,
-                      borderRadius: 10,
-                      background:
-                        "linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.06) 0%, rgba(var(--color-primary-rgb), 0.02) 100%)",
-                      border: "1px solid rgba(var(--color-primary-rgb), 0.22)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "0 8px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: "var(--color-text-muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      No trend data yet
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
+              title={card.title}
+              value={card.value}
+              valueKind={card.valueKind ?? "number"}
+              valueMuted={valueMuted}
+              valueTitle={isWorkspaceCard ? card.workspaceLayout?.activeName : undefined}
+              note={card.note}
+              workspaceLayout={isWorkspaceCard ? card.workspaceLayout : undefined}
+              sparklineValues={card.sparkline}
+              echartsVariant={card.echartsVariant}
+            />
           );
         })}
       </div>
@@ -1163,6 +1045,34 @@ export default function Dashboard() {
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
             Sent vs engaged by channel ({periodLabel})
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text)" }}>
+              <span
+                aria-hidden
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  background: CHANNEL_SENT_BAR_COLOR,
+                  border: "1px solid rgba(59,130,246,0.28)",
+                }}
+              />
+              Sent
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text)" }}>
+              <span
+                aria-hidden
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  background: CHANNEL_ENGAGED_BAR_COLOR,
+                  border: "1px solid rgba(249,115,22,0.28)",
+                }}
+              />
+              Engaged
+            </div>
+          </div>
           {hasChannelOutcomeData ? (
             <>
               <ResponsiveContainer width="100%" height={150}>
@@ -1170,9 +1080,14 @@ export default function Dashboard() {
                   <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
                   <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipSharedStyle} />
-                  <Bar dataKey="sent" fill="#DBEAFE" radius={[6, 6, 0, 0]} barSize={14} />
-                  <Bar dataKey="engaged" fill="var(--color-primary)" radius={[6, 6, 0, 0]} barSize={14} />
+                  <Tooltip
+                    contentStyle={tooltipSharedStyle}
+                    cursor={{ fill: "rgba(148, 163, 184, 0.14)" }}
+                    labelStyle={{ color: "var(--color-text)", fontWeight: 700 }}
+                    itemStyle={{ color: "var(--color-text)", fontWeight: 600, textTransform: "capitalize" }}
+                  />
+                  <Bar dataKey="sent" fill={CHANNEL_SENT_BAR_COLOR} radius={[6, 6, 0, 0]} barSize={16} />
+                  <Bar dataKey="engaged" fill={CHANNEL_ENGAGED_BAR_COLOR} radius={[6, 6, 0, 0]} barSize={16} />
                 </BarChart>
               </ResponsiveContainer>
               <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
@@ -1190,7 +1105,7 @@ export default function Dashboard() {
                       {row.channel}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{row.rate}%</div>
-                    <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                    <div style={{ fontSize: 11, color: "var(--color-text)" }}>
                       {row.engaged}/{row.sent} engaged
                     </div>
                   </div>
@@ -1243,8 +1158,10 @@ export default function Dashboard() {
                     >
                       {index + 1}. {row.name}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                      {row.sent} sent · {row.replies} replies · {row.rate}%
+                    <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600 }}>
+                      {hasTopCampaignReplySignal
+                        ? `${row.sent} sent - ${row.replies} replies - ${row.rate}%`
+                        : `${row.sent} sent`}
                     </div>
                   </div>
                   <div
@@ -1287,7 +1204,11 @@ export default function Dashboard() {
               No campaign send data yet
             </div>
           )}
-          <div style={{ marginTop: 8, fontSize: 11, color: "var(--color-text-muted)" }}>Now showing sent, replies, and reply-rate clearly.</div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--color-text-muted)" }}>
+            {hasTopCampaignReplySignal
+              ? "Showing sent, replies, and reply-rate."
+              : "Showing sent volume only. Reply metrics are hidden until reply tracking data is available."}
+          </div>
         </div>
       </div>
     </>
@@ -1302,4 +1223,3 @@ export default function Dashboard() {
     </>
   );
 }
-

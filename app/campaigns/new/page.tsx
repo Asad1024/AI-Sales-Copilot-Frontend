@@ -55,6 +55,10 @@ import {
 } from "./stepValidation";
 import { useNotification } from "@/context/NotificationContext";
 import { buildCampaignDraftPayload } from "./buildCampaignDraftPayload";
+import {
+  filterChannelsForWorkspaceOwnerPlan,
+  isEmailOnlyWorkspacePlan,
+} from "@/lib/subscriptionPlanCaps";
 import { getWizardPhaseBanner } from "./wizardStepUi";
 import { WizardCircularStepper } from "./WizardCircularStepper";
 import { WizardEmailDraftCard } from "@/components/campaigns/WizardEmailDraftCard";
@@ -1109,23 +1113,36 @@ export default function CampaignNew() {
 
   /** Server-side: email + messaging + voice providers configured for this workspace (null = still loading) */
   const [channelAvailability, setChannelAvailability] = useState<Record<ChannelType, boolean> | null>(null);
+  /** Workspace owner billing tier (for plan-based channel limits). */
+  const [workspaceOwnerPlanKey, setWorkspaceOwnerPlanKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeBaseId == null || typeof activeBaseId !== "number") {
       setChannelAvailability(null);
+      setWorkspaceOwnerPlanKey(null);
       return;
     }
     let cancelled = false;
     setChannelAvailability(null);
+    setWorkspaceOwnerPlanKey(null);
     void (async () => {
       try {
-        const data = (await apiRequest(
-          `/campaigns/wizard/channel-status?base_id=${encodeURIComponent(String(activeBaseId))}`
-        )) as Record<ChannelType, boolean>;
-        if (!cancelled) setChannelAvailability(data);
+        const [statusData, creditsData] = await Promise.all([
+          apiRequest(
+            `/campaigns/wizard/channel-status?base_id=${encodeURIComponent(String(activeBaseId))}`
+          ) as Promise<Record<ChannelType, boolean>>,
+          apiRequest(`/bases/${activeBaseId}/workspace-credits?page=1&limit=1`) as Promise<{
+            billing_plan_key?: string | null;
+          }>,
+        ]);
+        if (!cancelled) {
+          setChannelAvailability(statusData);
+          setWorkspaceOwnerPlanKey(creditsData.billing_plan_key ?? null);
+        }
       } catch {
         if (!cancelled) {
           setChannelAvailability({ email: true, linkedin: true, whatsapp: true, call: true });
+          setWorkspaceOwnerPlanKey(null);
         }
       }
     })();
@@ -1162,13 +1179,20 @@ export default function CampaignNew() {
     // Editing a draft: keep saved channel selections (including disconnected) until the user unchecks on Step 1.
     if (editParam) return;
     setChannels((prev) => {
-      const filtered = prev.filter((c) => channelAvailability[c as ChannelType]);
+      let filtered = prev.filter((c) => channelAvailability[c as ChannelType]);
+      if (isEmailOnlyWorkspacePlan(workspaceOwnerPlanKey)) {
+        filtered = filtered.filter((c) => c !== "linkedin" && c !== "whatsapp");
+      }
       if (filtered.length > 0) return filtered;
       const order: ChannelType[] = ["email", "linkedin", "whatsapp", "call"];
-      const first = order.find((c) => channelAvailability[c]);
+      const first = order.find(
+        (c) =>
+          channelAvailability[c] &&
+          (!isEmailOnlyWorkspacePlan(workspaceOwnerPlanKey) || (c !== "linkedin" && c !== "whatsapp"))
+      );
       return first ? [first] : [];
     });
-  }, [channelAvailability, editParam]);
+  }, [channelAvailability, editParam, workspaceOwnerPlanKey]);
 
   const staleChannels = useMemo(() => {
     if (!channelAvailability) return [];
@@ -2333,10 +2357,24 @@ export default function CampaignNew() {
               ? ([campaignData.channel] as ChannelType[])
               : ["email"];
 
+        let ownerPlanForChannels: string | null = null;
+        const baseIdForPlan = typeof campaignData.base_id === "number" ? campaignData.base_id : null;
+        if (baseIdForPlan != null) {
+          try {
+            const cr = (await apiRequest(
+              `/bases/${baseIdForPlan}/workspace-credits?page=1&limit=1`
+            )) as { billing_plan_key?: string | null };
+            ownerPlanForChannels = cr.billing_plan_key ?? null;
+          } catch {
+            ownerPlanForChannels = null;
+          }
+        }
+        const channelsForUi = filterChannelsForWorkspaceOwnerPlan(restoredChannels, ownerPlanForChannels);
+
         setDraftCampaignId(campaignData.id);
         draftCampaignIdRef.current = campaignData.id;
         if (campaignData.name) setName(campaignData.name);
-        setChannels(restoredChannels);
+        setChannels(channelsForUi as ChannelType[]);
 
         const config = rawConfig;
 
@@ -4882,6 +4920,12 @@ export default function CampaignNew() {
             <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--color-text-muted)" }}>
               Choose one or more channels for this campaign.
             </p>
+            {isEmailOnlyWorkspacePlan(workspaceOwnerPlanKey) ? (
+              <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--color-text-muted)" }}>
+                This workspace is on a plan that includes email campaigns only. LinkedIn and WhatsApp require Pro or
+                Premium.
+              </p>
+            ) : null}
             <div
               style={{
                 display: "flex",
@@ -4898,14 +4942,24 @@ export default function CampaignNew() {
                 const showDisconnected =
                   channelAvailability !== null && !channelAvailability[ch];
                 const cannotSelectDisconnected = showDisconnected && !selected;
+                const planLocksSocial =
+                  isEmailOnlyWorkspacePlan(workspaceOwnerPlanKey) && (ch === "linkedin" || ch === "whatsapp");
+                const cannotSelectPlan = planLocksSocial && !selected;
                 return (
                   <button
                     type="button"
                     key={channelConfig.id}
-                    disabled={cannotSelectDisconnected}
-                    aria-disabled={cannotSelectDisconnected}
+                    disabled={cannotSelectDisconnected || cannotSelectPlan}
+                    aria-disabled={cannotSelectDisconnected || cannotSelectPlan}
                     aria-pressed={selected}
                     onClick={() => {
+                      if (planLocksSocial && !selected) {
+                        showWarning(
+                          "Not available on your plan",
+                          "Upgrade to Pro or Premium to run LinkedIn and WhatsApp campaigns."
+                        );
+                        return;
+                      }
                       if (showDisconnected && !selected) return;
                       setChannels((prev) => {
                         if (prev.includes(channelConfig.id)) {
@@ -4923,7 +4977,7 @@ export default function CampaignNew() {
                       border: selected ? `2px solid ${WIZ_ACCENT}` : "1px solid var(--color-border)",
                       background: "var(--color-surface)",
                       color: "var(--color-text)",
-                      cursor: cannotSelectDisconnected ? "not-allowed" : "pointer",
+                      cursor: cannotSelectDisconnected || cannotSelectPlan ? "not-allowed" : "pointer",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
@@ -4933,10 +4987,10 @@ export default function CampaignNew() {
                       transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
                       boxShadow: selected ? "0 1px 4px rgba(var(--color-primary-rgb), 0.2)" : "none",
                       position: "relative",
-                      opacity: showDisconnected && !selected ? 0.55 : 1,
+                      opacity: (showDisconnected && !selected) || cannotSelectPlan ? 0.55 : 1,
                     }}
                     onMouseEnter={(e) => {
-                      if (cannotSelectDisconnected) return;
+                      if (cannotSelectDisconnected || cannotSelectPlan) return;
                       if (!selected) {
                         e.currentTarget.style.background = "rgba(var(--color-primary-rgb), 0.2)";
                         e.currentTarget.style.borderColor = "rgba(var(--color-primary-rgb), 0.2)";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
 import { Icons } from "@/components/ui/Icons";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiRequest, getUser, setUser, type User } from "@/lib/apiClient";
@@ -17,8 +18,9 @@ import { CreditCard, Coins } from "lucide-react";
 /** Match `components/ui/Sidebar.tsx` nav links: 16px icon, stroke 1.5 */
 const navIconBox = { width: 16, height: 16, display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const };
 const ACTIVE_NAV_BG = "var(--sidebar-active-nav-bg)";
-const ACTIVE_NAV_TEXT = "var(--color-primary)";
-const ACTIVE_NAV_ACCENT = "var(--color-primary)";
+/** Must contrast primary fill — same as app `Sidebar.tsx` (was primary-on-primary → invisible). */
+const ACTIVE_NAV_TEXT = "#ffffff";
+const ACTIVE_NAV_ACCENT = "#ffffff";
 
 const UserIcon = ({ active }: { active: boolean }) => (
   <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
@@ -177,7 +179,8 @@ export default function SettingsPage() {
     color: "var(--sidebar-label)",
     textTransform: "uppercase",
     padding: "0 11px",
-    marginBottom: 4,
+    marginBottom: 8,
+    marginTop: 2,
     fontFamily: "Inter, sans-serif",
   };
 
@@ -187,7 +190,7 @@ export default function SettingsPage() {
         width: "100%",
         maxWidth: "min(1400px, 100%)",
         margin: "0 auto",
-        padding: "4px 0 32px",
+        padding: "8px 0 40px",
         display: "flex",
         flexDirection: "column",
         gap: 0,
@@ -196,10 +199,10 @@ export default function SettingsPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(200px, 240px) 1fr",
-          gap: 16,
+          gridTemplateColumns: "minmax(220px, 260px) 1fr",
+          gap: 28,
           alignItems: "start",
-          marginTop: 4,
+          marginTop: 8,
         }}
         className="settings-layout-grid"
       >
@@ -211,7 +214,7 @@ export default function SettingsPage() {
             <div
               key={group.category}
               className="settings-nav-group"
-              style={{ marginTop: groupIndex === 0 ? 0 : 14 }}
+              style={{ marginTop: groupIndex === 0 ? 0 : 22 }}
             >
               <div style={groupLabelStyle}>{group.category}</div>
               {group.items.map(({ id, label, hint, icon }) => {
@@ -233,7 +236,7 @@ export default function SettingsPage() {
                       minHeight: active ? 44 : 42,
                       padding: active ? "12px 14px" : "10px 12px",
                       boxSizing: "border-box",
-                      borderLeft: "none",
+                      border: active ? "1px solid #DE8850" : "1px solid transparent",
                       borderRadius: 12,
                       cursor: "pointer",
                       fontSize: 15,
@@ -241,22 +244,25 @@ export default function SettingsPage() {
                       fontFamily: "Inter, sans-serif",
                       color: active ? ACTIVE_NAV_TEXT : "var(--sidebar-nav-text)",
                       background: active ? ACTIVE_NAV_BG : "transparent",
-                      transition: "background 150ms ease, color 150ms ease, min-height 150ms ease",
-                      marginBottom: 8,
+                      transition: "background 150ms ease, color 150ms ease, border-color 150ms ease, min-height 150ms ease",
+                      marginBottom: 10,
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
                         e.currentTarget.style.background = "var(--sidebar-nav-hover-bg)";
                         e.currentTarget.style.color = "var(--sidebar-nav-hover-text)";
+                        e.currentTarget.style.borderColor = "transparent";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!active) {
                         e.currentTarget.style.background = "transparent";
                         e.currentTarget.style.color = "var(--sidebar-nav-text)";
+                        e.currentTarget.style.borderColor = "transparent";
                       } else {
                         e.currentTarget.style.background = ACTIVE_NAV_BG;
                         e.currentTarget.style.color = ACTIVE_NAV_TEXT;
+                        e.currentTarget.style.borderColor = "#DE8850";
                       }
                     }}
                   >
@@ -269,12 +275,28 @@ export default function SettingsPage() {
               })}
             </div>
           ))}
+          <div style={{ marginTop: 20, padding: "0 11px" }}>
+            <Link
+              href="/settings/chart-gallery"
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--color-primary)",
+                textDecoration: "none",
+              }}
+            >
+              Chart gallery (22 types, dummy data) →
+            </Link>
+            <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 6, lineHeight: 1.4 }}>
+              Visual reference for KPI-style charts used across the app.
+            </div>
+          </div>
         </nav>
 
         <BaseCard
           style={{
             borderRadius: 16,
-            padding: effectiveTab === "payments" || effectiveTab === "credit-history" ? 20 : 22,
+            padding: effectiveTab === "payments" || effectiveTab === "credit-history" ? 24 : 22,
             minHeight: 400,
             border: "1px solid var(--color-border)",
             boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",

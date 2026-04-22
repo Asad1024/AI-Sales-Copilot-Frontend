@@ -1,0 +1,266 @@
+/**
+ * Shared layout + chrome for landing-style pricing (home + /upgrade).
+ * Tier card visuals remain in pricing-cards.css (.scp-pc--landing).
+ */
+
+.scp-pricing-layout {
+  --landing-heading-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.scp-pricing-layout > .scp-setup-fee-banner {
+  margin-bottom: 8px;
+}
+
+.scp-landing-extras {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+@media (min-width: 768px) {
+  .scp-landing-extras {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
+
+.scp-landing-extra-card.scp-calling-banner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.scp-landing-extra-card .scp-calling-banner-inner {
+  flex: 1;
+  align-items: center;
+}
+
+.scp-setup-fee-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)) 0%,
+    color-mix(in srgb, var(--color-surface-secondary) 92%, var(--color-primary) 8%) 100%
+  );
+  text-align: left;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 10%, transparent),
+    0 14px 36px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.scp-setup-fee-banner-icon-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.scp-setup-fee-banner-icon {
+  color: var(--color-primary);
+}
+
+.scp-setup-fee-banner-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.scp-setup-fee-banner-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.scp-setup-fee-banner-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--color-text) 92%, transparent);
+}
+
+.scp-setup-fee-banner-strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.scp-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.scp-calling-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 8%, transparent),
+    0 16px 40px color-mix(in srgb, var(--color-text) 5%, transparent);
+  text-align: left;
+}
+
+.scp-calling-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 20px;
+  padding: 20px 22px 22px;
+}
+
+.scp-calling-banner-icon-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  color: var(--color-primary);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-primary) 16%, transparent),
+    color-mix(in srgb, var(--color-accent) 12%, transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-surface) 35%, transparent);
+}
+
+.scp-calling-banner-text {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.scp-calling-banner-label {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.scp-calling-banner-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.scp-calling-banner-price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.scp-calling-banner-amount {
+  font-size: 22px;
+  font-weight: var(--landing-heading-weight, 700);
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-calling-banner-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.scp-calling-banner-cta {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 148px;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+.pricing-cta {
+  width: 100%;
+  padding: 15px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+a.pricing-cta {
+  text-decoration: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pricing-cta-primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    color-mix(in srgb, var(--color-accent, #f29f67) 88%, var(--color-primary) 12%) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  color: #0a0a0f;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-primary) 32%, transparent);
+}
+
+.pricing-cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--color-primary) 38%, transparent);
+}
+
+.pricing-cta-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, rgba(255, 255, 255, 0.16) 80%, var(--color-primary) 20%);
+  color: #fff;
+}
+
+.pricing-cta-secondary:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, rgba(255, 255, 255, 0.2));
+}
+
+@media (max-width: 1024px) {
+  .scp-tier-grid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* “Contact Sales” on pricing strips (landing + upgrade) — white on primary gradient */
+a.pricing-cta-primary.scp-pricing-contact-sales-cta,
+.pricing-cta-primary.scp-pricing-contact-sales-cta {
+  color: #fff !important;
+}
+
+a.pricing-cta-primary.scp-pricing-contact-sales-cta:hover {
+  color: #fff !important;
+}
+
+a.btn-primary.scp-pricing-contact-sales-cta {
+  color: #fff !important;
+}
+
+a.btn-primary.scp-pricing-contact-sales-cta:hover {
+  color: #fff !important;
+}

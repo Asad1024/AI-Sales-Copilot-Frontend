@@ -1,0 +1,43 @@
+/**
+ * Primary CTA in marketing nav — loaded on pages that don't include `app/page.tsx` styled-jsx
+ * (e.g. /upgrade). Keeps pill gradient + shadow consistent with the home landing header.
+ */
+.landing-page .btn-cta {
+  padding: 11px 22px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--color-support-blue, var(--color-primary)) 0%, var(--color-primary) 100%);
+  border: none;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  white-space: nowrap;
+}
+
+.landing-page .btn-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 6px 22px rgba(var(--color-primary-rgb), 0.32);
+}
+
+.landing-page.landing-theme-light .btn-cta {
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(242, 159, 103, 0.28);
+}
+
+.landing-page.landing-theme-light .btn-cta:hover {
+  box-shadow: 0 6px 22px rgba(242, 159, 103, 0.34);
+}
+
+/* Mobile drawer: primary action as button (same look as desktop CTA) */
+.landing-mobile-panel .btn-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+  text-decoration: none;
+}

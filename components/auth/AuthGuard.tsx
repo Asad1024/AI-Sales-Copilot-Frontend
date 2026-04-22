@@ -14,9 +14,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const isInviteRoute = pathname?.startsWith("/invite");
     const isOnboarding = pathname?.startsWith("/onboarding");
     const isLandingPage = pathname === "/";
-    
+    const isContactRoute = pathname?.startsWith("/contact");
+
     // Public routes don't need auth check
     if (isAuthRoute || isLandingPage || isInviteRoute) {
+      setChecked(true);
+      return;
+    }
+
+    // Contact is readable without login; signed-in users still go through checks below
+    if (isContactRoute && !isAuthenticated()) {
       setChecked(true);
       return;
     }

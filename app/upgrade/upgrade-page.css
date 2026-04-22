@@ -1,0 +1,102 @@
+/* Full-viewport upgrade / plans page (no app chrome) */
+.upgrade-fullpage {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Tighter hero under floating nav (shared with contact full-bleed layout) */
+.upgrade-fullpage.landing-page {
+  --landing-nav-clearance: max(4.75rem, calc(env(safe-area-inset-top, 0px) + 4rem));
+}
+
+/* Light theme marketing CSS sets a larger clearance; keep upgrade/contact tighter */
+.upgrade-fullpage.landing-page.landing-theme-light {
+  --landing-nav-clearance: max(4.75rem, calc(env(safe-area-inset-top, 0px) + 4rem));
+}
+
+.upgrade-fullpage.landing-page .landing-header {
+  padding-top: 24px;
+  padding-bottom: 14px;
+}
+
+.upgrade-fullpage.landing-page .landing-header.header-scrolled {
+  padding-top: 18px;
+  padding-bottom: 12px;
+}
+
+.upgrade-fullpage.landing-page:not(.landing-theme-light) {
+  background: radial-gradient(circle at 50% -20%, rgba(var(--color-primary-rgb), 0.12), transparent 45%),
+    linear-gradient(180deg, #0b1020 0%, #050814 100%);
+  color: #f8fafc;
+}
+
+.upgrade-fullpage.landing-page.landing-theme-light {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.upgrade-fullpage__main {
+  max-width: 1260px;
+  margin: 0 auto;
+  padding: calc(var(--landing-nav-clearance, 7.5rem) + clamp(10px, 1.75vw, 18px)) clamp(18px, 4vw, 32px) 56px;
+  position: relative;
+  z-index: 1;
+}
+
+.upgrade-fullpage__hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.upgrade-fullpage__kicker {
+  display: inline-block;
+  margin: 0 0 18px;
+  padding: 0 0 10px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.upgrade-fullpage.landing-theme-light .upgrade-fullpage__kicker {
+  border-bottom-color: color-mix(in srgb, var(--color-primary) 38%, rgba(15, 23, 42, 0.12));
+}
+
+.upgrade-fullpage__title {
+  margin: 0 0 14px;
+  font-size: clamp(2.35rem, 5.5vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.upgrade-fullpage.landing-theme-light .upgrade-fullpage__title {
+  color: #0f172a;
+}
+
+.upgrade-fullpage:not(.landing-theme-light) .upgrade-fullpage__title {
+  color: #fff;
+}
+
+.upgrade-fullpage__lead {
+  margin: 0 auto;
+  max-width: 38rem;
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  opacity: 0.78;
+}
+
+.upgrade-fullpage.landing-theme-light .upgrade-fullpage__lead {
+  color: rgba(15, 23, 42, 0.62);
+}
+
+.upgrade-fullpage:not(.landing-theme-light) .upgrade-fullpage__lead {
+  color: rgba(248, 250, 252, 0.65);
+}
+

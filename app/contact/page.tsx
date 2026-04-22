@@ -1,146 +1,118 @@
 "use client";
-import { useState } from "react";
+
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useNotification } from "@/context/NotificationContext";
-import { APP_BRAND_LOGO_HEIGHT, APP_BRAND_LOGO_MAX_WIDTH, AppBrandLogoLockup } from "@/components/ui/AppBrandLogo";
+import LandingMarketingNav from "@/components/landing/LandingMarketingNav";
+import "../upgrade/upgrade-page.css";
 
 export default function ContactPage() {
   const { showSuccess } = useNotification();
+  const [appearance, setAppearance] = useState<"light" | "dark">("light");
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    message: ''
+    name: "",
+    email: "",
+    company: "",
+    message: "",
   });
+
+  const toggleAppearance = useCallback(() => {
+    setAppearance((v) => (v === "light" ? "dark" : "light"));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Send to API
-    showSuccess('Message sent', "Thank you for your message! We'll get back to you soon.");
-    setFormData({ name: '', email: '', company: '', message: '' });
+    showSuccess("Message sent", "Thank you for your message! We'll get back to you soon.");
+    setFormData({ name: "", email: "", company: "", message: "" });
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(180deg, var(--color-background) 0%, var(--color-surface) 100%)',
-      padding: '40px 24px 80px'
-    }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {/* Header */}
-        <header style={{
-          padding: '20px 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '60px'
-        }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <AppBrandLogoLockup height={APP_BRAND_LOGO_HEIGHT} style={{ maxWidth: APP_BRAND_LOGO_MAX_WIDTH }} />
-          </Link>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <Link href="/auth/login" className="btn-ghost">Log in</Link>
-            <Link href="/auth/signup" className="btn-primary">Get Started</Link>
-          </div>
+    <div className={`upgrade-fullpage landing-page${appearance === "light" ? " landing-theme-light" : ""}`}>
+      <LandingMarketingNav
+        cta="signup"
+        appearance={appearance}
+        onToggleAppearance={toggleAppearance}
+        links="app"
+        showLogin
+      />
+      <main className="upgrade-fullpage__main">
+        <header className="upgrade-fullpage__hero">
+          <p className="upgrade-fullpage__kicker">Contact</p>
+          <h1 className="upgrade-fullpage__title">Get in touch</h1>
+          <p className="upgrade-fullpage__lead">
+            Questions, demos, or partnerships — send a note and we&apos;ll respond as soon as we can.
+          </p>
         </header>
 
-        {/* Hero */}
-        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <h1 style={{
-            fontSize: 'clamp(36px, 6vw, 56px)',
-            fontWeight: '800',
-            margin: '0 0 16px 0',
-            background: 'linear-gradient(135deg, var(--color-primary) 0%, #F29F67 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
-            Get in Touch
-          </h1>
-          <p style={{ fontSize: '20px', color: 'var(--color-text-muted)', maxWidth: '600px', margin: '0 auto' }}>
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-          </p>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '40px'
-        }}>
-          {/* Contact Info */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "clamp(24px, 4vw, 40px)",
+            maxWidth: 1000,
+            margin: "0 auto",
+          }}
+        >
           <div>
-            <div className="card-enhanced" style={{ padding: '32px', marginBottom: '24px', borderRadius: '20px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 24px 0' }}>
-                Contact Information
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="card-enhanced" style={{ padding: 32, marginBottom: 24, borderRadius: 20 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 24px" }}>Contact information</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 {[
-                  { icon: '📧', label: 'Email', value: 'hello@riftreach.com' },
-                  { icon: '💬', label: 'Support', value: 'support@riftreach.com' },
-                  { icon: '🌐', label: 'Website', value: 'www.riftreach.com' }
-                ].map((contact, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ fontSize: '24px' }}>{contact.icon}</div>
+                  { icon: "📧", label: "Email", value: "hello@riftreach.com" },
+                  { icon: "💬", label: "Support", value: "support@riftreach.com" },
+                  { icon: "🌐", label: "Website", value: "www.riftreach.com" },
+                ].map((row, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <div style={{ fontSize: 24 }}>{row.icon}</div>
                     <div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                        {contact.label}
-                      </div>
-                      <div style={{ fontSize: '16px', fontWeight: '600' }}>
-                        {contact.value}
-                      </div>
+                      <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 4 }}>{row.label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 600 }}>{row.value}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="card-enhanced" style={{ padding: '32px', borderRadius: '20px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 16px 0' }}>
-                Office Hours
-              </h3>
-              <p style={{ fontSize: '15px', color: 'var(--color-text-muted)', margin: '0 0 12px 0' }}>
-                Monday - Friday<br />
-                9:00 AM - 6:00 PM EST
+            <div className="card-enhanced" style={{ padding: 32, borderRadius: 20 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 16px" }}>Office hours</h3>
+              <p style={{ fontSize: 15, color: "var(--color-text-muted)", margin: "0 0 12px" }}>
+                Monday – Friday
+                <br />
+                9:00 AM – 6:00 PM EST
               </p>
-              <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0 }}>
+              <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0 }}>
                 We typically respond within 24 hours.
               </p>
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="card-enhanced" style={{ padding: '40px', borderRadius: '20px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 24px 0' }}>
-              Send us a Message
-            </h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card-enhanced" style={{ padding: 40, borderRadius: 20 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 24px" }}>Send us a message</h3>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                  Name
-                </label>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Name</label>
                 <input
                   type="text"
                   className="input"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                  Email
-                </label>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Email</label>
                 <input
                   type="email"
                   className="input"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
                   Company (optional)
                 </label>
                 <input
@@ -148,34 +120,33 @@ export default function ContactPage() {
                   className="input"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                  Message
-                </label>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Message</label>
                 <textarea
                   className="input"
                   rows={6}
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   required
-                  style={{ width: '100%', resize: 'vertical' }}
+                  style={{ width: "100%", resize: "vertical" }}
                 />
               </div>
-              <button
-                type="submit"
-                className="btn-primary"
-                style={{ width: '100%', padding: '16px', fontSize: '16px', fontWeight: '600' }}
-              >
-                Send Message
+              <button type="submit" className="btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, fontWeight: 600 }}>
+                Send message
               </button>
             </form>
           </div>
         </div>
-      </div>
+
+        <p style={{ textAlign: "center", marginTop: 48, marginBottom: 0 }}>
+          <Link href="/" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
+            ← Back to home
+          </Link>
+        </p>
+      </main>
     </div>
   );
 }
-

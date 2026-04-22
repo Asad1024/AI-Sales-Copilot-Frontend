@@ -13,19 +13,17 @@ import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
 import { useNotification } from "@/context/NotificationContext";
 import { useConfirm } from "@/context/ConfirmContext";
-import { PremiumKpiSparkline } from "@/components/ui/PremiumKpiSparkline";
+import { PremiumKpiCard, PREMIUM_KPI_GRID_STYLE } from "@/components/ui/PremiumKpiCard";
+import type { EnterpriseChartVariant } from "@/components/dashboard/KpiEnterpriseChart";
+import { resolveKpiChartValues, type WorkspacesStatsResponse } from "@/lib/kpiStatsApi";
+import { getPremiumKpiOverviewChartVariant } from "@/lib/kpiDashboardChartBatches";
 
 type OverviewMetric = {
   title: string;
   value: string;
-  chartType: "step" | "bars" | "areaPulse" | "radial";
-};
-
-const metricLabelStyle = {
-  fontSize: 12,
-  fontWeight: 600 as const,
-  letterSpacing: "0.06em",
-  textTransform: "uppercase" as const,
+  note?: string;
+  sparkline: number[];
+  echartsVariant: EnterpriseChartVariant;
 };
 
 function isMutedMetricValue(value: string): boolean {
@@ -37,16 +35,6 @@ function isMutedMetricValue(value: string): boolean {
   if (normalized === "0%") return true;
   const n = parseFloat(normalized.replace("%", ""));
   return !Number.isNaN(n) && n === 0;
-}
-
-function MiniCardChart({ chartType }: { chartType: OverviewMetric["chartType"] }) {
-  const pointMap: Record<OverviewMetric["chartType"], number[]> = {
-    step: [18, 28, 26, 34, 33, 41, 44],
-    bars: [8, 11, 9, 13, 12, 15, 10],
-    areaPulse: [12, 18, 16, 25, 22, 30, 27],
-    radial: [18, 22, 26, 33, 41, 49, 58],
-  };
-  return <PremiumKpiSparkline points={pointMap[chartType]} positive chartType={chartType} height={76} />;
 }
 
 export default function BasesPage() {
@@ -66,6 +54,7 @@ export default function BasesPage() {
   const [filter, setFilter] = useState<"all" | "with-leads" | "with-campaigns">("all");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [userRev, setUserRev] = useState(0);
+  const [workspaceStats, setWorkspaceStats] = useState<WorkspacesStatsResponse | null>(null);
 
   useEffect(() => {
     const sync = () => setUserRev((n) => n + 1);
@@ -234,28 +223,106 @@ export default function BasesPage() {
     return { leads, campaigns, enriched, scored };
   }, [filtered, baseQuickStats]);
 
-  const overviewMetrics: OverviewMetric[] = [
-    {
-      title: "Total workspaces",
-      value: String(filtered.length),
-      chartType: "step",
-    },
-    {
-      title: "Workspace leads",
-      value: totals.leads.toLocaleString(),
-      chartType: "bars",
-    },
-    {
-      title: "Active campaigns",
-      value: totals.campaigns.toLocaleString(),
-      chartType: "areaPulse",
-    },
-    {
-      title: "Enriched leads",
-      value: totals.enriched.toLocaleString(),
-      chartType: "radial",
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = (await apiRequest("/workspaces/stats")) as WorkspacesStatsResponse;
+        if (!cancelled) setWorkspaceStats(data);
+      } catch {
+        if (!cancelled) setWorkspaceStats(null);
+      }
+    };
+    void load();
+    const id = window.setInterval(load, 25000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const overviewMetrics: OverviewMetric[] = useMemo(() => {
+    const flat = Array.from({ length: 7 }, () => 0);
+    const s = workspaceStats;
+    if (!s) {
+      return [
+        {
+          title: "Total workspaces",
+          value: "—",
+          note: "Loading…",
+          sparkline: flat,
+          echartsVariant: getPremiumKpiOverviewChartVariant(0),
+        },
+        {
+          title: "Workspace leads",
+          value: "—",
+          note: "Loading…",
+          sparkline: flat,
+          echartsVariant: getPremiumKpiOverviewChartVariant(1),
+        },
+        {
+          title: "Active campaigns",
+          value: "—",
+          note: "Loading…",
+          sparkline: flat,
+          echartsVariant: getPremiumKpiOverviewChartVariant(2),
+        },
+        {
+          title: "Enriched leads",
+          value: "—",
+          note: "Loading…",
+          sparkline: flat,
+          echartsVariant: getPremiumKpiOverviewChartVariant(3),
+        },
+      ];
+    }
+    return [
+      {
+        title: "Total workspaces",
+        value: String(Math.round(s.totalWorkspaces.current)),
+        note: "Workspaces you can access",
+        sparkline: resolveKpiChartValues(
+          s.totalWorkspaces.chartSeries,
+          s.totalWorkspaces.snapshots,
+          s.totalWorkspaces.current
+        ),
+        echartsVariant: getPremiumKpiOverviewChartVariant(0),
+      },
+      {
+        title: "Workspace leads",
+        value: Math.round(s.workspaceLeads.current).toLocaleString(),
+        note: "Leads across those workspaces",
+        sparkline: resolveKpiChartValues(
+          s.workspaceLeads.chartSeries,
+          s.workspaceLeads.snapshots,
+          s.workspaceLeads.current
+        ),
+        echartsVariant: getPremiumKpiOverviewChartVariant(1),
+      },
+      {
+        title: "Active campaigns",
+        value: Math.round(s.activeCampaigns.current).toLocaleString(),
+        note: "Running or active campaigns",
+        sparkline: resolveKpiChartValues(
+          s.activeCampaigns.chartSeries,
+          s.activeCampaigns.snapshots,
+          s.activeCampaigns.current
+        ),
+        echartsVariant: getPremiumKpiOverviewChartVariant(2),
+      },
+      {
+        title: "Enriched leads",
+        value: Math.round(s.enrichedLeads.current).toLocaleString(),
+        note: "Contacts with enrichment data",
+        sparkline: resolveKpiChartValues(
+          s.enrichedLeads.chartSeries,
+          s.enrichedLeads.snapshots,
+          s.enrichedLeads.current
+        ),
+        echartsVariant: getPremiumKpiOverviewChartVariant(3),
+      },
+    ];
+  }, [workspaceStats]);
 
   if (basesPageBlocking) {
     return <GlobalPageLoader layout="page" ariaLabel="Loading workspaces" />;
@@ -381,40 +448,19 @@ export default function BasesPage() {
         )}
 
         {filtered.length > 0 && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 10,
-              marginBottom: 12,
-            }}
-          >
+          <div style={{ ...PREMIUM_KPI_GRID_STYLE, marginBottom: 12 }}>
             {overviewMetrics.map((card) => {
               const valueMuted = isMutedMetricValue(String(card.value));
               return (
-                <div key={card.title} className="dashboard-stat-card" style={{ padding: "10px 12px 12px" }}>
-                  <div style={{ marginBottom: 6 }}>
-                    <span className="dashboard-metric-label" style={{ ...metricLabelStyle, display: "block" }}>
-                      {card.title}
-                    </span>
-                  </div>
-                  <div
-                    className="dashboard-stat-value"
-                    style={{
-                      fontSize: 28,
-                      fontWeight: card.title === "Workspace leads" ? 600 : 800,
-                      letterSpacing: "-0.035em",
-                      lineHeight: 1.12,
-                      color: valueMuted ? "var(--color-text-muted)" : "var(--color-text)",
-                      fontFamily: "Inter, -apple-system, sans-serif",
-                    }}
-                  >
-                    {card.value}
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <MiniCardChart chartType={card.chartType} />
-                  </div>
-                </div>
+                <PremiumKpiCard
+                  key={card.title}
+                  title={card.title}
+                  value={card.value}
+                  valueMuted={valueMuted}
+                  note={card.note}
+                  sparklineValues={card.sparkline}
+                  echartsVariant={card.echartsVariant}
+                />
               );
             })}
           </div>

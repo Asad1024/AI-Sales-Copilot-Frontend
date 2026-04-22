@@ -6,6 +6,8 @@
 .landing-page.landing-theme-light {
   --glass-bg: rgba(15, 23, 42, 0.03);
   --glass-border: rgba(15, 23, 42, 0.08);
+  --landing-gutter: clamp(28px, 5vw, 56px);
+  --landing-nav-clearance: max(8rem, calc(env(safe-area-inset-top, 0px) + 6.75rem));
   /* Single canvas color for the whole marketing page */
   background: #f8fafc;
   color: #0f172a;
@@ -24,10 +26,22 @@
     linear-gradient(180deg, #f1f5f9 0%, #f8fafc 55%);
 }
 
-.landing-page.landing-theme-light .landing-header,
-.landing-page.landing-theme-light .landing-header.header-scrolled {
+/* Floating header — same shell as dark marketing CSS so /upgrade (no home styled-jsx) still clears the viewport top */
+.landing-page.landing-theme-light .landing-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px var(--landing-gutter) 12px;
+  display: block;
+  z-index: 100;
   background: transparent;
   border-bottom: none;
+  transition: padding 0.3s ease;
+}
+
+.landing-page.landing-theme-light .landing-header.header-scrolled {
+  padding: 16px var(--landing-gutter) 10px;
 }
 
 .landing-page.landing-theme-light .landing-header .landing-header-inner {
@@ -60,6 +74,30 @@
     0 1px 0 rgba(255, 255, 255, 0.98) inset !important;
 }
 
+/* Hero company search input — stronger contrast on light theme */
+.landing-page.landing-theme-light .landing-hero-search {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 6px 18px rgba(15, 23, 42, 0.06) !important;
+}
+.landing-page.landing-theme-light .landing-hero-search:focus-within {
+  border-color: rgba(242, 159, 103, 0.62) !important;
+  box-shadow:
+    0 0 0 3px rgba(242, 159, 103, 0.18),
+    0 10px 24px rgba(15, 23, 42, 0.09) !important;
+}
+.landing-page.landing-theme-light .landing-hero-search svg {
+  color: rgba(51, 65, 85, 0.8) !important;
+}
+.landing-page.landing-theme-light .landing-hero-search-input {
+  color: #0f172a !important;
+}
+.landing-page.landing-theme-light .landing-hero-search-input::placeholder {
+  color: rgba(71, 85, 105, 0.9) !important;
+}
+
 .landing-page.landing-theme-light .logo-text {
   -webkit-text-fill-color: transparent;
 }
@@ -71,6 +109,20 @@
 .landing-page.landing-theme-light .nav-link:hover {
   color: #0f172a;
   background: rgba(242, 159, 103, 0.1);
+}
+
+.landing-page.landing-theme-light .nav-link.nav-link--active {
+  color: #0f172a;
+  font-weight: 700;
+  background: linear-gradient(180deg, rgba(242, 159, 103, 0.22) 0%, rgba(242, 159, 103, 0.12) 100%);
+  box-shadow:
+    0 0 0 1px rgba(242, 159, 103, 0.45),
+    0 4px 14px rgba(242, 159, 103, 0.12);
+}
+
+.landing-page.landing-theme-light .nav-link.nav-link--active:hover {
+  color: #0f172a;
+  background: linear-gradient(180deg, rgba(242, 159, 103, 0.28) 0%, rgba(242, 159, 103, 0.16) 100%);
 }
 
 .landing-page.landing-theme-light .btn-login {
@@ -132,10 +184,6 @@
 .landing-page.landing-theme-light .faq-toggle,
 .landing-page.landing-theme-light .cta-subtitle,
 .landing-page.landing-theme-light .cta-note,
-.landing-page.landing-theme-light .pricing-tagline,
-.landing-page.landing-theme-light .pricing-period,
-.landing-page.landing-theme-light .pricing-currency,
-.landing-page.landing-theme-light .pricing-note,
 .landing-page.landing-theme-light .scp-setup-top-lead,
 .landing-page.landing-theme-light .scp-setup-top-foot,
 .landing-page.landing-theme-light .scp-custom-top-lead,
@@ -157,7 +205,6 @@
 .landing-page.landing-theme-light .feature-title,
 .landing-page.landing-theme-light .step-title,
 .landing-page.landing-theme-light .faq-question,
-.landing-page.landing-theme-light .pricing-name,
 .landing-page.landing-theme-light .scp-setup-top-name,
 .landing-page.landing-theme-light .scp-custom-top-name {
   color: #0f172a !important;
@@ -224,10 +271,12 @@
 
 .landing-page.landing-theme-light .step-card,
 .landing-page.landing-theme-light .testimonial-card,
-.landing-page.landing-theme-light .integration-card,
-.landing-page.landing-theme-light .pricing-card {
+.landing-page.landing-theme-light .integration-card {
   background: #ffffff !important;
-  border-color: rgba(15, 23, 42, 0.09) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow:
+    0 1px 0 rgba(242, 159, 103, 0.05),
+    0 22px 50px -14px rgba(15, 23, 42, 0.07) !important;
 }
 
 .landing-page.landing-theme-light .step-card--mid {
@@ -328,14 +377,6 @@
   color: rgba(255, 255, 255, 0.78) !important;
 }
 
-.landing-page.landing-theme-light .pricing-card.featured.scp-pro-tier {
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--color-primary) 12%, transparent) 0%,
-    color-mix(in srgb, var(--color-accent) 8%, transparent) 100%
-  ) !important;
-  border-color: var(--color-primary) !important;
-}
 .landing-page.landing-theme-light .scp-setup-fee-banner {
   background: linear-gradient(135deg, #ffffff 0%, color-mix(in srgb, var(--color-primary) 6%, #f8fafc) 100%) !important;
   border-color: rgba(242, 159, 103, 0.18) !important;
@@ -373,36 +414,9 @@
   border-color: rgba(242, 159, 103, 0.16) !important;
 }
 
-.landing-page.landing-theme-light .pricing-card.scp-custom-top {
-  background: rgba(255, 255, 255, 0.92) !important;
-}
-
-.landing-page.landing-theme-light .pricing-header {
-  border-bottom-color: rgba(15, 23, 42, 0.08);
-}
-
-.landing-page.landing-theme-light .pricing-highlight-sub {
-  color: rgba(15, 23, 42, 0.55) !important;
-}
-
 .landing-page.landing-theme-light .pricing-cta-secondary {
   color: #0f172a !important;
   border-color: rgba(15, 23, 42, 0.18) !important;
-}
-
-/* Pricing cards (light): feature rows were white-on-light — force readable slate/violet text */
-.landing-page.landing-theme-light .pricing-section .pricing-feature,
-.landing-page.landing-theme-light .pricing-section .pricing-feature-text {
-  color: rgba(15, 23, 42, 0.9) !important;
-}
-
-.landing-page.landing-theme-light .pricing-section .pricing-features-title {
-  color: rgba(15, 23, 42, 0.58) !important;
-}
-
-.landing-page.landing-theme-light .pricing-card.featured .pricing-feature,
-.landing-page.landing-theme-light .pricing-card.featured .pricing-feature-text {
-  color: rgba(15, 23, 42, 0.92) !important;
 }
 
 .landing-page.landing-theme-light .scp-custom-chip {
@@ -413,6 +427,15 @@
 
 .landing-page.landing-theme-light .pricing-cta-primary {
   color: #0f172a !important;
+}
+
+.landing-page.landing-theme-light a.pricing-cta-primary.scp-pricing-contact-sales-cta,
+.landing-page.landing-theme-light .pricing-cta-primary.scp-pricing-contact-sales-cta {
+  color: #fff !important;
+}
+
+.landing-page.landing-theme-light a.pricing-cta-primary.scp-pricing-contact-sales-cta:hover {
+  color: #fff !important;
 }
 
 .landing-page.landing-theme-light .btn-hero-primary,
@@ -524,8 +547,22 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+.landing-mobile-panel a.nav-link--active {
+  background: rgba(var(--color-primary-rgb), 0.22);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.42);
+  color: #fff !important;
+}
+
 .landing-page.landing-theme-light .landing-mobile-panel a:hover {
   background: rgba(242, 159, 103, 0.08);
+}
+
+.landing-page.landing-theme-light .landing-mobile-panel a.nav-link--active {
+  color: #0f172a !important;
+  background: rgba(242, 159, 103, 0.16);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(242, 159, 103, 0.35);
 }
 
 .landing-mobile-panel-close {

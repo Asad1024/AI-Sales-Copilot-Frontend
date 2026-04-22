@@ -1,0 +1,113 @@
+/**
+ * Dark marketing header pill — used when `.landing-page` has no `.landing-theme-light`
+ * (e.g. upgrade page with theme toggle on dark). Mirrors home `app/page.tsx` header rules.
+ */
+.landing-page:not(.landing-theme-light) {
+  --landing-gutter: clamp(28px, 5vw, 56px);
+  --landing-nav-clearance: max(8rem, calc(env(safe-area-inset-top, 0px) + 6.75rem));
+}
+
+.landing-page:not(.landing-theme-light) .landing-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px var(--landing-gutter) 12px;
+  display: block;
+  z-index: 100;
+  background: transparent;
+  transition: padding 0.3s ease;
+}
+
+.landing-page:not(.landing-theme-light) .landing-header.header-scrolled {
+  padding: 16px var(--landing-gutter) 10px;
+}
+
+.landing-page:not(.landing-theme-light) .landing-header .landing-header-inner {
+  max-width: min(1180px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.88) 0%, rgba(2, 6, 23, 0.78) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 9999px;
+  padding: 14px 28px 14px 24px;
+  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.35), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  backdrop-filter: blur(18px);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.landing-page:not(.landing-theme-light) .landing-header.header-scrolled .landing-header-inner {
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.9) 0%, rgba(2, 6, 23, 0.8) 100%);
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: 0 6px 28px rgba(2, 6, 23, 0.32);
+}
+
+.landing-page:not(.landing-theme-light) .nav-link {
+  color: rgba(226, 232, 240, 0.92);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s ease, background 0.2s ease;
+  position: relative;
+  padding: 10px 16px;
+  border-radius: 999px;
+}
+
+.landing-page:not(.landing-theme-light) .nav-link:hover {
+  color: #fff;
+  background: rgba(var(--color-primary-rgb), 0.2);
+}
+
+.landing-page:not(.landing-theme-light) .nav-link.nav-link--active {
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--color-primary-rgb), 0.42) 0%,
+    rgba(var(--color-primary-rgb), 0.22) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(var(--color-primary-rgb), 0.55),
+    0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.landing-page:not(.landing-theme-light) .nav-link.nav-link--active:hover {
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--color-primary-rgb), 0.5) 0%,
+    rgba(var(--color-primary-rgb), 0.28) 100%
+  );
+}
+
+.landing-page:not(.landing-theme-light) .btn-login {
+  padding: 11px 22px;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 9999px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.landing-page:not(.landing-theme-light) .btn-login:hover {
+  background: rgba(30, 41, 59, 0.86);
+  border-color: rgba(191, 219, 254, 0.62);
+}
+
+.landing-page:not(.landing-theme-light) .btn-cta {
+  padding: 11px 26px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--color-support-blue, #3b82f6) 0%, var(--color-primary) 100%);
+  border: none;
+  border-radius: 9999px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.landing-page:not(.landing-theme-light) .btn-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(var(--color-primary-rgb), 0.2);
+}

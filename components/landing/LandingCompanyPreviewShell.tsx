@@ -529,8 +529,8 @@ export function LandingCompanyPreviewBody({
     previewIndustry ? { key: "industry", icon: Building2, label: "Industry", value: previewIndustry } : null,
     previewFounded ? { key: "founded", icon: Calendar, label: "Founded", value: previewFounded } : null,
     previewLocation ? { key: "location", icon: MapPin, label: "Location", value: previewLocation } : null,
-    previewPhone ? { key: "phone", icon: Phone, label: "Phone", value: previewPhone } : null,
-    previewCompanyEmail ? { key: "company_email", icon: Mail, label: "Email", value: previewCompanyEmail } : null,
+    variant === "app" && previewPhone ? { key: "phone", icon: Phone, label: "Phone", value: previewPhone } : null,
+    variant === "app" && previewCompanyEmail ? { key: "company_email", icon: Mail, label: "Email", value: previewCompanyEmail } : null,
   ].filter(
     (
       item

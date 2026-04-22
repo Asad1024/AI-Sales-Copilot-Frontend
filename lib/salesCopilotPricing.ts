@@ -10,9 +10,17 @@ export type SalesCopilotPricingPlan = {
   badge?: string;
   featured?: boolean;
   leadQuota?: number;
+  /** Overrides default credits line under the price for subscription tiers. */
+  quotaHighlight?: string;
   sections: { heading: string; bullets: string[] }[];
   footnote?: string;
 };
+
+/** Line under price: credits + enrich mapping (landing + portal). */
+export function subscriptionQuotaLine(plan: SalesCopilotPricingPlan): string | null {
+  if (typeof plan.leadQuota !== "number") return null;
+  return plan.quotaHighlight ?? `${plan.leadQuota} credits / month · 1 credit = 1 enriched lead`;
+}
 
 /** Setup fee (banner), three subscription tiers, calling add-on, then enterprise custom (layout only). */
 export const pricingPlansByLayout = (): {
@@ -47,8 +55,11 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
         bullets: [
           "Platform setup and workspace configuration",
           "Lead enrichment and routing configuration",
+          "Companies — accounts and org structure aligned with your CRM",
           "Communication channel enablement: Email, LinkedIn, WhatsApp",
+          "CSV, Google Sheets, and Airtable — data & CRM onboarding",
           "User onboarding and initial setup support",
+          "Extra seats 50 AED / seat / month (when you’re on a monthly plan)",
         ],
       },
     ],
@@ -58,25 +69,28 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
     id: "basic",
     kind: "subscription",
     name: "Basic",
-    headline: "Solid foundation for outbound and lead ops.",
+    headline: "Email-first outbound with enrichment, CRM setup, and AI leads.",
     priceDisplay: "1,000 AED",
     priceSub: "/ month",
     leadQuota: 300,
     sections: [
       {
-        heading: "Included leads",
+        heading: "Each month",
         bullets: [
-          "300 fully enriched leads per month",
-          "Verified email, phone number, and complete lead profile",
+          "300 credits for fully enriched leads (1 credit = 1 lead)",
+          "Verified email, phone, and complete lead profile",
+          "Email campaigns — up to 30,000 sends",
+          "AI-generated leads",
+          "25,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 500 characters per prompt)",
         ],
       },
       {
-        heading: "Access",
+        heading: "Workspace",
         bullets: [
           "Lead management dashboard",
-          "Email outreach campaigns",
-          "LinkedIn outreach campaigns",
-          "WhatsApp outreach campaigns",
+          "Companies — view and manage accounts linked to your leads",
+          "CSV, Google Sheets, and Airtable — CRM & import setup",
+          "1 admin seat included; extra seats 50 AED / seat / month",
         ],
       },
     ],
@@ -85,25 +99,32 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
     id: "pro",
     kind: "subscription",
     name: "Pro",
-    headline: "Higher volume for teams scaling pipeline.",
+    headline: "Full multi-channel campaigns with more credits and seats.",
     priceDisplay: "1,500 AED",
     priceSub: "/ month",
     leadQuota: 500,
+    featured: true,
+    badge: "Most popular",
     sections: [
       {
-        heading: "Included leads",
+        heading: "Each month",
         bullets: [
-          "500 fully enriched leads per month",
-          "Verified email, phone number, and complete lead profile",
+          "500 credits for fully enriched leads (1 credit = 1 lead)",
+          "Verified email, phone, and complete lead profile",
+          "Unlimited email campaigns",
+          "LinkedIn outreach campaigns",
+          "WhatsApp outreach campaigns",
+          "AI-generated leads",
+          "75,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 500 characters per prompt)",
         ],
       },
       {
-        heading: "Access",
+        heading: "Workspace",
         bullets: [
           "Lead management dashboard",
-          "Email outreach campaigns",
-          "LinkedIn outreach campaigns",
-          "WhatsApp outreach campaigns",
+          "Companies — account workspace with firmographics, activity, and team context",
+          "CSV, Google Sheets, and Airtable — CRM & import setup",
+          "3 seats total (1 admin + 2 team seats); extra seats 50 AED / seat / month",
         ],
       },
     ],
@@ -112,25 +133,30 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
     id: "premium",
     kind: "subscription",
     name: "Premium",
-    headline: "Maximum included enrichment for heavy outbound.",
+    headline: "Highest included credits and seats for teams at full outbound volume.",
     priceDisplay: "2,500 AED",
     priceSub: "/ month",
     leadQuota: 1000,
     sections: [
       {
-        heading: "Included leads",
+        heading: "Each month",
         bullets: [
-          "1,000 fully enriched leads per month",
-          "Verified email, phone number, and complete lead profile",
+          "1,000 credits for fully enriched leads (1 credit = 1 lead)",
+          "Verified email, phone, and complete lead profile",
+          "Unlimited email campaigns",
+          "LinkedIn outreach campaigns",
+          "WhatsApp outreach campaigns",
+          "AI-generated leads",
+          "150,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 500 characters per prompt)",
         ],
       },
       {
-        heading: "Access",
+        heading: "Workspace",
         bullets: [
           "Lead management dashboard",
-          "Email outreach campaigns",
-          "LinkedIn outreach campaigns",
-          "WhatsApp outreach campaigns",
+          "Companies — account workspace with firmographics, activity, and team context",
+          "CSV, Google Sheets, and Airtable — CRM & import setup",
+          "5 seats total (1 admin + 4 team seats); extra seats 50 AED / seat / month",
         ],
       },
     ],
@@ -148,7 +174,9 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
         bullets: [
           "Teams with higher volume requirements",
           "Advanced workflows or automation",
-          "Custom integrations and procurement-friendly terms",
+          "Companies — enterprise account hierarchies, rollups, and governance",
+          "CSV, Google Sheets, Airtable, and custom enterprise integrations",
+          "Procurement-friendly terms; extra seats 50 AED / seat / month (volume packages available)",
         ],
       },
     ],
@@ -175,6 +203,9 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "AI-powered calling functionality",
           "Advanced multi-channel communication workflows",
           "Calling credits included (500+ minutes)",
+          "Companies — outbound lists grounded in account context",
+          "Lists from CSV, Google Sheets, and Airtable",
+          "Extra seats 50 AED / seat / month",
         ],
       },
       {

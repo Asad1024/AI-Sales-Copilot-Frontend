@@ -19,6 +19,7 @@ import { RevealOnView } from "@/components/ui/RevealOnView";
 import { CRMLogos } from "@/components/ui/CRMLogos";
 import { GoogleSheetsBrandIcon, AirtableBrandIcon } from "@/app/leads/components/LeadSourceBrandIcons";
 import "@/styles/landing-theme-light.css";
+import { isAuthenticated } from "@/lib/apiClient";
 
 // Animated counter component
 function AnimatedCounter({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
@@ -179,7 +180,11 @@ function LandingIntegrationLinkedIn() {
   return <Icons.Linkedin size={22} strokeWidth={1.75} style={{ color: WIZ_CHANNEL_LINKEDIN }} aria-hidden />;
 }
 function LandingIntegrationGoogleSheets() {
-  return <GoogleSheetsBrandIcon size={24} />;
+  return (
+    <span className="integration-icon--sheets">
+      <GoogleSheetsBrandIcon size={24} />
+    </span>
+  );
 }
 function LandingIntegrationAirtable() {
   return <AirtableBrandIcon size={24} />;
@@ -191,7 +196,7 @@ function LandingIntegrationHubSpot() {
 const INTEGRATION_ITEMS: { name: string; Icon: ComponentType }[] = [
   { name: "WhatsApp", Icon: LandingIntegrationWhatsApp },
   { name: "LinkedIn", Icon: LandingIntegrationLinkedIn },
-  { name: "Google Sheets", Icon: LandingIntegrationGoogleSheets },
+  { name: "Sheets", Icon: LandingIntegrationGoogleSheets },
   { name: "Airtable", Icon: LandingIntegrationAirtable },
   { name: "HubSpot", Icon: LandingIntegrationHubSpot },
 ];
@@ -253,8 +258,11 @@ export default function LandingPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [landingAppearance, setLandingAppearance] = useState<"light" | "dark">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   const landingLogoHeight = APP_BRAND_LOGO_HEIGHT;
   const landingLogoMaxWidth = APP_BRAND_LOGO_MAX_WIDTH + 6;
+  const landingNavLogoHeight = Math.max(20, APP_BRAND_LOGO_HEIGHT - 2);
+  const landingNavLogoMaxWidth = APP_BRAND_LOGO_MAX_WIDTH + 2;
 
   useEffect(() => {
     try {
@@ -273,6 +281,13 @@ export default function LandingPage() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  useEffect(() => {
+    const read = () => setHasSession(isAuthenticated());
+    read();
+    window.addEventListener("sparkai:user-changed", read);
+    return () => window.removeEventListener("sparkai:user-changed", read);
   }, []);
 
   const toggleLandingAppearance = () => {
@@ -505,6 +520,21 @@ export default function LandingPage() {
           box-shadow: none !important;
           background: transparent !important;
         }
+        [data-theme="dark"] .landing-page .landing-hero-search {
+          background: color-mix(in srgb, var(--color-surface-secondary) 86%, #020617 14%) !important;
+          border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border) 74%) !important;
+          box-shadow: 0 1px 2px rgba(2, 6, 23, 0.45), 0 0 0 1px rgba(var(--color-primary-rgb), 0.12) inset !important;
+        }
+        [data-theme="dark"] .landing-page .landing-hero-search:focus-within {
+          border-color: color-mix(in srgb, var(--color-primary) 52%, var(--color-border) 48%) !important;
+          box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.26), 0 8px 20px rgba(2, 6, 23, 0.48) !important;
+        }
+        [data-theme="dark"] .landing-page .landing-hero-search-input {
+          color: color-mix(in srgb, #ffffff 90%, var(--color-text) 10%) !important;
+        }
+        [data-theme="dark"] .landing-page .landing-hero-search-input::placeholder {
+          color: color-mix(in srgb, var(--color-text-muted) 78%, #ffffff 22%) !important;
+        }
 
         .landing-company-preview-card {
           border-radius: 18px;
@@ -643,7 +673,7 @@ export default function LandingPage() {
           background: linear-gradient(180deg, rgba(2, 6, 23, 0.88) 0%, rgba(2, 6, 23, 0.78) 100%);
           border: 1px solid rgba(148, 163, 184, 0.22);
           border-radius: 9999px;
-          padding: 10px 20px 10px 18px;
+          padding: 14px 28px 14px 24px;
           box-shadow: 0 8px 32px rgba(2, 6, 23, 0.35), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
           backdrop-filter: blur(18px);
           transition: all 0.3s ease;
@@ -1330,25 +1360,29 @@ export default function LandingPage() {
           transform: scale(1.05);
           box-shadow: var(--elev-shadow-lg);
         }
-        /* Match IntegrationsHub / IntegrationUniversalCard icon tile: 44×44 shell, 24×24 mark */
+        /* Integrations icon slot: larger mark, no tile background */
         .integration-icon {
-          width: 44px;
-          height: 44px;
+          width: 56px;
+          height: 56px;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
           overflow: hidden;
-          background: var(--color-surface-secondary);
-          border: 1px solid rgba(148, 163, 184, 0.14);
+          background: transparent;
+          border: none;
           box-sizing: border-box;
         }
         .integration-icon :is(svg, img) {
-          width: 24px;
-          height: 24px;
+          width: 32px;
+          height: 32px;
           display: block;
           flex-shrink: 0;
+        }
+        .integration-icon .integration-icon--sheets svg {
+          width: 34px;
+          height: 34px;
         }
         .integrations-band .integration-name {
           font-size: 12px;
@@ -1540,6 +1574,14 @@ export default function LandingPage() {
             var(--color-surface-ink) 100%
           );
         }
+        [data-theme="dark"] .landing-page .landing-footer::before {
+          height: 48px;
+          background: linear-gradient(
+            to bottom,
+            color-mix(in srgb, var(--color-primary) 16%, transparent) 0%,
+            var(--color-surface-ink) 75%
+          );
+        }
         .landing-footer-inner {
           position: relative;
           z-index: 1;
@@ -1673,398 +1715,7 @@ export default function LandingPage() {
           gap: 24px;
           margin-top: 40px;
         }
-        .scp-pricing-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-          margin-top: 16px;
-        }
-        .scp-pricing-layout > .scp-setup-fee-banner {
-          margin-bottom: 8px;
-        }
-        .scp-landing-extras {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-          margin-top: 4px;
-        }
-        @media (min-width: 1024px) {
-          .scp-landing-extras {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            align-items: stretch;
-          }
-        }
-        .scp-landing-extra-card.scp-calling-banner {
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-        .scp-landing-extra-card .scp-calling-banner-inner {
-          flex: 1;
-          align-items: center;
-        }
-        .scp-setup-fee-banner {
-          display: flex;
-          align-items: flex-start;
-          gap: 16px;
-          padding: 18px 20px;
-          border-radius: 18px;
-          border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
-          background: linear-gradient(
-            135deg,
-            color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)) 0%,
-            color-mix(in srgb, var(--color-surface-secondary) 92%, var(--color-primary) 8%) 100%
-          );
-          text-align: left;
-          box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 10%, transparent),
-            0 14px 36px color-mix(in srgb, var(--color-text) 4%, transparent);
-        }
-        .scp-setup-fee-banner-icon-wrap {
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
-          background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-          border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
-        }
-        .scp-setup-fee-banner-icon {
-          color: var(--color-primary);
-        }
-        .scp-setup-fee-banner-body {
-          min-width: 0;
-          flex: 1;
-        }
-        .scp-setup-fee-banner-label {
-          display: block;
-          margin-bottom: 6px;
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--color-primary);
-        }
-        .scp-setup-fee-banner-text {
-          margin: 0;
-          font-size: 14px;
-          line-height: 1.55;
-          color: color-mix(in srgb, var(--color-text) 92%, transparent);
-        }
-        .scp-setup-fee-banner-strong {
-          font-weight: 600;
-          color: var(--color-text);
-        }
-        .pricing-price.scp-price-block {
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-        }
-        .pricing-period.scp-price-below {
-          font-size: 13px;
-          color: var(--color-text-muted);
-          margin: 0;
-        }
-        .scp-features-toggle {
-          margin-top: 10px;
-          padding: 0;
-          border: none;
-          background: none;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--color-primary);
-          text-decoration: underline;
-          text-underline-offset: 3px;
-          align-self: center;
-        }
-        .scp-features-toggle:hover {
-          color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text));
-        }
-        .scp-tier-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 20px;
-        }
-        .pricing-card.featured.scp-pro-tier {
-          border: 2px solid var(--color-primary);
-          background: linear-gradient(
-            165deg,
-            color-mix(in srgb, var(--color-primary) 14%, transparent) 0%,
-            color-mix(in srgb, var(--color-accent) 9%, transparent) 100%
-          );
-          transform: translateY(-8px) scale(1.02);
-          box-shadow: var(--elev-shadow-lg);
-        }
-        .pricing-card.featured.scp-pro-tier:hover {
-          transform: translateY(-12px) scale(1.02);
-          box-shadow: var(--elev-shadow-lg);
-        }
-        .scp-calling-banner {
-          position: relative;
-          overflow: hidden;
-          border-radius: 20px;
-          border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
-          background: var(--color-surface);
-          box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 8%, transparent),
-            0 16px 40px color-mix(in srgb, var(--color-text) 5%, transparent);
-          text-align: left;
-        }
-        .scp-calling-banner-inner {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 18px 20px;
-          padding: 20px 22px 22px;
-        }
-        .scp-calling-banner-icon-wrap {
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          border-radius: 16px;
-          color: var(--color-primary);
-          background: linear-gradient(
-            145deg,
-            color-mix(in srgb, var(--color-primary) 16%, transparent),
-            color-mix(in srgb, var(--color-accent) 12%, transparent)
-          );
-          box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-surface) 35%, transparent);
-        }
-        .scp-calling-banner-text {
-          flex: 1 1 200px;
-          min-width: 0;
-        }
-        .scp-calling-banner-label {
-          margin: 0 0 6px;
-          font-size: 15px;
-          font-weight: 500;
-          letter-spacing: -0.01em;
-          color: var(--color-text);
-        }
-        .scp-calling-banner-desc {
-          margin: 0;
-          font-size: 14px;
-          line-height: 1.55;
-          color: var(--color-text-muted);
-        }
-        .scp-calling-banner-price-block {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          align-items: flex-start;
-          padding: 10px 14px;
-          border-radius: 14px;
-          background: color-mix(in srgb, var(--color-primary) 9%, transparent);
-          border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
-        }
-        .scp-calling-banner-amount {
-          font-size: 22px;
-          font-weight: var(--landing-heading-weight);
-          color: var(--color-primary);
-          font-variant-numeric: tabular-nums;
-        }
-        .scp-calling-banner-sub {
-          font-size: 12px;
-          color: var(--color-text-muted);
-        }
-        .scp-calling-banner-cta {
-          flex-shrink: 0;
-          width: auto;
-          min-width: 148px;
-          padding-left: 22px;
-          padding-right: 22px;
-        }
-        .scp-tier-header {
-          margin-bottom: 20px;
-          padding-bottom: 20px;
-        }
-        .pricing-card {
-          position: relative;
-          padding: 40px 32px;
-          background: var(--glass-bg);
-          border: 1px solid var(--glass-border);
-          border-radius: 24px;
-          transition: all 0.3s ease;
-          display: flex;
-          flex-direction: column;
-        }
-        .pricing-card:hover {
-          transform: translateY(-8px);
-          border-color: rgba(var(--color-primary-rgb), 0.2);
-          box-shadow: 0 20px 40px rgba(var(--color-primary-rgb), 0.2);
-        }
-        .pricing-badge {
-          position: absolute;
-          top: -12px;
-          left: 50%;
-          transform: translateX(-50%);
-          padding: 6px 16px;
-          background: var(--color-primary);
-          border-radius: 100px;
-          font-size: 12px;
-          font-weight: var(--landing-heading-weight);
-          color: #000;
-          white-space: nowrap;
-        }
-        .pricing-header {
-          text-align: center;
-          margin-bottom: 32px;
-          padding-bottom: 32px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .pricing-name {
-          font-size: 24px;
-          font-weight: var(--landing-heading-weight);
-          margin: 0 0 8px;
-        }
-        .pricing-tagline {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.5);
-          margin: 0 0 24px;
-        }
-        .pricing-price {
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-          gap: 4px;
-        }
-        .pricing-amount {
-          font-size: 48px;
-          font-weight: var(--landing-heading-weight);
-          background: var(--color-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .pricing-currency {
-          font-size: 20px;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.6);
-        }
-        .pricing-period {
-          font-size: 16px;
-          color: rgba(255, 255, 255, 0.5);
-        }
-        .pricing-custom {
-          font-size: 36px;
-          font-weight: var(--landing-heading-weight);
-          background: var(--color-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .pricing-highlight {
-          background: rgba(var(--color-primary-rgb), 0.2);
-          border: 1px solid rgba(var(--color-primary-rgb), 0.2);
-          border-radius: 12px;
-          padding: 16px;
-          margin-bottom: 24px;
-          text-align: center;
-        }
-        .pricing-highlight-text {
-          font-size: 18px;
-          font-weight: var(--landing-heading-weight);
-          color: var(--color-primary);
-          margin: 0;
-        }
-        .pricing-highlight-sub {
-          font-size: 13px;
-          color: rgba(255, 255, 255, 0.6);
-          margin: 4px 0 0;
-        }
-        .pricing-features {
-          flex: 1;
-          margin-bottom: 32px;
-        }
-        .pricing-features-title {
-          font-size: 14px;
-          font-weight: var(--landing-heading-weight);
-          color: rgba(255, 255, 255, 0.7);
-          margin: 0 0 16px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-        .pricing-feature {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 12px;
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.8);
-        }
-        .pricing-feature-icon {
-          flex-shrink: 0;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: rgba(var(--color-primary-rgb), 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--color-primary);
-        }
-        .pricing-feature-text {
-          line-height: 1.5;
-        }
-        .pricing-section-title {
-          font-size: 13px;
-          font-weight: var(--landing-heading-weight);
-          color: #F29F67;
-          margin: 20px 0 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .pricing-cta {
-          width: 100%;
-          padding: 16px 24px;
-          font-size: 16px;
-          border-radius: 9999px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        .pricing-cta-primary {
-          background: var(--color-primary);
-          border: none;
-          color: #000;
-          box-shadow: 0 8px 24px rgba(var(--color-primary-rgb), 0.2);
-        }
-        .pricing-cta-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(var(--color-primary-rgb), 0.2);
-        }
-        .pricing-cta-secondary {
-          background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: #fff;
-        }
-        .pricing-cta-secondary:hover {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(var(--color-primary-rgb), 0.2);
-        }
-        .pricing-note {
-          margin-top: 16px;
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.4);
-          text-align: center;
-        }
-
         /* Responsive */
-        @media (max-width: 1024px) {
-          .scp-tier-grid {
-            grid-template-columns: 1fr;
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
-          }
-          .pricing-card.featured.scp-pro-tier {
-            transform: scale(1.02);
-          }
-          .pricing-card.featured.scp-pro-tier:hover {
-            transform: translateY(-6px) scale(1.02);
-          }
-        }
         @media (max-width: 1024px) {
           .pricing-grid {
             grid-template-columns: 1fr;
@@ -2234,7 +1885,7 @@ export default function LandingPage() {
               <Menu size={22} strokeWidth={1.75} />
             </button>
             <div className="logo-container">
-              <AppBrandLogoLockup theme={landingAppearance} height={landingLogoHeight} style={{ maxWidth: landingLogoMaxWidth }} />
+              <AppBrandLogoLockup theme={landingAppearance} height={landingNavLogoHeight} style={{ maxWidth: landingNavLogoMaxWidth }} />
             </div>
           </div>
           <nav className="nav-links landing-nav-desktop" aria-label="Primary">
@@ -2257,8 +1908,11 @@ export default function LandingPage() {
               <button className="btn-login" onClick={() => router.push("/auth/login")}>
                 Log in
               </button>
-              <button className="btn-cta" onClick={() => router.push("/auth/signup")}>
-                Start Free Trial
+              <button
+                className="btn-cta"
+                onClick={() => router.push(hasSession ? "/dashboard" : "/auth/signup")}
+              >
+                {hasSession ? "Go to Dashboard" : "Get Started"}
               </button>
             </div>
           </div>
@@ -2292,8 +1946,12 @@ export default function LandingPage() {
             <Link href="/auth/login" className="nav-link" onClick={() => setMobileNavOpen(false)}>
               Log in
             </Link>
-            <Link href="/auth/signup" className="nav-link" onClick={() => setMobileNavOpen(false)}>
-              Start free trial
+            <Link
+              href={hasSession ? "/dashboard" : "/auth/signup"}
+              className="nav-link"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              {hasSession ? "Go to Dashboard" : "Get Started"}
             </Link>
           </div>
         </>
@@ -2301,7 +1959,8 @@ export default function LandingPage() {
 
       <LandingCompanyPreviewProvider variant="hero">
         <LandingHero
-          onStartTrial={() => router.push("/auth/signup")}
+          sessionActive={hasSession}
+          onStartTrial={() => router.push(hasSession ? "/dashboard" : "/auth/signup")}
           inputSlot={<LandingCompanyPreviewSearchInput />}
           belowInputSlot={<LandingCompanyPreviewBody />}
           footerSlot={
@@ -2537,10 +2196,13 @@ export default function LandingPage() {
             Join thousands of sales teams using AI to automate outreach and close more deals faster.
           </p>
           <div className="cta-buttons">
-            <button className="btn-hero-primary" onClick={() => router.push('/auth/signup')}>
-              <Icons.Rocket size={20} />
-            Start Free Trial
-          </button>
+            <button
+              className="btn-hero-primary"
+              onClick={() => router.push(hasSession ? "/dashboard" : "/auth/signup")}
+            >
+              {hasSession ? <Icons.Dashboard size={20} /> : <Icons.Rocket size={20} />}
+              {hasSession ? "Go to Dashboard" : "Get Started"}
+            </button>
             <button className="btn-hero-secondary" onClick={() => router.push('/contact')}>
               <Icons.MessageCircle size={20} />
               Talk to Sales
@@ -2616,3 +2278,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

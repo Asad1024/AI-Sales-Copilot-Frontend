@@ -508,12 +508,13 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                 <span
                   style={{
                     padding: "3px 8px",
-                    borderRadius: 9,
-                    background: "rgba(var(--color-primary-rgb), 0.2)",
-                    color: "var(--color-primary)",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    lineHeight: 1.05,
+                    borderRadius: 8,
+                    background: "var(--color-primary)",
+                    color: "#fff",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    lineHeight: 1.15,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {planLabel}
@@ -528,24 +529,53 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
                 style={{
                   marginTop: 6,
                   marginBottom: 8,
-                  padding: "8px 10px",
+                  padding: "10px 12px",
                   borderRadius: 12,
-                  background: "rgba(var(--color-primary-rgb), 0.2)",
+                  background: "var(--color-primary)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 10,
                   textDecoration: "none",
-                  color: "var(--color-primary)",
+                  color: "#fff",
+                  border: "1px solid color-mix(in srgb, var(--color-primary) 88%, #000)",
                 }}
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 32, height: 32, borderRadius: 9, background: "#fff", border: "1px solid rgba(var(--color-primary-rgb), 0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                    <Rocket size={15} strokeWidth={1.8} />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                  <span
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
+                      background: "rgba(255,255,255,0.2)",
+                      border: "1px solid rgba(255,255,255,0.35)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Rocket size={15} strokeWidth={1.85} color="#fff" />
                   </span>
-                  <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.1 }}>Upgrade Account</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.15 }}>Upgrade Account</span>
                 </span>
-                <span style={{ background: "rgba(var(--color-primary-rgb), 0.2)", color: "var(--color-primary)", borderRadius: 9999, padding: "5px 10px", fontSize: 12, fontWeight: 600, lineHeight: 1 }}>{planLabel} Account</span>
+                <span
+                  style={{
+                    background: "rgba(255,255,255,0.22)",
+                    color: "#fff",
+                    borderRadius: 9999,
+                    padding: "4px 9px",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    lineHeight: 1.15,
+                    letterSpacing: "0.01em",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {planLabel} Account
+                </span>
               </Link>
             ) : null}
 

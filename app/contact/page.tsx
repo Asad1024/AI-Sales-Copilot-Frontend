@@ -58,9 +58,9 @@ export default function ContactPage() {
               <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 24px" }}>Contact information</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 {[
-                  { icon: "📧", label: "Email", value: "hello@riftreach.com" },
-                  { icon: "💬", label: "Support", value: "support@riftreach.com" },
-                  { icon: "🌐", label: "Website", value: "www.riftreach.com" },
+                  { icon: "📧", label: "Email", value: "hello@leadsreach.com" },
+                  { icon: "💬", label: "Support", value: "support@leadsreach.com" },
+                  { icon: "🌐", label: "Website", value: "www.leadsreach.com" },
                 ].map((row, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ fontSize: 24 }}>{row.icon}</div>

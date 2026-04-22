@@ -78,13 +78,13 @@ export default function LandingHero({
           </p>
 
           <p className="mt-6 text-sm leading-snug text-[color:var(--color-text-muted)]">
-            <span className="font-medium text-[color:var(--color-text)]">500+</span> teams already growing with Rift Reach
+            <span className="font-medium text-[color:var(--color-text)]">500+</span> teams already growing with Leads Reach
           </p>
         </div>
 
         {/* Right column — preview card */}
         <div className="relative min-w-0 w-full">
-          <div className="landing-hero-preview-shell relative max-w-full overflow-x-clip overflow-hidden rounded-[1.5rem] border border-[color:color-mix(in_srgb,var(--color-border)_88%,transparent)] bg-[color:var(--color-surface)] p-7 shadow-[0_12px_40px_rgba(15,23,42,0.07),0_1px_0_rgba(255,255,255,0.65)_inset] sm:rounded-[1.65rem] sm:p-10">
+          <div className="landing-hero-preview-shell relative max-w-full overflow-x-clip overflow-hidden rounded-[1.5rem] p-7 sm:rounded-[1.65rem] sm:p-10">
             <div className="mb-2 flex items-start justify-between gap-3">
               <span className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
                 Try it live

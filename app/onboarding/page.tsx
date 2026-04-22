@@ -166,7 +166,7 @@ export default function OnboardingPage() {
             margin: "0 0 8px 0",
             letterSpacing: "-0.02em"
           }}>
-            Welcome to Rift Reach
+            Welcome to Leads Reach
           </h1>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
             {skippedIntro

@@ -368,7 +368,7 @@ export default function SignupPage() {
               lineHeight: "1.6",
               margin: "0 0 12px 0"
             }}>
-              "Rift Reach transformed how we approach outbound. We're booking 3x more meetings with half the effort."
+              "Leads Reach transformed how we approach outbound. We're booking 3x more meetings with half the effort."
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{

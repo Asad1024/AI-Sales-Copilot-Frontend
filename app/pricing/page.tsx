@@ -49,7 +49,7 @@ export default function PricingPage() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Rift Reach
+              Leads Reach
             </span>
           </Link>
           <div style={{ display: "flex", gap: "12px" }}>
@@ -65,7 +65,7 @@ export default function PricingPage() {
         <SalesCopilotPricingSection
           variant="portal"
           enableCheckout={false}
-          pageTitle="Rift Reach pricing"
+          pageTitle="Leads Reach pricing"
           intro="All prices in AED. Setup is one-time; monthly plans include enriched lead quotas and omni-channel outreach. Calling replaces the standard setup fee when enabled."
         />
 

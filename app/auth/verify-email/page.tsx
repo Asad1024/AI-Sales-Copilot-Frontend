@@ -49,7 +49,7 @@ function AuthShell({
         <div style={{ textAlign: "center", marginTop: "24px" }}>
           <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
             Need help?{" "}
-            <a href="mailto:support@riftreach.com" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
+            <a href="mailto:support@leadsreach.com" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
               Contact support
             </a>
           </p>

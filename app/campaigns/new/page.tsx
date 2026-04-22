@@ -5329,7 +5329,7 @@ export default function CampaignNew() {
                     className="input"
                     value={senderCompany}
                     onChange={(e) => setSenderCompany(e.target.value)}
-                    placeholder="e.g., Rift Reach"
+                    placeholder="e.g., Leads Reach"
                     required
                     style={{
                       width: "100%",

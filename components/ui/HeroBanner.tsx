@@ -33,7 +33,7 @@ export default function HeroBanner() {
             <span>Editable AI Plan is live</span>
           </div>
           <h1 style={{ margin: "10px 0 6px 0", fontSize: 24, fontWeight: 700, lineHeight: 1.25 }}>
-            Accelerate outreach with Rift Reach
+            Accelerate outreach with Leads Reach
           </h1>
           <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: 14 }}>
             Plan, launch and optimize omni‑channel campaigns in minutes.

@@ -571,7 +571,7 @@ const GoalInputSlide = ({ goal, setGoal, onSubmit, exampleGoals }: {
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >
-      Rift Reach demo
+      Leads Reach demo
     </h1>
     <p style={{ fontSize: 16, color: "var(--color-text-muted, #64748b)", margin: "0 0 28px 0", lineHeight: 1.55 }}>
       Experience how a goal becomes a plan, then a live pipeline — use arrows or dots to move between steps.
@@ -2045,7 +2045,7 @@ const PerformanceSummarySlide = () => {
             marginLeft: 'auto',
             marginRight: 'auto'
           }}>
-            You've experienced the full Rift Reach workflow! In production, this dashboard shows real-time metrics 
+            You've experienced the full Leads Reach workflow! In production, this dashboard shows real-time metrics 
             from your actual campaigns across Email, WhatsApp, and LinkedIn channels.
           </p>
         </div>

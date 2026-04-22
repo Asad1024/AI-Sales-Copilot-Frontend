@@ -114,19 +114,19 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
     if (pathname.startsWith("/upgrade")) {
       return {
         title: "Plans & upgrade",
-        description: "Rift Reach pricing and Stripe checkout (when configured).",
+        description: "Leads Reach pricing and Stripe checkout (when configured).",
       };
     }
     if (pathname.startsWith("/contact")) {
       return {
         title: "Contact",
-        description: "Reach the Rift Reach team — sales, support, and partnerships.",
+        description: "Contact the Leads Reach team — sales, support, and partnerships.",
       };
     }
     if (pathname.startsWith("/pricing")) {
       return {
         title: "Pricing",
-        description: "Rift Reach plans in AED and Stripe-powered checkout when enabled.",
+        description: "Leads Reach plans in AED and Stripe-powered checkout when enabled.",
       };
     }
     if (pathname.startsWith("/notifications")) {

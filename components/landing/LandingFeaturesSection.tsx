@@ -69,7 +69,7 @@ export default function LandingFeaturesSection() {
             One Platform. Every Channel. Zero Guesswork.
           </h2>
           <p className="max-w-[36rem] text-pretty text-base leading-relaxed text-[color:var(--color-text-muted)] sm:text-lg">
-            Rift Reach brings together lead management, AI messaging, and multi-channel outreach so your team can focus on
+            Leads Reach brings together lead management, AI messaging, and multi-channel outreach so your team can focus on
             closing — not clicking.
           </p>
         </header>

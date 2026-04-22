@@ -233,7 +233,7 @@ export function AICommandCenter() {
           AI Command Center
         </h1>
         <p style={{ fontSize: '16px', color: 'var(--color-text-muted)', margin: '0 0 24px 0' }}>
-          Tell Rift Reach what you want to achieve and watch it build your entire outreach strategy.
+          Tell Leads Reach what you want to achieve and watch it build your entire outreach strategy.
         </p>
         
         <form onSubmit={handleQuickGoalSubmit} style={{

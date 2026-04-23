@@ -1,4 +1,5 @@
 import { getEmailInfo } from "@/utils/emailNormalization";
+import { campaignScheduleFieldToUtcIso } from "@/lib/campaignScheduleUtc";
 
 export type DraftLead = {
   id: number;
@@ -159,6 +160,14 @@ export function buildCampaignDraftPayload(
   const tierFilter = tierFilterFromSegments(segments);
   const targetLeadIds = targetLeadIdsInput !== undefined ? targetLeadIdsInput : null;
 
+  /** Stale UI can send launch_now: true while start is set ("Schedule for later"). Treat as scheduled. */
+  const hasScheduledStart = Boolean(String(schedule.start ?? "").trim());
+  const persistLaunchNow = Boolean(schedule.launch_now) && !hasScheduledStart;
+  const scheduleStartStored = persistLaunchNow
+    ? null
+    : campaignScheduleFieldToUtcIso(schedule.start || undefined);
+  const scheduleEndStored = campaignScheduleFieldToUtcIso(schedule.end || undefined);
+
   const totalLeads = (() => {
     if (targetLeadIds !== null) {
       if (targetLeadIds.length === 0) return 0;
@@ -177,9 +186,9 @@ export function buildCampaignDraftPayload(
     channels,
     currentStep,
     schedule: {
-      start: schedule.launch_now ? null : schedule.start || null,
-      end: schedule.end || null,
-      launch_now: !!schedule.launch_now,
+      start: scheduleStartStored,
+      end: scheduleEndStored,
+      launch_now: persistLaunchNow,
       ...(schedule.timezone?.trim() ? { timezone: schedule.timezone.trim() } : {}),
       ...(channels.includes("email") && schedule.email ? { email: schedule.email } : {}),
       ...(channels.includes("linkedin") && schedule.linkedin ? { linkedin: schedule.linkedin } : {}),

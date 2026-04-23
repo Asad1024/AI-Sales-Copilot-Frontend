@@ -21,11 +21,11 @@ import {
   readRememberedTeamWorkspaceId,
 } from "@/lib/focusTeamWorkspace";
 import ProductTour from "@/components/ui/ProductTour";
-import { apiRequest, getUser } from "@/lib/apiClient";
+import { getUser } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { useCampaignStore } from "@/stores/useCampaignStore";
 import CampaignCard from "@/app/campaigns/components/CampaignCard";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { CampaignGridSkeleton, UiSkeleton } from "@/components/ui/AppSkeleton";
 import DashboardGetStartedChecklist from "@/components/ui/DashboardGetStartedChecklist";
 import { Sunrise, Sun, Moon } from "lucide-react";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
@@ -33,8 +33,8 @@ import { PremiumKpiCard, PREMIUM_KPI_GRID_STYLE } from "@/components/ui/PremiumK
 import type { EnterpriseChartVariant } from "@/components/dashboard/KpiEnterpriseChart";
 import { KPI_DASHBOARD_WORKSPACE_CHART_VARIANT } from "@/lib/kpiDashboardChartBatches";
 import { resolveKpiChartValues, type DashboardStatsResponse } from "@/lib/kpiStatsApi";
-
-const DASHBOARD_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
+import { useDashboardAnalyticsQuery, useDashboardStatsQuery } from "@/hooks/queries/dashboardQueries";
+import { DataRefreshIndicator } from "@/components/ui/DataRefreshIndicator";
 
 type StatMetric = {
   title: string;
@@ -93,20 +93,21 @@ export default function Dashboard() {
     baseId?: number;
   } | null>(null);
 
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const analyticsCacheRef = useRef<Record<number, { data: any; timestamp: number }>>({});
-  const [dashboardInitialLoadPending, setDashboardInitialLoadPending] = useState(true);
-  const [dashboardAnalyticsReady, setDashboardAnalyticsReady] = useState(false);
-  const [dashboardCampaignsReady, setDashboardCampaignsReady] = useState(false);
   const [campaignListTab, setCampaignListTab] = useState<"recent" | "saved">("recent");
   const [savedCampaignIds, setSavedCampaignIds] = useState<number[]>([]);
-  const [dashboardKpiStats, setDashboardKpiStats] = useState<DashboardStatsResponse | null>(null);
 
   const { activeBaseId, bases, setActiveBaseId, refreshBases } = useBase();
+  const basesLoading = useBaseStore((s) => s.loading);
   const activeBase = bases.find((b) => b.id === activeBaseId);
-  const { campaigns, fetchCampaigns, hasCacheForBase } = useCampaignStore();
-  const isBootstrappingWorkspace = !activeBaseId && bases.length === 0;
+  const { campaigns, fetchCampaigns, hasCacheForBase, clearCache: clearCampaignCache, loading: campaignLoading } =
+    useCampaignStore();
+  const analyticsQuery = useDashboardAnalyticsQuery(activeBaseId);
+  const statsQuery = useDashboardStatsQuery(activeBaseId);
+  const analyticsData = analyticsQuery.data ?? null;
+  const dashboardKpiStats: DashboardStatsResponse | null = statsQuery.data ?? null;
+
+  /** Only while the first workspace list fetch is in flight — not when the user truly has zero workspaces. */
+  const isBootstrappingWorkspace = Boolean(!activeBaseId && bases.length === 0 && basesLoading);
   const hasLeads =
     Number(
       dashboardKpiStats?.totalLeads?.current ??
@@ -114,25 +115,13 @@ export default function Dashboard() {
         analyticsData?.totalLeads ??
         0
     ) > 0;
-  const hasCampaigns = (campaigns?.length ?? 0) > 0;
-  const getCachedAnalytics = (baseId: number | null): { data: any; timestamp: number } | null => {
-    if (!baseId || typeof window === "undefined") return null;
-    const inMemory = analyticsCacheRef.current[baseId];
-    const now = Date.now();
-    if (inMemory && (now - inMemory.timestamp) < DASHBOARD_ANALYTICS_CACHE_TTL_MS) return inMemory;
-    try {
-      const raw = window.sessionStorage.getItem(`sparkai:dashboard:analytics:${baseId}`);
-      if (!raw) return inMemory ?? null;
-      const parsed = JSON.parse(raw) as { data?: any; timestamp?: number };
-      if (!parsed || typeof parsed.timestamp !== "number") return inMemory ?? null;
-      if ((now - parsed.timestamp) > DASHBOARD_ANALYTICS_CACHE_TTL_MS) return inMemory ?? null;
-      const cached = { data: parsed.data ?? null, timestamp: parsed.timestamp };
-      analyticsCacheRef.current[baseId] = cached;
-      return cached;
-    } catch {
-      return inMemory ?? null;
-    }
-  };
+  /** Prefer live list; also trust workspace KPI stats so setup stays in sync when the list cache is stale or empty. */
+  const campaignsCountFromStats = Number(dashboardKpiStats?.totalCampaigns?.current ?? 0);
+  const hasCampaigns =
+    (campaigns?.length ?? 0) > 0 || (Boolean(activeBaseId) && campaignsCountFromStats > 0);
+  const showDashboardRefreshing =
+    Boolean(activeBaseId) &&
+    ((statsQuery.isFetching && !statsQuery.isPending) || (analyticsQuery.isFetching && !analyticsQuery.isPending));
   useEffect(() => {
     const invited = searchParams.get("invited");
     if (invited === "true") {
@@ -194,141 +183,37 @@ export default function Dashboard() {
   }, [bases, activeBaseId, invitationSuccess?.baseId, refreshBases, setActiveBaseId]);
 
   useEffect(() => {
-    if (!activeBaseId) {
-      setDashboardInitialLoadPending(false);
-      setDashboardAnalyticsReady(true);
-      setDashboardCampaignsReady(true);
-      setAnalyticsData(null);
-      return;
-    }
-    const cachedAnalytics = getCachedAnalytics(activeBaseId);
-    const hasCampaignCache = hasCacheForBase(activeBaseId);
-    if (cachedAnalytics?.data) {
-      setAnalyticsData(cachedAnalytics.data);
-      setDashboardAnalyticsReady(true);
-    } else {
-      setDashboardAnalyticsReady(false);
-    }
-    setDashboardCampaignsReady(hasCampaignCache);
-    setDashboardInitialLoadPending(!(Boolean(cachedAnalytics?.data) && hasCampaignCache));
-  }, [activeBaseId, hasCacheForBase]);
-
-  useEffect(() => {
     if (!activeBaseId) return;
-    setDashboardInitialLoadPending(!(dashboardAnalyticsReady && dashboardCampaignsReady));
-  }, [activeBaseId, dashboardAnalyticsReady, dashboardCampaignsReady]);
-
-  useEffect(() => {
-    if (!activeBaseId) {
-      setAnalyticsData(null);
-      setAnalyticsLoading(false);
-      setDashboardAnalyticsReady(true);
-      return;
-    }
     let cancelled = false;
-    const cached = getCachedAnalytics(activeBaseId);
-    const hasCached = Boolean(cached?.data);
-    if (cached?.data) setAnalyticsData(cached.data);
-    setDashboardAnalyticsReady(hasCached);
-    setAnalyticsLoading(!hasCached);
-    (async () => {
-      try {
-        const data = await apiRequest(`/analytics?base_id=${activeBaseId}`);
-        if (!cancelled) {
-          setAnalyticsData(data);
-          const nextCache = {
-            data,
-            timestamp: Date.now(),
-          };
-          analyticsCacheRef.current[activeBaseId] = nextCache;
-          try {
-            if (typeof window !== "undefined") {
-              window.sessionStorage.setItem(`sparkai:dashboard:analytics:${activeBaseId}`, JSON.stringify(nextCache));
-            }
-          } catch {
-            // ignore cache write failures
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch analytics:", error);
-        if (!cancelled && !hasCached) setAnalyticsData(null);
-      } finally {
-        if (!cancelled) {
-          setAnalyticsLoading(false);
-          setDashboardAnalyticsReady(true);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeBaseId]);
-
-  useEffect(() => {
-    if (!activeBaseId) return;
-    const id = window.setInterval(async () => {
-      try {
-        const latest = await apiRequest(`/analytics?base_id=${activeBaseId}`);
-        setAnalyticsData(latest);
-        const nextCache = { data: latest, timestamp: Date.now() };
-        analyticsCacheRef.current[activeBaseId] = nextCache;
-        try {
-          if (typeof window !== "undefined") {
-            window.sessionStorage.setItem(`sparkai:dashboard:analytics:${activeBaseId}`, JSON.stringify(nextCache));
-          }
-        } catch {
-          // ignore cache write failures
-        }
-      } catch {
-        // keep last visible values if polling fails
-      }
-    }, 20000);
-    return () => window.clearInterval(id);
-  }, [activeBaseId]);
-
-  useEffect(() => {
-    if (!activeBaseId) {
-      setDashboardCampaignsReady(true);
-      return;
-    }
-    let cancelled = false;
-    const hasCampaignCache = hasCacheForBase(activeBaseId);
-    setDashboardCampaignsReady(hasCampaignCache);
     void (async () => {
       try {
         await fetchCampaigns(activeBaseId);
       } catch (error) {
         console.error("Failed to fetch campaigns for dashboard:", error);
-      } finally {
-        if (!cancelled) setDashboardCampaignsReady(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeBaseId, fetchCampaigns, hasCacheForBase]);
+  }, [activeBaseId, fetchCampaigns]);
 
+  const campaignListReconciledForBaseRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!activeBaseId) {
-      setDashboardKpiStats(null);
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const data = (await apiRequest(`/dashboard/stats?base_id=${activeBaseId}`)) as DashboardStatsResponse;
-        if (!cancelled) setDashboardKpiStats(data);
-      } catch {
-        if (!cancelled) setDashboardKpiStats(null);
-      }
-    };
-    void load();
-    const id = window.setInterval(load, 20000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
+    campaignListReconciledForBaseRef.current = null;
   }, [activeBaseId]);
+
+  /** Stats can show total campaigns while the zustand list is still empty (e.g. fresh empty cache skips refetch for 2m). */
+  useEffect(() => {
+    if (!activeBaseId) return;
+    if (campaignsCountFromStats <= 0) return;
+    const st = useCampaignStore.getState();
+    if ((st.campaigns?.length ?? 0) > 0) return;
+    if (!st.hasCacheForBase(activeBaseId)) return;
+    if (campaignListReconciledForBaseRef.current === activeBaseId) return;
+    campaignListReconciledForBaseRef.current = activeBaseId;
+    clearCampaignCache(activeBaseId);
+    void fetchCampaigns(activeBaseId);
+  }, [activeBaseId, campaignsCountFromStats, clearCampaignCache, fetchCampaigns]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -548,6 +433,11 @@ export default function Dashboard() {
   const recentCampaigns = filteredCampaigns.slice(0, 3);
   const savedCampaigns = filteredCampaigns.filter((c) => savedCampaignIds.includes(Number(c.id))).slice(0, 3);
   const visibleCampaigns = campaignListTab === "recent" ? recentCampaigns : savedCampaigns;
+  const chartAwaitingFirstPaint = Boolean(activeBaseId && analyticsQuery.isPending && !analyticsQuery.data);
+  const showDashboardKpiSkeleton = Boolean(activeBaseId && statsQuery.isPending && !statsQuery.data);
+  const campaignsAwaitingFirstPaint = Boolean(
+    activeBaseId && campaignLoading && !hasCacheForBase(activeBaseId)
+  );
 
   const toggleSavedCampaign = (campaignId: number) => {
     setSavedCampaignIds((prev) =>
@@ -662,9 +552,19 @@ export default function Dashboard() {
     fontSize: 12,
   };
 
-  const dashboardBody =
-    isBootstrappingWorkspace || (activeBaseId && dashboardInitialLoadPending) ? (
-    <GlobalPageLoader layout="embedded" minHeight={480} ariaLabel="Loading dashboard" />
+  const dashboardBody = isBootstrappingWorkspace ? (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }} aria-busy="true" aria-label="Loading workspace">
+      <div style={PREMIUM_KPI_GRID_STYLE}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton-page-card" style={{ minHeight: 162, display: "flex", flexDirection: "column", gap: 10 }}>
+            <UiSkeleton height={10} width="40%" />
+            <UiSkeleton height={28} width="55%" />
+            <UiSkeleton height={52} width="100%" style={{ marginTop: "auto" }} />
+          </div>
+        ))}
+      </div>
+      <UiSkeleton height={220} width="100%" radius={14} />
+    </div>
   ) : (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
@@ -699,33 +599,48 @@ export default function Dashboard() {
             {userName}
           </span>
         </div>
-        <button type="button" className="btn-dashboard-outline dashboard-header-primary-btn" onClick={dashboardPrimaryAction.onClick}>
-          {dashboardPrimaryAction.icon}
-          {dashboardPrimaryAction.label}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <DataRefreshIndicator show={showDashboardRefreshing} />
+          <button type="button" className="btn-dashboard-outline dashboard-header-primary-btn" onClick={dashboardPrimaryAction.onClick}>
+            {dashboardPrimaryAction.icon}
+            {dashboardPrimaryAction.label}
+          </button>
+        </div>
       </div>
 
-      <div style={PREMIUM_KPI_GRID_STYLE}>
-        {overviewMetrics.map((card) => {
-          const valueMuted = isMutedMetricValue(String(card.value));
-          const isWorkspaceCard = card.title === "Active workspace";
+      {showDashboardKpiSkeleton ? (
+        <div style={PREMIUM_KPI_GRID_STYLE} aria-busy="true" aria-label="Loading metrics">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton-page-card" style={{ minHeight: 162, display: "flex", flexDirection: "column", gap: 10 }}>
+              <UiSkeleton height={10} width="40%" />
+              <UiSkeleton height={28} width="55%" />
+              <UiSkeleton height={52} width="100%" style={{ marginTop: "auto" }} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={PREMIUM_KPI_GRID_STYLE}>
+          {overviewMetrics.map((card) => {
+            const valueMuted = isMutedMetricValue(String(card.value));
+            const isWorkspaceCard = card.title === "Active workspace";
 
-          return (
-            <PremiumKpiCard
-              key={card.title}
-              title={card.title}
-              value={card.value}
-              valueKind={card.valueKind ?? "number"}
-              valueMuted={valueMuted}
-              valueTitle={isWorkspaceCard ? card.workspaceLayout?.activeName : undefined}
-              note={card.note}
-              workspaceLayout={isWorkspaceCard ? card.workspaceLayout : undefined}
-              sparklineValues={card.sparkline}
-              echartsVariant={card.echartsVariant}
-            />
-          );
-        })}
-      </div>
+            return (
+              <PremiumKpiCard
+                key={card.title}
+                title={card.title}
+                value={card.value}
+                valueKind={card.valueKind ?? "number"}
+                valueMuted={valueMuted}
+                valueTitle={isWorkspaceCard ? card.workspaceLayout?.activeName : undefined}
+                note={card.note}
+                workspaceLayout={isWorkspaceCard ? card.workspaceLayout : undefined}
+                sparklineValues={card.sparkline}
+                echartsVariant={card.echartsVariant}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {invitationSuccess && (
         <div
@@ -824,7 +739,7 @@ export default function Dashboard() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: visibleCampaigns.length === 0 ? 0 : 14,
+              marginBottom: visibleCampaigns.length === 0 && !campaignsAwaitingFirstPaint ? 0 : 14,
               gap: 10,
               width: "100%",
               flexShrink: 0,
@@ -890,6 +805,9 @@ export default function Dashboard() {
             </div>
           </div>
           {visibleCampaigns.length === 0 ? (
+            campaignsAwaitingFirstPaint ? (
+              <CampaignGridSkeleton count={3} />
+            ) : (
             <div
               style={{
                 flex: 1,
@@ -928,6 +846,7 @@ export default function Dashboard() {
                   : "Save campaigns to pin them here for quick access."}
               </div>
             </div>
+            )
           ) : (
             <div className="campaigns-page-grid">
               {visibleCampaigns.map((c) => (
@@ -972,7 +891,9 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-          {hasAnyLeadTrendRows ? (
+          {chartAwaitingFirstPaint ? (
+            <UiSkeleton height={190} width="100%" radius={12} />
+          ) : hasAnyLeadTrendRows ? (
             <ResponsiveContainer width="100%" height={190}>
               <AreaChart data={resolvedLeadTrendData} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
                 <defs>
@@ -1022,6 +943,9 @@ export default function Dashboard() {
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
             Total to Contacted to Replied to Converted ({periodLabel})
           </div>
+          {chartAwaitingFirstPaint ? (
+            <UiSkeleton height={190} width="100%" radius={12} />
+          ) : (
           <ResponsiveContainer width="100%" height={190}>
             <BarChart data={funnelChartData} margin={{ top: 0, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
@@ -1035,6 +959,7 @@ export default function Dashboard() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          )}
           <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
             Shows unique leads at each funnel stage from analytics API.
           </div>
@@ -1073,7 +998,9 @@ export default function Dashboard() {
               Engaged
             </div>
           </div>
-          {hasChannelOutcomeData ? (
+          {chartAwaitingFirstPaint ? (
+            <UiSkeleton height={184} width="100%" radius={12} />
+          ) : hasChannelOutcomeData ? (
             <>
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={channelResultsData} margin={{ top: 0, right: 8, left: -14, bottom: 0 }} barGap={8}>
@@ -1139,7 +1066,9 @@ export default function Dashboard() {
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
             Ranked by sent volume ({periodLabel})
           </div>
-          {hasTopCampaignData ? (
+          {chartAwaitingFirstPaint ? (
+            <UiSkeleton height={170} width="100%" radius={12} />
+          ) : hasTopCampaignData ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 2 }}>
               {topCampaignsData.slice(0, 5).map((row, index) => (
                 <div key={`${row.name}-${index}`} style={{ display: "flex", flexDirection: "column", gap: 6 }}>

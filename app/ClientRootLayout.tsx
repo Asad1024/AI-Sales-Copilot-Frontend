@@ -10,11 +10,13 @@ import { ConfirmProvider } from "@/context/ConfirmContext";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useSidebarStore, getSidebarWidthPx } from "@/stores/useSidebarStore";
 import { WebSocketProvider } from "@/components/notifications/WebSocketProvider";
+import { CampaignLiveModalHost } from "@/components/campaigns/CampaignLiveModalHost";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 import { APP_BRAND_BROWSER_TITLE, APP_BRAND_NAME, APP_BRAND_TAGLINE } from "@/lib/brand";
+import { AppQueryProvider } from "@/providers/AppQueryProvider";
 
 export default function ClientRootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -160,10 +162,12 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
   return (
     <NotificationProvider>
       <ConfirmProvider>
+        <AppQueryProvider>
         <BaseProvider>
           {showHeaderSidebar ? (
             <AuthGuard>
               <WebSocketProvider>
+                <CampaignLiveModalHost />
                 <EmailVerificationBanner />
 
                 <div className="main-layout">
@@ -211,6 +215,7 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
           ) : isMarketingFullBleedShell ? (
             <AuthGuard>
               <WebSocketProvider>
+                <CampaignLiveModalHost />
                 <EmailVerificationBanner />
                 <main
                   style={{
@@ -250,6 +255,7 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
             </main>
           )}
         </BaseProvider>
+        </AppQueryProvider>
       </ConfirmProvider>
     </NotificationProvider>
   );

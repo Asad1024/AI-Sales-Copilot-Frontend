@@ -136,6 +136,32 @@ function getFirstUnsupportedPlaceholder(raw: string): string | null {
   return null;
 }
 
+const SUPPORTED_PLACEHOLDER_CHEATSHEET =
+  "Use merge tags like {{first_name}}, {{company_name}}, {{sender_name}}, {{sender_company}}, {{product_service}}, {{value_proposition}}, {{call_to_action}}, {{role}}, {{industry}}, {{region}}. " +
+  "Or bracket shortcuts the wizard understands: [Your Name], [Your Company], [Schedule a Demo], [Product/Service], [Value Proposition], [Call to Action].";
+
+/**
+ * Human-readable copy when AI drafts include [Calendar link] or unknown {{tokens}}.
+ */
+export function formatUnsupportedPlaceholderError(contextLine: string, unsupported: string): string {
+  const raw = String(unsupported ?? "").trim();
+  const lower = raw.toLowerCase();
+
+  let fix = SUPPORTED_PLACEHOLDER_CHEATSHEET;
+  if (lower.includes("calendar") || (lower.includes("insert") && lower.includes("link"))) {
+    fix =
+      "Replace that line with your real booking URL (Calendly, Cal.com, HubSpot meetings, etc.), or use {{call_to_action}} if that sentence should match the Call-to-Action you set in the Product step.";
+  } else if (lower.includes("contact information") || lower.includes("contact info")) {
+    fix =
+      "Replace it with your real phone, email, or signature line, or use {{sender_name}} and {{sender_company}} for the sign-off.";
+  } else if (raw.startsWith("{{")) {
+    fix =
+      "That merge tag is not on the supported list. " + SUPPORTED_PLACEHOLDER_CHEATSHEET;
+  }
+
+  return `${contextLine} The wizard does not recognize ${raw}. ${fix} Remove the placeholder or edit it, then try Next again.`;
+}
+
 export interface ValidationContext {
   step: number;
   channels: ChannelType[];
@@ -380,7 +406,7 @@ export function getValidationError(context: ValidationContext): string | null {
         }
         const unsupported = getFirstUnsupportedPlaceholder(msgs[i]);
         if (unsupported) {
-          return `Email ${i + 1}: unsupported placeholder ${unsupported}. Use only supported placeholders.`;
+          return formatUnsupportedPlaceholderError(`Email ${i + 1} needs an edit.`, unsupported);
         }
       }
       for (let i = 0; i < need; i++) {
@@ -404,7 +430,7 @@ export function getValidationError(context: ValidationContext): string | null {
         }
         const unsupported = getFirstUnsupportedPlaceholder(context.linkedInStepConfig.message);
         if (unsupported) {
-          return `LinkedIn message has unsupported placeholder ${unsupported}.`;
+          return formatUnsupportedPlaceholderError("LinkedIn connection message needs an edit.", unsupported);
         }
       }
       return null;
@@ -427,7 +453,7 @@ export function getValidationError(context: ValidationContext): string | null {
       }
       const unsupported = getFirstUnsupportedPlaceholder(msgs[i]);
       if (unsupported) {
-        return `WhatsApp message has unsupported placeholder ${unsupported}.`;
+        return formatUnsupportedPlaceholderError("WhatsApp draft needs an edit.", unsupported);
       }
       return null;
     }
@@ -451,7 +477,7 @@ export function getValidationError(context: ValidationContext): string | null {
       {
         const unsupported = getFirstUnsupportedPlaceholder(context.initialPrompt);
         if (unsupported) {
-          return `Opening message has unsupported placeholder ${unsupported}.`;
+          return formatUnsupportedPlaceholderError("Call opening message needs an edit.", unsupported);
         }
       }
       return null;

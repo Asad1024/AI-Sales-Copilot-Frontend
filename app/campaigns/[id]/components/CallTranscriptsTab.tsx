@@ -17,7 +17,7 @@ type CallStatus =
   | 'no_answer'
   | 'cancelled';
 
-interface CallLog {
+export interface CallLog {
   id: number;
   lead: {
     id: number;
@@ -232,13 +232,26 @@ const toApiMediaUrl = (rawUrl: string | null | undefined): string => {
   return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
 };
 
-export function CallTranscriptsTab() {
+export type CallTranscriptsTabPrefetchProps = {
+  /** When true, parent loads call logs on campaign open; tab should reuse them instead of a duplicate GET. */
+  prefetchEnabled?: boolean;
+  prefetchedLogs?: CallLog[] | null;
+  prefetchedLoading?: boolean;
+  prefetchedError?: string | null;
+};
+
+export function CallTranscriptsTab({
+  prefetchEnabled = false,
+  prefetchedLogs = null,
+  prefetchedLoading = false,
+  prefetchedError = null,
+}: CallTranscriptsTabPrefetchProps = {}) {
   const { showSuccess, showError } = useNotification();
   const params = useParams();
   const campaignId = params.id as string;
 
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => (prefetchEnabled ? prefetchedLoading : true));
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
@@ -248,6 +261,7 @@ export function CallTranscriptsTab() {
   const [hydratingAudioLogs, setHydratingAudioLogs] = useState<Set<number>>(new Set());
 
   const hydratedConversationsRef = useRef<Set<string>>(new Set());
+  const lastPrefetchedLogsDigestRef = useRef<string | null>(null);
   const audioObjectUrlsRef = useRef<Set<string>>(new Set());
   const audioUrlCacheRef = useRef<Map<string, string>>(new Map());
 
@@ -359,14 +373,8 @@ export function CallTranscriptsTab() {
     [campaignId, getConversationId]
   );
 
-  const fetchCallLogs = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await apiRequest(`/campaigns/${campaignId}/call-logs`);
-      const logs: CallLog[] = data.callLogs || [];
-      setCallLogs(logs);
-
+  const runHydrationForLogs = useCallback(
+    (logs: CallLog[]) => {
       void Promise.all(
         logs
           .filter((log) => {
@@ -378,18 +386,79 @@ export function CallTranscriptsTab() {
           .slice(0, 20)
           .map((log) => hydrateCallMedia(log))
       );
+    },
+    [getConversationId, hydrateCallMedia]
+  );
+
+  const ingestCallLogs = useCallback(
+    (logs: CallLog[]) => {
+      hydratedConversationsRef.current = new Set();
+      setCallLogs(logs);
+      runHydrationForLogs(logs);
+    },
+    [runHydrationForLogs]
+  );
+
+  const fetchCallLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiRequest(`/campaigns/${campaignId}/call-logs`);
+      const logs: CallLog[] = data.callLogs || [];
+      lastPrefetchedLogsDigestRef.current = null;
+      ingestCallLogs(logs);
     } catch (err: any) {
       console.error('Failed to fetch call logs:', err);
       setError(err.message || 'Failed to load call logs');
     } finally {
       setLoading(false);
     }
-  }, [campaignId, getConversationId, hydrateCallMedia]);
+  }, [campaignId, ingestCallLogs]);
 
   useEffect(() => {
+    lastPrefetchedLogsDigestRef.current = null;
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (!prefetchEnabled) {
+      hydratedConversationsRef.current = new Set();
+      void fetchCallLogs();
+      return;
+    }
+    if (prefetchedLoading) {
+      setLoading(true);
+      return;
+    }
+    if (prefetchedError) {
+      lastPrefetchedLogsDigestRef.current = null;
+      hydratedConversationsRef.current = new Set();
+      void fetchCallLogs();
+      return;
+    }
+    if (prefetchedLogs !== null && prefetchedLogs !== undefined) {
+      const digest = `${campaignId}:${prefetchedLogs.map((l) => l.id).join(',')}`;
+      if (lastPrefetchedLogsDigestRef.current === digest) {
+        setLoading(false);
+        return;
+      }
+      lastPrefetchedLogsDigestRef.current = digest;
+      ingestCallLogs(prefetchedLogs);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    lastPrefetchedLogsDigestRef.current = null;
     hydratedConversationsRef.current = new Set();
     void fetchCallLogs();
-  }, [fetchCallLogs]);
+  }, [
+    prefetchEnabled,
+    prefetchedLoading,
+    prefetchedError,
+    prefetchedLogs,
+    campaignId,
+    fetchCallLogs,
+    ingestCallLogs,
+  ]);
 
   useEffect(() => {
     callLogs.forEach((log) => {

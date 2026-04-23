@@ -46,6 +46,32 @@ export type EnterpriseChartVariant =
  * Numeric `interval` tends to emphasize 1 + last; we pick ~`maxVisible` evenly spaced indices.
  * ECharts: callback return `true` to hide a label.
  */
+/** Y values on KPI card axes: compact labels (target ≤3 characters). */
+function formatKpiCardYAxisValue(n: number): string {
+  const v = Math.max(0, Math.round(Number(n)));
+  if (!Number.isFinite(v)) return "";
+  if (v === 0) return "0";
+  if (v < 1000) return String(v);
+  const k = v / 1000;
+  if (v < 1_000_000) {
+    const s =
+      `${k >= 10 ? Math.round(k) : Math.round(k * 10) / 10}`.replace(/\.0$/, "") + "k";
+    return s.length <= 3 ? s : `${Math.round(k)}k`.slice(0, 3);
+  }
+  const m = v / 1_000_000;
+  const s = `${m >= 10 ? Math.round(m) : Math.round(m * 10) / 10}`.replace(/\.0$/, "") + "m";
+  return s.length <= 3 ? s : s.slice(0, 3);
+}
+
+/** Category axis (day index): show at most 3 digit characters. */
+function formatKpiCardXAxisCategory(value: string): string {
+  const t = String(value ?? "").trim();
+  if (!t) return "";
+  const n = Number(t);
+  if (Number.isFinite(n)) return String(Math.round(n)).slice(0, 3);
+  return t.slice(0, 3);
+}
+
 function sparseEvenCategoryAxisLabelInterval(
   categoryCount: number,
   maxVisible = 5
@@ -106,13 +132,15 @@ function sharedAxes(
   opts: SharedAxisOpts,
   compact = false
 ): Pick<EChartsOption, "xAxis" | "yAxis" | "grid" | "tooltip" | "animation"> {
-  const axisMuted = compact ? "rgba(15, 23, 42, 0.18)" : "rgba(15, 23, 42, 0.35)";
+  const axisMuted = compact ? "rgba(15, 23, 42, 0.22)" : "rgba(15, 23, 42, 0.35)";
   const labelMuted = "rgba(15, 23, 42, 0.72)";
   const gridLight = compact ? "rgba(100, 70, 40, 0.09)" : "rgba(15, 23, 42, 0.07)";
-  const left = compact ? 2 : opts.left;
+  /** KPI cards: visible axes, ~3 X labels + ~3 Y ticks (splitNumber 2 → min / mid / max). */
+  const left = compact ? 22 : opts.left;
   const right = compact ? 4 : 6;
-  const top = compact ? 2 : 8;
-  const bottom = compact ? 2 : opts.bottom;
+  const top = compact ? 4 : 8;
+  const bottom = compact ? 16 : opts.bottom;
+  const ySplitNumber = compact ? 2 : opts.ySplitNumber;
   return {
     animation: false,
     tooltip: { show: false },
@@ -128,22 +156,28 @@ function sharedAxes(
       type: "category",
       data: categories,
       boundaryGap: opts.boundaryGap ?? (compact ? true : false),
-      axisLine: { show: !compact, lineStyle: { color: axisMuted, width: 1.5 } },
-      axisTick: { alignWithLabel: true, lineStyle: { color: axisMuted }, show: !compact },
+      axisLine: { show: true, lineStyle: { color: axisMuted, width: compact ? 1 : 1.5 } },
+      axisTick: {
+        alignWithLabel: true,
+        lineStyle: { color: axisMuted },
+        show: true,
+        length: compact ? 3 : undefined,
+      },
       axisLabel: {
-        show: !compact,
+        show: true,
         color: labelMuted,
         fontWeight: 600,
-        fontSize: 10,
+        fontSize: compact ? 8 : 10,
         interval: opts.xLabelInterval,
+        ...(compact ? { formatter: (val: string) => formatKpiCardXAxisCategory(val) } : {}),
       },
     },
     yAxis: {
       type: "value",
       min: 0,
       max: yCeil,
-      splitNumber: opts.ySplitNumber,
-      axisLine: { show: !compact, lineStyle: { color: axisMuted, width: 1.5 } },
+      splitNumber: ySplitNumber,
+      axisLine: { show: true, lineStyle: { color: axisMuted, width: compact ? 1 : 1.5 } },
       splitLine: {
         show: true,
         lineStyle: {
@@ -153,10 +187,11 @@ function sharedAxes(
         },
       },
       axisLabel: {
-        show: !compact,
+        show: true,
         color: labelMuted,
         fontWeight: 600,
-        fontSize: 10,
+        fontSize: compact ? 8 : 10,
+        ...(compact ? { formatter: (val: number) => formatKpiCardYAxisValue(val) } : {}),
       },
     },
   };
@@ -727,9 +762,9 @@ export function KpiEnterpriseChart({ values, title, variant, height = 92, compac
     }
 
     // cartesianDropLines — thick smooth curve + dashed guides (Total leads)
-    const axisMuted = "rgba(15, 23, 42, 0.35)";
+    const axisMuted = compact ? "rgba(15, 23, 42, 0.22)" : "rgba(15, 23, 42, 0.35)";
     const labelMuted = "rgba(15, 23, 42, 0.72)";
-    const gridLight = "rgba(15, 23, 42, 0.07)";
+    const gridLight = compact ? "rgba(100, 70, 40, 0.09)" : "rgba(15, 23, 42, 0.07)";
     const markLineData: Array<
       [{ coord: (string | number)[]; symbol?: string }, { coord: (string | number)[]; symbol?: string }]
     > = [];
@@ -745,29 +780,42 @@ export function KpiEnterpriseChart({ values, title, variant, height = 92, compac
 
     return {
       animation: false,
-      grid: { left: 32, right: 6, top: 8, bottom: 22 },
+      grid: compact
+        ? { left: 22, right: 4, top: 4, bottom: 16, containLabel: false }
+        : { left: 32, right: 6, top: 8, bottom: 22 },
       tooltip: { show: false },
       xAxis: {
         type: "category",
         data: categories,
         boundaryGap: false,
-        axisLine: { show: true, lineStyle: { color: axisMuted, width: 2 } },
-        axisTick: { alignWithLabel: true, lineStyle: { color: axisMuted } },
+        axisLine: { show: true, lineStyle: { color: axisMuted, width: compact ? 1 : 2 } },
+        axisTick: { alignWithLabel: true, lineStyle: { color: axisMuted }, length: compact ? 3 : undefined },
         axisLabel: {
           color: labelMuted,
-          fontWeight: 700,
-          fontSize: 10,
+          fontWeight: compact ? 600 : 700,
+          fontSize: compact ? 8 : 10,
           interval: xLabelInterval,
+          ...(compact ? { formatter: (val: string) => formatKpiCardXAxisCategory(val) } : {}),
         },
       },
       yAxis: {
         type: "value",
         min: 0,
         max: yCeil,
-        splitNumber: 1,
-        axisLine: { show: true, lineStyle: { color: axisMuted, width: 2 } },
-        splitLine: { lineStyle: { color: gridLight } },
-        axisLabel: { color: labelMuted, fontWeight: 700, fontSize: 10 },
+        splitNumber: compact ? 2 : 1,
+        axisLine: { show: true, lineStyle: { color: axisMuted, width: compact ? 1 : 2 } },
+        splitLine: {
+          lineStyle: {
+            color: gridLight,
+            type: compact ? "dotted" : "solid",
+          },
+        },
+        axisLabel: {
+          color: labelMuted,
+          fontWeight: compact ? 600 : 700,
+          fontSize: compact ? 8 : 10,
+          ...(compact ? { formatter: (val: number) => formatKpiCardYAxisValue(val) } : {}),
+        },
       },
       series: [
         {

@@ -10,7 +10,7 @@ import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
 import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
 import ToolbarFilterButton from "@/components/ui/ToolbarFilterButton";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
 
 /** Same glyphs & colors as campaign wizard / `CampaignCard` (`WIZ_REVIEW_*`), plus SMS for templates */
 const TEMPLATE_CHANNEL_ROW_META: Record<
@@ -698,7 +698,26 @@ export default function TemplatesPage() {
         </button>
       </div>
 
-      {loading && <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading templates" />}
+      {loading && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(288px, 1fr))",
+            gap: 14,
+            marginBottom: 8,
+          }}
+          aria-busy="true"
+          aria-label="Loading templates"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton-page-card" style={{ minHeight: 160, display: "flex", flexDirection: "column", gap: 10 }}>
+              <UiSkeleton height={14} width="55%" />
+              <UiSkeleton height={12} width="35%" />
+              <UiSkeleton height={48} width="100%" style={{ marginTop: "auto" }} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
       {!loading && templates.length === 0 && (

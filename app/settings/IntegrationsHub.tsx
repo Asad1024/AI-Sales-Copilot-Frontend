@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
 import { apiRequest, getUser } from "@/lib/apiClient";
 import { extractSpreadsheetIdFromUrl, validateGoogleSheetsVaultInput } from "@/lib/googleSheetsVault";
 import { useBase } from "@/context/BaseContext";
@@ -832,7 +832,23 @@ export function IntegrationsHub() {
     "Only the workspace owner can connect or change integrations for this workspace.";
 
   if (loading) {
-    return <GlobalPageLoader layout="embedded" minHeight={400} ariaLabel="Loading integrations" />;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 960 }} aria-busy="true" aria-label="Loading integrations">
+        <UiSkeleton height={18} width="45%" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <UiSkeleton height={48} width={48} radius={12} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                <UiSkeleton height={14} width="40%" />
+                <UiSkeleton height={10} width="70%" />
+              </div>
+            </div>
+            <UiSkeleton height={36} width={140} radius={10} />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AlertTriangle, Building2 } from "lucide-react";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { Icons } from "@/components/ui/Icons";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import {
   LandingCompanyPreviewBody,
@@ -92,7 +92,11 @@ export default function BaseCompaniesPage() {
       `}</style>
 
       {permissionsLoading ? (
-        <GlobalPageLoader layout="embedded" fill minHeight={400} ariaLabel="Loading" />
+        <div style={{ width: "100%", maxWidth: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }} aria-busy="true" aria-label="Loading">
+          <UiSkeleton height={200} width="100%" radius={14} />
+          <UiSkeleton height={48} width="100%" style={{ maxWidth: 480 }} radius={10} />
+          <UiSkeleton height={360} width="100%" radius={14} />
+        </div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", margin: "0 auto" }}>
           <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>

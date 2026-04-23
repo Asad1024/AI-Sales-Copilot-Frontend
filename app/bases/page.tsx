@@ -1,11 +1,14 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getUser } from "@/lib/apiClient";
 import { shouldRestrictWorkspaceManagement } from "@/lib/billingUi";
 import { useBase } from "@/context/BaseContext";
 import { useBaseStore } from "@/stores/useBaseStore";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
+import { useWorkspacesStatsQuery, useBasesQuickStatsQuery } from "@/hooks/queries/workspaceQueries";
+import { DataRefreshIndicator } from "@/components/ui/DataRefreshIndicator";
 import { BaseCard } from "./components/BaseCard";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
@@ -39,6 +42,7 @@ function isMutedMetricValue(value: string): boolean {
 
 export default function BasesPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { showError, showSuccess } = useNotification();
   const confirm = useConfirm();
   const { refreshBases, setActiveBaseId } = useBase();
@@ -48,13 +52,28 @@ export default function BasesPage() {
   const [name, setName] = useState("");
   const [search, setSearch] = useState("");
   const [loadingCreate, setLoadingCreate] = useState(false);
-  const [baseQuickStats, setBaseQuickStats] = useState<{ [key: number]: { leads: number; campaigns: number; enriched: number; scored: number } }>({});
-  const [loadingStats, setLoadingStats] = useState<{ [key: number]: boolean }>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<"all" | "with-leads" | "with-campaigns">("all");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [userRev, setUserRev] = useState(0);
-  const [workspaceStats, setWorkspaceStats] = useState<WorkspacesStatsResponse | null>(null);
+  const workspacesStatsQuery = useWorkspacesStatsQuery();
+  const quickStatsQuery = useBasesQuickStatsQuery(bases.length > 0 && !basesLoading);
+  const workspaceStats = workspacesStatsQuery.data ?? null;
+  const baseQuickStats = useMemo(() => {
+    const raw = quickStatsQuery.data?.stats ?? {};
+    const out: { [key: number]: { leads: number; campaigns: number; enriched: number; scored: number } } = {};
+    for (const b of bases) {
+      out[b.id] = raw[b.id] ?? { leads: 0, campaigns: 0, enriched: 0, scored: 0 };
+    }
+    return out;
+  }, [quickStatsQuery.data?.stats, bases]);
+  const quickStatsLoading = Boolean(bases.length > 0 && quickStatsQuery.isPending && !quickStatsQuery.data);
+  const showWorkspacesRefreshing =
+    (workspacesStatsQuery.isFetching && !workspacesStatsQuery.isPending) ||
+    (quickStatsQuery.isFetching && !quickStatsQuery.isPending);
+  const showWorkspacesKpiSkeleton = Boolean(
+    bases.length > 0 && workspacesStatsQuery.isPending && !workspacesStatsQuery.data
+  );
 
   useEffect(() => {
     const sync = () => setUserRev((n) => n + 1);
@@ -94,6 +113,8 @@ export default function BasesPage() {
       setName("");
       setShowCreateModal(false);
       await refreshBases();
+      void queryClient.invalidateQueries({ queryKey: ["bases-quick-stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces-stats"] });
       const newId = data?.base?.id;
       if (typeof newId === "number" && newId > 0) {
         const nm = typeof data?.base?.name === "string" ? data.base.name.trim() : "";
@@ -124,6 +145,8 @@ export default function BasesPage() {
     try {
       await apiRequest(`/bases/${id}`, { method: 'PUT', body: JSON.stringify({ name: newName }) });
       await refreshBases();
+      void queryClient.invalidateQueries({ queryKey: ["bases-quick-stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces-stats"] });
       showSuccess("Workspace updated", "Workspace name changed successfully.");
     } catch (e: any) {
       showError("Rename failed", e?.message || "Failed to rename workspace.");
@@ -146,35 +169,13 @@ export default function BasesPage() {
     try {
       await apiRequest(`/bases/${id}`, { method: 'DELETE' });
       await refreshBases();
+      void queryClient.invalidateQueries({ queryKey: ["bases-quick-stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces-stats"] });
       showSuccess("Workspace removed", "The workspace was deleted.");
     } catch (e: any) {
       showError("Delete failed", e?.message || "Failed to delete workspace.");
     }
   }
-
-  useEffect(() => {
-    const fetchBaseStats = async () => {
-      if (bases.length === 0) return;
-      const loadingState: { [key: number]: boolean } = {};
-      bases.forEach(b => { loadingState[b.id] = true; });
-      setLoadingStats(loadingState);
-      try {
-        const response = await apiRequest('/bases/quick-stats');
-        const stats = response?.stats || {};
-        bases.forEach(base => { if (!stats[base.id]) stats[base.id] = { leads: 0, campaigns: 0, enriched: 0, scored: 0 }; });
-        setBaseQuickStats(stats);
-      } catch {
-        const emptyStats: any = {};
-        bases.forEach(base => { emptyStats[base.id] = { leads: 0, campaigns: 0, enriched: 0, scored: 0 }; });
-        setBaseQuickStats(emptyStats);
-      } finally {
-        const doneLoading: { [key: number]: boolean } = {};
-        bases.forEach(b => { doneLoading[b.id] = false; });
-        setLoadingStats(doneLoading);
-      }
-    };
-    fetchBaseStats();
-  }, [bases]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -190,23 +191,14 @@ export default function BasesPage() {
     return searched;
   }, [bases, search, filter, baseQuickStats]);
 
+  /** Do not use placeholder zeros before quick-stats loads — that falsely showed the onboarding banner. */
   const allVisibleEmpty =
+    quickStatsQuery.isSuccess &&
     filtered.length > 0 &&
     filtered.every((b: { id: number }) => {
       const s = baseQuickStats[b.id];
       return s !== undefined && s.leads === 0 && s.campaigns === 0;
     });
-
-  /** True until quick-stats exist for each visible workspace (avoids empty cards before the fetch runs). */
-  const statsLoadingAny =
-    filtered.length > 0 &&
-    filtered.some(
-      (b: { id: number }) => loadingStats[b.id] === true || baseQuickStats[b.id] === undefined
-    );
-
-  const basesPageBlocking =
-    (basesLoading && bases.length === 0) ||
-    (bases.length > 0 && filtered.length > 0 && statsLoadingAny);
 
   const totals = useMemo(() => {
     let leads = 0;
@@ -222,24 +214,6 @@ export default function BasesPage() {
     }
     return { leads, campaigns, enriched, scored };
   }, [filtered, baseQuickStats]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const data = (await apiRequest("/workspaces/stats")) as WorkspacesStatsResponse;
-        if (!cancelled) setWorkspaceStats(data);
-      } catch {
-        if (!cancelled) setWorkspaceStats(null);
-      }
-    };
-    void load();
-    const id = window.setInterval(load, 25000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, []);
 
   const overviewMetrics: OverviewMetric[] = useMemo(() => {
     const flat = Array.from({ length: 7 }, () => 0);
@@ -324,8 +298,48 @@ export default function BasesPage() {
     ];
   }, [workspaceStats]);
 
-  if (basesPageBlocking) {
-    return <GlobalPageLoader layout="page" ariaLabel="Loading workspaces" />;
+  if (basesLoading && bases.length === 0) {
+    return (
+      <div
+        style={{
+          minHeight: "calc(100vh - 56px)",
+          width: "100%",
+          background: "var(--color-canvas)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
+          gap: 12,
+          boxSizing: "border-box",
+        }}
+        aria-busy="true"
+        aria-label="Loading workspaces"
+      >
+        <UiSkeleton height={44} width="100%" style={{ maxWidth: 420 }} radius={10} />
+        <div style={{ ...PREMIUM_KPI_GRID_STYLE, marginTop: 4 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton-page-card" style={{ minHeight: 118, display: "flex", flexDirection: "column", gap: 8 }}>
+              <UiSkeleton height={10} width="50%" />
+              <UiSkeleton height={22} width="35%" />
+              <UiSkeleton height={40} width="100%" style={{ marginTop: "auto" }} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skeleton-page-card" style={{ minHeight: 200, display: "flex", flexDirection: "column", gap: 12 }}>
+              <UiSkeleton height={16} width="70%" />
+              <UiSkeleton height={12} width="45%" />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 8 }}>
+                <UiSkeleton height={48} />
+                <UiSkeleton height={48} />
+                <UiSkeleton height={48} />
+                <UiSkeleton height={48} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -420,16 +434,19 @@ export default function BasesPage() {
               )}
             </div>
           </div>
-          {!restrictWorkspace ? (
-            <button
-              type="button"
-              className="btn-dashboard-outline"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Icons.Plus size={16} strokeWidth={1.5} />
-              New Workspace
-            </button>
-          ) : null}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <DataRefreshIndicator show={showWorkspacesRefreshing} />
+            {!restrictWorkspace ? (
+              <button
+                type="button"
+                className="btn-dashboard-outline"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <Icons.Plus size={16} strokeWidth={1.5} />
+                New Workspace
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {allVisibleEmpty && (
@@ -447,24 +464,35 @@ export default function BasesPage() {
           </div>
         )}
 
-        {filtered.length > 0 && (
-          <div style={{ ...PREMIUM_KPI_GRID_STYLE, marginBottom: 12 }}>
-            {overviewMetrics.map((card) => {
-              const valueMuted = isMutedMetricValue(String(card.value));
-              return (
-                <PremiumKpiCard
-                  key={card.title}
-                  title={card.title}
-                  value={card.value}
-                  valueMuted={valueMuted}
-                  note={card.note}
-                  sparklineValues={card.sparkline}
-                  echartsVariant={card.echartsVariant}
-                />
-              );
-            })}
-          </div>
-        )}
+        {filtered.length > 0 &&
+          (showWorkspacesKpiSkeleton ? (
+            <div style={{ ...PREMIUM_KPI_GRID_STYLE, marginBottom: 12 }} aria-busy="true" aria-label="Loading workspace metrics">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton-page-card" style={{ minHeight: 118, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <UiSkeleton height={10} width="50%" />
+                  <UiSkeleton height={22} width="35%" />
+                  <UiSkeleton height={40} width="100%" style={{ marginTop: "auto" }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ ...PREMIUM_KPI_GRID_STYLE, marginBottom: 12 }}>
+              {overviewMetrics.map((card) => {
+                const valueMuted = isMutedMetricValue(String(card.value));
+                return (
+                  <PremiumKpiCard
+                    key={card.title}
+                    title={card.title}
+                    value={card.value}
+                    valueMuted={valueMuted}
+                    note={card.note}
+                    sparklineValues={card.sparkline}
+                    echartsVariant={card.echartsVariant}
+                  />
+                );
+              })}
+            </div>
+          ))}
 
         {/* Empty state */}
         {bases.length === 0 && (
@@ -503,7 +531,7 @@ export default function BasesPage() {
                 key={b.id}
                 base={b}
                 stats={baseQuickStats[b.id] || { leads: 0, campaigns: 0, enriched: 0, scored: 0 }}
-                isLoading={false}
+                isLoading={quickStatsLoading}
                 onRename={renameBase}
                 onDelete={deleteBase}
                 restrictWorkspaceChrome={restrictWorkspace}
@@ -523,13 +551,12 @@ export default function BasesPage() {
           style={{ 
             position: 'fixed', 
             inset: 0, 
-            background: 'rgba(0,0,0,0.48)', 
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            background: "rgba(0,0,0,0.48)",
             display: 'flex', 
             alignItems: 'center', 
-            justifyContent: 'center', 
-            zIndex: 100 
+            justifyContent: "center",
+            /* Above PageHeader (z-index 450) so title bar is covered by the overlay */
+            zIndex: 5000,
           }}
           onClick={() => setShowCreateModal(false)}
         >

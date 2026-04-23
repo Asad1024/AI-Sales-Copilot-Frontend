@@ -1,20 +1,21 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect, useMemo, type CSSProperties } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { Icons } from "@/components/ui/Icons";
 import { CampaignHeader } from "./components/CampaignHeader";
-import { CampaignTabs } from "./components/CampaignTabs";
+import { CampaignTabs, type CampaignViewTabId } from "./components/CampaignTabs";
 import { OverviewTab } from "./components/OverviewTab";
 import { LeadsTab } from "./components/LeadsTab";
 import { SequenceTab } from "./components/SequenceTab";
 import { AnalyticsTab } from "./components/AnalyticsTab";
-import { CallTranscriptsTab } from "./components/CallTranscriptsTab";
+import { CallTranscriptsTab, type CallLog } from "./components/CallTranscriptsTab";
 import { EditCampaignModal } from "./components/EditCampaignModal";
 import { LeadActivityModal } from "./components/LeadActivityModal";
 import { useNotification } from "@/context/NotificationContext";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
+import { campaignScheduleFieldToUtcIso } from "@/lib/campaignScheduleUtc";
 
 interface Campaign {
   id: number;
@@ -101,11 +102,27 @@ interface SequenceStep {
   variables?: any;
 }
 
+function campaignChannelList(c: Campaign): string[] {
+  const raw = c.channels?.length ? c.channels : c.channel ? [c.channel] : [];
+  return raw.map((x) => String(x).toLowerCase());
+}
+
+function campaignIncludesCallChannel(c: Campaign): boolean {
+  return campaignChannelList(c).includes("call");
+}
+
+/** Sequence tab is for email / WhatsApp / LinkedIn message steps — not call-only. */
+function campaignShowsSequenceTab(c: Campaign): boolean {
+  const ch = campaignChannelList(c);
+  if (ch.length === 0) return true;
+  return ch.some((x) => ["email", "whatsapp", "linkedin"].includes(x));
+}
+
 export default function CampaignDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { showError, showSuccess } = useNotification();
   const { activeBaseId, bases } = useBase();
-  const [tab, setTab] = useState<'overview'|'sequence'|'analytics'|'leads'|'transcripts'>('overview');
+  const [tab, setTab] = useState<CampaignViewTabId>("overview");
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +136,11 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
   const [sequenceSteps, setSequenceSteps] = useState<SequenceStep[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [viewingLeadActivity, setViewingLeadActivity] = useState<{ leadId: number; leadEmail?: string } | null>(null);
+  const [callLogsPrefetch, setCallLogsPrefetch] = useState<{
+    loading: boolean;
+    logs: CallLog[] | null;
+    error: string | null;
+  }>({ loading: false, logs: null, error: null });
 
   // Fetch campaign data
   useEffect(() => {
@@ -159,6 +181,39 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
     
     return () => clearInterval(interval);
   }, [params.id, campaign?.status]);
+
+  /** Prefetch call logs on campaign open (call-channel only). Backend auto-syncs ElevenLabs + media on this route, then we refresh campaign for Overview metrics. */
+  useEffect(() => {
+    if (!campaign) return;
+    if (!campaignIncludesCallChannel(campaign)) {
+      setCallLogsPrefetch({ loading: false, logs: null, error: null });
+      return;
+    }
+    let cancelled = false;
+    setCallLogsPrefetch({ loading: true, logs: null, error: null });
+    void (async () => {
+      try {
+        const data = await apiRequest(`/campaigns/${campaign.id}/call-logs`);
+        if (cancelled) return;
+        const logs: CallLog[] = Array.isArray(data?.callLogs) ? data.callLogs : [];
+        setCallLogsPrefetch({ loading: false, logs, error: null });
+        try {
+          const fresh = await apiRequest(`/campaigns/${params.id}`);
+          if (cancelled) return;
+          const campaignData = fresh?.campaign || fresh;
+          setCampaign(campaignData);
+        } catch {
+          // Non-fatal: overview still shows prior snapshot
+        }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Failed to load call logs";
+        if (!cancelled) setCallLogsPrefetch({ loading: false, logs: null, error: msg });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign?.id, params.id]);
 
   // Fetch leads for this campaign
   useEffect(() => {
@@ -206,6 +261,21 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
     }
   }, [campaign, tab]);
 
+  const showTranscriptsTab = useMemo(
+    () => (campaign ? campaignIncludesCallChannel(campaign) : false),
+    [campaign]
+  );
+  const showSequenceTab = useMemo(
+    () => (campaign ? campaignShowsSequenceTab(campaign) : false),
+    [campaign]
+  );
+
+  useEffect(() => {
+    if (!campaign) return;
+    if (tab === "transcripts" && !showTranscriptsTab) setTab("overview");
+    if (tab === "sequence" && !showSequenceTab) setTab("overview");
+  }, [campaign, tab, showTranscriptsTab, showSequenceTab]);
+
   const refreshSequence = async () => {
     if (!campaign) return;
     try {
@@ -250,17 +320,22 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
           start?: string | null;
           end?: string | null;
           launch_now?: boolean;
+          timezone?: string | null;
         };
-        const launch_now =
-          sch.launch_now === true ? true : sch.start ? false : true;
+        // Any non-empty start means "schedule for later". Do not let stale `launch_now: true` from wizard JSON override.
+        const startStr = String(sch.start ?? '').trim();
+        const launch_now = startStr.length > 0 ? false : true;
         const response = await apiRequest(`/campaigns/${campaign.id}/start`, {
           method: 'POST',
           body: JSON.stringify({
             launch_now,
             schedule: {
-              start: sch.start ?? null,
-              end: sch.end ?? null,
+              start: campaignScheduleFieldToUtcIso(sch.start ?? undefined),
+              end: campaignScheduleFieldToUtcIso(sch.end ?? undefined),
               launch_now,
+              ...(typeof sch.timezone === "string" && sch.timezone.trim()
+                ? { timezone: sch.timezone.trim() }
+                : {}),
             },
           }),
         });
@@ -277,17 +352,21 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
           start?: string | null;
           end?: string | null;
           launch_now?: boolean;
+          timezone?: string | null;
         };
-        const launch_now =
-          sch.launch_now === true ? true : sch.start ? false : true;
+        const startStrPaused = String(sch.start ?? '').trim();
+        const launch_now = startStrPaused.length > 0 ? false : true;
         const response = await apiRequest(`/campaigns/${campaign.id}/start`, {
           method: 'POST',
           body: JSON.stringify({
             launch_now,
             schedule: {
-              start: sch.start ?? null,
-              end: sch.end ?? null,
+              start: campaignScheduleFieldToUtcIso(sch.start ?? undefined),
+              end: campaignScheduleFieldToUtcIso(sch.end ?? undefined),
               launch_now,
+              ...(typeof sch.timezone === "string" && sch.timezone.trim()
+                ? { timezone: sch.timezone.trim() }
+                : {}),
             },
           }),
         });
@@ -331,7 +410,18 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <GlobalPageLoader layout="page" ariaLabel="Loading campaign" message="Loading campaign…" />
+      <div style={pageShellStyle} aria-busy="true" aria-label="Loading campaign">
+        <div style={{ ...surfaceCardStyle, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <UiSkeleton height={22} width="40%" />
+          <UiSkeleton height={14} width="28%" />
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+            <UiSkeleton height={36} width={120} radius={10} />
+            <UiSkeleton height={36} width={120} radius={10} />
+            <UiSkeleton height={36} width={120} radius={10} />
+          </div>
+          <UiSkeleton height={220} width="100%" radius={12} style={{ marginTop: 8 }} />
+        </div>
+      </div>
     );
   }
 
@@ -379,7 +469,12 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
       />
 
       <div style={{ ...surfaceCardStyle, padding: 20, overflow: "visible" }}>
-        <CampaignTabs tab={tab} setTab={setTab as any} />
+        <CampaignTabs
+          tab={tab}
+          setTab={setTab}
+          showTranscripts={showTranscriptsTab}
+          showSequence={showSequenceTab}
+        />
 
         {/* Tab Content */}
         {tab === 'overview' && (
@@ -395,7 +490,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
           />
         )}
 
-        {tab === 'sequence' && (
+        {tab === "sequence" && showSequenceTab && (
           <SequenceTab 
                       campaignId={campaign.id}
             templates={templates}
@@ -408,8 +503,14 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
           <AnalyticsTab campaign={campaign} />
         )}
 
-        {tab === 'transcripts' && (
-          <CallTranscriptsTab />
+        {tab === "transcripts" && showTranscriptsTab && (
+          <CallTranscriptsTab
+            key={campaign.id}
+            prefetchEnabled={campaignIncludesCallChannel(campaign)}
+            prefetchedLogs={callLogsPrefetch.logs}
+            prefetchedLoading={callLogsPrefetch.loading}
+            prefetchedError={callLogsPrefetch.error}
+          />
         )}
       </div>
 

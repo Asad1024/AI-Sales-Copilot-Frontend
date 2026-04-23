@@ -31,14 +31,6 @@ function countContactGapsForLeads(leads: any[]) {
   return { missingEmail, missingPhone, total: leads.length };
 }
 
-const SUGGESTION_LOADING_PHASES = [
-  "Mapping your segment…",
-  "Choosing titles & seniority…",
-  "Setting region & company size…",
-  "Adding buying signals…",
-  "Almost ready…",
-];
-
 /**
  * Map server phases to cumulative weight bands so % never goes backward when a new
  * phase resets done/total (extract 1/1 was 100%, then search 0/n read as 0%).
@@ -60,7 +52,7 @@ function overallLeadGenPercent(stage: string, done: number, total: number): numb
   return Math.min(100, Math.max(0, Math.round(lo + frac * (hi - lo))));
 }
 
-const AI_LEAD_PROMPT_MAX_CHARS = 500;
+const AI_LEAD_PROMPT_MAX_CHARS = 300;
 const AI_LEAD_COUNT_MIN = 10;
 const AI_LEAD_COUNT_MAX = 100;
 
@@ -72,6 +64,63 @@ function getSpeechRecognitionCtor(): unknown {
   };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
+
+type LeadGenQuickSuggestion = {
+  id: string;
+  label: string;
+  prompt: string;
+};
+
+const DEFAULT_LEAD_GEN_QUICK_SUGGESTIONS: LeadGenQuickSuggestion[] = [
+  {
+    id: "chip-role-vp-sales",
+    label: "VP Sales",
+    prompt:
+      "Find VP Sales only at B2B companies in Dubai, with 200–500 employees. Industries: software, IT services, professional services, distribution.",
+  },
+  {
+    id: "chip-role-marketing-manager",
+    label: "Marketing Manager",
+    prompt:
+      "Find Marketing Manager only at companies in Dubai, with 200–500 employees. Industries: software, ecommerce, agencies, consumer brands.",
+  },
+  {
+    id: "chip-role-hr-manager",
+    label: "HR Manager",
+    prompt:
+      "Find HR Manager only at organizations in Dubai, with 200–500 employees. Industries: technology, retail, logistics, professional services.",
+  },
+  {
+    id: "chip-role-software-engineer",
+    label: "Software Engineer",
+    prompt:
+      "Find Software Engineer only at product and technology companies in Dubai, with 200–500 employees. Industries: computer software, fintech, IT services.",
+  },
+  {
+    id: "chip-role-account-executive",
+    label: "Account Executive",
+    prompt:
+      "Find Account Executive only at B2B firms in Dubai, with 200–500 employees. Industries: software, services, industrial distribution.",
+  },
+  {
+    id: "chip-role-ceo",
+    label: "CEO",
+    prompt:
+      "Find CEO only at growth-stage companies in Dubai, with 200–500 employees. Industries: software, services, trading, ecommerce.",
+  },
+  {
+    id: "chip-role-customer-success-manager",
+    label: "Customer Success Manager",
+    prompt:
+      "Find Customer Success Manager only at SaaS and subscription businesses in Dubai, with 200–500 employees.",
+  },
+  {
+    id: "chip-role-business-development-manager",
+    label: "Business Development Manager",
+    prompt:
+      "Find Business Development Manager only at B2B companies in Dubai, with 200–500 employees. Industries: software, services, partnerships.",
+  },
+];
 
 export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnrichmentStarted }: Props) {
   const { activeBaseId } = useBase();
@@ -86,8 +135,11 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const [showEnrichPopup, setShowEnrichPopup] = useState(false);
   const [generatedLeads, setGeneratedLeads] = useState<any[]>([]);
   const [enrichSubmitting, setEnrichSubmitting] = useState(false);
-  const [suggestionLoadingTopic, setSuggestionLoadingTopic] = useState<string | null>(null);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const quickSuggestions = DEFAULT_LEAD_GEN_QUICK_SUGGESTIONS;
+  const [selectedQuickSuggestionId, setSelectedQuickSuggestionId] = useState<string | null>(null);
+  /** Short delay before applying a quick suggestion so the pill can show a “Crafting…” state. */
+  const [craftingQuickSuggestionId, setCraftingQuickSuggestionId] = useState<string | null>(null);
+  const craftingQuickSuggestionTimerRef = useRef<number | null>(null);
   /** Shown on primary CTA after a successful run (until modal closes or a new run starts). */
   const [postGenSuccess, setPostGenSuccess] = useState<{ count: number } | null>(null);
   const [speechListening, setSpeechListening] = useState(false);
@@ -116,27 +168,19 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const handleGenerateRef = useRef<() => void>(() => {});
   const modalKeyboardRef = useRef({
     generating: false,
-    suggestionLoadingTopic: null as string | null,
+    craftingQuickSuggestionId: null as string | null,
     prompt: "",
     activeBaseId: null as number | null,
   });
-  const suggestionPrompts = [
-    "SaaS Founders",
-    "Marketing Directors",
-    "Software Engineer",
-    "HR Leaders in IT Services",
-    "Ecommerce Growth Managers",
-    "Real Estate Brokerage Owners",
-    "Healthcare Operations Heads",
-    "Sales Directors",
-  ];
 
   const contactGaps = useMemo(() => countContactGapsForLeads(generatedLeads), [generatedLeads]);
   const hasContactGapsToEnrich = contactGaps.missingEmail > 0 || contactGaps.missingPhone > 0;
 
+  const blockingQuickSuggestionUi = generating || Boolean(craftingQuickSuggestionId);
+
   modalKeyboardRef.current = {
     generating,
-    suggestionLoadingTopic,
+    craftingQuickSuggestionId,
     prompt,
     activeBaseId,
   };
@@ -298,17 +342,6 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     }
   }, [prompt, speechListening]);
 
-  useEffect(() => {
-    if (!suggestionLoadingTopic) return;
-    let i = 0;
-    setProgress(`${SUGGESTION_LOADING_PHASES[0]} · ${suggestionLoadingTopic}`);
-    const id = window.setInterval(() => {
-      i = (i + 1) % SUGGESTION_LOADING_PHASES.length;
-      setProgress(`${SUGGESTION_LOADING_PHASES[i]} · ${suggestionLoadingTopic}`);
-    }, 1200);
-    return () => window.clearInterval(id);
-  }, [suggestionLoadingTopic]);
-
   const promptTokenCost = prompt.trim().length;
   const tokenBalance = meTokens?.bal ?? 0;
   const tokenMonthly = meTokens?.monthly ?? 0;
@@ -448,38 +481,47 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     }
   };
 
-  const handleSuggestionTopic = async (topic: string) => {
-    setError("");
-    setSelectedSuggestion(topic);
-    setSuggestionLoadingTopic(topic);
-    try {
-      const response = await apiRequest("/ai/lead-prompt-from-suggestion", {
-        method: "POST",
-        body: JSON.stringify({
-          topic,
-          ...(activeBaseId ? { base_id: activeBaseId } : {}),
-        }),
-      });
-      const p = typeof response?.prompt === "string" ? response.prompt.trim() : "";
-      if (!p) {
-        throw new Error("No prompt returned from AI");
+  const CRAFTING_QUICK_SUGGESTION_MS = 1100;
+
+  const beginQuickSuggestion = useCallback(
+    (item: LeadGenQuickSuggestion) => {
+      if (generating) return;
+      if (craftingQuickSuggestionTimerRef.current) {
+        clearTimeout(craftingQuickSuggestionTimerRef.current);
+        craftingQuickSuggestionTimerRef.current = null;
       }
-      setPrompt(p.slice(0, AI_LEAD_PROMPT_MAX_CHARS));
-      setProgress("");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Could not generate prompt";
-      setError(msg);
-      setProgress("");
-      setPrompt(
-        `Find B2B decision-makers for: ${topic}. Include specific job titles, industries, locations (e.g. United States or your target region), and company size (e.g. 50–500 employees or startups). Add signals that help narrow to qualified prospects.`.slice(
-          0,
-          AI_LEAD_PROMPT_MAX_CHARS
-        )
-      );
-    } finally {
-      setSuggestionLoadingTopic(null);
+      setError("");
+      setCraftingQuickSuggestionId(item.id);
+      const tid = window.setTimeout(() => {
+        craftingQuickSuggestionTimerRef.current = null;
+        setCraftingQuickSuggestionId(null);
+        setSelectedQuickSuggestionId(item.id);
+        setPrompt(item.prompt.slice(0, AI_LEAD_PROMPT_MAX_CHARS));
+        setProgress("");
+        window.setTimeout(() => promptInputRef.current?.focus({ preventScroll: true }), 0);
+      }, CRAFTING_QUICK_SUGGESTION_MS);
+      craftingQuickSuggestionTimerRef.current = typeof tid === "number" ? tid : null;
+    },
+    [generating]
+  );
+
+  useEffect(() => {
+    if (open) return;
+    if (craftingQuickSuggestionTimerRef.current) {
+      clearTimeout(craftingQuickSuggestionTimerRef.current);
+      craftingQuickSuggestionTimerRef.current = null;
     }
-  };
+    setCraftingQuickSuggestionId(null);
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (craftingQuickSuggestionTimerRef.current) {
+        clearTimeout(craftingQuickSuggestionTimerRef.current);
+        craftingQuickSuggestionTimerRef.current = null;
+      }
+    };
+  }, []);
 
   handleGenerateRef.current = () => {
     void handleGenerate();
@@ -506,13 +548,13 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
     const onKey = (e: KeyboardEvent) => {
       const m = modalKeyboardRef.current;
       if (e.key === "Escape") {
-        if (m.generating || m.suggestionLoadingTopic) return;
+        if (m.generating || m.craftingQuickSuggestionId) return;
         e.preventDefault();
         onClose();
         return;
       }
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-        if (m.generating || m.suggestionLoadingTopic || !m.prompt.trim() || !m.activeBaseId) return;
+        if (m.generating || m.craftingQuickSuggestionId || !m.prompt.trim() || !m.activeBaseId) return;
         const cost = m.prompt.trim().length;
         const bal = Number(getUser()?.ai_prompt_tokens_balance ?? 0);
         if (cost > 0 && bal < cost) return;
@@ -579,7 +621,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
         frameBorderRadius={12}
         maxWidth={820}
         maxModalHeight="min(92vh, 900px)"
-        closeDisabled={generating || Boolean(suggestionLoadingTopic)}
+        closeDisabled={blockingQuickSuggestionUi}
         dialogBackground="var(--color-surface)"
       >
         <div
@@ -618,28 +660,39 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             >
               Quick suggestions
             </div>
+            <p
+              style={{
+                margin: "0 0 10px",
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: "var(--color-text-muted)",
+              }}
+            >
+              One click fills the prompt below. Your merged list is stored in the browser on this device.
+            </p>
             <div
               className="ai-generate-suggestions-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))",
                 gap: 10,
                 paddingTop: 2,
               }}
             >
-              {suggestionPrompts.map((item) => {
-                const loadingChip = suggestionLoadingTopic === item;
-                const activeChip = selectedSuggestion === item || loadingChip;
-                const disabled = generating || Boolean(suggestionLoadingTopic);
+              {quickSuggestions.map((item) => {
+                const loadingChip = craftingQuickSuggestionId === item.id;
+                const activeChip = selectedQuickSuggestionId === item.id || loadingChip;
+                const disabled = blockingQuickSuggestionUi;
                 return (
                   <button
-                    key={item}
+                    key={item.id}
                     type="button"
-                    onClick={() => handleSuggestionTopic(item)}
+                    onClick={() => beginQuickSuggestion(item)}
                     disabled={disabled}
                     className={`ai-generate-suggestion-pill${activeChip ? " ai-generate-suggestion-pill--active" : ""}${
                       loadingChip ? " ai-generate-suggestion-pill--loading" : ""
                     }`}
+                    title={item.prompt}
                   >
                     {loadingChip ? (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -657,12 +710,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                         <span style={{ fontWeight: 600 }}>Crafting…</span>
                       </span>
                     ) : (
-                      <>
-                        {activeChip ? (
-                          <Icons.Sparkles size={12} strokeWidth={2} style={{ flexShrink: 0, color: "var(--color-primary)" }} aria-hidden />
-                        ) : null}
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
-                      </>
+                      <span style={{ fontWeight: 600, textAlign: "left" as const, display: "block" }}>{item.label}</span>
                     )}
                   </button>
                 );
@@ -685,10 +733,6 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             >
               Describe your ideal customer
             </label>
-            <p id="ai-lead-prompt-hint" className="ai-generate-hint">
-              Name the role, industry, region, and company size (e.g. 50–500 employees). More detail usually means better
-              matches. Max {AI_LEAD_PROMPT_MAX_CHARS} characters.
-            </p>
             <div
               style={{
                 borderRadius: 12,
@@ -704,14 +748,13 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 maxLength={AI_LEAD_PROMPT_MAX_CHARS}
                 onChange={(e) => {
                   setPrompt(e.target.value.slice(0, AI_LEAD_PROMPT_MAX_CHARS));
-                  if (selectedSuggestion) setSelectedSuggestion(null);
+                  if (selectedQuickSuggestionId) setSelectedQuickSuggestionId(null);
                   setError("");
                 }}
                 rows={4}
-                placeholder="Example: VP Marketing at B2B SaaS in North America, 50–200 employees, buying intent for sales tools"
-                disabled={generating || Boolean(suggestionLoadingTopic)}
+                placeholder="Example: VP Sales at B2B software firms in Dubai, 200–500 employees, selling to GCC enterprises"
+                disabled={blockingQuickSuggestionUi}
                 className="input ai-generate-prompt-textarea"
-                aria-describedby="ai-lead-prompt-hint"
                 style={{
                   width: "100%",
                   fontSize: 13,
@@ -750,7 +793,9 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     minWidth: 0,
                   }}
                 >
-                  {speechListening ? "Speak now — we're listening…" : "Tip: mention seniority, geography, and firmographics."}
+                  {speechListening
+                    ? "Speak now — we're listening…"
+                    : "Tip: say titles, industry, Dubai, and 200–500 employees."}
                 </span>
                 <span
                   className="ai-generate-char-count"
@@ -765,7 +810,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 <button
                   type="button"
                   onClick={() => void toggleSpeechInput()}
-                  disabled={!speechSupported || generating || Boolean(suggestionLoadingTopic)}
+                  disabled={!speechSupported || blockingQuickSuggestionUi}
                   aria-pressed={speechListening}
                   aria-label={speechListening ? "Stop voice input" : "Start voice input"}
                   title={
@@ -789,7 +834,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                     alignItems: "center",
                     justifyContent: "center",
                     cursor:
-                      !speechSupported || generating || suggestionLoadingTopic ? "not-allowed" : "pointer",
+                      !speechSupported || blockingQuickSuggestionUi ? "not-allowed" : "pointer",
                     opacity: !speechSupported ? 0.45 : 1,
                     transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
                     position: "relative",
@@ -840,7 +885,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             </div>
           ) : null}
 
-          {progress && !generating && !suggestionLoadingTopic ? (
+          {progress && !generating && !craftingQuickSuggestionId ? (
             <div
               style={{
                 padding: "10px 12px",
@@ -917,12 +962,15 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
             ) : null}
 
             <div className="ai-generate-primary-row">
-              <div className="ai-generate-qty-stepper" style={generating ? { opacity: 0.75 } : undefined}>
+              <div
+                className="ai-generate-qty-stepper"
+                style={blockingQuickSuggestionUi ? { opacity: 0.75 } : undefined}
+              >
                 <span className="ai-generate-qty-label">How many leads</span>
                 <button
                   type="button"
                   onClick={decrementCount}
-                  disabled={Boolean(suggestionLoadingTopic) || generating}
+                  disabled={blockingQuickSuggestionUi || count <= AI_LEAD_COUNT_MIN}
                   aria-label="Decrease lead count"
                   className="ai-generate-qty-btn"
                 >
@@ -932,7 +980,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 <button
                   type="button"
                   onClick={incrementCount}
-                  disabled={Boolean(suggestionLoadingTopic) || generating}
+                  disabled={blockingQuickSuggestionUi}
                   aria-label="Increase lead count"
                   className="ai-generate-qty-btn"
                 >
@@ -944,8 +992,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
                 className={`btn-primary ai-generate-generate-btn${generationComplete ? " ai-generate-success-cta" : ""}`}
                 onClick={() => void handleGenerate()}
                 disabled={
-                  generating ||
-                  Boolean(suggestionLoadingTopic) ||
+                  blockingQuickSuggestionUi ||
                   (!postGenSuccess && !prompt.trim()) ||
                   (!postGenSuccess && insufficientTokens)
                 }

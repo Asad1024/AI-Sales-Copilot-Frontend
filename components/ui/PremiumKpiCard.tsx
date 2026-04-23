@@ -9,8 +9,8 @@ import { computeSparklineTrendPct } from "@/lib/kpiStatsApi";
 
 const KPI_CARD_MIN_HEIGHT = 118;
 const KPI_CARD_MIN_HEIGHT_WITH_CHART = 162;
-/** ECharts canvas height (axes + plot) inside the chart well. */
-const KPI_CHART_HEIGHT = 52;
+/** ECharts canvas height (axes + plot) inside the chart well — room for 3 X + 3 Y tick labels. */
+const KPI_CHART_HEIGHT = 62;
 /** Matches the ~single-line 32px KPI headline so workspace + chart cards share the same chart offset. */
 const KPI_HEADLINE_SLOT_PX = 38;
 const KPI_TREND_ROW_MIN_PX = 16;

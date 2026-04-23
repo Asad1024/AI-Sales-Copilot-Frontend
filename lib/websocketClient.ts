@@ -55,6 +55,32 @@ function bindNotificationRelay(sock: Socket | null) {
   sock.on("notification", fanOutNotification);
 }
 
+export type CampaignLivePayload = {
+  campaign_id: number;
+  campaign_name: string;
+  base_id: number;
+};
+
+const campaignLiveListeners = new Set<(payload: CampaignLivePayload) => void>();
+
+function fanOutCampaignLive(raw: unknown) {
+  const p = raw as CampaignLivePayload;
+  if (!p || typeof p.campaign_id !== "number") return;
+  campaignLiveListeners.forEach((cb) => {
+    try {
+      cb(p);
+    } catch (e) {
+      console.error("[WebSocket] campaign:live listener error:", e);
+    }
+  });
+}
+
+function bindCampaignLiveRelay(sock: Socket | null) {
+  if (!sock) return;
+  sock.off("campaign:live", fanOutCampaignLive);
+  sock.on("campaign:live", fanOutCampaignLive);
+}
+
 /**
  * Get WebSocket URL from backend API
  * Uses WEBHOOK_BASE_URL from backend for consistency
@@ -98,6 +124,7 @@ export async function initializeWebSocket(): Promise<Socket | null> {
 
   if (socket?.connected) {
     bindNotificationRelay(socket);
+    bindCampaignLiveRelay(socket);
     syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
     return socket;
   }
@@ -105,6 +132,7 @@ export async function initializeWebSocket(): Promise<Socket | null> {
   /** Reuse the same client instance so `notification` listeners survive reconnects (do not orphan handlers with a second `io()`). */
   if (socket && !socket.connected) {
     bindNotificationRelay(socket);
+    bindCampaignLiveRelay(socket);
     socket.connect();
     return socket;
   }
@@ -131,11 +159,13 @@ export async function initializeWebSocket(): Promise<Socket | null> {
   });
 
   bindNotificationRelay(socket);
+  bindCampaignLiveRelay(socket);
 
   socket.on('connect', () => {
     console.log('[WebSocket] ✅ Connected to notification server');
     reconnectAttempts = 0;
     bindNotificationRelay(socket);
+    bindCampaignLiveRelay(socket);
     syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
   });
 
@@ -180,9 +210,11 @@ export function getWebSocket(): Socket | null {
 export function disconnectWebSocket() {
   if (socket) {
     socket.off("notification", fanOutNotification);
+    socket.off("campaign:live", fanOutCampaignLive);
     socket.disconnect();
     socket = null;
     notificationListeners.clear();
+    campaignLiveListeners.clear();
     console.log('[WebSocket] Disconnected');
   }
 }
@@ -202,6 +234,7 @@ export async function onNotification(callback: (notification: any) => void) {
   const s = await initializeWebSocket();
   if (s) {
     bindNotificationRelay(s);
+    bindCampaignLiveRelay(s);
   }
 }
 
@@ -214,5 +247,19 @@ export function offNotification(callback?: (notification: any) => void) {
     return;
   }
   notificationListeners.clear();
+}
+
+export async function onCampaignLive(callback: (payload: CampaignLivePayload) => void) {
+  campaignLiveListeners.add(callback);
+  const s = await initializeWebSocket();
+  if (s) bindCampaignLiveRelay(s);
+}
+
+export function offCampaignLive(callback?: (payload: CampaignLivePayload) => void) {
+  if (callback) {
+    campaignLiveListeners.delete(callback);
+    return;
+  }
+  campaignLiveListeners.clear();
 }
 

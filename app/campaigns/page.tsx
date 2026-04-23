@@ -14,14 +14,16 @@ import { CampaignStats } from "./components/CampaignStats";
 import { CampaignGrid } from "./components/CampaignGrid";
 import { TierBreakdown } from "./components/TierBreakdown";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { CampaignGridSkeleton, UiSkeleton } from "@/components/ui/AppSkeleton";
 
 const CAMPAIGNS_TIER_INSIGHTS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 export default function CampaignsPage() {
   const router = useRouter();
   const { activeBaseId, bases, refreshBases } = useBaseStore();
-  const isBootstrappingWorkspace = !activeBaseId && bases.length === 0;
+  const basesLoading = useBaseStore((s) => s.loading);
+  /** Only while `/bases` is loading — not when the user truly has zero workspaces (same as dashboard). */
+  const isBootstrappingWorkspace = Boolean(!activeBaseId && bases.length === 0 && basesLoading);
   const { pagination, setPagination } = useLeadStore();
   const {
     fetchCampaigns,
@@ -187,8 +189,19 @@ export default function CampaignsPage() {
           gap: 12,
           boxSizing: "border-box",
         }}
+        aria-busy="true"
+        aria-label="Loading campaigns"
       >
-        <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
+        <UiSkeleton height={44} width="100%" style={{ maxWidth: 560 }} radius={10} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton-page-card" style={{ minHeight: 118 }}>
+              <UiSkeleton height={10} width="50%" />
+              <UiSkeleton height={24} width="40%" style={{ marginTop: 10 }} />
+            </div>
+          ))}
+        </div>
+        <CampaignGridSkeleton count={4} />
       </div>
     );
   }
@@ -217,25 +230,6 @@ export default function CampaignsPage() {
             </button>
           }
         />
-      </div>
-    );
-  }
-
-  if (!campaignsPageReady) {
-    return (
-      <div
-        style={{
-          minHeight: "calc(100vh - 56px)",
-          width: "100%",
-          background: "var(--color-canvas)",
-          display: "flex",
-          flexDirection: "column",
-          padding: "8px clamp(10px, 1.25vw, 20px) 14px",
-          gap: 12,
-          boxSizing: "border-box",
-        }}
-      >
-        <GlobalPageLoader layout="embedded" minHeight={520} ariaLabel="Loading campaigns" />
       </div>
     );
   }
@@ -361,9 +355,26 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
-      <CampaignStats />
-      <TierBreakdown leadsForTiers={tierLeadsForInsights} />
-      <CampaignGrid campaigns={filteredCampaigns} allowCreateCampaign={!showNoLeadsBanner} />
+      {!campaignsPageReady ? (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton-page-card" style={{ minHeight: 118 }}>
+                <UiSkeleton height={10} width="50%" />
+                <UiSkeleton height={24} width="40%" style={{ marginTop: 10 }} />
+              </div>
+            ))}
+          </div>
+          <UiSkeleton height={120} width="100%" radius={14} />
+          <CampaignGridSkeleton count={6} />
+        </>
+      ) : (
+        <>
+          <CampaignStats />
+          <TierBreakdown leadsForTiers={tierLeadsForInsights} />
+          <CampaignGrid campaigns={filteredCampaigns} allowCreateCampaign={!showNoLeadsBanner} />
+        </>
+      )}
     </div>
   );
 }

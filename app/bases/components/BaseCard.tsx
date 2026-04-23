@@ -5,7 +5,7 @@ import { MoreVertical, Pencil, Share2, Trash2 } from "lucide-react";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { useNotification } from "@/context/NotificationContext";
 import { Icons } from "@/components/ui/Icons";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
 
 interface BaseCardProps {
   base: any;
@@ -151,11 +151,22 @@ export function BaseCard({
           pointerEvents: "none",
           cursor: "default",
           overflow: "hidden",
+          padding: "16px 18px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
         }}
         aria-busy="true"
         aria-label="Loading workspace"
       >
-        <GlobalPageLoader layout="embedded" minHeight={200} ariaLabel="Loading workspace" />
+        <UiSkeleton height={16} width="65%" />
+        <UiSkeleton height={12} width="40%" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 8 }}>
+          <UiSkeleton height={44} radius={8} />
+          <UiSkeleton height={44} radius={8} />
+          <UiSkeleton height={44} radius={8} />
+          <UiSkeleton height={44} radius={8} />
+        </div>
       </div>
     );
   }

@@ -81,7 +81,7 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "Verified email, phone, and complete lead profile",
           "Email campaigns — up to 30,000 sends",
           "AI-generated leads",
-          "25,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 500 characters per prompt)",
+          "25,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 300 characters per prompt)",
         ],
       },
       {
@@ -115,7 +115,7 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "LinkedIn outreach campaigns",
           "WhatsApp outreach campaigns",
           "AI-generated leads",
-          "75,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 500 characters per prompt)",
+          "75,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 300 characters per prompt)",
         ],
       },
       {
@@ -147,7 +147,7 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "LinkedIn outreach campaigns",
           "WhatsApp outreach campaigns",
           "AI-generated leads",
-          "150,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 500 characters per prompt)",
+          "150,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 300 characters per prompt)",
         ],
       },
       {

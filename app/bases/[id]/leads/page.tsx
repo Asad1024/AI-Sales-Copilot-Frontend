@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
@@ -16,10 +17,12 @@ import { useViewStore } from "@/stores/useViewStore";
 import { useBasePermissions } from "@/hooks/useBasePermissions";
 import { Icons } from "@/components/ui/Icons";
 import { LeadsImportEmptyGrid } from "@/app/leads/components/LeadsImportEmptyGrid";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { TableSkeletonRows, UiSkeleton } from "@/components/ui/AppSkeleton";
+import { DataRefreshIndicator } from "@/components/ui/DataRefreshIndicator";
+import { useLeadsStatsQuery } from "@/hooks/queries/leadsStatsQuery";
 import { leadHasAsyncContactEnrichResult } from "@/lib/contactEnrichmentStatus";
 import { PremiumKpiCard, PREMIUM_KPI_GRID_STYLE } from "@/components/ui/PremiumKpiCard";
-import { resolveKpiChartValues, type LeadsStatsResponse } from "@/lib/kpiStatsApi";
+import { resolveKpiChartValues } from "@/lib/kpiStatsApi";
 import { getPremiumKpiOverviewChartVariant } from "@/lib/kpiDashboardChartBatches";
 
 const EnhancedCsvImportModal = dynamic(() => import("@/components/leads/EnhancedCsvImportModal").then(m => ({ default: m.EnhancedCsvImportModal })), { ssr: false });
@@ -44,6 +47,7 @@ const AddManualLeadModal = dynamic(
 
 export default function BaseLeadsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useParams();
   const searchParams = useSearchParams();
   const baseId = params?.id ? parseInt(params.id as string) : null;
@@ -99,7 +103,6 @@ export default function BaseLeadsPage() {
   const enrichmentBannerStartedAtRef = useRef<number | null>(null);
   const [enrichmentBannerElapsedSec, setEnrichmentBannerElapsedSec] = useState(0);
   const [firstWorkspaceModalOpen, setFirstWorkspaceModalOpen] = useState(false);
-  const [leadsKpiStats, setLeadsKpiStats] = useState<LeadsStatsResponse | null>(null);
 
   const enrichmentQueueProgress = useMemo(() => {
     const ids = pendingEnrichmentLeadIds;
@@ -136,32 +139,18 @@ export default function BaseLeadsPage() {
 
   const filteredLeads = getFilteredLeads();
   const currentBaseId = baseId || activeBaseId;
+  const leadsStatsQuery = useLeadsStatsQuery(currentBaseId);
+  const showLeadsKpiSkeleton = Boolean(
+    currentBaseId && leadsStatsQuery.isPending && !leadsStatsQuery.data
+  );
+  const showLeadsStatsRefreshing = Boolean(
+    currentBaseId && leadsStatsQuery.isFetching && !leadsStatsQuery.isPending
+  );
   const showWelcomeHint = searchParams.get("welcome") === "1";
   const firstWorkspaceCelebration = searchParams.get("first_workspace") === "1";
-  useEffect(() => {
-    if (!currentBaseId) {
-      setLeadsKpiStats(null);
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const data = (await apiRequest(`/leads/stats?base_id=${currentBaseId}`)) as LeadsStatsResponse;
-        if (!cancelled) setLeadsKpiStats(data);
-      } catch {
-        if (!cancelled) setLeadsKpiStats(null);
-      }
-    };
-    void load();
-    const id = window.setInterval(load, 25000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [currentBaseId]);
 
   const leadsKpiRows = useMemo(() => {
-    const k = leadsKpiStats;
+    const k = leadsStatsQuery.data;
     const tlC = k?.totalLeads?.current ?? pagination.totalLeads;
     const clC = k?.contactedLeads?.current ?? 0;
     const enC = k?.enrichedLeads?.current ?? 0;
@@ -200,7 +189,7 @@ export default function BaseLeadsPage() {
         ),
       },
     ];
-  }, [leadsKpiStats, pagination.totalLeads]);
+  }, [leadsStatsQuery.data, pagination.totalLeads]);
 
   useEffect(() => {
     if (!baseId || !firstWorkspaceCelebration) return;
@@ -302,7 +291,8 @@ export default function BaseLeadsPage() {
     const targetPage = pag.totalLeads === 0 ? 1 : pag.currentPage;
     if (pag.totalLeads === 0) setPag({ currentPage: 1 });
     await fetchL(currentBaseId, targetPage, pag.leadsPerPage, true);
-  }, [currentBaseId, clearCache]);
+    void queryClient.invalidateQueries({ queryKey: ["leads-stats", currentBaseId] });
+  }, [currentBaseId, clearCache, queryClient]);
 
   const loadImportConnectors = useCallback(async () => {
     if (!currentBaseId) {
@@ -379,6 +369,7 @@ export default function BaseLeadsPage() {
         } finally {
           setEnrichmentRefreshing(false);
         }
+        void queryClient.invalidateQueries({ queryKey: ["leads-stats", currentBaseId] });
         showSuccess(
           "Enrich successfully",
           count > 0
@@ -392,7 +383,7 @@ export default function BaseLeadsPage() {
     return () => {
       window.removeEventListener("sparkai:enrichment-completed", onEnrichmentCompleted as EventListener);
     };
-  }, [currentBaseId, fetchLeads, clearCache, showSuccess, refreshBases]);
+  }, [currentBaseId, fetchLeads, clearCache, showSuccess, refreshBases, queryClient]);
 
   useEffect(() => {
     setPendingEnrichmentLeadIds([]);
@@ -486,6 +477,7 @@ export default function BaseLeadsPage() {
       await bulkDeleteLeads(ids);
       setSelectedLeads([]);
       await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
+      void queryClient.invalidateQueries({ queryKey: ["leads-stats", currentBaseId] });
       showSuccess("Deleted", `${ids.length} lead(s) removed.`);
     } catch (error: any) {
       showError("Delete failed", error?.message || "Could not delete leads.");
@@ -511,7 +503,8 @@ export default function BaseLeadsPage() {
       
       setSelectedLeads([]);
       await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
-      
+      void queryClient.invalidateQueries({ queryKey: ["leads-stats", currentBaseId] });
+
       if (errorCount > 0) {
         showWarning("Partial update", `${successCount} updated, ${errorCount} failed.`);
       } else {
@@ -606,18 +599,41 @@ export default function BaseLeadsPage() {
         </div>
       )}
 
-      <div style={PREMIUM_KPI_GRID_STYLE}>
-        {leadsKpiRows.map((stat, i) => (
-          <PremiumKpiCard
-            key={stat.label}
-            title={stat.label}
-            value={stat.value}
-            note={stat.hint}
-            icon={stat.icon}
-            sparklineValues={stat.sparkline}
-            echartsVariant={getPremiumKpiOverviewChartVariant(i)}
-          />
-        ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+        {showLeadsStatsRefreshing ? (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <DataRefreshIndicator show />
+          </div>
+        ) : null}
+        {showLeadsKpiSkeleton ? (
+          <div style={PREMIUM_KPI_GRID_STYLE} aria-busy="true" aria-label="Loading lead metrics">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="skeleton-page-card"
+                style={{ minHeight: 118, display: "flex", flexDirection: "column", gap: 8 }}
+              >
+                <UiSkeleton height={10} width="50%" />
+                <UiSkeleton height={22} width="35%" />
+                <UiSkeleton height={40} width="100%" style={{ marginTop: "auto" }} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={PREMIUM_KPI_GRID_STYLE}>
+            {leadsKpiRows.map((stat, i) => (
+              <PremiumKpiCard
+                key={stat.label}
+                title={stat.label}
+                value={stat.value}
+                note={stat.hint}
+                icon={stat.icon}
+                sparklineValues={stat.sparkline}
+                echartsVariant={getPremiumKpiOverviewChartVariant(i)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Enrichment in progress */}
@@ -707,11 +723,11 @@ export default function BaseLeadsPage() {
         >
           {loading || permissionsLoading ? (
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 4px" }}>
-              <GlobalPageLoader layout="embedded" fill ariaLabel="Loading leads" />
+              <TableSkeletonRows rows={10} />
             </div>
           ) : enrichmentRefreshing ? (
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 4px" }}>
-              <GlobalPageLoader layout="embedded" fill ariaLabel="Loading leads" />
+              <TableSkeletonRows rows={6} />
             </div>
           ) : leads.length === 0 ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 16px" }}>

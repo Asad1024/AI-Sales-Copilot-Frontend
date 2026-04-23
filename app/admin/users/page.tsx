@@ -627,7 +627,7 @@ export default function AdminUsersPage() {
           <div>
             <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
               1 token = 1 character deducted from the user&apos;s balance after a successful AI lead generation (when at
-              least one lead is saved). Max prompt length in the product is 500 characters per run.
+              least one lead is saved). Max prompt length in the product is 300 characters per run.
             </p>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Token balance</label>
             <input

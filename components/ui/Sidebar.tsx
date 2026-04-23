@@ -117,20 +117,41 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, [onClose]);
 
+  const pathNorm = pathname ? pathname.split("?")[0].replace(/\/+$/, "") || "/" : "/";
+
   const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    if (href.includes("/companies")) return Boolean(pathname?.includes("/companies"));
-    if (href.startsWith("/bases/") && href.includes("/leads"))
-      return Boolean(pathname?.startsWith("/bases/") && pathname.includes("/leads"));
-    /** Workspaces list / base home — not /bases/:id/leads, /bases/:id/companies, etc. */
-    if (href === "/bases") {
-      if (!pathname?.startsWith("/bases")) return false;
-      if (pathname === "/bases") return true;
-      const rest = pathname.slice("/bases".length);
-      const segments = rest.replace(/^\//, "").split("/").filter(Boolean);
-      return segments.length === 1;
+    if (!pathname) return false;
+    const norm = pathNorm;
+
+    if (href === "/dashboard") return norm === "/dashboard";
+
+    /** Companies: hub `/companies` or workspace route `/bases/:id/companies`. */
+    if (href === "/companies") return norm === "/companies";
+    if (href.includes("/companies")) {
+      return /^\/bases\/[^/]+\/companies$/.test(norm);
     }
-    return Boolean(pathname?.startsWith(href) && href !== "/");
+
+    if (href.startsWith("/bases/") && href.includes("/leads")) {
+      return norm.startsWith("/bases/") && norm.includes("/leads");
+    }
+
+    /**
+     * Workspaces: list `/bases` or workspace shell `/bases/:id` only — not leads, companies, schema, etc.
+     */
+    if (href === "/bases") {
+      if (!norm.startsWith("/bases")) return false;
+      if (norm === "/bases") return true;
+      return /^\/bases\/[^/]+$/.test(norm);
+    }
+
+    return Boolean(norm.startsWith(href) && href !== "/");
+  };
+
+  const isNavItemActive = (item: NavItem): boolean => {
+    if (item.tour === "companies-link") {
+      return pathNorm === "/companies" || /^\/bases\/[^/]+\/companies$/.test(pathNorm);
+    }
+    return isActive(item.href);
   };
 
   const dashboardNav: NavItem[] = [
@@ -147,7 +168,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     { href: "/campaigns", label: "Campaigns", icon: <Icons.Send size={iconSize} strokeWidth={1.9} />, tour: "campaigns-link" },
     {
-      href: activeBaseId ? `/bases/${activeBaseId}/companies` : "/bases",
+      href: activeBaseId ? `/bases/${activeBaseId}/companies` : "/companies",
       label: "Companies",
       icon: <Building2 size={iconSize} strokeWidth={1.75} />,
       tour: "companies-link",
@@ -181,7 +202,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const renderNavItems = (items: NavItem[]) =>
     items.map((item) => {
-      const active = isActive(item.href);
+      const active = isNavItemActive(item);
       const link = (
         <Link
           href={item.href}
@@ -236,14 +257,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </Link>
       );
 
+      const navKey = item.tour ?? item.href;
       if (collapsed && !isMobile) {
         return (
-          <CollapsedHoverTip key={item.href} label={item.label}>
+          <CollapsedHoverTip key={navKey} label={item.label}>
             {link}
           </CollapsedHoverTip>
         );
       }
-      return <span key={item.href}>{link}</span>;
+      return <span key={navKey}>{link}</span>;
     });
 
   return (

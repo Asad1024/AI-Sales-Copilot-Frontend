@@ -56,6 +56,10 @@ import {
 import { useNotification } from "@/context/NotificationContext";
 import { buildCampaignDraftPayload } from "./buildCampaignDraftPayload";
 import {
+  campaignScheduleFieldToUtcIso,
+  formatScheduleWindowMs,
+} from "@/lib/campaignScheduleUtc";
+import {
   filterChannelsForWorkspaceOwnerPlan,
   isEmailOnlyWorkspacePlan,
 } from "@/lib/subscriptionPlanCaps";
@@ -1492,6 +1496,14 @@ export default function CampaignNew() {
   const [systemPersonaCustomBrief, setSystemPersonaCustomBrief] = useState("");
   /** Collapsed “Generate with AI” trigger until the user opens the generator panel. */
   const [systemPersonaAiExpanded, setSystemPersonaAiExpanded] = useState(false);
+
+  /** When KB upload / AI KB returns `suggestedSystemPersona`, align Assistant style and skip ElevenLabs prefill. */
+  const applyKbDerivedSystemPersona = useCallback((raw: unknown) => {
+    const t = typeof raw === "string" ? raw.trim() : "";
+    if (!t) return;
+    setSystemPersona(t);
+    callSystemPersonaElFetchFinishedRef.current = true;
+  }, []);
 
   // Test call state
   const [testCallPhoneNumber, setTestCallPhoneNumber] = useState("");
@@ -3101,20 +3113,93 @@ export default function CampaignNew() {
   // Unique leads across selected segments (avoids double-counting when a lead matches multiple segments)
   const totalLeads = useMemo(() => selectedLeadIds.size, [selectedLeadIds]);
 
-  // Calculate campaign duration in days (scheduled: start→end; immediate launch: now→end)
-  const campaignDays = useMemo(() => {
-    if (!schedule.end) return 0;
-    const end = new Date(schedule.end);
-    if (schedule.launch_now) {
-      const startRef = new Date();
-      if (end <= startRef) return 0;
-      return Math.ceil((end.getTime() - startRef.getTime()) / (1000 * 60 * 60 * 24));
+  /** Non-empty start means "schedule for later" even if `launch_now` is stale true. */
+  const scheduleTiming = useMemo(() => {
+    const hasStart = Boolean(String(schedule.start ?? "").trim());
+    const launchImmediate = Boolean(schedule.launch_now) && !hasStart;
+    if (!schedule.end) {
+      return {
+        campaignDays: 0,
+        labelScheduled: null as string | null,
+        labelImmediate: null as string | null,
+        hasStart,
+        launchImmediate,
+        hasScheduleWindow: false,
+      };
     }
-    if (!schedule.start) return 0;
-    const start = new Date(schedule.start);
-    if (end <= start) return 0;
-    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const endMs = new Date(schedule.end).getTime();
+    if (Number.isNaN(endMs)) {
+      return {
+        campaignDays: 0,
+        labelScheduled: null,
+        labelImmediate: null,
+        hasStart,
+        launchImmediate,
+        hasScheduleWindow: false,
+      };
+    }
+    if (hasStart) {
+      const startMs = new Date(schedule.start).getTime();
+      if (Number.isNaN(startMs) || endMs <= startMs) {
+        return {
+          campaignDays: 0,
+          labelScheduled: null,
+          labelImmediate: null,
+          hasStart,
+          launchImmediate,
+          hasScheduleWindow: false,
+        };
+      }
+      const campaignDays = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24));
+      return {
+        campaignDays,
+        labelScheduled: formatScheduleWindowMs(startMs, endMs),
+        labelImmediate: null,
+        hasStart,
+        launchImmediate,
+        hasScheduleWindow: true,
+      };
+    }
+    if (launchImmediate) {
+      const startMs = Date.now();
+      if (endMs <= startMs) {
+        return {
+          campaignDays: 0,
+          labelScheduled: null,
+          labelImmediate: null,
+          hasStart,
+          launchImmediate,
+          hasScheduleWindow: false,
+        };
+      }
+      const campaignDays = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24));
+      return {
+        campaignDays,
+        labelScheduled: null,
+        labelImmediate: `${formatScheduleWindowMs(startMs, endMs)} (from now)`,
+        hasStart,
+        launchImmediate,
+        hasScheduleWindow: true,
+      };
+    }
+    return {
+      campaignDays: 0,
+      labelScheduled: null,
+      labelImmediate: null,
+      hasStart,
+      launchImmediate,
+      hasScheduleWindow: false,
+    };
   }, [schedule.start, schedule.end, schedule.launch_now]);
+
+  const campaignDays = scheduleTiming.campaignDays;
+  const scheduleDurationLabelScheduled = scheduleTiming.labelScheduled;
+  const scheduleDurationLabelImmediate = scheduleTiming.labelImmediate;
+  const scheduleLaunchImmediate = scheduleTiming.launchImmediate;
+  const campaignWindowHumanForCopy =
+    scheduleDurationLabelScheduled ??
+    scheduleDurationLabelImmediate?.replace(/ \(from now\)$/, "") ??
+    (campaignDays > 0 ? `${campaignDays} day${campaignDays !== 1 ? "s" : ""}` : null);
 
   // Fetch LinkedIn account type to determine max throttle
   useEffect(() => {
@@ -3161,9 +3246,7 @@ export default function CampaignNew() {
 
   // Calculate throttle recommendations
   useEffect(() => {
-    const hasScheduleWindow = schedule.launch_now
-      ? !!schedule.end
-      : !!(schedule.start && schedule.end);
+    const hasScheduleWindow = scheduleTiming.hasScheduleWindow;
     if (!hasScheduleWindow || totalLeads === 0 || campaignDays === 0) {
       setRecommendedEmailThrottle(null);
       setRecommendedLinkedInThrottle(null);
@@ -3209,6 +3292,7 @@ export default function CampaignNew() {
       setRecommendedLinkedInThrottle(null);
     }
   }, [
+    scheduleTiming.hasScheduleWindow,
     schedule.start,
     schedule.end,
     schedule.launch_now,
@@ -3224,10 +3308,7 @@ export default function CampaignNew() {
   const callThrottleMax = SCHEDULE_DAILY_LIMIT_MAX;
   const linkedinSliderMax = SCHEDULE_DAILY_LIMIT_MAX;
 
-  const scheduleHasWindowForRec = useMemo(
-    () => (schedule.launch_now ? !!schedule.end : !!(schedule.start && schedule.end)),
-    [schedule.launch_now, schedule.start, schedule.end]
-  );
+  const scheduleHasWindowForRec = scheduleTiming.hasScheduleWindow;
 
   // Auto-apply recommendations when they change (only if not manually set)
   useEffect(() => {
@@ -3423,7 +3504,7 @@ export default function CampaignNew() {
       const cleanedQuestions = kbAiQuestions.map((q) =>
         q.replace(/\s*\(optional\)\s*$/i, "").trim()
       );
-      const res = await apiRequest(`/campaigns/${campaignId}/knowledge-base/ai-generate-pdf`, {
+      const res = (await apiRequest(`/campaigns/${campaignId}/knowledge-base/ai-generate-pdf`, {
         method: "POST",
         body: JSON.stringify({
           suggestionId: kbAiSuggestionId,
@@ -3431,7 +3512,7 @@ export default function CampaignNew() {
           answers: kbAiAnswers.map((a, i) => a || `(No answer for: ${cleanedQuestions[i]?.slice(0, 40)}…)`),
           ...(kbAiUserTopic ? { userTopic: kbAiUserTopic } : {}),
         }),
-      });
+      })) as { file?: { id?: number | string; name?: string; uploadedAt?: string; size?: number }; suggestedSystemPersona?: string };
       const f = res.file;
       if (f?.id) {
         setKnowledgeBaseFiles([
@@ -3442,6 +3523,13 @@ export default function CampaignNew() {
             sizeBytes: typeof f.size === "number" ? f.size : undefined,
           },
         ]);
+      }
+      applyKbDerivedSystemPersona(res.suggestedSystemPersona);
+      if (!String(res.suggestedSystemPersona ?? "").trim()) {
+        showWarning(
+          "Assistant style not auto-filled",
+          "We could not build a prompt from this document. Check OpenAI credentials, or edit the Assistant step manually."
+        );
       }
       setKbAiUserTopic(null);
       setKbAiOpen(false);
@@ -3513,6 +3601,7 @@ export default function CampaignNew() {
 
       const data = await new Promise<{
         file?: { id?: number | string; uploadedAt?: string; size?: number };
+        suggestedSystemPersona?: string;
       }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", url);
@@ -3529,6 +3618,7 @@ export default function CampaignNew() {
             const parsed = JSON.parse(xhr.responseText || "{}") as {
               error?: string;
               file?: { id?: number | string; uploadedAt?: string; size?: number };
+              suggestedSystemPersona?: string;
             };
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve(parsed);
@@ -3548,6 +3638,13 @@ export default function CampaignNew() {
         typeof data.file?.size === "number" ? data.file.size : file.size;
       const uploadedAt = data.file?.uploadedAt || new Date().toISOString();
       setKnowledgeBaseFiles([{ id: idStr, name: file.name, uploadedAt, sizeBytes }]);
+      applyKbDerivedSystemPersona(data.suggestedSystemPersona);
+      if (!String(data.suggestedSystemPersona ?? "").trim()) {
+        showWarning(
+          "Assistant style not auto-filled",
+          "We could not build a prompt from this PDF (often image-only scans, or no OpenAI key). Add OPENAI_API_KEY or OpenAI in API credentials, try a text-based PDF, or write the Assistant step yourself."
+        );
+      }
     } catch (error: unknown) {
       console.error("File upload error:", error);
       setUploadError(error instanceof Error ? error.message : "Failed to upload file. Please try again.");
@@ -6433,6 +6530,25 @@ export default function CampaignNew() {
       {currentStepInfo?.stepType === 'email_templates' && followupsPreferenceSet && (
         <div style={{ display: "grid", gap: 14 }}>
           <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Email drafts</h3>
+          {nextStepValidationError ? (
+            <div
+              role="alert"
+              style={{
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: "1px solid color-mix(in srgb, #b91c1c 35%, var(--color-border))",
+                background: "color-mix(in srgb, #fef2f2 92%, var(--color-surface))",
+                color: "var(--color-text)",
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ display: "block", marginBottom: 6, color: "#991b1b" }}>
+                Fix this before continuing
+              </strong>
+              {nextStepValidationError}
+            </div>
+          ) : null}
           <div
             style={{
               display: "flex",
@@ -7103,6 +7219,25 @@ export default function CampaignNew() {
         linkedInStepConfig && (
           <div style={{ display: "grid", gap: 14 }}>
             <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>LinkedIn drafts</h3>
+            {nextStepValidationError ? (
+              <div
+                role="alert"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  border: "1px solid color-mix(in srgb, #b91c1c 35%, var(--color-border))",
+                  background: "color-mix(in srgb, #fef2f2 92%, var(--color-surface))",
+                  color: "var(--color-text)",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong style={{ display: "block", marginBottom: 6, color: "#991b1b" }}>
+                  Fix this before continuing
+                </strong>
+                {nextStepValidationError}
+              </div>
+            ) : null}
 
             <div
               style={{
@@ -7976,6 +8111,25 @@ export default function CampaignNew() {
       {currentStepInfo?.stepType === "whatsapp_templates" && (
         <div style={{ display: "grid", gap: 14 }}>
           <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>WhatsApp drafts</h3>
+          {nextStepValidationError ? (
+            <div
+              role="alert"
+              style={{
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: "1px solid color-mix(in srgb, #b91c1c 35%, var(--color-border))",
+                background: "color-mix(in srgb, #fef2f2 92%, var(--color-surface))",
+                color: "var(--color-text)",
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ display: "block", marginBottom: 6, color: "#991b1b" }}>
+                Fix this before continuing
+              </strong>
+              {nextStepValidationError}
+            </div>
+          ) : null}
           <div
             style={{
               display: "flex",
@@ -9675,10 +9829,10 @@ Use placeholders only from supported fields:
                     type="datetime-local"
                     value={schedule.end}
                     onChange={(e) => setSchedule({ ...schedule, end: e.target.value })}
-                    min={schedule.launch_now ? undefined : schedule.start || undefined}
+                    min={scheduleLaunchImmediate ? undefined : schedule.start || undefined}
                     required
                   />
-                  {!schedule.launch_now && schedule.start && schedule.end && (
+                  {schedule.start && schedule.end && (
                     <div
                       style={{
                         marginTop: 8,
@@ -9694,17 +9848,15 @@ Use placeholders only from supported fields:
                           <AlertCircle size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#ef4444" }} />
                           <span style={{ color: "#dc2626" }}>End date must be after start date</span>
                         </>
-                      ) : (
+                      ) : scheduleDurationLabelScheduled ? (
                         <>
                           <Clock size={14} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.85 }} />
-                          <span>
-                            Campaign duration: {campaignDays} day{campaignDays !== 1 ? "s" : ""}
-                          </span>
+                          <span>Campaign duration: {scheduleDurationLabelScheduled}</span>
                         </>
-                      )}
+                      ) : null}
                     </div>
                   )}
-                  {schedule.launch_now && schedule.end && (
+                  {scheduleLaunchImmediate && schedule.end && (
                     <div
                       style={{
                         marginTop: 8,
@@ -9720,12 +9872,10 @@ Use placeholders only from supported fields:
                           <AlertCircle size={14} strokeWidth={2} style={{ flexShrink: 0, color: "#ef4444" }} />
                           <span style={{ color: "#dc2626" }}>End date must be in the future</span>
                         </>
-                      ) : campaignDays > 0 ? (
+                      ) : scheduleDurationLabelImmediate ? (
                         <>
                           <Clock size={14} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.85 }} />
-                          <span>
-                            Campaign duration: {campaignDays} day{campaignDays !== 1 ? "s" : ""} (from now)
-                          </span>
+                          <span>Campaign duration: {scheduleDurationLabelImmediate}</span>
                         </>
                       ) : null}
                     </div>
@@ -9928,7 +10078,7 @@ Use placeholders only from supported fields:
                           </p>
                           <p style={{ margin: "10px 0 0" }}>
                             <strong style={{ color: "var(--color-text)" }}>Campaign capacity:</strong> With{" "}
-                            {campaignDays} day{campaignDays !== 1 ? "s" : ""}, you can reach up to{" "}
+                            {campaignWindowHumanForCopy ?? "your campaign window"}, you can reach up to{" "}
                             {Math.min(totalLeads, linkedInMonthlyLimit)} of {totalLeads} lead
                             {totalLeads !== 1 ? "s" : ""} (max {linkedInMonthlyLimit} / month).
                           </p>
@@ -10418,7 +10568,7 @@ Use placeholders only from supported fields:
                     <div>
                       <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 6 }}>Start Date</div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>
-                        {schedule.launch_now
+                        {scheduleLaunchImmediate
                           ? "Immediately on launch"
                           : schedule.start
                             ? new Date(schedule.start).toLocaleString()
@@ -10432,12 +10582,10 @@ Use placeholders only from supported fields:
                       </div>
                     </div>
                   </div>
-                  {((schedule.launch_now && schedule.end) || (schedule.start && schedule.end)) && campaignDays > 0 ? (
+                  {scheduleTiming.hasScheduleWindow && campaignWindowHumanForCopy ? (
                     <div>
                       <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 6 }}>Campaign Duration</div>
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>
-                        {campaignDays} day{campaignDays !== 1 ? "s" : ""}
-                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>{campaignWindowHumanForCopy}</div>
                     </div>
                   ) : null}
                   <div style={{ display: "grid", gap: 12 }}>
@@ -11502,8 +11650,8 @@ Use placeholders only from supported fields:
                   </div>
                   <div className="text-hint" style={{ fontSize: 13, marginTop: 2 }}>
                     {totalLeads} unique lead{totalLeads !== 1 ? "s" : ""}
-                    {((schedule.launch_now && schedule.end) || (schedule.start && schedule.end)) && campaignDays > 0
-                      ? ` · ${campaignDays} day${campaignDays !== 1 ? "s" : ""} window`
+                    {scheduleTiming.hasScheduleWindow && campaignWindowHumanForCopy
+                      ? ` · ${campaignWindowHumanForCopy} window`
                       : null}
                   </div>
                 </div>
@@ -13353,7 +13501,7 @@ Use placeholders only from supported fields:
                   padding: "12px 16px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 10,
+                  gap: 12,
                   overflow: "hidden",
                 }}
               >
@@ -13385,86 +13533,112 @@ Use placeholders only from supported fields:
                     minHeight: 0,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 4,
+                    gap: 10,
+                    overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
                   }}
                 >
-                  <label htmlFor={`email-wizard-ai-edit-body-${idx}`} style={WIZ_EDIT_LABEL}>
-                    Email body
-                  </label>
-                  <textarea
-                    ref={wizardEditBodyRef}
-                    id={`email-wizard-ai-edit-body-${idx}`}
-                    className="input"
-                    value={body}
-                    onFocus={() => {
-                      wizardEditInsertTargetRef.current = "body";
-                    }}
-                    onChange={(e) => {
-                      const copy = [...messages];
-                      copy[idx] = formatMessage(subject, e.target.value);
-                      setMessages(copy);
-                    }}
-                    placeholder="Email body…"
-                    style={{
-                      ...WIZ_EDIT_FIELD,
-                      flex: 1,
-                      minHeight: 100,
-                      resize: "none",
-                      overflowY: "auto",
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                    <label htmlFor={`email-wizard-ai-edit-body-${idx}`} style={WIZ_EDIT_LABEL}>
+                      Email body
+                    </label>
+                    <textarea
+                      ref={wizardEditBodyRef}
+                      id={`email-wizard-ai-edit-body-${idx}`}
+                      className="input"
+                      value={body}
+                      onFocus={() => {
+                        wizardEditInsertTargetRef.current = "body";
+                      }}
+                      onChange={(e) => {
+                        const copy = [...messages];
+                        copy[idx] = formatMessage(subject, e.target.value);
+                        setMessages(copy);
+                      }}
+                      placeholder="Email body…"
+                      style={{
+                        ...WIZ_EDIT_FIELD,
+                        minHeight: 200,
+                        maxHeight: "min(42vh, 360px)",
+                        resize: "vertical",
+                        overflowY: "auto",
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                  <WizardEditVariableRow
+                    tokens={CAMPAIGN_TEMPLATE_VARIABLES}
+                    hint="Click in subject or body, then tap a variable to insert it."
+                    onInsert={(tok) => {
+                      const slot = wizardEditInsertTargetRef.current;
+                      if (slot === "subject") {
+                        insertTokenInField(wizardEditSubjectRef.current, subject, tok, (next) => {
+                          const copy = [...messages];
+                          copy[idx] = formatMessage(next, body);
+                          setMessages(copy);
+                        });
+                      } else {
+                        insertTokenInField(wizardEditBodyRef.current, body, tok, (next) => {
+                          const copy = [...messages];
+                          copy[idx] = formatMessage(subject, next);
+                          setMessages(copy);
+                        });
+                      }
                     }}
                   />
-                </div>
-                <WizardEditVariableRow
-                  tokens={CAMPAIGN_TEMPLATE_VARIABLES}
-                  hint="Click in subject or body, then insert a variable."
-                  onInsert={(tok) => {
-                    const slot = wizardEditInsertTargetRef.current;
-                    if (slot === "subject") {
-                      insertTokenInField(wizardEditSubjectRef.current, subject, tok, (next) => {
-                        const copy = [...messages];
-                        copy[idx] = formatMessage(next, body);
-                        setMessages(copy);
-                      });
-                    } else {
-                      insertTokenInField(wizardEditBodyRef.current, body, tok, (next) => {
-                        const copy = [...messages];
-                        copy[idx] = formatMessage(subject, next);
-                        setMessages(copy);
-                      });
-                    }
-                  }}
-                />
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: 8,
-                    flexShrink: 0,
-                    paddingTop: 2,
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="btn-dashboard-outline focus-ring"
-                    disabled={
-                      regeneratingEmailSlot === idx ||
-                      !channels.includes("email") ||
-                      !activeBaseId ||
-                      emailDraftFetchState !== "idle"
-                    }
+                  <div
                     style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: "8px 14px",
-                      borderRadius: 10,
-                      display: "inline-flex",
+                      display: "flex",
+                      justifyContent: "space-between",
                       alignItems: "center",
-                      gap: 8,
-                      color: WIZ_ACCENT,
+                      flexWrap: "wrap",
+                      gap: 10,
+                      flexShrink: 0,
+                      paddingTop: 4,
                     }}
-                    onClick={async () => {
+                  >
+                    <button
+                      type="button"
+                      className="focus-ring"
+                      disabled={
+                        regeneratingEmailSlot === idx ||
+                        !channels.includes("email") ||
+                        !activeBaseId ||
+                        emailDraftFetchState !== "idle"
+                      }
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        border: `1px solid ${WIZ_ACCENT}`,
+                        background: "var(--color-surface)",
+                        color:
+                          regeneratingEmailSlot === idx ||
+                          !channels.includes("email") ||
+                          !activeBaseId ||
+                          emailDraftFetchState !== "idle"
+                            ? "var(--color-text-muted)"
+                            : WIZ_ACCENT,
+                        cursor:
+                          regeneratingEmailSlot === idx ||
+                          !channels.includes("email") ||
+                          !activeBaseId ||
+                          emailDraftFetchState !== "idle"
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity:
+                          regeneratingEmailSlot === idx ||
+                          !channels.includes("email") ||
+                          !activeBaseId ||
+                          emailDraftFetchState !== "idle"
+                            ? 0.75
+                            : 1,
+                      }}
+                      onClick={async () => {
                       if (!channels.includes("email") || !activeBaseId) return;
                       const sampleLeads = selectedLeadsForSamples.slice(0, 3);
                       setRegeneratingEmailSlot(idx);
@@ -13510,7 +13684,19 @@ Use placeholders only from supported fields:
                       </span>
                     ) : (
                       <>
-                        <Icons.Mail size={14} strokeWidth={1.75} style={{ color: WIZ_CHANNEL_EMAIL }} />
+                        <Icons.Mail
+                          size={14}
+                          strokeWidth={1.75}
+                          style={{
+                            color:
+                              regeneratingEmailSlot === idx ||
+                              !channels.includes("email") ||
+                              !activeBaseId ||
+                              emailDraftFetchState !== "idle"
+                                ? "var(--color-text-muted)"
+                                : WIZ_CHANNEL_EMAIL,
+                          }}
+                        />
                         Re-generate this email
                       </>
                     )}
@@ -13519,6 +13705,7 @@ Use placeholders only from supported fields:
                     ~{countEmailWords(body)} words
                   </span>
                 </div>
+              </div>
               </div>
               <div
                 style={{
@@ -15584,11 +15771,16 @@ Use placeholders only from supported fields:
                         body: JSON.stringify({
                           launch_now: schedule.launch_now || false,
                           schedule: {
-                            start: schedule.start || null,
-                            end: schedule.end || null,
-                            launch_now: schedule.launch_now || false
-                          }
-                        })
+                            start: schedule.launch_now
+                              ? null
+                              : campaignScheduleFieldToUtcIso(schedule.start),
+                            end: campaignScheduleFieldToUtcIso(schedule.end),
+                            launch_now: schedule.launch_now || false,
+                            ...(schedule.timezone?.trim()
+                              ? { timezone: schedule.timezone.trim() }
+                              : {}),
+                          },
+                        }),
                       });
                     } catch (error: any) {
                       // If launch fails, show detailed error message

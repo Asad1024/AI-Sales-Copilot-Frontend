@@ -68,7 +68,7 @@ export default function LandingMarketingNav({
     const id = activeBaseId != null ? String(activeBaseId) : "";
     return {
       leadsHref: id ? `/bases/${id}/leads` : "/leads",
-      companiesHref: id ? `/bases/${id}/companies` : "/bases",
+      companiesHref: id ? `/bases/${id}/companies` : "/companies",
     };
   }, [activeBaseId]);
 

@@ -236,19 +236,26 @@ export default function CampaignCard({
   const statusMeta = getStatusMeta(campaign.status);
   const actualLeadCount = campaign.leads || 0;
   const calculatedOpenRate = campaign.sent && campaign.opened ? ((campaign.opened / campaign.sent) * 100).toFixed(1) : null;
-  const calculatedReplyRate = campaign.sent && campaign.replied ? ((campaign.replied / campaign.sent) * 100).toFixed(1) : null;
+  const calculatedClickRate =
+    campaign.sent && (campaign.clicked ?? 0) > 0
+      ? (((campaign.clicked ?? 0) / campaign.sent) * 100).toFixed(1)
+      : null;
   const ChannelIcon = getChannelIcon(campaign.channel);
   const openDisplay = calculatedOpenRate ? `${calculatedOpenRate}%` : campaign.openRate ? `${campaign.openRate}%` : "—";
-  const replyDisplay =
-    campaign.channel === "whatsapp"
-      ? campaign.replied && calculatedReplyRate
-        ? `${calculatedReplyRate}%`
-        : "—"
-      : calculatedReplyRate
-        ? `${calculatedReplyRate}%`
-        : campaign.replyRate
-          ? `${campaign.replyRate}%`
-          : "—";
+  const clickDisplay = calculatedClickRate
+    ? `${calculatedClickRate}%`
+    : campaign.clickRate != null && Number.isFinite(Number(campaign.clickRate))
+      ? `${Number(campaign.clickRate).toFixed(1)}%`
+      : "—";
+  /** WhatsApp cards: read rate from provider metrics (replaces former reply slot). */
+  const whatsappReadDisplay =
+    typeof campaign.whatsapp_read_rate === "string" && campaign.whatsapp_read_rate.trim()
+      ? campaign.whatsapp_read_rate.includes("%")
+        ? campaign.whatsapp_read_rate.trim()
+        : `${campaign.whatsapp_read_rate.trim()}%`
+      : campaign.whatsapp_sent && (campaign.whatsapp_seen ?? 0) > 0
+        ? `${((Number(campaign.whatsapp_seen) / Number(campaign.whatsapp_sent)) * 100).toFixed(1)}%`
+        : "—";
 
   const campaignChannelsOrdered = orderedCampaignChannels(campaign);
 
@@ -271,7 +278,9 @@ export default function CampaignCard({
         value: campaign.channel === "whatsapp" ? String(campaign.sent ?? "—") : String(campaign.sent ?? 0),
       },
       ...(campaign.channel !== "whatsapp" ? [{ label: "Open", value: openDisplay }] : []),
-      { label: "Reply", value: replyDisplay },
+      campaign.channel === "whatsapp"
+        ? { label: "Read", value: whatsappReadDisplay }
+        : { label: "Click", value: clickDisplay },
     ];
     const metricGridCols =
       campaign.channel === "whatsapp" ? "repeat(3, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))";
@@ -710,7 +719,9 @@ export default function CampaignCard({
         {metricCell(<Icons.Users size={sc.metricIconGlyph} strokeWidth={1.5} />, "Leads", leadsMetricValue)}
         {metricCell(<Icons.Send size={sc.metricIconGlyph} strokeWidth={1.5} />, "Sent", campaign.channel === "whatsapp" ? String(campaign.sent ?? "—") : String(campaign.sent ?? 0))}
         {campaign.channel !== "whatsapp" && metricCell(<Icons.Mail size={sc.metricIconGlyph} strokeWidth={1.5} />, "Open", openDisplay)}
-        {metricCell(<Icons.MessageCircle size={sc.metricIconGlyph} strokeWidth={1.5} />, "Reply", replyDisplay)}
+        {campaign.channel === "whatsapp"
+          ? metricCell(<Icons.Eye size={sc.metricIconGlyph} strokeWidth={1.5} />, "Read", whatsappReadDisplay)
+          : metricCell(<Icons.ExternalLink size={sc.metricIconGlyph} strokeWidth={1.5} />, "Click", clickDisplay)}
       </div>
 
       <div

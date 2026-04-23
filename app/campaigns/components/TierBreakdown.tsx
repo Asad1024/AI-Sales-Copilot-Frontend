@@ -5,7 +5,7 @@ import { useBaseStore } from "@/stores/useBaseStore";
 import { apiRequest } from "@/lib/apiClient";
 import { getEmailInfo, getEmailDisplayText } from "@/utils/emailNormalization";
 import { TierCampaignModal } from "./TierCampaignModal";
-import { GlobalPageLoader } from "@/components/ui/GlobalPageLoader";
+import { UiSkeleton } from "@/components/ui/AppSkeleton";
 
 const HOT = "#e11d48";
 const WARM = "#ea580c";
@@ -99,8 +99,14 @@ export function TierBreakdown({ leadsForTiers }: TierBreakdownProps) {
 
   if (!externallySupplied && loadingLeads) {
     return (
-      <div style={cardShell} aria-busy="true" aria-label="Loading engagement insights">
-        <GlobalPageLoader layout="embedded" minHeight={140} ariaLabel="Loading engagement insights" />
+      <div style={{ ...cardShell, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }} aria-busy="true" aria-label="Loading engagement insights">
+        <UiSkeleton height={12} width="38%" />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <UiSkeleton height={36} width={100} radius={999} />
+          <UiSkeleton height={36} width={100} radius={999} />
+          <UiSkeleton height={36} width={100} radius={999} />
+        </div>
+        <UiSkeleton height={8} width="100%" radius={999} />
       </div>
     );
   }

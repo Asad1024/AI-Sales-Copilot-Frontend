@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { MoreVertical, Share2, Trash2, Eye } from "lucide-react";
+import { MoreVertical, Share2, Trash2, Eye, X } from "lucide-react";
 import { Icons } from "@/components/ui/Icons";
 import BaseCard from "@/components/ui/BaseCard";
 import { PORTAL_ACTION_ICON } from "@/components/ui/actionIcons";
 import { useNotification } from "@/context/NotificationContext";
+import { importModalOverlayStyle } from "@/components/leads/ImportModalChrome";
 import type { Campaign } from "@/stores/useCampaignStore";
 import type { ChannelType } from "@/app/campaigns/new/channelConfig";
 import type { CSSProperties, ReactNode } from "react";
+
+/** Max metric cells on the card surface; remainder open in “View all”. */
+const MAX_VISIBLE_CAMPAIGN_CARD_METRICS = 6;
 
 /** Wizard review / step-14 overview — same colors & glyphs as `REVIEW_OVERVIEW_CHANNEL_META` in campaign wizard */
 const WIZ_REVIEW_CHANNEL_COLORS: Record<ChannelType, string> = {
@@ -54,6 +59,327 @@ function formatCampaignWhatsAppReplyRate(campaign: Campaign): string {
   const rep = Number(campaign.whatsapp_replied ?? 0);
   if (!s) return "—";
   return `${((rep / s) * 100).toFixed(1)}%`;
+}
+
+/** Resolved channels for metrics (wizard stores `channels[]`; legacy rows use `channel` only). */
+function effectiveCampaignChannels(campaign: Campaign): ChannelType[] {
+  const o = orderedCampaignChannels(campaign);
+  if (o.length) return o;
+  const c = String(campaign.channel || "").toLowerCase();
+  if (CHANNEL_DISPLAY_ORDER.includes(c as ChannelType)) return [c as ChannelType];
+  return ["email"];
+}
+
+function formatPercentishField(raw: string | number | undefined | null): string {
+  if (raw == null) return "—";
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return `${raw.toFixed(1)}%`;
+  }
+  const t = String(raw).trim();
+  if (!t) return "—";
+  return t.includes("%") ? t : `${t}%`;
+}
+
+type CampaignMetricRow = { label: string; value: ReactNode; icon: ReactNode };
+
+type WorkspaceMetricLite = { label: string; value: ReactNode };
+
+type CampaignMetricsModalState =
+  | null
+  | { variant: "workspace"; campaignName: string; rows: WorkspaceMetricLite[] }
+  | { variant: "default"; campaignName: string; compact: boolean; rows: CampaignMetricRow[] };
+
+function CampaignMetricsAllModal({
+  state,
+  onClose,
+}: {
+  state: NonNullable<CampaignMetricsModalState>;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  const { campaignName } = state;
+
+  const panel = (
+    <div
+      role="dialog"
+      aria-modal
+      aria-labelledby="campaign-card-metrics-modal-title"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: "min(420px, calc(100vw - 40px))",
+        maxHeight: "min(78vh, 560px)",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 16,
+        border: "1px solid var(--elev-border, #e2e8f0)",
+        background: "var(--elev-bg, #ffffff)",
+        boxShadow: "0 24px 64px rgba(15, 23, 42, 0.14)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "16px 18px",
+          borderBottom: "1px solid var(--color-border)",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "var(--color-text-muted)",
+              marginBottom: 4,
+            }}
+          >
+            All metrics
+          </div>
+          <h2
+            id="campaign-card-metrics-modal-title"
+            style={{
+              margin: 0,
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--color-text)",
+              lineHeight: 1.25,
+            }}
+          >
+            {campaignName}
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            flexShrink: 0,
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            border: "1px solid var(--color-border)",
+            background: "var(--color-surface-secondary)",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          <X size={18} strokeWidth={2} />
+        </button>
+      </div>
+      <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+        {state.variant === "workspace" ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              columnGap: 20,
+              rowGap: 16,
+            }}
+          >
+            {state.rows.map((m, i) => (
+              <div key={`${m.label}-${i}`}>
+                <div className="bases-workspace-card-metric-label">{m.label}</div>
+                <div className="bases-workspace-card-metric-value">{m.value}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {state.rows.map((row, i) => (
+              <div
+                key={`${row.label}-${i}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: state.compact ? 8 : 10,
+                  padding: state.compact ? "8px 8px" : "10px 10px",
+                  borderRadius: state.compact ? 8 : 10,
+                  background: "var(--color-surface-secondary)",
+                  border: "0.5px solid var(--color-border-light)",
+                }}
+              >
+                <div
+                  style={{
+                    width: state.compact ? 28 : 30,
+                    height: state.compact ? 28 : 30,
+                    borderRadius: state.compact ? 7 : 8,
+                    background: "var(--color-surface)",
+                    border: "0.5px solid var(--color-border-light)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--color-text-muted)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {row.icon}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: state.compact ? 9 : 10,
+                      fontWeight: 500,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    {row.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: state.compact ? 13 : 15,
+                      fontWeight: 600,
+                      color: "var(--color-text)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {row.value}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return createPortal(
+    <div style={importModalOverlayStyle} onClick={onClose} role="presentation">
+      {panel}
+    </div>,
+    document.body
+  );
+}
+
+function buildChannelAwareMetricRows(
+  campaign: Campaign,
+  leadsBlock: ReactNode,
+  emailExtras: { openDisplay: string; clickDisplay: string },
+  iconPx: number
+): CampaignMetricRow[] {
+  const chs = effectiveCampaignChannels(campaign);
+  const s = iconPx;
+  const sw = 1.5;
+  const items: CampaignMetricRow[] = [
+    { label: "Leads", value: leadsBlock, icon: <Icons.Users size={s} strokeWidth={sw} /> },
+  ];
+
+  const emailSentLabel = chs.includes("whatsapp") ? "Email sent" : "Sent";
+  const waSentLabel = chs.includes("email") ? "WA sent" : "Sent";
+
+  if (chs.includes("email")) {
+    items.push(
+      {
+        label: emailSentLabel,
+        value: String(campaign.sent ?? 0),
+        icon: <Icons.Send size={s} strokeWidth={sw} />,
+      },
+      { label: "Open", value: emailExtras.openDisplay, icon: <Icons.Mail size={s} strokeWidth={sw} /> },
+      { label: "Click", value: emailExtras.clickDisplay, icon: <Icons.ExternalLink size={s} strokeWidth={sw} /> }
+    );
+    const sent = Number(campaign.sent ?? 0);
+    const rep = Number(campaign.replied ?? 0);
+    const replyPct = sent > 0 ? `${((rep / sent) * 100).toFixed(1)}%` : "—";
+    items.push({ label: "Reply", value: replyPct, icon: <Icons.MessageCircle size={s} strokeWidth={sw} /> });
+  }
+
+  if (chs.includes("linkedin")) {
+    const inv = Number(campaign.linkedin_invitations_sent ?? 0);
+    const acc = Number(campaign.linkedin_invitations_accepted ?? 0);
+    const failed = Number(campaign.linkedin_invitations_failed ?? 0);
+    items.push(
+      {
+        label: "Invites sent",
+        value: inv ? String(inv) : "—",
+        icon: <Icons.Linkedin size={s} strokeWidth={sw} />,
+      },
+      {
+        label: "Accepted",
+        value: String(acc),
+        icon: <Icons.CheckCircle size={s} strokeWidth={sw} />,
+      },
+      {
+        label: "Invites failed",
+        value: failed ? String(failed) : "—",
+        icon: <Icons.AlertCircle size={s} strokeWidth={sw} />,
+      }
+    );
+  }
+
+  if (chs.includes("whatsapp")) {
+    const waSent = Number(campaign.whatsapp_sent ?? campaign.sent ?? 0);
+    const waDelivered = Number(campaign.whatsapp_delivered ?? 0);
+    const waSeen = Number(campaign.whatsapp_seen ?? 0);
+    items.push(
+      {
+        label: waSentLabel,
+        value: waSent ? String(waSent) : "—",
+        icon: <Icons.Send size={s} strokeWidth={sw} />,
+      },
+      {
+        label: "Delivered",
+        value: String(waDelivered),
+        icon: <Icons.CheckCircle size={s} strokeWidth={sw} />,
+      },
+      { label: "Seen", value: String(waSeen), icon: <Icons.Eye size={s} strokeWidth={sw} /> },
+      {
+        label: "Reply rate",
+        value: formatCampaignWhatsAppReplyRate(campaign),
+        icon: <Icons.WhatsApp size={s} strokeWidth={sw} />,
+      }
+    );
+  }
+
+  if (chs.includes("call")) {
+    const init = Number(campaign.call_initiated ?? 0);
+    const ans = Number(campaign.call_answered ?? 0);
+    const done = Number(campaign.call_completed ?? 0);
+    const ansRate =
+      typeof campaign.call_answer_rate === "string" && campaign.call_answer_rate.trim()
+        ? formatPercentishField(campaign.call_answer_rate)
+        : init > 0
+          ? `${((ans / init) * 100).toFixed(1)}%`
+          : "—";
+    const compRate =
+      typeof campaign.call_completion_rate === "string" && campaign.call_completion_rate.trim()
+        ? formatPercentishField(campaign.call_completion_rate)
+        : ans > 0
+          ? `${((done / ans) * 100).toFixed(1)}%`
+          : "—";
+    items.push(
+      {
+        label: "Calls started",
+        value: init ? String(init) : "—",
+        icon: <Icons.Phone size={s} strokeWidth={sw} />,
+      },
+      { label: "Answered", value: String(ans), icon: <Icons.CheckCircle size={s} strokeWidth={sw} /> },
+      { label: "Completed", value: String(done), icon: <Icons.CheckCircle size={s} strokeWidth={sw} /> },
+      { label: "Answer rate", value: ansRate, icon: <Icons.Eye size={s} strokeWidth={sw} /> },
+      { label: "Completion rate", value: compRate, icon: <Icons.ExternalLink size={s} strokeWidth={sw} /> }
+    );
+  }
+
+  return items;
 }
 
 function CampaignChannelGlyphs({
@@ -225,6 +551,7 @@ export default function CampaignCard({
 }: CampaignCardProps) {
   const { showSuccess, showError } = useNotification();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [metricsModal, setMetricsModal] = useState<CampaignMetricsModalState>(null);
   const menuWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -260,52 +587,26 @@ export default function CampaignCard({
       ? `${Number(campaign.clickRate).toFixed(1)}%`
       : "—";
 
-  const waSentCount = Number(campaign.whatsapp_sent ?? campaign.sent ?? 0);
-  const waDelivered = Number(campaign.whatsapp_delivered ?? 0);
-  const waSeen = Number(campaign.whatsapp_seen ?? 0);
-
   const campaignChannelsOrdered = orderedCampaignChannels(campaign);
-  const includesWhatsapp = campaign.channel === "whatsapp" || campaignChannelsOrdered.includes("whatsapp");
-  const waReplyRateDisplay = formatCampaignWhatsAppReplyRate(campaign);
 
   if (workspaceStyle) {
     const hasHotLeads = campaign.tier_filter === "Hot";
-    const metricItems: Array<{ label: string; value: ReactNode }> =
-      campaign.channel === "whatsapp"
-        ? [
-            {
-              label: "Leads",
-              value: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  {hasHotLeads ? (
-                    <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
-                  ) : null}
-                  <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
-                </span>
-              ),
-            },
-            { label: "Sent", value: waSentCount ? String(waSentCount) : "—" },
-            { label: "Delivered", value: String(waDelivered) },
-            { label: "Seen", value: String(waSeen) },
-            { label: "Reply rate", value: waReplyRateDisplay },
-          ]
-        : [
-            {
-              label: "Leads",
-              value: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  {hasHotLeads ? (
-                    <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
-                  ) : null}
-                  <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
-                </span>
-              ),
-            },
-            { label: "Sent", value: String(campaign.sent ?? 0) },
-            { label: "Open", value: openDisplay },
-            { label: "Click", value: clickDisplay },
-            ...(includesWhatsapp ? ([{ label: "WA reply rate", value: waReplyRateDisplay }] as const) : []),
-          ];
+    const leadsBlockWs = (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        {hasHotLeads ? (
+          <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
+        ) : null}
+        <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
+      </span>
+    );
+    const fullWorkspaceMetrics: WorkspaceMetricLite[] = buildChannelAwareMetricRows(
+      campaign,
+      leadsBlockWs,
+      { openDisplay, clickDisplay },
+      14
+    ).map(({ label, value }) => ({ label, value }));
+    const visibleWorkspaceMetrics = fullWorkspaceMetrics.slice(0, MAX_VISIBLE_CAMPAIGN_CARD_METRICS);
+    const hasMoreWorkspaceMetrics = fullWorkspaceMetrics.length > MAX_VISIBLE_CAMPAIGN_CARD_METRICS;
     const metricGridCols = "repeat(2, minmax(0, 1fr))";
 
     const handleCardClick = () => {
@@ -339,6 +640,7 @@ export default function CampaignCard({
     };
 
     return (
+      <>
       <div className="bases-workspace-card" onClick={handleCardClick} style={{ cursor: "pointer", position: "relative" }}>
         <div style={{ padding: "16px 18px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
@@ -539,21 +841,53 @@ export default function CampaignCard({
               rowGap: 18,
             }}
           >
-            {metricItems.map((m) => (
-              <div key={m.label}>
+            {visibleWorkspaceMetrics.map((m, i) => (
+              <div key={`${m.label}-${i}`}>
                 <div className="bases-workspace-card-metric-label">{m.label}</div>
                 <div className="bases-workspace-card-metric-value">{m.value}</div>
               </div>
             ))}
           </div>
+          {hasMoreWorkspaceMetrics ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMetricsModal({
+                  variant: "workspace",
+                  campaignName: campaign.name,
+                  rows: fullWorkspaceMetrics,
+                });
+              }}
+              style={{
+                marginTop: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--color-primary)",
+                background: "rgba(var(--color-primary-rgb), 0.08)",
+                border: "1px solid rgba(var(--color-primary-rgb), 0.22)",
+                borderRadius: 8,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              View all ({fullWorkspaceMetrics.length})
+            </button>
+          ) : null}
         </div>
       </div>
+      {metricsModal ? <CampaignMetricsAllModal state={metricsModal} onClose={() => setMetricsModal(null)} /> : null}
+      </>
     );
   }
 
-  const metricCell = (icon: ReactNode, label: string, value: ReactNode) => (
+  const metricCell = (rowKey: string, icon: ReactNode, label: string, value: ReactNode) => (
     <div
-      key={label}
+      key={rowKey}
       style={{
         display: "flex",
         alignItems: "center",
@@ -618,6 +952,10 @@ export default function CampaignCard({
       <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
     </span>
   );
+
+  const defaultCardMetricRows = buildChannelAwareMetricRows(campaign, leadsMetricValue, { openDisplay, clickDisplay }, sc.metricIconGlyph);
+  const defaultVisibleMetricRows = defaultCardMetricRows.slice(0, MAX_VISIBLE_CAMPAIGN_CARD_METRICS);
+  const defaultMetricsOverflow = defaultCardMetricRows.length > MAX_VISIBLE_CAMPAIGN_CARD_METRICS;
 
   return (
     <BaseCard
@@ -739,37 +1077,39 @@ export default function CampaignCard({
           gap: sc.metricGap,
         }}
       >
-        {metricCell(<Icons.Users size={sc.metricIconGlyph} strokeWidth={1.5} />, "Leads", leadsMetricValue)}
-        {metricCell(
-          <Icons.Send size={sc.metricIconGlyph} strokeWidth={1.5} />,
-          "Sent",
-          campaign.channel === "whatsapp" ? (waSentCount ? String(waSentCount) : "—") : String(campaign.sent ?? 0)
+        {defaultVisibleMetricRows.map((row, i) =>
+          metricCell(`${row.label}-${i}`, row.icon, row.label, row.value)
         )}
-        {campaign.channel === "whatsapp" ? (
-          <>
-            {metricCell(
-              <Icons.CheckCircle size={sc.metricIconGlyph} strokeWidth={1.5} />,
-              "Delivered",
-              String(waDelivered)
-            )}
-            {metricCell(<Icons.Eye size={sc.metricIconGlyph} strokeWidth={1.5} />, "Seen", String(waSeen))}
-          </>
-        ) : (
-          <>
-            {metricCell(<Icons.Mail size={sc.metricIconGlyph} strokeWidth={1.5} />, "Open", openDisplay)}
-            {metricCell(<Icons.ExternalLink size={sc.metricIconGlyph} strokeWidth={1.5} />, "Click", clickDisplay)}
-          </>
-        )}
-        {includesWhatsapp ? (
-          <div style={{ gridColumn: "1 / -1" }}>
-            {metricCell(
-              <Icons.WhatsApp size={sc.metricIconGlyph} strokeWidth={1.5} />,
-              "WhatsApp reply rate",
-              waReplyRateDisplay
-            )}
-          </div>
-        ) : null}
       </div>
+
+      {defaultMetricsOverflow ? (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
+          <button
+            type="button"
+            onClick={() =>
+              setMetricsModal({
+                variant: "default",
+                campaignName: campaign.name,
+                compact,
+                rows: defaultCardMetricRows,
+              })
+            }
+            style={{
+              fontSize: compact ? 10 : 11,
+              fontWeight: 600,
+              color: "var(--color-primary)",
+              background: "rgba(var(--color-primary-rgb), 0.08)",
+              border: "1px solid rgba(var(--color-primary-rgb), 0.22)",
+              borderRadius: 8,
+              padding: compact ? "5px 10px" : "6px 12px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            View all ({defaultCardMetricRows.length})
+          </button>
+        </div>
+      ) : null}
 
       <div
         style={{
@@ -826,6 +1166,7 @@ export default function CampaignCard({
           </button>
         )}
       </div>
+      {metricsModal ? <CampaignMetricsAllModal state={metricsModal} onClose={() => setMetricsModal(null)} /> : null}
     </BaseCard>
   );
 }

@@ -108,7 +108,10 @@ export default function Dashboard() {
   const statsQuery = useDashboardStatsQuery(activeBaseId);
   const analyticsData = analyticsQuery.data ?? null;
   const dashboardKpiStats: DashboardStatsResponse | null = statsQuery.data ?? null;
-  useCampaignMetricsLiveRefresh({ enabled: Boolean(activeBaseId) });
+  useCampaignMetricsLiveRefresh({
+    enabled: Boolean(activeBaseId),
+    activeWorkspaceId: activeBaseId,
+  });
 
   /** Only while the first workspace list fetch is in flight — not when the user truly has zero workspaces. */
   const isBootstrappingWorkspace = Boolean(!activeBaseId && bases.length === 0 && basesLoading);

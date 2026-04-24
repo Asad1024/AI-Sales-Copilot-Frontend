@@ -33,7 +33,10 @@ export default function CampaignsPage() {
     setFilters,
     getFilteredCampaigns,
   } = useCampaignStore();
-  useCampaignMetricsLiveRefresh({ enabled: Boolean(activeBaseId) });
+  useCampaignMetricsLiveRefresh({
+    enabled: Boolean(activeBaseId),
+    activeWorkspaceId: activeBaseId,
+  });
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   /**
    * Gate only first paint when there is no cached campaigns data.

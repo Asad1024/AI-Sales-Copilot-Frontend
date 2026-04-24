@@ -85,7 +85,10 @@ export type DashboardStatsResponse = {
   };
   totalLeads: MetricSeriesPayload;
   contactedLeads: MetricSeriesPayload;
+  /** Still returned for cache reconciliation / other callers; fourth dashboard card uses `avgOpenRate`. */
   totalCampaigns: MetricSeriesPayload;
+  /** Workspace-wide opens ÷ sends (email channel events), %. */
+  avgOpenRate: MetricSeriesPayload;
 };
 
 export type WorkspacesStatsResponse = {

@@ -244,8 +244,7 @@ export function PremiumKpiCard({
             <div
               style={{
                 flexShrink: 0,
-                paddingTop: 3,
-                borderTop: "1px solid var(--color-border)",
+                paddingTop: 4,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",

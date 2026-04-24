@@ -59,6 +59,7 @@ import {
   campaignScheduleFieldToUtcIso,
   formatScheduleWindowMs,
 } from "@/lib/campaignScheduleUtc";
+import { FOLLOWUP_DELAY_UI, followupTimelineChipLabel } from "@/lib/followupDelayUi";
 import {
   filterChannelsForWorkspaceOwnerPlan,
   isEmailOnlyWorkspacePlan,
@@ -3327,9 +3328,9 @@ export default function CampaignNew() {
   }, [recommendedEmailThrottle, recommendedLinkedInThrottle, channels]);
 
   /**
-   * Auto-manage daily limits from lead volume + follow-ups.
-   * Example: 10 leads + 0 follow-ups => 10/day.
-   * Example: 10 leads + 2 follow-ups => 30/day (capped by channel max).
+   * Auto-manage daily limits from lead volume (+ follow-ups for email/LinkedIn only).
+   * Example: 10 leads + 0 follow-ups => 10/day (WhatsApp/Call always use lead count only).
+   * Example: 10 leads + 2 follow-ups => 30/day for email/LinkedIn (capped by channel max).
    *
    * We only recompute when campaign inputs change (leads/follow-ups/channels),
    * so manual edits stay intact until those inputs change again.
@@ -3339,9 +3340,15 @@ export default function CampaignNew() {
 
     const followupCount = Math.max(0, schedule.followups ?? 0);
     const perLeadTouches = 1 + followupCount;
-    const baseAutoDaily = Math.min(
+    /** Email / LinkedIn: extra touches per lead (follow-up steps) raise daily send ceiling. */
+    const baseAutoDailyWithFollowups = Math.min(
       SCHEDULE_DAILY_LIMIT_MAX,
       Math.max(1, totalLeads * perLeadTouches)
+    );
+    /** WhatsApp / Call: wizard has one outbound wave per lead; `schedule.followups` is email-oriented — do not multiply. */
+    const baseAutoDailySingleTouch = Math.min(
+      SCHEDULE_DAILY_LIMIT_MAX,
+      Math.max(1, totalLeads)
     );
 
     setSchedule((prev) => {
@@ -3349,7 +3356,7 @@ export default function CampaignNew() {
       let changed = false;
 
       if (channels.includes("email")) {
-        const target = Math.min(emailThrottleMax, baseAutoDaily);
+        const target = Math.min(emailThrottleMax, baseAutoDailyWithFollowups);
         if ((prev.email?.throttle ?? 0) !== target) {
           next.email = { throttle: target };
           changed = true;
@@ -3357,7 +3364,7 @@ export default function CampaignNew() {
       }
 
       if (channels.includes("linkedin")) {
-        const target = Math.min(linkedinSliderMax, baseAutoDaily);
+        const target = Math.min(linkedinSliderMax, baseAutoDailyWithFollowups);
         if ((prev.linkedin?.throttle ?? 0) !== target) {
           next.linkedin = { throttle: target };
           changed = true;
@@ -3365,7 +3372,7 @@ export default function CampaignNew() {
       }
 
       if (channels.includes("whatsapp")) {
-        const target = Math.min(whatsappThrottleMax, baseAutoDaily);
+        const target = Math.min(whatsappThrottleMax, baseAutoDailySingleTouch);
         if ((prev.whatsapp?.throttle ?? 0) !== target) {
           next.whatsapp = { throttle: target };
           changed = true;
@@ -3373,7 +3380,7 @@ export default function CampaignNew() {
       }
 
       if (channels.includes("call")) {
-        const target = Math.min(callThrottleMax, baseAutoDaily);
+        const target = Math.min(callThrottleMax, baseAutoDailySingleTouch);
         if ((prev.call?.throttle ?? 0) !== target) {
           next.call = { throttle: target };
           changed = true;
@@ -6518,7 +6525,7 @@ export default function CampaignNew() {
               >
                 <Icons.Info size={14} style={{ color: "color-mix(in srgb, var(--color-primary) 88%, #000000)", flexShrink: 0, marginTop: 2 }} />
                 <span style={{ fontSize: 13, color: "color-mix(in srgb, var(--color-primary) 88%, #000000)", lineHeight: 1.45 }}>
-                  You can configure the delay between follow-ups in the schedule step
+                  {FOLLOWUP_DELAY_UI.scheduleInfoHint}
                 </span>
               </div>
             </div>
@@ -10209,7 +10216,7 @@ Use placeholders only from supported fields:
                   }}
                 >
                   <Clock size={16} strokeWidth={2} style={{ flexShrink: 0, opacity: 0.9 }} />
-                  Follow-up delay (days between emails)
+                  {FOLLOWUP_DELAY_UI.label}
                 </label>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
                   <div
@@ -10235,15 +10242,24 @@ Use placeholders only from supported fields:
                         border: "none",
                         background: "transparent",
                         color: "var(--color-text)",
-                        cursor: (schedule.followupDelay || 3) <= 1 ? "not-allowed" : "pointer",
-                        opacity: (schedule.followupDelay || 3) <= 1 ? 0.4 : 1,
+                        cursor:
+                          (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) <= FOLLOWUP_DELAY_UI.min
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity:
+                          (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) <= FOLLOWUP_DELAY_UI.min
+                            ? 0.4
+                            : 1,
                       }}
                       aria-label="Decrease follow-up delay"
-                      disabled={(schedule.followupDelay || 3) <= 1}
+                      disabled={(schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) <= FOLLOWUP_DELAY_UI.min}
                       onClick={() =>
                         setSchedule({
                           ...schedule,
-                          followupDelay: Math.max(1, (schedule.followupDelay || 3) - 1),
+                          followupDelay: Math.max(
+                            FOLLOWUP_DELAY_UI.min,
+                            (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) - 1
+                          ),
                         })
                       }
                     >
@@ -10259,7 +10275,7 @@ Use placeholders only from supported fields:
                         color: "var(--color-text)",
                       }}
                     >
-                      {schedule.followupDelay || 3}
+                      {schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay}
                     </span>
                     <button
                       type="button"
@@ -10273,31 +10289,38 @@ Use placeholders only from supported fields:
                         border: "none",
                         background: "transparent",
                         color: "var(--color-text)",
-                        cursor: (schedule.followupDelay || 3) >= 30 ? "not-allowed" : "pointer",
-                        opacity: (schedule.followupDelay || 3) >= 30 ? 0.4 : 1,
+                        cursor:
+                          (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) >= FOLLOWUP_DELAY_UI.max
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity:
+                          (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) >= FOLLOWUP_DELAY_UI.max
+                            ? 0.4
+                            : 1,
                       }}
                       aria-label="Increase follow-up delay"
-                      disabled={(schedule.followupDelay || 3) >= 30}
+                      disabled={(schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) >= FOLLOWUP_DELAY_UI.max}
                       onClick={() =>
                         setSchedule({
                           ...schedule,
-                          followupDelay: Math.min(30, (schedule.followupDelay || 3) + 1),
+                          followupDelay: Math.min(
+                            FOLLOWUP_DELAY_UI.max,
+                            (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) + 1
+                          ),
                         })
                       }
                     >
                       <Plus size={16} strokeWidth={2} />
                     </button>
                   </div>
-                  <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                    1–30 days between each follow-up (default 3)
-                  </span>
+                  <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{FOLLOWUP_DELAY_UI.hint}</span>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
                   {Array.from({ length: schedule.followups + 1 }, (_, i) => {
-                    const delayDays = schedule.followupDelay || 3;
-                    const day = i * delayDays;
+                    const spacing = schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay;
+                    const chip = followupTimelineChipLabel(i, spacing);
                     return (
-                      <span key={`fu-${i}-${day}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span key={`fu-${i}-${chip}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {i > 0 && (
                           <ArrowRight
                             size={16}
@@ -10326,7 +10349,7 @@ Use placeholders only from supported fields:
                             style={{ opacity: 0.9, color: WIZ_CHANNEL_EMAIL }}
                             aria-hidden
                           />
-                          Day {day}
+                          {chip}
                         </span>
                       </span>
                     );
@@ -15559,7 +15582,7 @@ Use placeholders only from supported fields:
                         ...(channels.includes('whatsapp') && schedule.whatsapp ? { whatsapp: schedule.whatsapp } : {}),
                         ...(channels.includes('call') && schedule.call ? { call: schedule.call } : {}),
                         followups: schedule.followups || 0,
-                        followupDelay: schedule.followupDelay || 3
+                        followupDelay: schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay
                       },
                       segments: finalSegments, // Always include segments (validated above)
                       currentStep: step, // Save current step
@@ -15717,7 +15740,8 @@ Use placeholders only from supported fields:
                                 role: true,
                                 industry: true
                               },
-                              delay_days: idx === 0 ? 0 : (idx * (schedule.followupDelay || 3)) // First email immediate, follow-ups spaced
+                              delay_days:
+                                idx === 0 ? 0 : idx * (schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay) // Spacing: days or minutes per API CAMPAIGN_FOLLOWUP_DELAY_UNIT
                             })
                           });
                         }

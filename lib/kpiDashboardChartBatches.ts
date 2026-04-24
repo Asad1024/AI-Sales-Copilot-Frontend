@@ -44,7 +44,7 @@ export function getPremiumKpiOverviewChartVariant(cardIndex: number): Enterprise
 }
 
 /**
- * Each row maps (Total leads, Contacted leads, Total campaigns) mini-charts.
+ * Each row maps (Total leads, Contacted leads, third KPI) mini-charts — dashboard’s fourth card is Open rate.
  * Bump `KPI_DASHBOARD_CHART_BATCH_INDEX` to try the next trio when iterating through chart styles.
  */
 export const KPI_DASHBOARD_CHART_BATCHES: readonly KpiTriple[] = [

@@ -5,6 +5,8 @@ import { KPI_QUERY_STALE_MS, refetchIntervalWhenVisible } from "./kpiQueryDefaul
 
 const ANALYTICS_TTL_MS = KPI_QUERY_STALE_MS;
 const STATS_SESSION_PREFIX = "sparkai:dashboard:stats:";
+/** Dashboard charts: shorter window so daily points look denser (backend supports 7d | 30d | 90d). */
+export const DASHBOARD_ANALYTICS_PERIOD = "7d" as const;
 
 function readSessionJson<T>(key: string): { data: T; updatedAt: number } | null {
   if (typeof window === "undefined") return null;
@@ -38,16 +40,18 @@ function sessionSeedOptions<T>(baseId: number | null, sessionKey: string) {
 
 export function useDashboardAnalyticsQuery(baseId: number | null) {
   const key = baseId ?? 0;
-  const sessionKey = `sparkai:dashboard:analytics:${key}`;
+  const sessionKey = `sparkai:dashboard:analytics:${key}:${DASHBOARD_ANALYTICS_PERIOD}`;
 
   return useQuery({
-    queryKey: ["analytics", "dashboard", baseId] as const,
+    queryKey: ["analytics", "dashboard", baseId, DASHBOARD_ANALYTICS_PERIOD] as const,
     enabled: Boolean(baseId),
     staleTime: KPI_QUERY_STALE_MS,
     refetchInterval: refetchIntervalWhenVisible(20_000),
     ...sessionSeedOptions<any>(baseId, sessionKey),
     queryFn: async () => {
-      const data = await apiRequest(`/analytics?base_id=${baseId}`);
+      const data = await apiRequest(
+        `/analytics?base_id=${baseId}&period=${encodeURIComponent(DASHBOARD_ANALYTICS_PERIOD)}`
+      );
       writeSessionJson(sessionKey, data);
       return data;
     },

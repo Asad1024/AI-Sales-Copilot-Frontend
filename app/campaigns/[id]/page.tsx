@@ -1,7 +1,10 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useMemo, type CSSProperties } from "react";
+import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/apiClient";
+import { onCampaignMetricsUpdate, offCampaignMetricsUpdate } from "@/lib/campaignMetricsRealtime";
+import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBase } from "@/context/BaseContext";
 import { Icons } from "@/components/ui/Icons";
 import { CampaignHeader } from "./components/CampaignHeader";
@@ -16,6 +19,8 @@ import { LeadActivityModal } from "./components/LeadActivityModal";
 import { useNotification } from "@/context/NotificationContext";
 import { UiSkeleton } from "@/components/ui/AppSkeleton";
 import { campaignScheduleFieldToUtcIso } from "@/lib/campaignScheduleUtc";
+
+const METRICS_TOAST_MIN_MS = 4000;
 
 interface Campaign {
   id: number;
@@ -120,6 +125,7 @@ function campaignShowsSequenceTab(c: Campaign): boolean {
 
 export default function CampaignDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { showError, showSuccess } = useNotification();
   const { activeBaseId, bases } = useBase();
   const [tab, setTab] = useState<CampaignViewTabId>("overview");
@@ -141,6 +147,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
     logs: CallLog[] | null;
     error: string | null;
   }>({ loading: false, logs: null, error: null });
+  const lastMetricsToastAtRef = useRef(0);
 
   // Fetch campaign data
   useEffect(() => {
@@ -165,6 +172,42 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
     fetchCampaign();
   }, [params.id, router]);
 
+  useEffect(() => {
+    const cid = Number(params.id);
+    if (!Number.isFinite(cid)) return;
+
+    const handler = (data: { campaign_id: number }) => {
+      if (data.campaign_id !== cid) return;
+      void (async () => {
+        try {
+          const fresh = await apiRequest(`/campaigns/${params.id}`);
+          const campaignData = fresh?.campaign || fresh;
+          setCampaign(campaignData);
+          const bid = Number((campaignData as { base_id?: number })?.base_id);
+          if (typeof window !== "undefined" && Number.isFinite(bid) && bid > 0) {
+            window.dispatchEvent(
+              new CustomEvent("sparkai:workspace-credits-changed", { detail: { baseId: bid } })
+            );
+          }
+          void useCampaignStore.getState().refreshCampaign(cid);
+          void queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+          void queryClient.invalidateQueries({ queryKey: ["analytics", "dashboard"] });
+          void queryClient.invalidateQueries({ queryKey: ["campaigns-stats"] });
+          const now = Date.now();
+          if (now - lastMetricsToastAtRef.current >= METRICS_TOAST_MIN_MS) {
+            lastMetricsToastAtRef.current = now;
+            showSuccess("Campaign updated", "Latest metrics are shown.");
+          }
+        } catch (e) {
+          console.error("[CampaignDetail] metrics webhook refresh:", e);
+        }
+      })();
+    };
+
+    void onCampaignMetricsUpdate(handler);
+    return () => offCampaignMetricsUpdate(handler);
+  }, [params.id, queryClient, showSuccess]);
+
   // Poll for updates if campaign is running
   useEffect(() => {
     if (campaign?.status !== 'running') return;
@@ -174,6 +217,14 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
         const data = await apiRequest(`/campaigns/${params.id}`);
         const campaignData = data?.campaign || data;
         setCampaign(campaignData);
+        if (campaignIncludesCallChannel(campaignData)) {
+          const bid = Number((campaignData as { base_id?: number })?.base_id);
+          if (typeof window !== "undefined" && Number.isFinite(bid) && bid > 0) {
+            window.dispatchEvent(
+              new CustomEvent("sparkai:workspace-credits-changed", { detail: { baseId: bid } })
+            );
+          }
+        }
       } catch (error) {
         console.error('Failed to refresh campaign:', error);
       }
@@ -202,6 +253,12 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
           if (cancelled) return;
           const campaignData = fresh?.campaign || fresh;
           setCampaign(campaignData);
+          const bid = Number((campaignData as { base_id?: number })?.base_id);
+          if (typeof window !== "undefined" && Number.isFinite(bid) && bid > 0) {
+            window.dispatchEvent(
+              new CustomEvent("sparkai:workspace-credits-changed", { detail: { baseId: bid } })
+            );
+          }
         } catch {
           // Non-fatal: overview still shows prior snapshot
         }
@@ -510,6 +567,7 @@ export default function CampaignDetail({ params }: { params: { id: string } }) {
             prefetchedLogs={callLogsPrefetch.logs}
             prefetchedLoading={callLogsPrefetch.loading}
             prefetchedError={callLogsPrefetch.error}
+            baseId={campaign.base_id}
           />
         )}
       </div>

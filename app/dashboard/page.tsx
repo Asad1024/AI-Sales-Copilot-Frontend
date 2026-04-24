@@ -34,6 +34,7 @@ import type { EnterpriseChartVariant } from "@/components/dashboard/KpiEnterpris
 import { KPI_DASHBOARD_WORKSPACE_CHART_VARIANT } from "@/lib/kpiDashboardChartBatches";
 import { resolveKpiChartValues, type DashboardStatsResponse } from "@/lib/kpiStatsApi";
 import { useDashboardAnalyticsQuery, useDashboardStatsQuery } from "@/hooks/queries/dashboardQueries";
+import { useCampaignMetricsLiveRefresh } from "@/hooks/useCampaignMetricsLiveRefresh";
 import { DataRefreshIndicator } from "@/components/ui/DataRefreshIndicator";
 
 type StatMetric = {
@@ -71,6 +72,8 @@ type ChannelOutcomeRow = {
   sent: number;
   engaged: number;
   rate: number;
+  /** Second line under the % (e.g. `8/10 delivered`). */
+  detailLabel: string;
 };
 
 type TopCampaignRow = {
@@ -105,6 +108,7 @@ export default function Dashboard() {
   const statsQuery = useDashboardStatsQuery(activeBaseId);
   const analyticsData = analyticsQuery.data ?? null;
   const dashboardKpiStats: DashboardStatsResponse | null = statsQuery.data ?? null;
+  useCampaignMetricsLiveRefresh({ enabled: Boolean(activeBaseId) });
 
   /** Only while the first workspace list fetch is in flight — not when the user truly has zero workspaces. */
   const isBootstrappingWorkspace = Boolean(!activeBaseId && bases.length === 0 && basesLoading);
@@ -202,7 +206,7 @@ export default function Dashboard() {
     campaignListReconciledForBaseRef.current = null;
   }, [activeBaseId]);
 
-  /** Stats can show total campaigns while the zustand list is still empty (e.g. fresh empty cache skips refetch for 2m). */
+  /** Stats include total campaign count while the zustand list is still empty (e.g. fresh empty cache skips refetch for 2m). */
   useEffect(() => {
     if (!activeBaseId) return;
     if (campaignsCountFromStats <= 0) return;
@@ -297,7 +301,12 @@ export default function Dashboard() {
   };
   const funnelTotalLeads = Number(analyticsData?.funnel?.totalLeads ?? analyticsData?.totalLeads ?? 0);
   const contactedLeadsFunnel = Number(analyticsData?.funnel?.contacted ?? 0);
-  const totalCampaignsInWorkspace = Number(campaigns?.length ?? 0);
+  const periodLabel = (() => {
+    const p = String(analyticsData?.period || "7d").toLowerCase();
+    if (p === "7d") return "Last 7 days";
+    if (p === "90d") return "Last 90 days";
+    return "Last 30 days";
+  })();
 
   const overviewMetrics: StatMetric[] = useMemo(() => {
     const k = dashboardKpiStats;
@@ -329,10 +338,16 @@ export default function Dashboard() {
           echartsVariant: "miniBubble",
         },
         {
-          title: "Total campaigns in workspace",
-          value: "0",
+          title: "Open rate",
+          value: "0%",
           sparkline: flatZero,
           echartsVariant: "miniCandlestick",
+        },
+        {
+          title: "WhatsApp reply rate",
+          value: "0%",
+          sparkline: flatZero,
+          echartsVariant: "lineSmoothDots",
         },
       ];
     }
@@ -340,7 +355,11 @@ export default function Dashboard() {
     const totalWs = k?.activeWorkspace?.totalWorkspaces ?? tw;
     const tlCurrent = k?.totalLeads?.current ?? funnelTotalLeads;
     const clCurrent = k?.contactedLeads?.current ?? contactedLeadsFunnel;
-    const tcCurrent = k?.totalCampaigns?.current ?? totalCampaignsInWorkspace;
+    const openRateCurrent = Number(k?.avgOpenRate?.current ?? 0);
+    const openRateDisplay = `${Number.isFinite(openRateCurrent) ? Math.round(openRateCurrent * 10) / 10 : 0}%`;
+    const waReplyRateCurrent = Number((analyticsData as { channelMetrics?: { whatsapp?: { replyRate?: number } } })?.channelMetrics?.whatsapp?.replyRate ?? 0);
+    const waReplyRounded = Number.isFinite(waReplyRateCurrent) ? Math.round(waReplyRateCurrent * 10) / 10 : 0;
+    const waReplyDisplay = `${waReplyRounded}%`;
     return [
       {
         title: "Active workspace",
@@ -370,10 +389,20 @@ export default function Dashboard() {
         echartsVariant: "miniBubble",
       },
       {
-        title: "Total campaigns in workspace",
-        value: Math.round(tcCurrent).toLocaleString(),
-        sparkline: resolveKpiChartValues(k?.totalCampaigns?.chartSeries, k?.totalCampaigns?.snapshots, tcCurrent),
+        title: "Open rate",
+        value: openRateDisplay,
+        sparkline: resolveKpiChartValues(
+          k?.avgOpenRate?.chartSeries,
+          k?.avgOpenRate?.snapshots,
+          openRateCurrent
+        ),
         echartsVariant: "miniCandlestick",
+      },
+      {
+        title: "WhatsApp reply rate",
+        value: waReplyDisplay,
+        sparkline: resolveKpiChartValues(undefined, undefined, waReplyRounded),
+        echartsVariant: "lineSmoothDots",
       },
     ];
   }, [
@@ -384,7 +413,6 @@ export default function Dashboard() {
     analyticsData,
     funnelTotalLeads,
     contactedLeadsFunnel,
-    totalCampaignsInWorkspace,
   ]);
 
   const dashboardPrimaryAction = (() => {
@@ -449,12 +477,6 @@ export default function Dashboard() {
     const n = Number(value);
     return Number.isFinite(n) && n >= 0 ? n : 0;
   };
-  const periodLabel = (() => {
-    const p = String(analyticsData?.period || "30d").toLowerCase();
-    if (p === "7d") return "Last 7 days";
-    if (p === "90d") return "Last 90 days";
-    return "Last 30 days";
-  })();
   const dailyPerformanceData = useMemo<LeadTrendPoint[]>(() => {
     const rows = Array.isArray(analyticsData?.dailyTrends) ? analyticsData.dailyTrends : [];
     return rows.map((row: any) => {
@@ -502,24 +524,72 @@ export default function Dashboard() {
   }, [analyticsData?.funnel]);
   const channelResultsData = useMemo<ChannelOutcomeRow[]>(() => {
     const metrics = analyticsData?.channelMetrics || {};
-    const emailSent = toSafeNumber(metrics?.email?.sent);
-    const emailEngaged = toSafeNumber(metrics?.email?.replied);
+    const emailSent = toSafeNumber((metrics as { email?: { sent?: number } }).email?.sent);
+    const emailDelivered = toSafeNumber((metrics as { email?: { delivered?: number } }).email?.delivered);
+    const emailDeliveryRate = Number((metrics as { email?: { deliveryRate?: number } }).email?.deliveryRate);
+    const emailRate = Number.isFinite(emailDeliveryRate)
+      ? Math.round(Math.min(100, Math.max(0, emailDeliveryRate)))
+      : emailSent > 0
+        ? Math.round(Math.min(100, (emailDelivered / emailSent) * 100))
+        : 0;
+
     const linkedInSent = toSafeNumber(metrics?.linkedin?.sent);
     const linkedInEngaged = toSafeNumber(metrics?.linkedin?.replied);
+    const linkedInRateNum = Number(metrics?.linkedin?.replyRate);
+    const linkedInRate = Number.isFinite(linkedInRateNum)
+      ? Math.round(Math.min(100, Math.max(0, linkedInRateNum)))
+      : linkedInSent > 0
+        ? Math.round((linkedInEngaged / linkedInSent) * 100)
+        : 0;
+
     const whatsappSent = toSafeNumber(metrics?.whatsapp?.sent);
     const whatsappEngaged = toSafeNumber(metrics?.whatsapp?.replied);
+    const whatsappRateNum = Number(metrics?.whatsapp?.replyRate);
+    const whatsappRate = Number.isFinite(whatsappRateNum)
+      ? Math.round(Math.min(100, Math.max(0, whatsappRateNum)))
+      : whatsappSent > 0
+        ? Math.round((whatsappEngaged / whatsappSent) * 100)
+        : 0;
+
     const callSent = toSafeNumber(metrics?.call?.initiated);
     const callEngaged = toSafeNumber(metrics?.call?.answered);
-    const rows = [
-      { channel: "Email", sent: emailSent, engaged: emailEngaged },
-      { channel: "LinkedIn", sent: linkedInSent, engaged: linkedInEngaged },
-      { channel: "WhatsApp", sent: whatsappSent, engaged: whatsappEngaged },
-      { channel: "Calls", sent: callSent, engaged: callEngaged },
+    const callAnswerRateNum = Number(metrics?.call?.answerRate);
+    const callRate = Number.isFinite(callAnswerRateNum)
+      ? Math.round(Math.min(100, Math.max(0, callAnswerRateNum)))
+      : callSent > 0
+        ? Math.round((callEngaged / callSent) * 100)
+        : 0;
+
+    return [
+      {
+        channel: "Email",
+        sent: emailSent,
+        engaged: emailDelivered,
+        rate: emailRate,
+        detailLabel: `${emailDelivered}/${emailSent} delivered`,
+      },
+      {
+        channel: "LinkedIn",
+        sent: linkedInSent,
+        engaged: linkedInEngaged,
+        rate: linkedInRate,
+        detailLabel: `${linkedInEngaged}/${linkedInSent} replies`,
+      },
+      {
+        channel: "WhatsApp",
+        sent: whatsappSent,
+        engaged: whatsappEngaged,
+        rate: whatsappRate,
+        detailLabel: `${whatsappEngaged}/${whatsappSent} replies`,
+      },
+      {
+        channel: "Calls",
+        sent: callSent,
+        engaged: callEngaged,
+        rate: callRate,
+        detailLabel: `${callEngaged}/${callSent} answered`,
+      },
     ];
-    return rows.map((row) => ({
-      ...row,
-      rate: row.sent > 0 ? Math.round((row.engaged / row.sent) * 100) : 0,
-    }));
   }, [analyticsData?.channelMetrics]);
   const hasChannelOutcomeData = channelResultsData.some((row) => row.sent > 0 || row.engaged > 0);
   const topCampaignsData = useMemo<TopCampaignRow[]>(() => {
@@ -555,7 +625,7 @@ export default function Dashboard() {
   const dashboardBody = isBootstrappingWorkspace ? (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }} aria-busy="true" aria-label="Loading workspace">
       <div style={PREMIUM_KPI_GRID_STYLE}>
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="skeleton-page-card" style={{ minHeight: 162, display: "flex", flexDirection: "column", gap: 10 }}>
             <UiSkeleton height={10} width="40%" />
             <UiSkeleton height={28} width="55%" />
@@ -610,7 +680,7 @@ export default function Dashboard() {
 
       {showDashboardKpiSkeleton ? (
         <div style={PREMIUM_KPI_GRID_STYLE} aria-busy="true" aria-label="Loading metrics">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="skeleton-page-card" style={{ minHeight: 162, display: "flex", flexDirection: "column", gap: 10 }}>
               <UiSkeleton height={10} width="40%" />
               <UiSkeleton height={28} width="55%" />
@@ -968,7 +1038,7 @@ export default function Dashboard() {
         <div className="dashboard-surface-card" style={{ gridColumn: "span 8", padding: "14px 16px", minHeight: 220 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>Channel outcomes</div>
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
-            Sent vs engaged by channel ({periodLabel})
+            Volume vs outcome by channel ({periodLabel})
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8, flexWrap: "wrap" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text)" }}>
@@ -982,7 +1052,7 @@ export default function Dashboard() {
                   border: "1px solid rgba(59,130,246,0.28)",
                 }}
               />
-              Sent
+              Sends / initiated
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text)" }}>
               <span
@@ -995,7 +1065,7 @@ export default function Dashboard() {
                   border: "1px solid rgba(249,115,22,0.28)",
                 }}
               />
-              Engaged
+              Delivered / answered / replies
             </div>
           </div>
           {chartAwaitingFirstPaint ? (
@@ -1006,7 +1076,7 @@ export default function Dashboard() {
                 <BarChart data={channelResultsData} margin={{ top: 0, right: 8, left: -14, bottom: 0 }} barGap={8}>
                   <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
                   <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} width={34} allowDecimals={false} />
                   <Tooltip
                     contentStyle={tooltipSharedStyle}
                     cursor={{ fill: "rgba(148, 163, 184, 0.14)" }}
@@ -1032,9 +1102,7 @@ export default function Dashboard() {
                       {row.channel}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{row.rate}%</div>
-                    <div style={{ fontSize: 11, color: "var(--color-text)" }}>
-                      {row.engaged}/{row.sent} engaged
-                    </div>
+                    <div style={{ fontSize: 11, color: "var(--color-text)", lineHeight: 1.35 }}>{row.detailLabel}</div>
                   </div>
                 ))}
               </div>
@@ -1058,7 +1126,9 @@ export default function Dashboard() {
               No channel activity to compare yet
             </div>
           )}
-          <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)" }}>For calls, engagement = answered calls.</div>
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
+            Email % = inbox delivered ÷ sends (Resend webhooks). Calls % = answered ÷ initiated. WhatsApp & LinkedIn % = replies ÷ sends.
+          </div>
         </div>
 
         <div className="dashboard-surface-card" style={{ gridColumn: "span 4", padding: "14px 16px", minHeight: 220 }}>

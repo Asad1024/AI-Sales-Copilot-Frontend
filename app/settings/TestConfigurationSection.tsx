@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { Icons } from "@/components/ui/Icons";
 import { useNotification } from "@/context/NotificationContext";
+import { useBase } from "@/context/BaseContext";
 import BaseCard from "@/components/ui/BaseCard";
 
 type TestCallConfigResponse = {
@@ -18,59 +20,54 @@ type TestCallConfigResponse = {
   recording_url?: string | null;
   poll_attempts?: number;
   timed_out?: boolean;
+  duration_seconds?: number | null;
+  credits_charged?: number;
+  credits_charge_ok?: boolean;
+  credits_charge_reason?: string | null;
+  credits_balance_after?: number | null;
+  credits_base_id?: number | null;
+  credits_charge_error_detail?: string | null;
 };
 
 export function TestConfigurationSection() {
   const { showSuccess, showError } = useNotification();
+  const router = useRouter();
+  const { activeBaseId } = useBase();
 
-  const [showTestWhatsAppModal, setShowTestWhatsAppModal] = useState(false);
   const [showTestLinkedInModal, setShowTestLinkedInModal] = useState(false);
   const [showTestCallModal, setShowTestCallModal] = useState(false);
 
-  const [testingWhatsApp, setTestingWhatsApp] = useState(false);
   const [testingLinkedIn, setTestingLinkedIn] = useState(false);
   const [testingCall, setTestingCall] = useState(false);
 
-  const [testWhatsAppNumber, setTestWhatsAppNumber] = useState("");
   const [testLinkedInUrl, setTestLinkedInUrl] = useState("");
   const [testCallNumber, setTestCallNumber] = useState("");
   const [callTestOutcome, setCallTestOutcome] = useState<TestCallConfigResponse | null>(null);
 
-  const runChannelTest = async (channel: "linkedin" | "whatsapp") => {
-    const endpoint = channel === "linkedin" ? "/config/test-linkedin" : "/config/test-whatsapp";
-    const payload =
-      channel === "linkedin"
-        ? { profile_url: testLinkedInUrl.trim() }
-        : { phone: testWhatsAppNumber.trim() };
-
-    if (channel === "linkedin" && !payload.profile_url) {
+  const runLinkedInTest = async () => {
+    const profile_url = testLinkedInUrl.trim();
+    if (!profile_url) {
       showError("Validation", "Please enter a LinkedIn profile URL.");
       return;
     }
-    if (channel === "whatsapp" && !payload.phone) {
-      showError("Validation", "Please enter a WhatsApp number.");
-      return;
-    }
 
-    const setLoading = channel === "linkedin" ? setTestingLinkedIn : setTestingWhatsApp;
-    setLoading(true);
+    setTestingLinkedIn(true);
     try {
-      const response = (await apiRequest(endpoint, {
+      const response = (await apiRequest("/config/test-linkedin", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ profile_url }),
       })) as { message?: string; mode?: string };
-      let msg = response?.message || `${channel} test successful.`;
-      if (channel === "linkedin" && response?.mode) {
+      let msg = response?.message || "LinkedIn test successful.";
+      if (response?.mode) {
         msg = `${msg} (${String(response.mode).replace(/_/g, " ")})`;
       }
       showSuccess("Channel test", msg);
-      if (channel === "linkedin") setShowTestLinkedInModal(false);
-      else setShowTestWhatsAppModal(false);
+      setShowTestLinkedInModal(false);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : `Failed to test ${channel}`;
+      const message = error instanceof Error ? error.message : "Failed to test linkedin";
       showError("Test failed", message);
     } finally {
-      setLoading(false);
+      setTestingLinkedIn(false);
     }
   };
 
@@ -84,7 +81,10 @@ export function TestConfigurationSection() {
     try {
       const response = (await apiRequest("/config/test-call", {
         method: "POST",
-        body: JSON.stringify({ phone: testCallNumber.trim() }),
+        body: JSON.stringify({
+          phone: testCallNumber.trim(),
+          ...(typeof activeBaseId === "number" && activeBaseId > 0 ? { base_id: activeBaseId } : {}),
+        }),
       })) as TestCallConfigResponse;
       setCallTestOutcome(response);
       const okMsg =
@@ -93,6 +93,16 @@ export function TestConfigurationSection() {
           ? "Call submitted; polling timed out before a final status."
           : "Call configuration test finished.");
       showSuccess("Call test", okMsg);
+      if (
+        typeof window !== "undefined" &&
+        response?.credits_charge_ok &&
+        typeof activeBaseId === "number" &&
+        activeBaseId > 0
+      ) {
+        window.dispatchEvent(
+          new CustomEvent("sparkai:workspace-credits-changed", { detail: { baseId: activeBaseId } })
+        );
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to test call configuration";
       showError("Test failed", message);
@@ -111,8 +121,8 @@ export function TestConfigurationSection() {
     {
       Icon: Icons.MessageCircle,
       label: "WhatsApp",
-      description: "Real test message to a number",
-      open: () => setShowTestWhatsAppModal(true),
+      description: "Send a test and view delivery / webhook payloads",
+      open: () => router.push("/settings?tab=test-whatsapp"),
     },
     {
       Icon: Icons.Phone,
@@ -141,8 +151,9 @@ export function TestConfigurationSection() {
           Integrations
         </div>
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5, maxWidth: 560 }}>
-          Run checks against your current backend configuration. LinkedIn and WhatsApp tests send a real message from your
-          connected messaging account. Use the <strong>Test email</strong> tab to verify email delivery and tracking.
+          Run checks against your current backend configuration. LinkedIn sends a real message from your connected account.
+          Use <strong>WhatsApp Tests</strong> to send a WhatsApp test and inspect Unipile webhook payloads, and{" "}
+          <strong>Email Tests</strong> for email delivery and tracking.
         </p>
       </BaseCard>
 
@@ -253,67 +264,9 @@ export function TestConfigurationSection() {
                   className="btn-primary"
                   style={{ borderRadius: 8 }}
                   disabled={testingLinkedIn || !testLinkedInUrl.trim()}
-                  onClick={() => runChannelTest("linkedin")}
+                  onClick={() => void runLinkedInTest()}
                 >
                   {testingLinkedIn ? "…" : "Run"}
-                </button>
-              </div>
-            </BaseCard>
-          </div>
-        </div>
-      )}
-
-      {showTestWhatsAppModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.55)",
-            backdropFilter: "blur(6px)",
-            zIndex: 1100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-          }}
-          onClick={() => !testingWhatsApp && setShowTestWhatsAppModal(false)}
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            <BaseCard style={{ width: "min(520px, 100%)", padding: 24 }}>
-              <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Test WhatsApp</h3>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Sends a short test from your connected WhatsApp number. Use the full number with country code; the recipient
-                must use WhatsApp on that number.
-              </p>
-              <input
-                type="text"
-                placeholder="+971501234567"
-                value={testWhatsAppNumber}
-                onChange={(e) => setTestWhatsAppNumber(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: "0.5px solid rgba(255,255,255,0.1)",
-                  background: "rgba(255,255,255,0.03)",
-                  color: "var(--color-text)",
-                  fontSize: 14,
-                  outline: "none",
-                  marginBottom: 18,
-                }}
-              />
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn-ghost" disabled={testingWhatsApp} onClick={() => setShowTestWhatsAppModal(false)}>
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ borderRadius: 8 }}
-                  disabled={testingWhatsApp || !testWhatsAppNumber.trim()}
-                  onClick={() => runChannelTest("whatsapp")}
-                >
-                  {testingWhatsApp ? "…" : "Run"}
                 </button>
               </div>
             </BaseCard>
@@ -369,7 +322,9 @@ export function TestConfigurationSection() {
                 Uses conversational voice AI (batch calling). Configure API key, agent ID, and phone number ID in
                 Admin → Users → API credentials for your user, or set the voice provider variables in the server environment. After you
                 run a test, the server waits for the batch recipient to finish (often up to about two minutes) and then
-                returns answered, completed, transcript, and recording when available.
+                returns answered, completed, transcript, and recording when available. When the call completes with
+                billable time, workspace call minutes are deducted from the active workspace owner (same rules as campaign
+                calls: 1 credit per started minute, rounded up).
               </p>
               <input
                 type="text"
@@ -451,6 +406,52 @@ export function TestConfigurationSection() {
                       )}
                       {typeof callTestOutcome.poll_attempts === "number" && (
                         <div>Poll attempts: {callTestOutcome.poll_attempts}</div>
+                      )}
+                      {callTestOutcome.duration_seconds != null && callTestOutcome.duration_seconds > 0 && (
+                        <div>Billable duration (seconds): {callTestOutcome.duration_seconds}</div>
+                      )}
+                    </div>
+                  )}
+                  {(callTestOutcome.credits_charge_ok ||
+                    (callTestOutcome.credits_charge_reason && !callTestOutcome.credits_charge_ok)) && (
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        background: callTestOutcome.credits_charge_ok
+                          ? "rgba(34,197,94,0.12)"
+                          : "rgba(148,163,184,0.12)",
+                        border: "0.5px solid rgba(255,255,255,0.08)",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>Workspace credits</div>
+                      {callTestOutcome.credits_charge_ok ? (
+                        <>
+                          <div>
+                            Deducted: <strong>{callTestOutcome.credits_charged ?? 0}</strong> credit
+                            {(callTestOutcome.credits_charged ?? 0) === 1 ? "" : "s"} for this test call.
+                          </div>
+                          {callTestOutcome.credits_balance_after != null && (
+                            <div style={{ color: "var(--color-text-muted)", marginTop: 4 }}>
+                              Owner balance after: {callTestOutcome.credits_balance_after}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ color: "var(--color-text-muted)" }}>
+                          No credits deducted
+                          {callTestOutcome.credits_charge_reason
+                            ? ` (${String(callTestOutcome.credits_charge_reason).replace(/_/g, " ")})`
+                            : ""}
+                          .
+                          {callTestOutcome.credits_charge_error_detail ? (
+                            <div style={{ marginTop: 8, fontSize: 12, wordBreak: "break-word" }}>
+                              {callTestOutcome.credits_charge_error_detail}
+                            </div>
+                          ) : null}
+                        </div>
                       )}
                     </div>
                   )}

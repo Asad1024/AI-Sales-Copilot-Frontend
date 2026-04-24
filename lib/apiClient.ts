@@ -166,6 +166,9 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   /** Never cache GET /api/campaigns/:id — draft wizard must see fresh config after PUT. */
   const isSingleCampaignGet =
     isGetRequest && /^\/api\/campaigns\/\d+$/.test(normalizedEndpoint);
+  /** WhatsApp test status must reflect webhooks immediately (avoid in-memory + HTTP revalidation gaps). */
+  const isTestWhatsAppStatusGet =
+    isGetRequest && /^\/api\/config\/test-whatsapp-sends\/\d+\/status$/.test(normalizedEndpoint);
   /** GET /api/invitations/:token is public; never send JWT (stale tokens cause 401 and break invite/signup). */
   const isPublicInvitationDetailsGet =
     isGetRequest && /^\/api\/invitations\/[^/]+$/.test(normalizedEndpoint);
@@ -175,7 +178,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     requestCache.clear();
   }
 
-  if (isGetRequest && !isSingleCampaignGet && !isPublicInvitationDetailsGet) {
+  if (isGetRequest && !isSingleCampaignGet && !isPublicInvitationDetailsGet && !isTestWhatsAppStatusGet) {
     const cached = requestCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data;
@@ -202,6 +205,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
     ...options,
     headers,
+    cache: isTestWhatsAppStatusGet ? "no-store" : (options as RequestInit & { cache?: RequestCache }).cache,
   });
 
   if (response.status === 401 && !isPublicInvitationDetailsGet) {
@@ -213,11 +217,18 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
       const retryResponse = await fetch(`${API_BASE}${normalizedEndpoint}`, {
         ...options,
         headers,
+        cache: isTestWhatsAppStatusGet ? "no-store" : (options as RequestInit & { cache?: RequestCache }).cache,
       });
       
       if (retryResponse.ok) {
         const data = await retryResponse.json();
-        if (isGetRequest && retryResponse.ok && !isSingleCampaignGet && !isPublicInvitationDetailsGet) {
+        if (
+          isGetRequest &&
+          retryResponse.ok &&
+          !isSingleCampaignGet &&
+          !isPublicInvitationDetailsGet &&
+          !isTestWhatsAppStatusGet
+        ) {
           requestCache.set(cacheKey, { data, timestamp: Date.now() });
         }
         return data;
@@ -280,7 +291,13 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
   const data = await response.json();
   
-  if (isGetRequest && response.ok && !isSingleCampaignGet && !isPublicInvitationDetailsGet) {
+  if (
+    isGetRequest &&
+    response.ok &&
+    !isSingleCampaignGet &&
+    !isPublicInvitationDetailsGet &&
+    !isTestWhatsAppStatusGet
+  ) {
     requestCache.set(cacheKey, { data, timestamp: Date.now() });
     // Clean old cache entries (keep only last 50)
     if (requestCache.size > 50) {

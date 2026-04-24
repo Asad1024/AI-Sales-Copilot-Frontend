@@ -167,22 +167,93 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
           )}
 
           {/* WhatsApp Channel Metrics */}
-          {activeChannels.includes('whatsapp') && (
-            <div>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icons.MessageCircle size={18} style={{ color: '#25D366' }} />
-                  WhatsApp Metrics
-                </h3>
-                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
-                  Outbound WhatsApp delivery metrics
-                </p>
+          {activeChannels.includes('whatsapp') && (() => {
+            const waSent = Number(campaign.whatsapp_sent ?? campaign.sent ?? 0);
+            const waDelivered = Number(campaign.whatsapp_delivered ?? 0);
+            const waSeen = Number(campaign.whatsapp_seen ?? 0);
+            const deliveryPct =
+              waSent > 0 ? ((waDelivered / waSent) * 100).toFixed(1) : "0";
+            const seenPct = waSent > 0 ? ((waSeen / waSent) * 100).toFixed(1) : "0";
+            const deliveryRateLabel =
+              typeof campaign.whatsapp_delivery_rate === "string" && campaign.whatsapp_delivery_rate.includes("%")
+                ? campaign.whatsapp_delivery_rate.trim()
+                : `${deliveryPct}%`;
+            const seenRateLabel =
+              typeof campaign.whatsapp_read_rate === "string" && campaign.whatsapp_read_rate.includes("%")
+                ? campaign.whatsapp_read_rate.trim()
+                : `${seenPct}%`;
+            const waReplied = Number(campaign.whatsapp_replied ?? 0);
+            const replyRateLabel =
+              typeof campaign.whatsapp_reply_rate === "string" && campaign.whatsapp_reply_rate.trim() !== ""
+                ? campaign.whatsapp_reply_rate.trim().includes("%")
+                  ? campaign.whatsapp_reply_rate.trim()
+                  : `${campaign.whatsapp_reply_rate.trim()}%`
+                : waSent > 0
+                  ? `${((waReplied / waSent) * 100).toFixed(1)}%`
+                  : "0%";
+            return (
+              <div>
+                <div style={{ marginBottom: 16 }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icons.MessageCircle size={18} style={{ color: '#25D366' }} />
+                    WhatsApp Metrics
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
+                    Sent, delivery, and read receipts (campaign sends + Unipile webhooks)
+                  </p>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Sending & delivery
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                    <MetricCard
+                      title="Sent"
+                      value={waSent}
+                      subtitle="Outbound messages sent from this campaign"
+                      gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)"
+                      color="#25D366"
+                    />
+                    <MetricCard
+                      title="Delivered"
+                      value={waDelivered}
+                      subtitle={`${deliveryRateLabel} of sent`}
+                      gradient="linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)"
+                      color="#10b981"
+                    />
+                    <MetricCard
+                      title="Seen"
+                      value={waSeen}
+                      subtitle={`${seenRateLabel} of sent (read receipts)`}
+                      gradient="linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.15) 0%, rgba(var(--color-primary-rgb), 0.08) 100%)" 
+                      color="var(--color-primary)"
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Engagement
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                    <MetricCard
+                      title="Replies"
+                      value={waReplied}
+                      subtitle="Inbound WhatsApp messages attributed to this campaign"
+                      gradient="linear-gradient(135deg, rgba(242, 159, 103, 0.12) 0%, rgba(242, 159, 103, 0.06) 100%)"
+                      color="#F29F67"
+                    />
+                    <MetricCard
+                      title="Reply rate"
+                      value={replyRateLabel}
+                      subtitle={waSent > 0 ? `Replies ÷ ${waSent} sent` : "No sends yet"}
+                      gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(37, 211, 102, 0.06) 100%)"
+                      color="#25D366"
+                    />
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                <MetricCard title="Sent" value={campaign.whatsapp_sent ?? 0} gradient="linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(37, 211, 102, 0.05) 100%)" color="#25D366" />
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Call Channel Metrics */}
           {activeChannels.includes('call') && (
@@ -299,6 +370,46 @@ export function AnalyticsTab({ campaign }: AnalyticsTabProps) {
               })()}
             </div>
           )}
+
+          {activeChannels.includes('whatsapp') && (() => {
+            const waSent = Number(campaign.whatsapp_sent ?? campaign.sent ?? 0);
+            const waDelivered = Number(campaign.whatsapp_delivered ?? 0);
+            const waSeen = Number(campaign.whatsapp_seen ?? 0);
+            const max = Math.max(waSent, waDelivered, waSeen, 1);
+            const bars = [
+              { label: 'Sent', value: waSent, color: '#25D366' },
+              { label: 'Delivered', value: waDelivered, color: '#10b981' },
+              { label: 'Seen', value: waSeen, color: 'var(--color-primary)' },
+            ];
+            return (
+              <div style={{
+                background: 'var(--color-surface-secondary)',
+                borderRadius: 12,
+                padding: 24,
+                border: '1px solid var(--color-border)'
+              }}>
+                <h4 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>WhatsApp volume snapshot</h4>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 16px 0' }}>
+                  Live totals from this campaign (delivery and seen update when Unipile webhooks fire).
+                </p>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, height: 160, paddingTop: 8 }}>
+                  {bars.map((b) => (
+                    <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{b.value}</div>
+                      <div style={{
+                        width: '100%',
+                        maxWidth: 56,
+                        height: `${Math.max(8, (b.value / max) * 120)}px`,
+                        background: `linear-gradient(to top, ${b.color}, ${b.color}55)`,
+                        borderRadius: '6px 6px 0 0',
+                      }} />
+                      <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textAlign: 'center' }}>{b.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* AI Insights */}
           {campaign.ai_insight && (

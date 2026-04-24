@@ -1,5 +1,10 @@
 import { io, Socket } from "socket.io-client";
 import { getToken, apiRequest } from "./apiClient";
+import {
+  bindCampaignMetricsRelay,
+  unbindCampaignMetricsRelay,
+  clearCampaignMetricsListeners,
+} from "./campaignMetricsRealtime";
 
 let socket: Socket | null = null;
 let reconnectAttempts = 0;
@@ -125,6 +130,7 @@ export async function initializeWebSocket(): Promise<Socket | null> {
   if (socket?.connected) {
     bindNotificationRelay(socket);
     bindCampaignLiveRelay(socket);
+    bindCampaignMetricsRelay(socket);
     syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
     return socket;
   }
@@ -133,6 +139,7 @@ export async function initializeWebSocket(): Promise<Socket | null> {
   if (socket && !socket.connected) {
     bindNotificationRelay(socket);
     bindCampaignLiveRelay(socket);
+    bindCampaignMetricsRelay(socket);
     socket.connect();
     return socket;
   }
@@ -160,12 +167,14 @@ export async function initializeWebSocket(): Promise<Socket | null> {
 
   bindNotificationRelay(socket);
   bindCampaignLiveRelay(socket);
+  bindCampaignMetricsRelay(socket);
 
   socket.on('connect', () => {
     console.log('[WebSocket] ✅ Connected to notification server');
     reconnectAttempts = 0;
     bindNotificationRelay(socket);
     bindCampaignLiveRelay(socket);
+    bindCampaignMetricsRelay(socket);
     syncWebSocketWorkspaceRoom(getStoredActiveBaseId());
   });
 
@@ -211,10 +220,12 @@ export function disconnectWebSocket() {
   if (socket) {
     socket.off("notification", fanOutNotification);
     socket.off("campaign:live", fanOutCampaignLive);
+    unbindCampaignMetricsRelay(socket);
     socket.disconnect();
     socket = null;
     notificationListeners.clear();
     campaignLiveListeners.clear();
+    clearCampaignMetricsListeners();
     console.log('[WebSocket] Disconnected');
   }
 }
@@ -235,6 +246,7 @@ export async function onNotification(callback: (notification: any) => void) {
   if (s) {
     bindNotificationRelay(s);
     bindCampaignLiveRelay(s);
+    bindCampaignMetricsRelay(s);
   }
 }
 
@@ -252,7 +264,10 @@ export function offNotification(callback?: (notification: any) => void) {
 export async function onCampaignLive(callback: (payload: CampaignLivePayload) => void) {
   campaignLiveListeners.add(callback);
   const s = await initializeWebSocket();
-  if (s) bindCampaignLiveRelay(s);
+  if (s) {
+    bindCampaignLiveRelay(s);
+    bindCampaignMetricsRelay(s);
+  }
 }
 
 export function offCampaignLive(callback?: (payload: CampaignLivePayload) => void) {
@@ -262,4 +277,3 @@ export function offCampaignLive(callback?: (payload: CampaignLivePayload) => voi
   }
   campaignLiveListeners.clear();
 }
-

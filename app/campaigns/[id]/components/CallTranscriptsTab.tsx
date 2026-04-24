@@ -238,13 +238,22 @@ export type CallTranscriptsTabPrefetchProps = {
   prefetchedLogs?: CallLog[] | null;
   prefetchedLoading?: boolean;
   prefetchedError?: string | null;
+  /** Workspace id — used to refresh header credits after call sync / hydration (same pool as call-minute billing). */
+  baseId?: number | null;
 };
+
+function emitWorkspaceCreditsRefresh(baseId?: number | null) {
+  const b = Number(baseId);
+  if (typeof window === "undefined" || !Number.isFinite(b) || b <= 0) return;
+  window.dispatchEvent(new CustomEvent("sparkai:workspace-credits-changed", { detail: { baseId: b } }));
+}
 
 export function CallTranscriptsTab({
   prefetchEnabled = false,
   prefetchedLogs = null,
   prefetchedLoading = false,
   prefetchedError = null,
+  baseId = null,
 }: CallTranscriptsTabPrefetchProps = {}) {
   const { showSuccess, showError } = useNotification();
   const params = useParams();
@@ -363,6 +372,15 @@ export function CallTranscriptsTab({
             };
           })
         );
+
+        const st = String(payload?.status || "").toLowerCase();
+        const terminalLike =
+          st.includes("complete") ||
+          st.includes("done") ||
+          (nextDuration != null && nextDuration > 0);
+        if (terminalLike) {
+          emitWorkspaceCreditsRefresh(baseId);
+        }
       } catch (mediaErr) {
         console.warn('Failed to hydrate call media:', mediaErr);
       } finally {
@@ -370,7 +388,7 @@ export function CallTranscriptsTab({
         updateHydratingState(log.id, false);
       }
     },
-    [campaignId, getConversationId]
+    [campaignId, getConversationId, baseId]
   );
 
   const runHydrationForLogs = useCallback(
@@ -407,13 +425,14 @@ export function CallTranscriptsTab({
       const logs: CallLog[] = data.callLogs || [];
       lastPrefetchedLogsDigestRef.current = null;
       ingestCallLogs(logs);
+      emitWorkspaceCreditsRefresh(baseId);
     } catch (err: any) {
       console.error('Failed to fetch call logs:', err);
       setError(err.message || 'Failed to load call logs');
     } finally {
       setLoading(false);
     }
-  }, [campaignId, ingestCallLogs]);
+  }, [campaignId, ingestCallLogs, baseId]);
 
   useEffect(() => {
     lastPrefetchedLogsDigestRef.current = null;

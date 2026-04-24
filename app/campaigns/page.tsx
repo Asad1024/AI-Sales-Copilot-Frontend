@@ -5,7 +5,7 @@ import { useCampaignStore } from "@/stores/useCampaignStore";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { useLeadStore } from "@/stores/useLeadStore";
 import { apiRequest } from "@/lib/apiClient";
-import { useSocket } from "@/hooks/useSocket";
+import { useCampaignMetricsLiveRefresh } from "@/hooks/useCampaignMetricsLiveRefresh";
 import { Icons } from "@/components/ui/Icons";
 import EmptyStateBanner from "@/components/ui/EmptyStateBanner";
 import ToolbarSearchField from "@/components/ui/ToolbarSearchField";
@@ -32,8 +32,8 @@ export default function CampaignsPage() {
     filters,
     setFilters,
     getFilteredCampaigns,
-    refreshCampaign,
   } = useCampaignStore();
+  useCampaignMetricsLiveRefresh({ enabled: Boolean(activeBaseId) });
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   /**
    * Gate only first paint when there is no cached campaigns data.
@@ -45,8 +45,6 @@ export default function CampaignsPage() {
   /** Tier/lead insights should never block initial campaigns render when cached data exists. */
   const [leadsReady, setLeadsReady] = useState(() => !activeBaseId);
   const [tierLeadsForInsights, setTierLeadsForInsights] = useState<any[]>([]);
-  
-  const socket = useSocket();
 
   useEffect(() => {
     if (!activeBaseId && bases.length === 0) {
@@ -149,28 +147,6 @@ export default function CampaignsPage() {
       cancelled = true;
     };
   }, [activeBaseId, campaigns, fetchCampaigns, hasCacheForBase, setPagination]);
-
-  // Listen for real-time campaign metrics updates via WebSocket
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleCampaignMetricsUpdate = (data: {
-      campaign_id: number;
-      event_type: string;
-      lead_id?: number;
-      timestamp: string;
-    }) => {
-      console.log('[WebSocket] Campaign metrics updated:', data);
-      // Refresh the specific campaign to get updated metrics
-      refreshCampaign(data.campaign_id);
-    };
-
-    socket.on('campaign:metrics:update', handleCampaignMetricsUpdate);
-
-    return () => {
-      socket.off('campaign:metrics:update', handleCampaignMetricsUpdate);
-    };
-  }, [socket, refreshCampaign]);
 
   const filteredCampaigns = getFilteredCampaigns();
   const totalLeads = pagination?.totalLeads ?? 0;

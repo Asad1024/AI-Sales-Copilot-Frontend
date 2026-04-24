@@ -169,7 +169,12 @@ function sharedAxes(
         fontWeight: 600,
         fontSize: compact ? 8 : 10,
         interval: opts.xLabelInterval,
-        ...(compact ? { formatter: (val: string) => formatKpiCardXAxisCategory(val) } : {}),
+        ...(compact
+          ? {
+              formatter: (val: string) => formatKpiCardXAxisCategory(val),
+              hideOverlap: true,
+            }
+          : {}),
       },
     },
     yAxis: {
@@ -209,7 +214,19 @@ export function KpiEnterpriseChart({ values, title, variant, height = 92, compac
   const categories = useMemo(() => Array.from({ length: n }, (_, i) => String(i + 1)), [n]);
   const yMax = Math.max(...ys, 0);
   const yCeil = yMax <= 0 ? 1 : Math.ceil(yMax * 1.12);
-  const xLabelInterval = useMemo(() => sparseEvenCategoryAxisLabelInterval(n, 3), [n]);
+  /**
+   * Compact KPI cards: use a **numeric** category interval so ECharts shows ~4 X labels
+   * (Open rate / candlestick otherwise overlaps many tick labels into one unreadable band).
+   * Non-compact: keep evenly spaced index picks via callback.
+   */
+  const xLabelInterval = useMemo(() => {
+    if (compact) {
+      if (n <= 5) return 0;
+      const maxXLabels = 4;
+      return Math.max(1, Math.ceil(n / maxXLabels) - 1);
+    }
+    return sparseEvenCategoryAxisLabelInterval(n, 5);
+  }, [n, compact]);
 
   const option: EChartsOption = useMemo(() => {
     const primary = `rgb(${primaryRgb})`;
@@ -708,7 +725,13 @@ export function KpiEnterpriseChart({ values, title, variant, height = 92, compac
           startAngle: 90,
           axisLine: { lineStyle: { color: axisMuted } },
           axisTick: { show: false },
-          axisLabel: { color: labelMuted, fontSize: 9, fontWeight: 600, interval: xLabelInterval },
+          axisLabel: {
+            color: labelMuted,
+            fontSize: 9,
+            fontWeight: 600,
+            interval: xLabelInterval,
+            ...(compact ? { hideOverlap: true } : {}),
+          },
         },
         radiusAxis: {
           min: 0,
@@ -795,7 +818,12 @@ export function KpiEnterpriseChart({ values, title, variant, height = 92, compac
           fontWeight: compact ? 600 : 700,
           fontSize: compact ? 8 : 10,
           interval: xLabelInterval,
-          ...(compact ? { formatter: (val: string) => formatKpiCardXAxisCategory(val) } : {}),
+          ...(compact
+            ? {
+                formatter: (val: string) => formatKpiCardXAxisCategory(val),
+                hideOverlap: true,
+              }
+            : {}),
         },
       },
       yAxis: {

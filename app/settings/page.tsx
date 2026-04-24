@@ -9,6 +9,7 @@ import { shouldHideBillingAndUpgrade } from "@/lib/billingUi";
 import { useBaseStore } from "@/stores/useBaseStore";
 import { TestConfigurationSection } from "./TestConfigurationSection";
 import { TestEmailSection } from "./TestEmailSection";
+import { TestWhatsAppSection } from "./TestWhatsAppSection";
 import BaseCard from "@/components/ui/BaseCard";
 import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
 import { PaymentSettingsPanel } from "./PaymentSettingsPanel";
@@ -37,6 +38,11 @@ const TestEmailTabIcon = ({ active }: { active: boolean }) => (
     <Icons.Mail size={16} strokeWidth={1.5} />
   </span>
 );
+const TestWhatsAppTabIcon = ({ active }: { active: boolean }) => (
+  <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
+    <Icons.MessageCircle size={16} strokeWidth={1.5} />
+  </span>
+);
 const PaymentsTabIcon = ({ active }: { active: boolean }) => (
   <span style={{ ...navIconBox, color: active ? ACTIVE_NAV_ACCENT : "var(--sidebar-nav-icon)" }}>
     <CreditCard size={16} strokeWidth={1.5} />
@@ -53,7 +59,8 @@ type SettingsTabId =
   | "payments"
   | "credit-history"
   | "test-configuration"
-  | "test-email";
+  | "test-email"
+  | "test-whatsapp";
 
 function parseSettingsTab(raw: string | null): SettingsTabId {
   if (raw === "payments" || raw === "billing") return "payments";
@@ -61,6 +68,7 @@ function parseSettingsTab(raw: string | null): SettingsTabId {
   if (raw === "safety") return "profile";
   if (raw === "test-configuration") return "test-configuration";
   if (raw === "test-email") return "test-email";
+  if (raw === "test-whatsapp") return "test-whatsapp";
   return "profile";
 }
 
@@ -152,6 +160,12 @@ export default function SettingsPage() {
         items: [
           { id: "test-configuration", label: "Integration Tests", hint: "LinkedIn, WhatsApp, call", icon: (a) => <TestConfigTabIcon active={a} /> },
           { id: "test-email", label: "Email Tests", hint: "Send tests and see delivery & opens", icon: (a) => <TestEmailTabIcon active={a} /> },
+          {
+            id: "test-whatsapp",
+            label: "WhatsApp Tests",
+            hint: "Send tests and inspect Unipile webhooks",
+            icon: (a) => <TestWhatsAppTabIcon active={a} />,
+          },
         ],
       },
     ],
@@ -311,6 +325,7 @@ export default function SettingsPage() {
           {effectiveTab === "credit-history" && <CreditHistorySettingsPanel />}
           {effectiveTab === "test-configuration" && <TestConfigurationSection />}
           {effectiveTab === "test-email" && <TestEmailSection />}
+          {effectiveTab === "test-whatsapp" && <TestWhatsAppSection />}
         </BaseCard>
       </div>
 

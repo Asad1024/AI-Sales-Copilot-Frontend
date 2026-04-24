@@ -1,5 +1,6 @@
 import { getEmailInfo } from "@/utils/emailNormalization";
 import { campaignScheduleFieldToUtcIso } from "@/lib/campaignScheduleUtc";
+import { FOLLOWUP_DELAY_UI } from "@/lib/followupDelayUi";
 
 export type DraftLead = {
   id: number;
@@ -195,7 +196,7 @@ export function buildCampaignDraftPayload(
       ...(channels.includes("whatsapp") && schedule.whatsapp ? { whatsapp: schedule.whatsapp } : {}),
       ...(channels.includes("call") && schedule.call ? { call: schedule.call } : {}),
       followups: schedule.followups || 0,
-      followupDelay: schedule.followupDelay || 3,
+      followupDelay: schedule.followupDelay ?? FOLLOWUP_DELAY_UI.defaultDelay,
     },
     segments,
     emailMessages: messages,

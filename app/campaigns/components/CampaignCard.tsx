@@ -44,6 +44,18 @@ function orderedCampaignChannels(campaign: Campaign): ChannelType[] {
   return CHANNEL_DISPLAY_ORDER.filter((ch) => seen.has(ch));
 }
 
+function formatCampaignWhatsAppReplyRate(campaign: Campaign): string {
+  const r = campaign.whatsapp_reply_rate;
+  if (typeof r === "string" && r.trim() !== "") {
+    const t = r.trim();
+    return t.includes("%") ? t : `${t}%`;
+  }
+  const s = Number(campaign.whatsapp_sent ?? 0);
+  const rep = Number(campaign.whatsapp_replied ?? 0);
+  if (!s) return "—";
+  return `${((rep / s) * 100).toFixed(1)}%`;
+}
+
 function CampaignChannelGlyphs({
   channels,
   size = 16,
@@ -247,43 +259,54 @@ export default function CampaignCard({
     : campaign.clickRate != null && Number.isFinite(Number(campaign.clickRate))
       ? `${Number(campaign.clickRate).toFixed(1)}%`
       : "—";
-  /** WhatsApp cards: read rate from provider metrics (replaces former reply slot). */
-  const whatsappReadDisplay =
-    typeof campaign.whatsapp_read_rate === "string" && campaign.whatsapp_read_rate.trim()
-      ? campaign.whatsapp_read_rate.includes("%")
-        ? campaign.whatsapp_read_rate.trim()
-        : `${campaign.whatsapp_read_rate.trim()}%`
-      : campaign.whatsapp_sent && (campaign.whatsapp_seen ?? 0) > 0
-        ? `${((Number(campaign.whatsapp_seen) / Number(campaign.whatsapp_sent)) * 100).toFixed(1)}%`
-        : "—";
+
+  const waSentCount = Number(campaign.whatsapp_sent ?? campaign.sent ?? 0);
+  const waDelivered = Number(campaign.whatsapp_delivered ?? 0);
+  const waSeen = Number(campaign.whatsapp_seen ?? 0);
 
   const campaignChannelsOrdered = orderedCampaignChannels(campaign);
+  const includesWhatsapp = campaign.channel === "whatsapp" || campaignChannelsOrdered.includes("whatsapp");
+  const waReplyRateDisplay = formatCampaignWhatsAppReplyRate(campaign);
 
   if (workspaceStyle) {
     const hasHotLeads = campaign.tier_filter === "Hot";
-    const metricItems: Array<{ label: string; value: ReactNode }> = [
-      {
-        label: "Leads",
-        value: (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            {hasHotLeads ? (
-              <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
-            ) : null}
-            <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
-          </span>
-        ),
-      },
-      {
-        label: "Sent",
-        value: campaign.channel === "whatsapp" ? String(campaign.sent ?? "—") : String(campaign.sent ?? 0),
-      },
-      ...(campaign.channel !== "whatsapp" ? [{ label: "Open", value: openDisplay }] : []),
+    const metricItems: Array<{ label: string; value: ReactNode }> =
       campaign.channel === "whatsapp"
-        ? { label: "Read", value: whatsappReadDisplay }
-        : { label: "Click", value: clickDisplay },
-    ];
-    const metricGridCols =
-      campaign.channel === "whatsapp" ? "repeat(3, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))";
+        ? [
+            {
+              label: "Leads",
+              value: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {hasHotLeads ? (
+                    <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
+                  ) : null}
+                  <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
+                </span>
+              ),
+            },
+            { label: "Sent", value: waSentCount ? String(waSentCount) : "—" },
+            { label: "Delivered", value: String(waDelivered) },
+            { label: "Seen", value: String(waSeen) },
+            { label: "Reply rate", value: waReplyRateDisplay },
+          ]
+        : [
+            {
+              label: "Leads",
+              value: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {hasHotLeads ? (
+                    <Icons.Flame size={12} strokeWidth={1.5} style={{ color: "#f87171", opacity: 0.95 }} aria-label="Includes hot leads" />
+                  ) : null}
+                  <span>{actualLeadCount ? String(actualLeadCount) : "—"}</span>
+                </span>
+              ),
+            },
+            { label: "Sent", value: String(campaign.sent ?? 0) },
+            { label: "Open", value: openDisplay },
+            { label: "Click", value: clickDisplay },
+            ...(includesWhatsapp ? ([{ label: "WA reply rate", value: waReplyRateDisplay }] as const) : []),
+          ];
+    const metricGridCols = "repeat(2, minmax(0, 1fr))";
 
     const handleCardClick = () => {
       setMenuOpen(false);
@@ -712,16 +735,40 @@ export default function CampaignCard({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: campaign.channel === "whatsapp" ? "repeat(3, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
           gap: sc.metricGap,
         }}
       >
         {metricCell(<Icons.Users size={sc.metricIconGlyph} strokeWidth={1.5} />, "Leads", leadsMetricValue)}
-        {metricCell(<Icons.Send size={sc.metricIconGlyph} strokeWidth={1.5} />, "Sent", campaign.channel === "whatsapp" ? String(campaign.sent ?? "—") : String(campaign.sent ?? 0))}
-        {campaign.channel !== "whatsapp" && metricCell(<Icons.Mail size={sc.metricIconGlyph} strokeWidth={1.5} />, "Open", openDisplay)}
-        {campaign.channel === "whatsapp"
-          ? metricCell(<Icons.Eye size={sc.metricIconGlyph} strokeWidth={1.5} />, "Read", whatsappReadDisplay)
-          : metricCell(<Icons.ExternalLink size={sc.metricIconGlyph} strokeWidth={1.5} />, "Click", clickDisplay)}
+        {metricCell(
+          <Icons.Send size={sc.metricIconGlyph} strokeWidth={1.5} />,
+          "Sent",
+          campaign.channel === "whatsapp" ? (waSentCount ? String(waSentCount) : "—") : String(campaign.sent ?? 0)
+        )}
+        {campaign.channel === "whatsapp" ? (
+          <>
+            {metricCell(
+              <Icons.CheckCircle size={sc.metricIconGlyph} strokeWidth={1.5} />,
+              "Delivered",
+              String(waDelivered)
+            )}
+            {metricCell(<Icons.Eye size={sc.metricIconGlyph} strokeWidth={1.5} />, "Seen", String(waSeen))}
+          </>
+        ) : (
+          <>
+            {metricCell(<Icons.Mail size={sc.metricIconGlyph} strokeWidth={1.5} />, "Open", openDisplay)}
+            {metricCell(<Icons.ExternalLink size={sc.metricIconGlyph} strokeWidth={1.5} />, "Click", clickDisplay)}
+          </>
+        )}
+        {includesWhatsapp ? (
+          <div style={{ gridColumn: "1 / -1" }}>
+            {metricCell(
+              <Icons.WhatsApp size={sc.metricIconGlyph} strokeWidth={1.5} />,
+              "WhatsApp reply rate",
+              waReplyRateDisplay
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div

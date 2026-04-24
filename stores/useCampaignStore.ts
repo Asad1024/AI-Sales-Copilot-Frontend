@@ -258,31 +258,50 @@ export const useCampaignStore = create<CampaignStore>((set, get) => ({
   
   refreshCampaign: async (id) => {
     try {
-      // Fetch updated campaign data from API
       const data = await apiRequest(`/campaigns/${id}`);
       const updatedCampaign = data?.campaign || data;
-      if (updatedCampaign) {
-        // Update the campaign in the store
-        set((state) => ({
-          campaigns: state.campaigns.map(c =>
-            c.id === id ? { ...c, ...updatedCampaign } : c
-          ),
-          campaignCache: Object.fromEntries(
-            Object.entries(state.campaignCache).map(([key, value]) => [
-              key,
-              {
-                ...value,
-                campaigns: value.campaigns.map(c => (c.id === id ? { ...c, ...updatedCampaign } : c)),
-                timestamp: Date.now(),
-              },
-            ])
-          ) as Record<number, CampaignCacheEntry>,
-        }));
-        console.log(`[CampaignStore] Refreshed campaign ${id} metrics`);
-      }
+      if (!updatedCampaign || updatedCampaign.id == null) return;
+
+      const cid = Number(updatedCampaign.id);
+      const baseId = Number(updatedCampaign.base_id);
+
+      const upsertList = (list: Campaign[], listBaseHint: number): Campaign[] => {
+        const idx = list.findIndex((c) => c.id === cid);
+        if (idx >= 0) {
+          return list.map((c, i) => (i === idx ? { ...c, ...updatedCampaign } : c));
+        }
+        const hintOk = Number.isFinite(listBaseHint) && listBaseHint > 0;
+        const canAppend =
+          hintOk &&
+          (list.length === 0 || list.every((c) => Number(c.base_id) === listBaseHint));
+        if (canAppend) {
+          return [...list, { ...updatedCampaign } as Campaign];
+        }
+        return list;
+      };
+
+      set((state) => {
+        const nextCache: Record<number, CampaignCacheEntry> = { ...state.campaignCache };
+        for (const [keyStr, value] of Object.entries(state.campaignCache)) {
+          const cacheBaseId = Number(keyStr);
+          const inList = value.campaigns.some((c) => c.id === cid);
+          const cacheMatchesWorkspace =
+            Number.isFinite(cacheBaseId) && cacheBaseId > 0 && cacheBaseId === baseId;
+          if (!inList && !cacheMatchesWorkspace) continue;
+          nextCache[cacheBaseId] = {
+            ...value,
+            campaigns: upsertList(value.campaigns, cacheBaseId),
+            timestamp: Date.now(),
+          };
+        }
+        return {
+          campaigns: upsertList(state.campaigns, baseId),
+          campaignCache: nextCache,
+        };
+      });
+      console.log(`[CampaignStore] Refreshed campaign ${id} metrics`);
     } catch (error) {
       console.error(`Failed to refresh campaign ${id}:`, error);
-      // Don't throw - just log the error so UI doesn't break
     }
   },
   

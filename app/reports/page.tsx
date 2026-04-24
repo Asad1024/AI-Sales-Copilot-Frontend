@@ -31,7 +31,7 @@ type TopLeadRow = {
 };
 
 type ChannelMetrics = {
-  email?: { sent?: number; replied?: number; replyRate?: number };
+  email?: { sent?: number; delivered?: number; deliveryRate?: number; replied?: number; replyRate?: number };
   whatsapp?: { sent?: number; replied?: number; replyRate?: number };
   linkedin?: { sent?: number; replied?: number; replyRate?: number };
   call?: {
@@ -363,8 +363,8 @@ export default function ReportsPage() {
         label: "Email",
         icon: <Icons.Mail size={16} style={{ color: "var(--color-primary)" }} />,
         primary: num(cm?.email?.sent),
-        secondaryLabel: "Replies",
-        secondary: num(cm?.email?.replied),
+        secondaryLabel: "Delivered",
+        secondary: num(cm?.email?.delivered),
       },
       {
         key: "whatsapp",

@@ -139,7 +139,21 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
         
         // WhatsApp Channel Metrics
         if (activeChannels.includes('whatsapp')) {
-          const waSent = campaign.whatsapp_sent ?? 0;
+          const waSent = Number(campaign.whatsapp_sent ?? campaign.sent ?? 0);
+          const waDelivered = Number(campaign.whatsapp_delivered ?? 0);
+          const waSeen = Number(campaign.whatsapp_seen ?? 0);
+          const waReplied = Number(campaign.whatsapp_replied ?? 0);
+          const deliveryPct =
+            waSent > 0 ? ((waDelivered / waSent) * 100).toFixed(1) : "0";
+          const seenPct = waSent > 0 ? ((waSeen / waSent) * 100).toFixed(1) : "0";
+          const replyRateDisplay =
+            typeof campaign.whatsapp_reply_rate === "string" && campaign.whatsapp_reply_rate.trim() !== ""
+              ? campaign.whatsapp_reply_rate.trim().includes("%")
+                ? campaign.whatsapp_reply_rate.trim()
+                : `${campaign.whatsapp_reply_rate.trim()}%`
+              : waSent > 0
+                ? `${((waReplied / waSent) * 100).toFixed(1)}%`
+                : "0%";
           channelSections.push(
             <div key="whatsapp" style={{ 
               marginBottom: 40,
@@ -154,11 +168,36 @@ export function OverviewTab({ campaign, totalLeads, loadingLeads = false }: Over
                   WhatsApp Metrics
                 </h3>
                 <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0, paddingLeft: 30 }}>
-                  Outbound WhatsApp delivery metrics
+                  Sent, delivery, and read receipts (Unipile webhooks)
                 </p>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom: 24 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:20, marginBottom: 16 }}>
+                <Kpi title="Leads in campaign" value={totalLeadsKpi} icon={Icons.Users} />
                 <Kpi title="Sent" value={waSent} icon={Icons.Send} />
+                <Kpi title="Delivered" value={waDelivered} icon={Icons.CheckCircle} />
+                <Kpi title="Seen" value={waSeen} icon={Icons.Eye} />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20 }}>
+                <Kpi
+                  title="Delivery rate"
+                  value={
+                    typeof campaign.whatsapp_delivery_rate === "string" && campaign.whatsapp_delivery_rate.includes("%")
+                      ? campaign.whatsapp_delivery_rate.trim()
+                      : `${deliveryPct}%`
+                  }
+                  icon={Icons.Chart}
+                />
+                <Kpi
+                  title="Seen rate"
+                  value={
+                    typeof campaign.whatsapp_read_rate === "string" && campaign.whatsapp_read_rate.includes("%")
+                      ? campaign.whatsapp_read_rate.trim()
+                      : `${seenPct}%`
+                  }
+                  icon={Icons.Chart}
+                />
+                <Kpi title="Replies" value={waReplied} icon={Icons.MessageCircle} />
+                <Kpi title="Reply rate" value={replyRateDisplay} icon={Icons.Chart} />
               </div>
             </div>
           );

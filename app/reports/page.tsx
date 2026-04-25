@@ -348,20 +348,26 @@ export default function ReportsPage() {
     [trendData]
   );
 
-  const leadInventorySnapshot = useMemo(
+  const leadMomentumFallbackRows = useMemo(
     () => [
-      { metric: "Total Leads", value: totalLeads, color: "#E69A61" },
-      { metric: "Enriched", value: num(data?.enrichedLeads), color: "#0EA5E9" },
-      { metric: "With Email", value: num(data?.leadsWithEmail), color: "#2563EB" },
-      { metric: "With Phone", value: num(data?.leadsWithPhone), color: "#14B8A6" },
+      { metric: "Total", value: totalLeads, color: "#E69A61" },
+      { metric: "Contacted", value: contacted, color: "#F59E0B" },
+      { metric: "Replied", value: replied, color: "#14B8A6" },
+      { metric: "Converted", value: converted, color: "#2563EB" },
     ],
-    [totalLeads, data?.enrichedLeads, data?.leadsWithEmail, data?.leadsWithPhone]
+    [totalLeads, contacted, replied, converted]
   );
 
-  const hasLeadInventorySignal = useMemo(
-    () => leadInventorySnapshot.some((row) => row.value > 0),
-    [leadInventorySnapshot]
+  const hasLeadMomentumFallbackSignal = useMemo(
+    () => leadMomentumFallbackRows.some((row) => row.value > 0),
+    [leadMomentumFallbackRows]
   );
+
+  const leadMomentumSubtitle = hasLeadMomentumSignal
+    ? "Daily lead volume and rolling average"
+    : hasLeadMomentumFallbackSignal
+      ? "No new leads in selected period; showing current pipeline totals"
+      : "No lead activity data yet";
 
   const funnelRows = useMemo(() => {
     const rows = [
@@ -656,7 +662,7 @@ export default function ReportsPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14 }}>
             <SurfaceCard
               title="Lead Momentum"
-              subtitle="Daily lead volume and rolling average"
+              subtitle={leadMomentumSubtitle}
               icon={<Icons.TrendingUp size={16} style={{ color: "var(--color-primary)" }} />}
             >
               {trendData.length > 0 && hasLeadMomentumSignal ? (
@@ -677,10 +683,10 @@ export default function ReportsPage() {
                     <Line type="monotone" dataKey="rollingLeads" name="Rolling avg" stroke="#1E293B" strokeWidth={1.8} dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
-              ) : hasLeadInventorySignal ? (
+              ) : hasLeadMomentumFallbackSignal ? (
                 <>
                   <ResponsiveContainer width="100%" height={230}>
-                    <BarChart data={leadInventorySnapshot} layout="vertical" margin={{ top: 6, right: 8, left: 2, bottom: 0 }}>
+                    <BarChart data={leadMomentumFallbackRows} layout="vertical" margin={{ top: 6, right: 8, left: 2, bottom: 0 }}>
                       <CartesianGrid stroke={CHART_GRID} strokeDasharray="2 4" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} allowDecimals={false} />
                       <YAxis
@@ -693,14 +699,14 @@ export default function ReportsPage() {
                       />
                       <Tooltip content={<AnalyticsTooltip />} />
                       <Bar dataKey="value" name="Leads" radius={[0, 8, 8, 0]}>
-                        {leadInventorySnapshot.map((row) => (
+                        {leadMomentumFallbackRows.map((row) => (
                           <Cell key={row.metric} fill={row.color} />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                   <div style={{ marginTop: 8, fontSize: 12, color: "var(--color-text-muted)" }}>
-                    No new leads in this selected period. Showing current lead inventory instead.
+                    No new leads in this selected period. Showing pipeline totals instead.
                   </div>
                 </>
               ) : (

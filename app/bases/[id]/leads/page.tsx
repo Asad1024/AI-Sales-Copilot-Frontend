@@ -877,7 +877,8 @@ export default function BaseLeadsPage() {
           }}
           onEnrich={async () => {
             if (drawerLead && currentBaseId) {
-              await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage);
+              clearCache(currentBaseId);
+              await fetchLeads(currentBaseId, pagination.currentPage, pagination.leadsPerPage, true, { quiet: true });
             }
           }}
         />

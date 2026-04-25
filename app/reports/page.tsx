@@ -348,6 +348,21 @@ export default function ReportsPage() {
     [trendData]
   );
 
+  const leadInventorySnapshot = useMemo(
+    () => [
+      { metric: "Total Leads", value: totalLeads, color: "#E69A61" },
+      { metric: "Enriched", value: num(data?.enrichedLeads), color: "#0EA5E9" },
+      { metric: "With Email", value: num(data?.leadsWithEmail), color: "#2563EB" },
+      { metric: "With Phone", value: num(data?.leadsWithPhone), color: "#14B8A6" },
+    ],
+    [totalLeads, data?.enrichedLeads, data?.leadsWithEmail, data?.leadsWithPhone]
+  );
+
+  const hasLeadInventorySignal = useMemo(
+    () => leadInventorySnapshot.some((row) => row.value > 0),
+    [leadInventorySnapshot]
+  );
+
   const funnelRows = useMemo(() => {
     const rows = [
       { stage: "Total", value: totalLeads, color: "#E69A61" },
@@ -662,6 +677,32 @@ export default function ReportsPage() {
                     <Line type="monotone" dataKey="rollingLeads" name="Rolling avg" stroke="#1E293B" strokeWidth={1.8} dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
+              ) : hasLeadInventorySignal ? (
+                <>
+                  <ResponsiveContainer width="100%" height={230}>
+                    <BarChart data={leadInventorySnapshot} layout="vertical" margin={{ top: 6, right: 8, left: 2, bottom: 0 }}>
+                      <CartesianGrid stroke={CHART_GRID} strokeDasharray="2 4" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <YAxis
+                        type="category"
+                        dataKey="metric"
+                        tick={{ fontSize: 11, fill: CHART_TICK }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={76}
+                      />
+                      <Tooltip content={<AnalyticsTooltip />} />
+                      <Bar dataKey="value" name="Leads" radius={[0, 8, 8, 0]}>
+                        {leadInventorySnapshot.map((row) => (
+                          <Cell key={row.metric} fill={row.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--color-text-muted)" }}>
+                    No new leads in this selected period. Showing current lead inventory instead.
+                  </div>
+                </>
               ) : (
                 <div
                   style={{
@@ -677,7 +718,7 @@ export default function ReportsPage() {
                     fontWeight: 600,
                   }}
                 >
-                  No lead activity in the selected period
+                  No lead data available yet
                 </div>
               )}
             </SurfaceCard>

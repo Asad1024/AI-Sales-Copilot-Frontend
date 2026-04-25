@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { apiRequest, streamGenerateLeads, setUser, getUser, type User } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
@@ -52,7 +52,7 @@ function overallLeadGenPercent(stage: string, done: number, total: number): numb
   return Math.min(100, Math.max(0, Math.round(lo + frac * (hi - lo))));
 }
 
-const AI_LEAD_PROMPT_MAX_CHARS = 300;
+const AI_LEAD_PROMPT_MAX_CHARS = 150;
 const AI_LEAD_COUNT_MIN = 10;
 const AI_LEAD_COUNT_MAX = 100;
 
@@ -73,52 +73,52 @@ type LeadGenQuickSuggestion = {
 
 const DEFAULT_LEAD_GEN_QUICK_SUGGESTIONS: LeadGenQuickSuggestion[] = [
   {
-    id: "chip-role-vp-sales",
-    label: "VP Sales",
-    prompt:
-      "Find VP Sales only at B2B companies in Dubai, with 200–500 employees. Industries: software, IT services, professional services, distribution.",
-  },
-  {
-    id: "chip-role-marketing-manager",
-    label: "Marketing Manager",
-    prompt:
-      "Find Marketing Manager only at companies in Dubai, with 200–500 employees. Industries: software, ecommerce, agencies, consumer brands.",
-  },
-  {
     id: "chip-role-hr-manager",
     label: "HR Manager",
     prompt:
-      "Find HR Manager only at organizations in Dubai, with 200–500 employees. Industries: technology, retail, logistics, professional services.",
+      "Find HR Managers at established software companies in Dubai with 200-500 employees.",
   },
   {
-    id: "chip-role-software-engineer",
-    label: "Software Engineer",
+    id: "chip-role-talent-acquisition-manager",
+    label: "Talent Acquisition Manager",
     prompt:
-      "Find Software Engineer only at product and technology companies in Dubai, with 200–500 employees. Industries: computer software, fintech, IT services.",
+      "Find Talent Acquisition Managers at established software companies in Dubai with 200-500 employees.",
+  },
+  {
+    id: "chip-role-engineering-manager",
+    label: "Engineering Manager",
+    prompt:
+      "Find Engineering Managers at established software companies in Dubai with 200-500 employees.",
+  },
+  {
+    id: "chip-role-head-of-product",
+    label: "Head of Product",
+    prompt:
+      "Find Heads of Product at established software companies in Dubai with 200-500 employees.",
+  },
+  {
+    id: "chip-role-vp-sales",
+    label: "VP Sales",
+    prompt:
+      "Find VP Sales leaders at established software companies in Dubai with 200-500 employees.",
   },
   {
     id: "chip-role-account-executive",
     label: "Account Executive",
     prompt:
-      "Find Account Executive only at B2B firms in Dubai, with 200–500 employees. Industries: software, services, industrial distribution.",
+      "Find Account Executives at established software companies in Dubai with 200-500 employees.",
   },
   {
-    id: "chip-role-ceo",
-    label: "CEO",
+    id: "chip-role-marketing-manager",
+    label: "Marketing Manager",
     prompt:
-      "Find CEO only at growth-stage companies in Dubai, with 200–500 employees. Industries: software, services, trading, ecommerce.",
+      "Find Marketing Managers at established software companies in Dubai with 200-500 employees.",
   },
   {
     id: "chip-role-customer-success-manager",
     label: "Customer Success Manager",
     prompt:
-      "Find Customer Success Manager only at SaaS and subscription businesses in Dubai, with 200–500 employees.",
-  },
-  {
-    id: "chip-role-business-development-manager",
-    label: "Business Development Manager",
-    prompt:
-      "Find Business Development Manager only at B2B companies in Dubai, with 200–500 employees. Industries: software, services, partnerships.",
+      "Find Customer Success Managers at established software companies in Dubai with 200-500 employees.",
   },
 ];
 
@@ -541,6 +541,17 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
       leadGenProgressRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 80);
     return () => window.clearTimeout(id);
+  }, [open, generating]);
+
+  useEffect(() => {
+    if (!open || !generating) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [open, generating]);
 
   useEffect(() => {

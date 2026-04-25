@@ -19,7 +19,7 @@ export type SalesCopilotPricingPlan = {
 /** Line under price: credits + enrich mapping (landing + portal). */
 export function subscriptionQuotaLine(plan: SalesCopilotPricingPlan): string | null {
   if (typeof plan.leadQuota !== "number") return null;
-  return plan.quotaHighlight ?? `${plan.leadQuota} credits / month · 1 credit = 1 enriched lead`;
+  return plan.quotaHighlight ?? `${plan.leadQuota} credits/month · 1 credit = 1 lead`;
 }
 
 /** Setup fee (banner), three subscription tiers, calling add-on, then enterprise custom (layout only). */
@@ -57,9 +57,9 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "Lead enrichment and routing configuration",
           "Companies — accounts and org structure aligned with your CRM",
           "Communication channel enablement: Email, LinkedIn, WhatsApp",
-          "CSV, Google Sheets, and Airtable — data & CRM onboarding",
+          "CSV, Google Sheets, Airtable, and HubSpot — CRM onboarding",
           "User onboarding and initial setup support",
-          "Extra seats 50 AED / seat / month (when you’re on a monthly plan)",
+          "Extra seats 50 AED/month (monthly plans)",
         ],
       },
     ],
@@ -77,11 +77,11 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
       {
         heading: "Each month",
         bullets: [
-          "300 credits for fully enriched leads (1 credit = 1 lead)",
+          "300 enriched leads/month",
           "Verified email, phone, and complete lead profile",
           "Email campaigns — up to 30,000 sends",
           "AI-generated leads",
-          "25,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 300 characters per prompt)",
+          "6,000 AI prompt tokens/month",
         ],
       },
       {
@@ -89,8 +89,8 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
         bullets: [
           "Lead management dashboard",
           "Companies — view and manage accounts linked to your leads",
-          "CSV, Google Sheets, and Airtable — CRM & import setup",
-          "1 admin seat included; extra seats 50 AED / seat / month",
+          "CSV, Google Sheets, Airtable, and HubSpot — CRM setup",
+          "1 seat included; extra seats 50 AED/month",
         ],
       },
     ],
@@ -109,13 +109,13 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
       {
         heading: "Each month",
         bullets: [
-          "500 credits for fully enriched leads (1 credit = 1 lead)",
+          "500 enriched leads/month",
           "Verified email, phone, and complete lead profile",
           "Unlimited email campaigns",
           "LinkedIn outreach campaigns",
           "WhatsApp outreach campaigns",
           "AI-generated leads",
-          "75,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 300 characters per prompt)",
+          "10,000 AI prompt tokens/month",
         ],
       },
       {
@@ -123,8 +123,8 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
         bullets: [
           "Lead management dashboard",
           "Companies — account workspace with firmographics, activity, and team context",
-          "CSV, Google Sheets, and Airtable — CRM & import setup",
-          "3 seats total (1 admin + 2 team seats); extra seats 50 AED / seat / month",
+          "CSV, Google Sheets, Airtable, and HubSpot — CRM setup",
+          "3 seats included; extra seats 50 AED/month",
         ],
       },
     ],
@@ -141,13 +141,13 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
       {
         heading: "Each month",
         bullets: [
-          "1,000 credits for fully enriched leads (1 credit = 1 lead)",
+          "1,000 enriched leads/month",
           "Verified email, phone, and complete lead profile",
           "Unlimited email campaigns",
           "LinkedIn outreach campaigns",
           "WhatsApp outreach campaigns",
           "AI-generated leads",
-          "150,000 AI prompt tokens/month (1 token = 1 character on AI lead search; max 300 characters per prompt)",
+          "20,000 AI prompt tokens/month",
         ],
       },
       {
@@ -155,8 +155,8 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
         bullets: [
           "Lead management dashboard",
           "Companies — account workspace with firmographics, activity, and team context",
-          "CSV, Google Sheets, and Airtable — CRM & import setup",
-          "5 seats total (1 admin + 4 team seats); extra seats 50 AED / seat / month",
+          "CSV, Google Sheets, Airtable, and HubSpot — CRM setup",
+          "5 seats included; extra seats 50 AED/month",
         ],
       },
     ],
@@ -175,8 +175,8 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "Teams with higher volume requirements",
           "Advanced workflows or automation",
           "Companies — enterprise account hierarchies, rollups, and governance",
-          "CSV, Google Sheets, Airtable, and custom enterprise integrations",
-          "Procurement-friendly terms; extra seats 50 AED / seat / month (volume packages available)",
+          "CSV, Google Sheets, Airtable, HubSpot, and custom enterprise integrations",
+          "Procurement-friendly terms; extra seats 50 AED/month (volume options available)",
         ],
       },
     ],
@@ -204,8 +204,8 @@ export const SALES_COPILOT_PRICING_PLANS: SalesCopilotPricingPlan[] = [
           "Advanced multi-channel communication workflows",
           "Calling credits included (500+ minutes)",
           "Companies — outbound lists grounded in account context",
-          "Lists from CSV, Google Sheets, and Airtable",
-          "Extra seats 50 AED / seat / month",
+          "Lists from CSV, Google Sheets, Airtable, and HubSpot",
+          "Extra seats 50 AED/month",
         ],
       },
       {

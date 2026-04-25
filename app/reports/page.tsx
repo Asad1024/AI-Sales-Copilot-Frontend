@@ -343,6 +343,11 @@ export default function ReportsPage() {
     });
   }, [data?.dailyTrends]);
 
+  const hasLeadMomentumSignal = useMemo(
+    () => trendData.some((row) => row.leads > 0 || row.rollingLeads > 0 || row.conversions > 0),
+    [trendData]
+  );
+
   const funnelRows = useMemo(() => {
     const rows = [
       { stage: "Total", value: totalLeads, color: "#E69A61" },
@@ -639,7 +644,7 @@ export default function ReportsPage() {
               subtitle="Daily lead volume and rolling average"
               icon={<Icons.TrendingUp size={16} style={{ color: "var(--color-primary)" }} />}
             >
-              {trendData.length > 0 ? (
+              {trendData.length > 0 && hasLeadMomentumSignal ? (
                 <ResponsiveContainer width="100%" height={260}>
                   <ComposedChart data={trendData} margin={{ top: 6, right: 6, left: -8, bottom: 0 }}>
                     <defs>
@@ -672,7 +677,7 @@ export default function ReportsPage() {
                     fontWeight: 600,
                   }}
                 >
-                  No trend data available yet
+                  No lead activity in the selected period
                 </div>
               )}
             </SurfaceCard>

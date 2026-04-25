@@ -15823,8 +15823,8 @@ Use placeholders only from supported fields:
                       return;
                     }
                     
-                    // Navigate to campaigns page
-                    router.push('/campaigns');
+                    // Navigate directly to launched campaign view
+                    router.push(`/campaigns/${campaignId}`);
                   } catch (error: any) {
                     console.error('Failed to launch campaign:', error);
                     showError('Launch failed', error?.message || 'Failed to launch campaign. Please try again.');
@@ -16228,4 +16228,3 @@ Use placeholders only from supported fields:
     </>
   );
 }
-

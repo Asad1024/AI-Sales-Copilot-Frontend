@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import BaseCard from "@/components/ui/BaseCard";
@@ -76,6 +77,17 @@ function KpiTile({
 }
 
 export default function SettingsChartGalleryPage() {
+  const router = useRouter();
+  const isProduction = process.env.NODE_ENV === "production";
+
+  useEffect(() => {
+    if (isProduction) {
+      router.replace("/settings");
+    }
+  }, [isProduction, router]);
+
+  if (isProduction) return null;
+
   const primary = "rgb(234, 88, 44)";
   const primarySoft = "rgba(234, 88, 44, 0.35)";
   const axisMuted = "rgba(15, 23, 42, 0.35)";

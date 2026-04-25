@@ -75,6 +75,8 @@ function parseSettingsTab(raw: string | null): SettingsTabId {
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isProduction = process.env.NODE_ENV === "production";
+  const showDevTools = !isProduction;
   const [userRev, setUserRev] = useState(0);
   const bases = useBaseStore((s) => s.bases);
   const basesLoading = useBaseStore((s) => s.loading);
@@ -135,8 +137,8 @@ export default function SettingsPage() {
     icon: (active: boolean) => ReactNode;
   };
 
-  const settingsGroups: { category: string; items: TabDef[] }[] = useMemo(
-    () => [
+  const settingsGroups: { category: string; items: TabDef[] }[] = useMemo(() => {
+    const groups: { category: string; items: TabDef[] }[] = [
       {
         category: "Account",
         items: [
@@ -155,7 +157,10 @@ export default function SettingsPage() {
           },
         ],
       },
-      {
+    ];
+
+    if (showDevTools) {
+      groups.push({
         category: "Tools",
         items: [
           { id: "test-configuration", label: "Integration Tests", hint: "LinkedIn, WhatsApp, call", icon: (a) => <TestConfigTabIcon active={a} /> },
@@ -167,10 +172,11 @@ export default function SettingsPage() {
             icon: (a) => <TestWhatsAppTabIcon active={a} />,
           },
         ],
-      },
-    ],
-    []
-  );
+      });
+    }
+
+    return groups;
+  }, [showDevTools]);
 
   const visibleSettingsGroups = useMemo(() => {
     if (!hidePaymentsTab) return settingsGroups;
@@ -289,7 +295,7 @@ export default function SettingsPage() {
               })}
             </div>
           ))}
-          <div style={{ marginTop: 20, padding: "0 11px" }}>
+          {showDevTools && <div style={{ marginTop: 20, padding: "0 11px" }}>
             <Link
               href="/settings/chart-gallery"
               style={{
@@ -304,7 +310,7 @@ export default function SettingsPage() {
             <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 6, lineHeight: 1.4 }}>
               Visual reference for KPI-style charts used across the app.
             </div>
-          </div>
+          </div>}
         </nav>
 
         <BaseCard

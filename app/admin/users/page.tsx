@@ -20,10 +20,35 @@ interface UserRow {
   createdAt: string;
   avatar_url?: string | null;
   billing_plan_key?: string | null;
+  billing_expires_at?: string | null;
+  billing_grace_ends_at?: string | null;
+  team_member_only?: boolean;
+  billing_extra_seats?: number;
   credits_balance?: number;
   monthly_lead_credits?: number;
   ai_prompt_tokens_balance?: number;
   monthly_ai_prompt_tokens?: number;
+}
+
+interface AdminSeatsSummary {
+  team_member_only: boolean;
+  billing_plan_key: string | null;
+  billing_expires_at: string | null;
+  billing_grace_ends_at: string | null;
+  plan_tier: string;
+  plan_active: boolean;
+  included_seats_from_plan: number;
+  billing_extra_seats: number;
+  effective_total_seats: number;
+  workspaces: Array<{
+    base_id: number;
+    name: string;
+    active_members: number;
+    pending_invites: number;
+    used_slots: number;
+    remaining: number;
+  }>;
+  aggregate_remaining_min: number;
 }
 
 const SUBSCRIPTION_PLAN_OPTIONS = [
@@ -97,6 +122,12 @@ export default function AdminUsersPage() {
   const [tokenBalanceInput, setTokenBalanceInput] = useState("");
   const [tokenMonthlyInput, setTokenMonthlyInput] = useState("");
   const [tokenSaving, setTokenSaving] = useState(false);
+  const [seatsModalUser, setSeatsModalUser] = useState<UserRow | null>(null);
+  const [seatsSummary, setSeatsSummary] = useState<AdminSeatsSummary | null>(null);
+  const [seatsLoadError, setSeatsLoadError] = useState<string | null>(null);
+  const [seatsExtraInput, setSeatsExtraInput] = useState("0");
+  const [seatsLoading, setSeatsLoading] = useState(false);
+  const [seatsSaving, setSeatsSaving] = useState(false);
 
   const closeCredModal = () => {
     setCredShowAll(false);
@@ -109,6 +140,64 @@ export default function AdminUsersPage() {
 
   const closeTokenModal = () => {
     setTokenModalUser(null);
+  };
+
+  const closeSeatsModal = () => {
+    setSeatsModalUser(null);
+    setSeatsSummary(null);
+    setSeatsLoadError(null);
+    setSeatsExtraInput("0");
+  };
+
+  const openManageSeats = async (u: UserRow) => {
+    setSeatsModalUser(u);
+    setSeatsSummary(null);
+    setSeatsLoadError(null);
+    setSeatsLoading(true);
+    try {
+      const data = (await apiRequest(`/admin/users/${u.id}/seats`)) as AdminSeatsSummary;
+      setSeatsSummary(data);
+      setSeatsExtraInput(
+        String(
+          Math.max(0, Number.isFinite(Number(data.billing_extra_seats)) ? Number(data.billing_extra_seats) : 0)
+        )
+      );
+    } catch (error: unknown) {
+      setSeatsLoadError(error instanceof Error ? error.message : "Could not load seat data.");
+    } finally {
+      setSeatsLoading(false);
+    }
+  };
+
+  const saveSeatsExtra = async () => {
+    if (!seatsModalUser || !seatsSummary || seatsSummary.team_member_only) return;
+    const raw = String(seatsExtraInput).replace(/\s/g, "");
+    const extra = raw === "" ? 0 : Number.parseInt(raw, 10);
+    if (!Number.isFinite(extra) || extra < 0 || extra > 500) {
+      showError("Invalid value", "Enter a whole number from 0 to 500 (extra seats on top of the plan).");
+      return;
+    }
+    setSeatsSaving(true);
+    try {
+      await apiRequest(`/admin/users/${seatsModalUser.id}/seats`, {
+        method: "PATCH",
+        body: JSON.stringify({ billing_extra_seats: extra }),
+      });
+      showSuccess("Seats updated", `${seatsModalUser.name}'s seat adjustment was saved.`);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("sparkai:workspace-seat-allowance-changed", {
+            detail: { ownerUserId: seatsModalUser.id },
+          })
+        );
+      }
+      closeSeatsModal();
+      fetchUsers();
+    } catch (error: unknown) {
+      showError("Save failed", error instanceof Error ? error.message : "Failed to save seats");
+    } finally {
+      setSeatsSaving(false);
+    }
   };
 
   const openManageTokens = (u: UserRow) => {
@@ -349,6 +438,19 @@ export default function AdminUsersPage() {
     }
   };
 
+  const seatsPreviewExtra = useMemo(() => {
+    const raw = String(seatsExtraInput).replace(/\s/g, "");
+    if (raw === "") return 0;
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n)) return 0;
+    return Math.min(500, Math.max(0, n));
+  }, [seatsExtraInput]);
+
+  const seatsPreviewTotal = useMemo(() => {
+    if (!seatsSummary) return 0;
+    return Math.max(1, seatsSummary.included_seats_from_plan + seatsPreviewExtra);
+  }, [seatsSummary, seatsPreviewExtra]);
+
   const filteredUsers = useMemo(() => {
     return users.filter((row) => {
       if (companyFilter === "with" && !(row.company && row.company.trim())) return false;
@@ -357,7 +459,7 @@ export default function AdminUsersPage() {
     });
   }, [users, search, companyFilter]);
 
-  const modalShell = (title: string, onClose: () => void, children: React.ReactNode, maxWidthPx = 500) => (
+  const modalShell = (title: string, onClose: () => void, children: React.ReactNode, maxWidthPx = 440) => (
     <div
       style={{
         position: "fixed",
@@ -367,6 +469,8 @@ export default function AdminUsersPage() {
         alignItems: "center",
         justifyContent: "center",
         zIndex: 100,
+        padding: "12px 10px",
+        boxSizing: "border-box",
       }}
       role="presentation"
       onMouseDown={(ev) => {
@@ -376,15 +480,48 @@ export default function AdminUsersPage() {
       <div
         style={{
           background: "var(--color-surface)",
-          borderRadius: 16,
-          padding: 24,
-          width: "90%",
+          borderRadius: 14,
+          padding: 0,
+          width: "100%",
           maxWidth: maxWidthPx,
+          maxHeight: "min(82vh, 620px)",
           border: "1px solid var(--color-border)",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.18)",
         }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-users-modal-title"
       >
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{title}</h2>
-        {children}
+        <h2
+          id="admin-users-modal-title"
+          style={{
+            fontSize: 17,
+            fontWeight: 600,
+            margin: 0,
+            padding: "14px 18px 10px",
+            flexShrink: 0,
+            borderBottom: "1px solid var(--color-border)",
+            lineHeight: 1.3,
+          }}
+        >
+          {title}
+        </h2>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "hidden",
+            padding: "14px 18px 18px",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -502,6 +639,13 @@ export default function AdminUsersPage() {
                           label: "Manage AI prompt tokens",
                           onClick: () => openManageTokens(row),
                         },
+                        {
+                          key: "seats",
+                          label: "Manage seats",
+                          onClick: () => {
+                            void openManageSeats(row);
+                          },
+                        },
                         { key: "role", label: row.role === "admin" ? "Make user" : "Make admin", onClick: () => handleUpdateRole(row) },
                         { key: "del", label: "Delete", danger: true, onClick: () => handleDeleteUser(row.id) },
                       ]}
@@ -617,7 +761,101 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </div>,
-          520
+          460
+        )}
+
+      {seatsModalUser &&
+        modalShell(
+          `Manage seats — ${seatsModalUser.name}`,
+          closeSeatsModal,
+          <div>
+            {seatsLoading ? (
+              <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>Loading seat data…</p>
+            ) : seatsLoadError ? (
+              <p style={{ margin: 0, fontSize: 14, color: "#dc2626" }}>{seatsLoadError}</p>
+            ) : seatsSummary ? (
+              <>
+                <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+                  <strong style={{ color: "var(--color-text)" }}>Plan:</strong>{" "}
+                  {seatsSummary.billing_plan_key || "—"}
+                  {" · "}
+                  <strong style={{ color: "var(--color-text)" }}>Active:</strong>{" "}
+                  {seatsSummary.plan_active ? "Yes" : "No"}
+                  {seatsSummary.billing_expires_at ? (
+                    <>
+                      {" · "}
+                      <strong style={{ color: "var(--color-text)" }}>Expires (UTC):</strong>{" "}
+                      {new Date(seatsSummary.billing_expires_at).toLocaleString(undefined, { timeZone: "UTC" })}
+                    </>
+                  ) : null}
+                </p>
+
+                {seatsSummary.team_member_only ? (
+                  <div role="status" style={{ fontSize: 13, lineHeight: 1.5, color: "var(--color-text)", marginBottom: 16 }}>
+                    Invite-only <strong>team</strong> account — change seats on the workspace <strong>owner</strong> user,
+                    not here.
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+                      <button type="button" className="btn-ghost" onClick={closeSeatsModal}>
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
+                      Each workspace can have up to <strong>{seatsSummary.effective_total_seats}</strong> people:{" "}
+                      <strong>{seatsSummary.included_seats_from_plan}</strong> from the plan, plus{" "}
+                      <strong>{Math.max(0, seatsSummary.billing_extra_seats)}</strong> you added below. Right now about{" "}
+                      <strong>{seatsSummary.aggregate_remaining_min}</strong> space
+                      {seatsSummary.aggregate_remaining_min === 1 ? " is" : "s are"} left for new teammates (the owner
+                      always uses one spot).
+                    </p>
+
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6, color: "var(--color-text-muted)" }}>
+                      Extra seats (0–500)
+                    </label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 16 }}>
+                      <input
+                        className="input"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="0"
+                        value={seatsExtraInput}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\D/g, "");
+                          if (v === "") {
+                            setSeatsExtraInput("");
+                            return;
+                          }
+                          const n = Math.min(500, parseInt(v, 10));
+                          setSeatsExtraInput(String(Number.isFinite(n) ? n : 0));
+                        }}
+                        style={{ width: 120 }}
+                        disabled={seatsSaving}
+                      />
+                      <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                        If you save: up to <strong style={{ color: "var(--color-text)" }}>{seatsPreviewTotal}</strong>{" "}
+                        people per workspace
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                      <button type="button" className="btn-ghost" disabled={seatsSaving} onClick={closeSeatsModal}>
+                        Close
+                      </button>
+                      <button type="button" className="btn-primary" disabled={seatsSaving} onClick={() => void saveSeatsExtra()}>
+                        {seatsSaving ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>No data.</p>
+            )}
+          </div>,
+          400
         )}
 
       {tokenModalUser &&
@@ -666,7 +904,7 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </div>,
-          480
+          420
         )}
 
       {credUser &&
@@ -693,7 +931,7 @@ export default function AdminUsersPage() {
               Values are encrypted at rest. Saved values load when you reopen this dialog. Only fields you edit are sent on
               save — untouched fields keep their stored value. Clear a key by editing it to empty and saving.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {CRED_FIELDS.map(({ key, label, hint, inputType }) => {
                 const useText = inputType === "text" || credShowAll;
                 return (
@@ -732,7 +970,7 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </form>,
-          620
+          460
         )}
 
       {editUser &&

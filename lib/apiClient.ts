@@ -20,11 +20,17 @@ export interface User {
   /** From GET /auth/me (and login/refresh): server truth for billing/upgrade/payments access. */
   restrict_billing_ui?: boolean;
   billing_plan_key?: string | null;
+  /** ISO timestamp (UTC) for plan expiry. Null/undefined when no subscription. */
+  billing_expires_at?: string | null;
+  /** ISO timestamp (UTC) for grace end. Null/undefined when no subscription. */
+  billing_grace_ends_at?: string | null;
   credits_balance?: number;
   monthly_lead_credits?: number;
   /** AI lead-gen prompt pool (1 token = 1 character). */
   ai_prompt_tokens_balance?: number;
   monthly_ai_prompt_tokens?: number;
+  /** Delta on top of plan-included seats (owner accounts); admin-managed. */
+  billing_extra_seats?: number;
 }
 
 export interface AuthResponse {
@@ -62,6 +68,7 @@ export const clearAuth = () => {
     localStorage.removeItem('sparkai:token');
     localStorage.removeItem('sparkai:user');
     localStorage.removeItem('sparkai:active_base_id');
+    sessionStorage.removeItem("sparkai:billing-banner:dismissed");
     clearActiveBaseSnapshot();
   }
 };
@@ -172,13 +179,22 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   /** GET /api/invitations/:token is public; never send JWT (stale tokens cause 401 and break invite/signup). */
   const isPublicInvitationDetailsGet =
     isGetRequest && /^\/api\/invitations\/[^/]+$/.test(normalizedEndpoint);
+  /** Seat counts / admin-assigned extras must not be served from a stale 2s GET cache. */
+  const isBaseMembersSeatSummaryGet =
+    isGetRequest && /^\/api\/bases\/\d+\/members$/.test(normalizedEndpoint);
   const cacheKey = `${endpoint}_${JSON.stringify(options.body || '')}`;
   
   if (!isGetRequest && requestCache.size > 0) {
     requestCache.clear();
   }
 
-  if (isGetRequest && !isSingleCampaignGet && !isPublicInvitationDetailsGet && !isTestWhatsAppStatusGet) {
+  if (
+    isGetRequest &&
+    !isSingleCampaignGet &&
+    !isPublicInvitationDetailsGet &&
+    !isTestWhatsAppStatusGet &&
+    !isBaseMembersSeatSummaryGet
+  ) {
     const cached = requestCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data;
@@ -227,7 +243,8 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
           retryResponse.ok &&
           !isSingleCampaignGet &&
           !isPublicInvitationDetailsGet &&
-          !isTestWhatsAppStatusGet
+          !isTestWhatsAppStatusGet &&
+          !isBaseMembersSeatSummaryGet
         ) {
           requestCache.set(cacheKey, { data, timestamp: Date.now() });
         }
@@ -296,7 +313,8 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     response.ok &&
     !isSingleCampaignGet &&
     !isPublicInvitationDetailsGet &&
-    !isTestWhatsAppStatusGet
+    !isTestWhatsAppStatusGet &&
+    !isBaseMembersSeatSummaryGet
   ) {
     requestCache.set(cacheKey, { data, timestamp: Date.now() });
     // Clean old cache entries (keep only last 50)

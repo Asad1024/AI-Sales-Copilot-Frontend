@@ -69,6 +69,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
     const u = getUser();
     if (!activeBaseId) {
       setCredits(u?.credits_balance ?? 0);
+      setMonthlyCredits(Number(u?.monthly_lead_credits ?? 0));
       return;
     }
     try {
@@ -145,9 +146,12 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
     };
   }, [userMenuOpen]);
 
-  const creditsUsed = Math.max(0, monthlyCredits - credits);
-  const creditsTotal = monthlyCredits > 0 ? monthlyCredits : 100;
-  const creditProgress = Math.min(100, Math.max(0, Math.round((creditsUsed / Math.max(1, creditsTotal)) * 100)));
+  /** Workspace pool from API — never invent a default (expired / free plans should show 0, not 100). */
+  const creditsTotal = Math.max(0, monthlyCredits);
+  const creditsUsed =
+    creditsTotal > 0 ? Math.max(0, creditsTotal - Math.max(0, Number(credits) || 0)) : 0;
+  const creditProgress =
+    creditsTotal > 0 ? Math.min(100, Math.max(0, Math.round((creditsUsed / creditsTotal) * 100))) : 0;
   const remainingCredits = Math.max(0, Number(credits || 0));
   const remainingCreditsLabel = remainingCredits.toLocaleString();
   const openCreditsPopover = () => {
@@ -166,7 +170,22 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
       creditsPopoverCloseTimer.current = null;
     }, 120);
   };
-  const nextReset = (() => {
+  const nextAllowanceLabel = useMemo(() => {
+    if (creditsTotal <= 0) return null;
+    const u = getUser();
+    const iso = u?.billing_expires_at;
+    if (iso) {
+      const dt = new Date(iso);
+      if (!Number.isNaN(dt.getTime())) {
+        return dt.toLocaleString(undefined, {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+    }
     const d = new Date();
     const next = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 5, 0);
     return next.toLocaleString(undefined, {
@@ -176,7 +195,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
       hour: "numeric",
       minute: "2-digit",
     });
-  })();
+  }, [creditsTotal, userRev]);
 
   return (
     <div
@@ -296,33 +315,49 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
 
               <div style={{ height: 1, background: "var(--color-border)", marginBottom: 12 }} />
 
-              <div style={{ fontSize: 13, color: "var(--color-text)", marginBottom: 8 }}>
-                {creditsUsed} of {creditsTotal} credits used
-              </div>
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
-                Remaining credits: <strong style={{ color: "var(--color-text)" }}>{Math.max(0, credits)}</strong>
-              </div>
-              <div
-                style={{
-                  height: 6,
-                  borderRadius: 9999,
-                  background: "var(--color-surface-secondary)",
-                  overflow: "hidden",
-                  marginBottom: 12,
-                }}
-              >
-                <div
-                  style={{
-                    width: `${creditProgress}%`,
-                    height: "100%",
-                    background: "var(--color-primary)",
-                  }}
-                />
-              </div>
-
-              <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
-                Next credit reset: {nextReset}
-              </div>
+              {creditsTotal > 0 ? (
+                <>
+                  <div style={{ fontSize: 13, color: "var(--color-text)", marginBottom: 8 }}>
+                    {creditsUsed} of {creditsTotal} credits used
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
+                    Remaining credits:{" "}
+                    <strong style={{ color: "var(--color-text)" }}>{Math.max(0, credits)}</strong>
+                  </div>
+                  <div
+                    style={{
+                      height: 6,
+                      borderRadius: 9999,
+                      background: "var(--color-surface-secondary)",
+                      overflow: "hidden",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${creditProgress}%`,
+                        height: "100%",
+                        background: "var(--color-primary)",
+                      }}
+                    />
+                  </div>
+                  {nextAllowanceLabel ? (
+                    <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
+                      Next allowance update: {nextAllowanceLabel}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, color: "var(--color-text)", marginBottom: 8 }}>
+                    Remaining credits:{" "}
+                    <strong style={{ color: "var(--color-text)" }}>{Math.max(0, credits)}</strong>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12, lineHeight: 1.5 }}>
+                    Your plan does not include a monthly lead credit pool right now. Upgrade or renew to get credits.
+                  </div>
+                </>
+              )}
 
               <div style={{ height: 1, background: "var(--color-border)", marginBottom: 12 }} />
 
@@ -617,7 +652,7 @@ export default function HeaderTopRightPills({ showDashboardTutorial = false }: H
             <div style={{ height: 1, background: "var(--color-border)", margin: "8px 2px 8px" }} />
             <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "4px 2px" }}>
               <Link
-                href="/settings"
+                href="/help"
                 role="menuitem"
                 onClick={() => setUserMenuOpen(false)}
                 style={{

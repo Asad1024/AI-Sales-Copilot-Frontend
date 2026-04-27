@@ -13,6 +13,7 @@ import { WebSocketProvider } from "@/components/notifications/WebSocketProvider"
 import { CampaignLiveModalHost } from "@/components/campaigns/CampaignLiveModalHost";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
+import { BillingExpiryBanner } from "@/components/billing/BillingExpiryBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 import { APP_BRAND_BROWSER_TITLE, APP_BRAND_NAME, APP_BRAND_TAGLINE } from "@/lib/brand";
@@ -33,7 +34,8 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
   const isOnboardingPage = pathname?.startsWith("/onboarding");
   const isUpgradePage = pathname?.startsWith("/upgrade");
   const isContactPage = pathname?.startsWith("/contact");
-  const isMarketingFullBleedShell = isUpgradePage || isContactPage;
+  const isHelpPage = pathname?.startsWith("/help");
+  const isMarketingFullBleedShell = isUpgradePage || isContactPage || isHelpPage;
   const isAdminPage = pathname?.startsWith("/admin");
   const showHeaderSidebar = !isPublicPage && !isOnboardingPage && !isMarketingFullBleedShell;
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -137,6 +139,12 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
         description: "Account activity, workspace changes, security, and system alerts.",
       };
     }
+    if (pathname.startsWith("/help")) {
+      return {
+        title: "Help & Support",
+        description: "Contact support, billing links, and quick tips for using the portal.",
+      };
+    }
     if (pathname.startsWith("/settings/chart-gallery")) {
       return {
         title: "Chart gallery",
@@ -164,87 +172,7 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
       <ConfirmProvider>
         <AppQueryProvider>
         <BaseProvider>
-          {showHeaderSidebar ? (
-            <AuthGuard>
-              <WebSocketProvider>
-                <CampaignLiveModalHost />
-                <EmailVerificationBanner />
-
-                <div className="main-layout">
-                  {isAdminPage ? (
-                    <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                  ) : (
-                    <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                  )}
-
-                  <main
-                    style={{
-                      flex: 1,
-                      minHeight: "100vh",
-                      background: "var(--color-canvas, var(--color-background))",
-                      marginLeft: mainSidebarWidthPx,
-                      transition: "margin-left 200ms ease, width 200ms ease",
-                      width:
-                        mainSidebarWidthPx === 0 ? "100%" : `calc(100% - ${mainSidebarWidthPx}px)`,
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
-                    <PageHeader
-                      title={pageMeta.title}
-                      description={pageMeta.description}
-                      onNewCampaign={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
-                      onWatchDemo={() => router.push("/demo")}
-                      activeBaseId={activeBaseId != null ? String(activeBaseId) : undefined}
-                      onAddLead={() =>
-                        router.push(activeBaseId ? `/bases/${activeBaseId}/leads` : "/bases")
-                      }
-                    />
-                    <div
-                      style={{
-                        flex: 1,
-                        padding: mainContentPadding,
-                      }}
-                    >
-                      {children}
-                    </div>
-                  </main>
-                </div>
-              </WebSocketProvider>
-            </AuthGuard>
-          ) : isMarketingFullBleedShell ? (
-            <AuthGuard>
-              <WebSocketProvider>
-                <CampaignLiveModalHost />
-                <EmailVerificationBanner />
-                <main
-                  style={{
-                    minHeight: "100vh",
-                    margin: 0,
-                    padding: 0,
-                    background: "transparent",
-                    color: "var(--color-text)",
-                  }}
-                >
-                  {children}
-                </main>
-              </WebSocketProvider>
-            </AuthGuard>
-          ) : isOnboardingPage ? (
-            <AuthGuard>
-              <main
-                style={{
-                  minHeight: "100vh",
-                  margin: 0,
-                  padding: 0,
-                  background: "var(--color-background)",
-                  color: "var(--color-text)",
-                }}
-              >
-                {children}
-              </main>
-            </AuthGuard>
-          ) : (
+          {isPublicPage ? (
             <main
               style={{
                 minHeight: "100vh",
@@ -253,6 +181,83 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
             >
               {children}
             </main>
+          ) : (
+            <AuthGuard>
+              <WebSocketProvider>
+                <CampaignLiveModalHost />
+                <EmailVerificationBanner />
+                <BillingExpiryBanner
+                  leftOffsetPx={showHeaderSidebar ? mainSidebarWidthPx : 0}
+                />
+
+                {showHeaderSidebar ? (
+                  <div className="main-layout">
+                    {isAdminPage ? (
+                      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                    ) : (
+                      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                    )}
+
+                    <main
+                      style={{
+                        flex: 1,
+                        minHeight: "100vh",
+                        background: "var(--color-canvas, var(--color-background))",
+                        marginLeft: mainSidebarWidthPx,
+                        transition: "margin-left 200ms ease, width 200ms ease",
+                        width:
+                          mainSidebarWidthPx === 0 ? "100%" : `calc(100% - ${mainSidebarWidthPx}px)`,
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
+                      <PageHeader
+                        title={pageMeta.title}
+                        description={pageMeta.description}
+                        onNewCampaign={() => goToNewCampaignOrWorkspaces(router, activeBaseId)}
+                        onWatchDemo={() => router.push("/demo")}
+                        activeBaseId={activeBaseId != null ? String(activeBaseId) : undefined}
+                        onAddLead={() =>
+                          router.push(activeBaseId ? `/bases/${activeBaseId}/leads` : "/bases")
+                        }
+                      />
+                      <div
+                        style={{
+                          flex: 1,
+                          padding: mainContentPadding,
+                        }}
+                      >
+                        {children}
+                      </div>
+                    </main>
+                  </div>
+                ) : isMarketingFullBleedShell ? (
+                  <main
+                    style={{
+                      minHeight: "100vh",
+                      margin: 0,
+                      padding: 0,
+                      background: "transparent",
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    {children}
+                  </main>
+                ) : (
+                  <main
+                    style={{
+                      minHeight: "100vh",
+                      margin: 0,
+                      padding: 0,
+                      background: "var(--color-background)",
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    {children}
+                  </main>
+                )}
+              </WebSocketProvider>
+            </AuthGuard>
           )}
         </BaseProvider>
         </AppQueryProvider>

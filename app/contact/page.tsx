@@ -58,9 +58,14 @@ export default function ContactPage() {
               <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 24px" }}>Contact information</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 {[
-                  { icon: "📧", label: "Email", value: "hello@leadsreach.com" },
-                  { icon: "💬", label: "Support", value: "support@leadsreach.com" },
-                  { icon: "🌐", label: "Website", value: "www.leadsreach.com" },
+                  { icon: "📍", label: "Address", value: "Office 705, New Century City Tower, Port Saeed, Dubai, UAE" },
+                  {
+                    icon: "📞",
+                    label: "Phone",
+                    value: "04 339 2208 · +971 56 956 7693 · +971 56 956 8061",
+                  },
+                  { icon: "📧", label: "Email", value: "contactus@sparkai.ae" },
+                  { icon: "🌐", label: "Website", value: "www.sparkai.ae" },
                 ].map((row, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ fontSize: 24 }}>{row.icon}</div>

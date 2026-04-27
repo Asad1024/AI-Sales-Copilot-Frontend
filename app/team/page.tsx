@@ -31,6 +31,8 @@ interface MemberRow {
   joinedAt?: string;
   /** Suspended — no workspace API access until re-enabled */
   accessDisabled?: boolean;
+  /** Set by billing/expiry enforcement; distinguishes roster badge from manual admin suspend */
+  billingSuspended?: boolean;
 }
 
 interface PendingInviteRow {
@@ -41,8 +43,104 @@ interface PendingInviteRow {
   createdAt?: string;
 }
 
+/** From GET /bases/:id/members — owner plan seat cap vs members + pending invites. */
+interface SeatSummary {
+  cap: number;
+  /** Plan tier seat count (before admin `billing_extra_seats`). */
+  included_from_plan: number;
+  /** Admin-assigned extra seats on the workspace owner account. */
+  billing_extra_seats: number;
+  active_members: number;
+  pending_invites: number;
+  reserved_slots: number;
+  remaining: number;
+}
+
+function parseSeatSummaryPayload(ss: unknown): SeatSummary | null {
+  if (!ss || typeof ss !== "object") return null;
+  const o = ss as Record<string, unknown>;
+  const read = (key: string): number => {
+    const v = o[key];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const cap = read("cap");
+  const remaining = read("remaining");
+  const active_members = read("active_members");
+  const pending_invites = read("pending_invites");
+  const reserved_slots = read("reserved_slots");
+  if (![cap, remaining, active_members, pending_invites, reserved_slots].every((x) => Number.isFinite(x))) {
+    return null;
+  }
+  const incRaw = read("included_from_plan");
+  const extraRaw = read("billing_extra_seats");
+  const billing_extra_seats = Number.isFinite(extraRaw) ? Math.max(0, extraRaw) : 0;
+  const included_from_plan = Number.isFinite(incRaw)
+    ? incRaw
+    : Math.max(1, cap - billing_extra_seats);
+  return {
+    cap,
+    included_from_plan,
+    billing_extra_seats,
+    remaining,
+    active_members,
+    pending_invites,
+    reserved_slots,
+  };
+}
+
 /** Legacy pending invites may still use `member` in the DB until rescinded. */
 const INVITE_RESEND_ROLES = new Set(["admin", "editor", "member", "viewer"]);
+
+/** Shown on roster when `access_disabled` — backend sets `billing_suspended` for plan/grace expiry, not for manual admin suspend. */
+function MemberAccessBadge({
+  accessDisabled,
+  billingSuspended
+}: {
+  accessDisabled?: boolean;
+  billingSuspended?: boolean;
+}) {
+  if (!accessDisabled) return null;
+  if (billingSuspended) {
+    return (
+      <span
+        title="Plan ended or billing grace lapsed. They stay on the team but cannot open this workspace until the owner renews and restores access where required."
+        style={{
+          fontSize: "10px",
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          padding: "2px 8px",
+          borderRadius: 999,
+          background: "rgba(245, 158, 11, 0.16)",
+          color: "#d97706",
+          border: "1px solid rgba(245, 158, 11, 0.45)",
+        }}
+      >
+        Billing hold
+      </span>
+    );
+  }
+  return (
+    <span
+      title="Suspended by a workspace owner or admin. Restore access from the row menu when appropriate."
+      style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "rgba(248, 113, 113, 0.14)",
+        color: "#f87171",
+        border: "1px solid rgba(248, 113, 113, 0.35)",
+      }}
+    >
+      Suspended
+    </span>
+  );
+}
 
 export default function TeamPage() {
   const router = useRouter();
@@ -75,6 +173,7 @@ export default function TeamPage() {
     role: "editor" as MembershipRole,
   });
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [seatSummary, setSeatSummary] = useState<SeatSummary | null>(null);
 
   /** Workspace-owner-only: lead credits spent per teammate (from ledger). */
   const [creditSpendByUser, setCreditSpendByUser] = useState<Record<number, number>>({});
@@ -128,6 +227,12 @@ export default function TeamPage() {
   const canAssignWorkspacesUi =
     (isWorkspaceOwner || viewerIsAdmin) && canManageTeam;
 
+  const inviteBlockedNoSeats = Boolean(
+    canManageTeam && seatSummary !== null && seatSummary.remaining <= 0
+  );
+  const inviteNoSeatsTitle =
+    "All seats are in use or reserved by pending invites. Remove a member, cancel an invite, or upgrade your plan for more seats.";
+
   const [assignMember, setAssignMember] = useState<MemberRow | null>(null);
   const [assignSelections, setAssignSelections] = useState<Record<number, boolean>>({});
   const [assignSaving, setAssignSaving] = useState(false);
@@ -177,6 +282,7 @@ export default function TeamPage() {
       setCreditSpendByUser({});
       setCreditSpendUnattributed(0);
       setMembersError(null);
+      setSeatSummary(null);
       return;
     }
 
@@ -186,6 +292,8 @@ export default function TeamPage() {
     try {
       const data = await apiRequest(`/bases/${activeBaseId}/members`);
       const rawMembers: any[] = Array.isArray(data?.members) ? data.members : [];
+      const parsedSummary = parseSeatSummaryPayload(data?.seat_summary);
+      setSeatSummary(parsedSummary);
 
       const parsedMembers: MemberRow[] = rawMembers.reduce<MemberRow[]>((acc, member) => {
         const associatedUser = member?.User || member?.user;
@@ -208,6 +316,7 @@ export default function TeamPage() {
           user: resolvedUser,
           joinedAt: member.createdAt,
           accessDisabled: Boolean(member.access_disabled),
+          billingSuspended: Boolean(member.billing_suspended ?? member.billingSuspended),
         });
         return acc;
       }, []);
@@ -252,6 +361,7 @@ export default function TeamPage() {
       setViewerMembershipRole(null);
       setCreditSpendByUser({});
       setCreditSpendUnattributed(0);
+      setSeatSummary(null);
       setMembersError(message);
     } finally {
       setMembersLoading(false);
@@ -263,9 +373,25 @@ export default function TeamPage() {
   }, [refreshMembers]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onSeatAllowanceChanged = (event: Event) => {
+      const ownerId = (event as CustomEvent<{ ownerUserId?: number }>).detail?.ownerUserId;
+      if (workspaceOwnerId != null && ownerId === workspaceOwnerId) {
+        void refreshMembers();
+      }
+    };
+    window.addEventListener("sparkai:workspace-seat-allowance-changed", onSeatAllowanceChanged);
+    return () => window.removeEventListener("sparkai:workspace-seat-allowance-changed", onSeatAllowanceChanged);
+  }, [workspaceOwnerId, refreshMembers]);
+
+  useEffect(() => {
     setMemberSearch("");
     setMemberActionMenu(null);
   }, [activeBaseId]);
+
+  useEffect(() => {
+    if (!canManageTeam) setMemberActionMenu(null);
+  }, [canManageTeam]);
 
   useEffect(() => {
     if (!memberActionMenu) return undefined;
@@ -467,6 +593,10 @@ export default function TeamPage() {
       showWarning("Select a workspace", "Choose a workspace before inviting members.");
       return;
     }
+    if (inviteBlockedNoSeats) {
+      showWarning("No seats left", inviteNoSeatsTitle);
+      return;
+    }
     if (!inviteForm.emailOrId.trim()) {
       showWarning("Missing email or ID", "Enter an email address or user ID.");
       return;
@@ -497,6 +627,7 @@ export default function TeamPage() {
         );
         setShowInviteModal(false);
         setInviteForm({ emailOrId: "", name: "", role: "editor" });
+        await refreshMembers();
         await fetchPendingInvitations();
         return;
       }
@@ -576,6 +707,7 @@ export default function TeamPage() {
     try {
       await apiRequest(`/invitations/${row.id}`, { method: "DELETE" });
       showSuccess("Invitation cancelled", "They will no longer be able to use that invite link.");
+      await refreshMembers();
       await fetchPendingInvitations();
     } catch (error: any) {
       const message = error?.response?.data?.error || error?.message || "Failed to cancel invitation";
@@ -684,10 +816,51 @@ export default function TeamPage() {
             <strong style={{ color: "var(--color-text)" }}>{activeBase?.name || "this workspace"}</strong>.
           </p>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
-          <span>{totalMembers} members</span>
-          <span>•</span>
-          <span>{pendingInvites.length} pending invites</span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.45 }}>
+          <span>
+            {totalMembers} {totalMembers === 1 ? "person" : "people"} on the team
+          </span>
+          <span aria-hidden>•</span>
+          <span>
+            {pendingInvites.length === 0
+              ? "No invites waiting"
+              : `${pendingInvites.length} invite${pendingInvites.length === 1 ? "" : "s"} waiting`}
+          </span>
+          {seatSummary && !membersLoading ? (
+            <>
+              <span aria-hidden>•</span>
+              <span
+                title={`Up to ${seatSummary.cap} people on this workspace. ${seatSummary.reserved_slots} already used (members + pending invites).`}
+                style={{ color: seatSummary.remaining === 0 ? "#b45309" : undefined }}
+              >
+                {seatSummary.remaining === 0 ? (
+                  <>
+                    No free seats — this workspace fits up to <strong style={{ color: "var(--color-text)" }}>{seatSummary.cap}</strong>{" "}
+                    {seatSummary.cap === 1 ? "person" : "people"}
+                    {seatSummary.billing_extra_seats > 0 ? (
+                      <span style={{ fontWeight: 500 }}>
+                        {" "}
+                        ({seatSummary.included_from_plan} with your plan + {seatSummary.billing_extra_seats} extra)
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <strong style={{ color: "var(--color-text)" }}>{seatSummary.remaining}</strong>{" "}
+                    {seatSummary.remaining === 1 ? "open seat" : "open seats"} for invites · up to{" "}
+                    <strong style={{ color: "var(--color-text)" }}>{seatSummary.cap}</strong>{" "}
+                    {seatSummary.cap === 1 ? "person" : "people"} total
+                    {seatSummary.billing_extra_seats > 0 ? (
+                      <span style={{ fontWeight: 500 }}>
+                        {" "}
+                        ({seatSummary.included_from_plan} with your plan + {seatSummary.billing_extra_seats} extra)
+                      </span>
+                    ) : null}
+                  </>
+                )}
+              </span>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -745,16 +918,29 @@ export default function TeamPage() {
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            className="btn-primary focus-ring"
-            style={{ borderRadius: 9, display: "inline-flex", alignItems: "center", gap: 8, paddingInline: 14 }}
-            onClick={() => setShowInviteModal(true)}
-            disabled={!canManageTeam}
-          >
-            <Icons.UserPlus size={16} strokeWidth={1.5} />
-            Invite
-          </button>
+          {canManageTeam ? (
+            <button
+              type="button"
+              className="btn-primary focus-ring"
+              style={{
+                borderRadius: 9,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                paddingInline: 14,
+                opacity: inviteBlockedNoSeats || membersLoading ? 0.55 : 1,
+              }}
+              disabled={inviteBlockedNoSeats || membersLoading}
+              title={inviteBlockedNoSeats ? inviteNoSeatsTitle : undefined}
+              onClick={() => {
+                if (inviteBlockedNoSeats || membersLoading) return;
+                setShowInviteModal(true);
+              }}
+            >
+              <Icons.UserPlus size={16} strokeWidth={1.5} />
+              Invite
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn-dashboard-outline focus-ring"
@@ -770,27 +956,21 @@ export default function TeamPage() {
         </div>
       </div>
 
-        <div
-        style={{
-          display: "flex",
-          gap: 12,
-          flexWrap: "wrap",
-          color: "var(--color-text-muted)",
-          fontSize: 13,
-          alignItems: "center",
-          marginTop: 10,
-        }}
-      >
-        <span>Your access: {viewerRoleLabel}</span>
-        {viewerMembershipRole && !viewerIsAdmin && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <RoleBadge role={viewerMembershipRole} size="sm" />
-          </span>
-        )}
-        {!canManageTeam && (
-          <span>View-only roster - workspace owners and admins can invite or change roles.</span>
-        )}
-      </div>
+        {!canManageTeam ? (
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              color: "var(--color-text-muted)",
+              fontSize: 13,
+              alignItems: "center",
+              marginTop: 10,
+            }}
+          >
+            <span>View-only roster - workspace owners and admins can invite or change roles.</span>
+          </div>
+        ) : null}
       </div>
 
       {membersError && (
@@ -850,6 +1030,26 @@ export default function TeamPage() {
             }}
           >
             <StatCard
+              icon={<Icons.Shield size={24} />}
+              label="Your Access"
+              value={viewerRoleLabel}
+              description="Shows what you can do in this workspace"
+              accent="#4ecdc4"
+            />
+            {seatSummary ? (
+              <StatCard
+                icon={<Icons.UserPlus size={24} />}
+                label="People allowed"
+                value={String(seatSummary.cap)}
+                description={
+                  seatSummary.billing_extra_seats > 0
+                    ? `${seatSummary.included_from_plan} with the paid plan, plus ${seatSummary.billing_extra_seats} extra seats. The workspace owner uses one seat.`
+                    : `${seatSummary.included_from_plan} ${seatSummary.included_from_plan === 1 ? "person" : "people"} included with the owner’s plan; the owner uses one seat.`
+                }
+                accent="#6366f1"
+              />
+            ) : null}
+            <StatCard
               icon={<Icons.Users size={24} />}
               label="Total Members"
               value={totalMembers}
@@ -869,13 +1069,6 @@ export default function TeamPage() {
               value={totalMembersWithoutOwners}
               description="Members without owner privileges"
               accent="#F29F67"
-            />
-            <StatCard
-              icon={<Icons.Shield size={24} />}
-              label="Your Access"
-              value={viewerRoleLabel}
-              description="Shows what you can do in this workspace"
-              accent="#4ecdc4"
             />
           </div>
 
@@ -1000,8 +1193,19 @@ export default function TeamPage() {
                     <button
                       type="button"
                       className="btn-primary focus-ring"
-                      style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8 }}
-                      onClick={() => setShowInviteModal(true)}
+                      style={{
+                        borderRadius: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        opacity: inviteBlockedNoSeats || membersLoading ? 0.55 : 1,
+                      }}
+                      disabled={inviteBlockedNoSeats || membersLoading}
+                      title={inviteBlockedNoSeats ? inviteNoSeatsTitle : undefined}
+                      onClick={() => {
+                        if (inviteBlockedNoSeats || membersLoading) return;
+                        setShowInviteModal(true);
+                      }}
                     >
                       <Icons.UserPlus size={16} strokeWidth={1.5} />
                       Invite member
@@ -1041,7 +1245,7 @@ export default function TeamPage() {
                           </span>
                         </HeaderCell>
                       )}
-                      <HeaderCell>Actions</HeaderCell>
+                      {canManageTeam ? <HeaderCell>Actions</HeaderCell> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -1097,24 +1301,10 @@ export default function TeamPage() {
                                       (You)
                                     </span>
                                   )}
-                                  {member.accessDisabled && (
-                                    <span
-                                      title="They remain on the team but cannot open this workspace until access is restored."
-                                      style={{
-                                        fontSize: "10px",
-                                        fontWeight: 700,
-                                        letterSpacing: "0.06em",
-                                        textTransform: "uppercase",
-                                        padding: "2px 8px",
-                                        borderRadius: 999,
-                                        background: "rgba(248, 113, 113, 0.14)",
-                                        color: "#f87171",
-                                        border: "1px solid rgba(248, 113, 113, 0.35)",
-                                      }}
-                                    >
-                                      Suspended
-                                    </span>
-                                  )}
+                                  <MemberAccessBadge
+                                    accessDisabled={member.accessDisabled}
+                                    billingSuspended={member.billingSuspended}
+                                  />
                                 </div>
                                 <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{member.user.email}</div>
                               </div>
@@ -1172,56 +1362,58 @@ export default function TeamPage() {
                               })()}
                             </td>
                           )}
-                          <td style={{ padding: "16px 12px", position: "relative" }}>
-                            {isOwnerRow ? (
-                              <span
-                                style={{
-                                  fontSize: 13,
-                                  color: "var(--color-text-muted)",
-                                  userSelect: "none",
-                                }}
-                                aria-label="No actions for workspace owner"
-                              >
-                                —
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                className="btn-dashboard-outline focus-ring"
-                                aria-haspopup="menu"
-                                aria-expanded={
-                                  memberActionMenu?.member.membershipId === member.membershipId ? "true" : "false"
-                                }
-                                aria-label={`Actions for ${member.user.name || member.user.email || "member"}`}
-                                disabled={pendingMemberId === member.membershipId}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                                  const panelWidth = 228;
-                                  const left = Math.min(
-                                    window.innerWidth - panelWidth - 8,
-                                    Math.max(8, rect.right - panelWidth)
-                                  );
-                                  setMemberActionMenu((prev) =>
-                                    prev?.member.membershipId === member.membershipId
-                                      ? null
-                                      : { member, top: rect.bottom + 6, left }
-                                  );
-                                }}
-                                style={{
-                                  borderRadius: 8,
-                                  padding: "6px 10px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  opacity: pendingMemberId === member.membershipId ? 0.55 : 1,
-                                  cursor: pendingMemberId === member.membershipId ? "not-allowed" : "pointer",
-                                }}
-                              >
-                                <Icons.MoreVertical size={18} />
-                              </button>
-                            )}
-                          </td>
+                          {canManageTeam ? (
+                            <td style={{ padding: "16px 12px", position: "relative" }}>
+                              {isOwnerRow ? (
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    color: "var(--color-text-muted)",
+                                    userSelect: "none",
+                                  }}
+                                  aria-label="No actions for workspace owner"
+                                >
+                                  —
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn-dashboard-outline focus-ring"
+                                  aria-haspopup="menu"
+                                  aria-expanded={
+                                    memberActionMenu?.member.membershipId === member.membershipId ? "true" : "false"
+                                  }
+                                  aria-label={`Actions for ${member.user.name || member.user.email || "member"}`}
+                                  disabled={pendingMemberId === member.membershipId}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                                    const panelWidth = 228;
+                                    const left = Math.min(
+                                      window.innerWidth - panelWidth - 8,
+                                      Math.max(8, rect.right - panelWidth)
+                                    );
+                                    setMemberActionMenu((prev) =>
+                                      prev?.member.membershipId === member.membershipId
+                                        ? null
+                                        : { member, top: rect.bottom + 6, left }
+                                    );
+                                  }}
+                                  style={{
+                                    borderRadius: 8,
+                                    padding: "6px 10px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    opacity: pendingMemberId === member.membershipId ? 0.55 : 1,
+                                    cursor: pendingMemberId === member.membershipId ? "not-allowed" : "pointer",
+                                  }}
+                                >
+                                  <Icons.MoreVertical size={18} />
+                                </button>
+                              )}
+                            </td>
+                          ) : null}
                         </tr>
                       );
                     })}
@@ -1233,7 +1425,7 @@ export default function TeamPage() {
         </>
       )}
 
-      {memberActionMenu ? (
+      {canManageTeam && memberActionMenu ? (
         <>
           <div
             aria-hidden

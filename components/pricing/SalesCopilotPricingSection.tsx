@@ -24,6 +24,21 @@ type SalesCopilotPricingSectionProps = {
   enableCheckout?: boolean;
 };
 
+function parseIsoMs(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
+}
+
+function isCurrentPlanExpired(nowMs: number): boolean {
+  const u = getUser();
+  const planKey = typeof u?.billing_plan_key === "string" ? u.billing_plan_key.trim() : "";
+  if (!planKey) return false;
+  const expiresMs = parseIsoMs(u?.billing_expires_at);
+  if (!expiresMs) return false;
+  return nowMs >= expiresMs;
+}
+
 function PricingPlanSections({
   plan,
   checkSize,
@@ -138,11 +153,7 @@ function LandingPricingTierCard({
             Current plan
           </div>
         ) : (
-          <button
-            type="button"
-            className={`scp-pc__btn ${featured ? "scp-pc__btn--primary" : "scp-pc__btn--secondary"}`}
-            onClick={onCta}
-          >
+          <button type="button" className="scp-pc__btn scp-pc__btn--primary" onClick={onCta}>
             {sessionActive ? "Go to Dashboard" : "Get started"}
           </button>
         )}
@@ -160,6 +171,7 @@ function UpgradeTierCard({
   onCta,
   onMarketingCta,
   isCurrentPlan,
+  isExpiredCurrentPlan,
   tierRowReservesBadgePad = false,
 }: {
   plan: SalesCopilotPricingPlan;
@@ -168,6 +180,7 @@ function UpgradeTierCard({
   onCta: (plan: SalesCopilotPricingPlan) => void;
   onMarketingCta: (plan: SalesCopilotPricingPlan) => void;
   isCurrentPlan: boolean;
+  isExpiredCurrentPlan: boolean;
   tierRowReservesBadgePad?: boolean;
 }) {
   const featured = Boolean(plan.featured);
@@ -219,6 +232,19 @@ function UpgradeTierCard({
           <Link href="/contact" className="scp-pc__btn scp-pc__btn--primary">
             {ctaLabel}
           </Link>
+        ) : isCurrentPlan && isExpiredCurrentPlan ? (
+          <button
+            type="button"
+            className="scp-pc__btn scp-pc__btn--primary"
+            disabled={busy || !enableCheckout}
+            onClick={() => onCta(plan)}
+            style={{
+              cursor: busy ? "wait" : "pointer",
+              opacity: busy ? 0.85 : 1,
+            }}
+          >
+            {busy ? "Please wait…" : "Renew"}
+          </button>
         ) : isCurrentPlan ? (
           <div className="scp-pc__btn--ghost scp-pc__btn--current-foot" role="status">
             Current plan
@@ -226,7 +252,7 @@ function UpgradeTierCard({
         ) : enableCheckout ? (
           <button
             type="button"
-            className={`scp-pc__btn ${featured ? "scp-pc__btn--primary" : "scp-pc__btn--secondary"}`}
+            className="scp-pc__btn scp-pc__btn--primary"
             disabled={busy}
             onClick={() => onCta(plan)}
             style={{ cursor: busy ? "wait" : "pointer", opacity: busy ? 0.85 : 1 }}
@@ -234,11 +260,7 @@ function UpgradeTierCard({
             {busy ? "Please wait…" : ctaLabel}
           </button>
         ) : (
-          <button
-            type="button"
-            className={`scp-pc__btn ${featured ? "scp-pc__btn--primary" : "scp-pc__btn--secondary"}`}
-            onClick={() => onMarketingCta(plan)}
-          >
+          <button type="button" className="scp-pc__btn scp-pc__btn--primary" onClick={() => onMarketingCta(plan)}>
             {ctaLabel}
           </button>
         )}
@@ -314,6 +336,7 @@ function PortalPlanCard({
   onMarketingCta,
   compact,
   isCurrentPlan,
+  isExpiredCurrentPlan,
   tierRowReservesBadgePad = false,
 }: {
   plan: SalesCopilotPricingPlan;
@@ -323,6 +346,7 @@ function PortalPlanCard({
   onMarketingCta: (plan: SalesCopilotPricingPlan) => void;
   compact?: boolean;
   isCurrentPlan?: boolean;
+  isExpiredCurrentPlan: boolean;
   tierRowReservesBadgePad?: boolean;
 }) {
   const isCustom = plan.kind === "custom";
@@ -373,6 +397,19 @@ function PortalPlanCard({
           <Link href="/contact" className="scp-pc__btn scp-pc__btn--primary">
             {ctaLabel}
           </Link>
+        ) : isCurrentPlan && isExpiredCurrentPlan ? (
+          <button
+            type="button"
+            className="scp-pc__btn scp-pc__btn--primary"
+            disabled={busy || !enableCheckout}
+            onClick={() => onCta(plan)}
+            style={{
+              cursor: busy ? "wait" : "pointer",
+              opacity: busy ? 0.85 : 1,
+            }}
+          >
+            {busy ? "Please wait…" : "Renew"}
+          </button>
         ) : isCurrentPlan ? (
           <div className="scp-pc__btn--ghost scp-pc__btn--current-foot" role="status">
             Current plan
@@ -503,6 +540,7 @@ export default function SalesCopilotPricingSection({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [billingHint, setBillingHint] = useState<string | null>(null);
   const [currentBillingPlanKey, setCurrentBillingPlanKey] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
   const [landingHasSession, setLandingHasSession] = useState(false);
   const { setup, tiers, custom, callingAddon } = useMemo(() => pricingPlansByLayout(), []);
   const tierRowReservesBadgePad = useMemo(() => tiers.some((p) => Boolean(p.badge?.trim())), [tiers]);
@@ -520,6 +558,7 @@ export default function SalesCopilotPricingSection({
       const raw = getUser()?.billing_plan_key;
       const k = typeof raw === "string" ? raw.trim() : "";
       setCurrentBillingPlanKey(k || null);
+      setExpired(isCurrentPlanExpired(Date.now()));
     };
     read();
     window.addEventListener("sparkai:user-changed", read);
@@ -667,6 +706,7 @@ export default function SalesCopilotPricingSection({
                 enableCheckout={enableCheckout}
                 onMarketingCta={handleMarketingCta}
                 isCurrentPlan={Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
+                isExpiredCurrentPlan={expired && Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
                 tierRowReservesBadgePad={tierRowReservesBadgePad}
               />
             ))}
@@ -690,6 +730,7 @@ export default function SalesCopilotPricingSection({
                 onMarketingCta={handleMarketingCta}
                 compact
                 isCurrentPlan={Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
+                isExpiredCurrentPlan={expired && Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
               />
             ))}
           </div>

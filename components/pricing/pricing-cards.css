@@ -277,14 +277,22 @@
   font-size: 0.8125rem;
 }
 
+/* Primary tier CTAs: solid brand fill + white label (all columns). */
 .scp-pc__btn--primary {
   background: var(--color-primary);
   color: #fff;
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--color-primary) 72%, #1e293b 28%);
+  font-weight: 700;
 }
 
 .scp-pc__btn--primary:hover:not(:disabled) {
-  filter: brightness(1.05);
+  filter: brightness(0.94);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, #1e293b 45%);
+}
+
+.scp-pc__btn--primary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 35%, #fff 65%);
+  outline-offset: 2px;
 }
 
 .scp-pc__btn--secondary {
@@ -302,12 +310,18 @@
   background: transparent;
 }
 
+.scp-pc--landing a.scp-pc__btn--primary,
 .scp-pc--app a.scp-pc__btn--primary {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  color: #fff;
+}
+
+a.scp-pc__btn--primary:visited {
+  color: #fff;
 }
 
 /* ========= Landing — dark ========= */
@@ -626,7 +640,8 @@
 
 .scp-pc__btn--current-foot {
   font-weight: 700 !important;
-  color: var(--color-primary) !important;
+  /* Darken vs raw primary so “Current plan” stays readable on pale primary tint */
+  color: color-mix(in srgb, var(--color-primary) 35%, #0f172a 65%) !important;
   border: 1px solid color-mix(in srgb, var(--color-primary) 45%, var(--color-border, #e5e7eb)) !important;
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface, #fff)) !important;
 }

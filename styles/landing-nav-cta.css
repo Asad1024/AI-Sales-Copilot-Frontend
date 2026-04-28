@@ -2,6 +2,32 @@
  * Primary CTA in marketing nav — loaded on pages that don't include `app/page.tsx` styled-jsx
  * (e.g. /upgrade). Keeps pill gradient + shadow consistent with the home landing header.
  */
+
+/* Base login button styles (light theme file only overrides colors). */
+.landing-page .btn-login {
+  padding: 11px 22px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  background: transparent;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.landing-page .btn-login:hover {
+  transform: translateY(-1px);
+}
+
+/* Ensure login + CTA never touch on standalone marketing pages (/about, /contact, /help). */
+.landing-page .nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .landing-page .btn-cta {
   padding: 11px 22px;
   color: #fff;

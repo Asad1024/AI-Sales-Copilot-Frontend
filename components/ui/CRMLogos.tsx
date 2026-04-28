@@ -1,10 +1,20 @@
 "use client";
 import React from "react";
+import { SiSalesforce, SiZoho } from "react-icons/si";
 
 type LogoProps = {
   size?: number;
   style?: React.CSSProperties;
 };
+
+const SALESFORCE_COLOR = "#00A1E0";
+// Zoho has a multi-color wordmark; Simple Icons is single-color, so we render in Zoho red.
+const ZOHO_COLOR = "#E42527";
+
+function withDefaultColor(style: React.CSSProperties | undefined, color: string): React.CSSProperties {
+  if (style && typeof style.color === "string" && style.color.trim().length > 0) return style;
+  return { ...(style ?? {}), color };
+}
 
 // Airtable Logo
 export const AirtableLogo = ({ size = 24, style }: LogoProps) => (
@@ -42,37 +52,12 @@ export const HubSpotLogo = ({ size = 24, style }: LogoProps) => (
 
 // Zoho Logo
 export const ZohoLogo = ({ size = 24, style }: LogoProps) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
-    <path
-      d="M12 2L2 7v10l10 5 10-5V7L12 2z"
-      fill="#C8202F"
-    />
-    <path
-      d="M12 2v20l10-5V7L12 2z"
-      fill="#E53E3E"
-      opacity="0.8"
-    />
-    <path
-      d="M7 12l5-5 5 5-5 5-5-5z"
-      fill="#fff"
-      opacity="0.9"
-    />
-  </svg>
+  <SiZoho size={size} style={withDefaultColor(style, ZOHO_COLOR)} aria-hidden />
 );
 
 // Salesforce Logo
 export const SalesforceLogo = ({ size = 24, style }: LogoProps) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
-    <path
-      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-      fill="#00A1E0"
-    />
-    <path
-      d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-      fill="#00A1E0"
-    />
-    <circle cx="12" cy="12" r="2" fill="#00A1E0" />
-  </svg>
+  <SiSalesforce size={size} style={withDefaultColor(style, SALESFORCE_COLOR)} aria-hidden />
 );
 
 // Pipedrive Logo
@@ -123,29 +108,10 @@ export const CRMLogos = {
     </svg>
   ),
   Zoho: ({ size = 32, style }: LogoProps) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
-      {/* Zoho's red rounded square with Z */}
-      <rect width="24" height="24" rx="5" fill="#C8202F" />
-      <path
-        d="M7 8h10l-2 2H9l2 2h6l-2 2H7V8z"
-        fill="#fff"
-        fillRule="evenodd"
-      />
-    </svg>
+    <SiZoho size={size} style={withDefaultColor(style, ZOHO_COLOR)} aria-hidden />
   ),
   Salesforce: ({ size = 32, style }: LogoProps) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
-      {/* Salesforce's cloud logo */}
-      <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8c1.57 0 3.03.46 4.26 1.24l-1.46 2.2C14.1 8.5 13.1 8 12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4c1.1 0 2.1-.5 2.8-1.44l1.46 2.2C15.03 19.54 13.57 20 12 20z"
-        fill="#00A1E0"
-      />
-      <path
-        d="M16.26 5.24l1.46-2.2C15.03 2.46 13.57 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10c1.57 0 3.03-.46 4.26-1.24l-1.46-2.2C14.1 19.5 13.1 20 12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8c1.1 0 2.1.5 2.8 1.44l1.46-2.2z"
-        fill="#1798C1"
-        opacity="0.8"
-      />
-    </svg>
+    <SiSalesforce size={size} style={withDefaultColor(style, SALESFORCE_COLOR)} aria-hidden />
   ),
   Pipedrive: ({ size = 32, style }: LogoProps) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>

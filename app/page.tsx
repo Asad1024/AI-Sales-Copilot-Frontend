@@ -192,6 +192,16 @@ function LandingIntegrationAirtable() {
 function LandingIntegrationHubSpot() {
   return <CRMLogos.HubSpot size={24} />;
 }
+function LandingIntegrationSalesforce() {
+  return <CRMLogos.Salesforce size={30} />;
+}
+function LandingIntegrationZoho() {
+  return (
+    <span className="integration-icon--zoho">
+      <CRMLogos.Zoho size={36} />
+    </span>
+  );
+}
 
 const INTEGRATION_ITEMS: { name: string; Icon: ComponentType }[] = [
   { name: "WhatsApp", Icon: LandingIntegrationWhatsApp },
@@ -199,6 +209,8 @@ const INTEGRATION_ITEMS: { name: string; Icon: ComponentType }[] = [
   { name: "Sheets", Icon: LandingIntegrationGoogleSheets },
   { name: "Airtable", Icon: LandingIntegrationAirtable },
   { name: "HubSpot", Icon: LandingIntegrationHubSpot },
+  { name: "Salesforce", Icon: LandingIntegrationSalesforce },
+  { name: "Zoho", Icon: LandingIntegrationZoho },
 ];
 
 // Integration card with icon
@@ -1339,12 +1351,14 @@ export default function LandingPage() {
         }
         .integrations-grid-desktop {
           display: grid;
-          grid-template-columns: repeat(5, minmax(96px, 108px));
-          gap: 12px 14px;
+          grid-template-columns: repeat(7, minmax(96px, 108px));
+          gap: 12px;
           justify-content: center;
           justify-items: center;
           margin-top: 28px;
           width: 100%;
+          overflow-x: auto;
+          padding-bottom: 10px;
         }
         .integrations-band .integration-card {
           display: flex;
@@ -1387,6 +1401,10 @@ export default function LandingPage() {
           height: 32px;
           display: block;
           flex-shrink: 0;
+        }
+        .integration-icon .integration-icon--zoho :is(svg, img) {
+          width: 38px;
+          height: 38px;
         }
         .integration-icon .integration-icon--sheets svg {
           width: 34px;
@@ -1830,7 +1848,7 @@ export default function LandingPage() {
             line-height: 1.25;
           }
           .integrations-grid-desktop {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(7, minmax(96px, 108px));
             gap: 10px 8px;
           }
           .cta-buttons {
@@ -2251,23 +2269,21 @@ export default function LandingPage() {
               <Link href="#features">Features</Link>
               <Link href="#how-it-works">How It Works</Link>
               <Link href="#pricing">Pricing</Link>
-              <Link href="/demo">Demo</Link>
+              <Link href="#integrations">Integrations</Link>
             </div>
 
             <div className="footer-column">
               <h4>Company</h4>
               <Link href="/about">About</Link>
-              <Link href="/integration">Integrations</Link>
-              <Link href="/upgrade">Upgrade</Link>
               <Link href="/contact">Contact</Link>
+              <Link href="/help">Help &amp; Support</Link>
             </div>
 
             <div className="footer-column">
-              <h4>Resources</h4>
-              <Link href="/demo">Demo</Link>
-              <Link href="/pricing">Pricing</Link>
+              <h4>Explore</h4>
               <Link href="#faq">FAQ</Link>
               <Link href="#testimonials">Customer Stories</Link>
+              <Link href="/pricing">Plans &amp; Pricing</Link>
             </div>
           </RevealOnView>
 

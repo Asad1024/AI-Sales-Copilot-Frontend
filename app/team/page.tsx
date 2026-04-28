@@ -727,12 +727,26 @@ export default function TeamPage() {
   const totalMembers = members.length;
   const totalOwners = ownerCount;
   const totalMembersWithoutOwners = Math.max(totalMembers - ownerCount, 0);
+  const pendingInvitesCount = pendingInvites.length;
 
   const viewerRoleLabel = useMemo(() => {
     if (viewerIsAdmin) return "Platform Admin";
     if (viewerMembershipRole) return getWorkspaceRoleLabel(viewerMembershipRole);
     return "Viewer";
   }, [viewerIsAdmin, viewerMembershipRole]);
+
+  const inviteStatusLabel = useMemo(() => {
+    if (pendingInvitesCount === 0) return "No invites waiting";
+    return `${pendingInvitesCount} invite${pendingInvitesCount === 1 ? "" : "s"} waiting`;
+  }, [pendingInvitesCount]);
+
+  const seatStatusLabel = useMemo(() => {
+    if (!seatSummary || membersLoading) return null;
+    if (seatSummary.remaining <= 0) {
+      return `No free seats · up to ${seatSummary.cap} total`;
+    }
+    return `${seatSummary.remaining} open seat${seatSummary.remaining === 1 ? "" : "s"} · up to ${seatSummary.cap} total`;
+  }, [seatSummary, membersLoading]);
 
   const filteredMembers = useMemo(() => {
     const q = memberSearch.trim().toLowerCase();
@@ -790,84 +804,10 @@ export default function TeamPage() {
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-        <div
-          style={{
-            minWidth: 220,
-          }}
-        >
-          <p
-            style={{
-              margin: "0 0 6px",
-              fontSize: 11,
-              letterSpacing: "0.12em",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              color: "var(--color-text-muted)",
-            }}
-          >
-            Workspace team
-          </p>
-          <h1 style={{ margin: "0 0 8px", fontSize: "clamp(1.15rem, 2.1vw, 1.45rem)", lineHeight: 1.2, fontWeight: 700 }}>
-            Team and Access
-          </h1>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "var(--color-text-muted)" }}>
-            Manage roles, invitations, and workspace access for{" "}
-            <strong style={{ color: "var(--color-text)" }}>{activeBase?.name || "this workspace"}</strong>.
-          </p>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.45 }}>
-          <span>
-            {totalMembers} {totalMembers === 1 ? "person" : "people"} on the team
-          </span>
-          <span aria-hidden>•</span>
-          <span>
-            {pendingInvites.length === 0
-              ? "No invites waiting"
-              : `${pendingInvites.length} invite${pendingInvites.length === 1 ? "" : "s"} waiting`}
-          </span>
-          {seatSummary && !membersLoading ? (
-            <>
-              <span aria-hidden>•</span>
-              <span
-                title={`Up to ${seatSummary.cap} people on this workspace. ${seatSummary.reserved_slots} already used (members + pending invites).`}
-                style={{ color: seatSummary.remaining === 0 ? "#b45309" : undefined }}
-              >
-                {seatSummary.remaining === 0 ? (
-                  <>
-                    No free seats — this workspace fits up to <strong style={{ color: "var(--color-text)" }}>{seatSummary.cap}</strong>{" "}
-                    {seatSummary.cap === 1 ? "person" : "people"}
-                    {seatSummary.billing_extra_seats > 0 ? (
-                      <span style={{ fontWeight: 500 }}>
-                        {" "}
-                        ({seatSummary.included_from_plan} with your plan + {seatSummary.billing_extra_seats} extra)
-                      </span>
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <strong style={{ color: "var(--color-text)" }}>{seatSummary.remaining}</strong>{" "}
-                    {seatSummary.remaining === 1 ? "open seat" : "open seats"} for invites · up to{" "}
-                    <strong style={{ color: "var(--color-text)" }}>{seatSummary.cap}</strong>{" "}
-                    {seatSummary.cap === 1 ? "person" : "people"} total
-                    {seatSummary.billing_extra_seats > 0 ? (
-                      <span style={{ fontWeight: 500 }}>
-                        {" "}
-                        ({seatSummary.included_from_plan} with your plan + {seatSummary.billing_extra_seats} extra)
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </span>
-            </>
-          ) : null}
-        </div>
-      </div>
-
       <div
         style={{
           padding: "8px 0 2px",
-          borderBottom: "1px solid var(--elev-border)",
+          borderBottom: "none",
         }}
       >
         <div
@@ -994,12 +934,12 @@ export default function TeamPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
+              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+              gap: 10,
             }}
           >
             {[0, 1, 2, 3].map((i) => (
-              <BaseCard key={i} style={{ padding: "20px 22px" }} aria-hidden>
+              <BaseCard key={i} style={{ padding: "14px 14px" }} aria-hidden>
                 <div className="ui-skeleton" style={{ height: 14, width: "42%", borderRadius: 6, marginBottom: 14 }} />
                 <div className="ui-skeleton" style={{ height: 28, width: "48%", borderRadius: 8, marginBottom: 10 }} />
                 <div className="ui-skeleton" style={{ height: 12, width: "88%", borderRadius: 6 }} />
@@ -1025,8 +965,8 @@ export default function TeamPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
+              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+              gap: 10,
             }}
           >
             <StatCard
@@ -1155,31 +1095,51 @@ export default function TeamPage() {
 
           <BaseCard style={{ padding: "24px", overflow: "hidden" }}>
             <div style={{ marginBottom: 16 }}>
-              <h3
-                style={{
-                  fontSize: 18,
-                  fontWeight: 650,
-                  margin: "0 0 6px 0",
-                  color: "var(--color-text)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />
-                Team members
-              </h3>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
-                {memberSearch.trim()
-                  ? `${filteredMembers.length} shown / ${totalMembers} total`
-                  : `${totalMembers} total`}
-              </p>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div>
+                  <h3
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 650,
+                      margin: "0 0 6px 0",
+                      color: "var(--color-text)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Icons.Users size={18} strokeWidth={1.5} style={{ color: "var(--color-text-muted)" }} />
+                    Team members
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+                    {memberSearch.trim()
+                      ? `${filteredMembers.length} shown / ${totalMembers} total`
+                      : `${totalMembers} total`}
+                  </p>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <Badge>{totalMembers} on team</Badge>
+                  <Badge>{inviteStatusLabel}</Badge>
+                  {seatStatusLabel ? (
+                    <Badge
+                      title={
+                        seatSummary
+                          ? `Up to ${seatSummary.cap} people on this workspace. ${seatSummary.reserved_slots} already used (members + pending invites).`
+                          : undefined
+                      }
+                      tone={seatSummary && seatSummary.remaining <= 0 ? "warning" : "default"}
+                    >
+                      {seatStatusLabel}
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
             </div>
             {isWorkspaceOwner && (
               <p className="text-hint" style={{ margin: "-8px 0 16px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-muted)" }}>
-                Teammates use lead credits from your pool. The &quot;Credits spent&quot; column (visible only to you) sums
-                workspace ledger entries by who performed the action. Integrations run with your Admin → API credentials
-                when a member has not saved their own keys.
+                Lead credits come from your workspace pool. The &quot;Credits spent&quot; column (only you can see it) shows who used them.
+                If a teammate hasn&apos;t saved their own integration keys, we use your Admin → API credentials.
               </p>
             )}
 
@@ -1470,12 +1430,12 @@ export default function TeamPage() {
                   padding: "10px 12px",
                   border: "none",
                   borderRadius: 8,
-                  background: "transparent",
-                  color: danger ? "#f87171" : "var(--color-text)",
+                  background: danger ? "#ef4444" : "transparent",
+                  color: danger ? "#ffffff" : "var(--color-text)",
                   fontSize: 13,
                   cursor: "pointer",
                   textAlign: "left" as const,
-                  fontWeight: 500,
+                  fontWeight: danger ? 650 : 500,
                 });
 
               return (
@@ -1580,10 +1540,10 @@ export default function TeamPage() {
                     }}
                     onMouseEnter={(e) => {
                       if (!canManageTeam || removeDisabledM) return;
-                      e.currentTarget.style.background = "rgba(248, 113, 113, 0.08)";
+                      e.currentTarget.style.background = "#dc2626";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.background = "#ef4444";
                     }}
                     onClick={() => {
                       if (!canManageTeam || removeDisabledM) return;
@@ -1708,20 +1668,20 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <BaseCard className="bases-workspace-card" style={{ padding: "20px 22px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+    <BaseCard className="bases-workspace-card" style={{ padding: "14px 14px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <div style={{ color: accent, display: "flex", alignItems: "center" }}>{icon}</div>
         <h3
           className="bases-workspace-card-metric-label"
-          style={{ margin: 0, letterSpacing: "0.06em", color: "var(--color-text-muted)" }}
+          style={{ margin: 0, letterSpacing: "0.06em", color: "var(--color-text-muted)", fontSize: 11 }}
         >
           {label}
         </h3>
       </div>
-      <div className="bases-workspace-card-metric-value" style={{ fontSize: "1.75rem", marginBottom: 6 }}>
+      <div className="bases-workspace-card-metric-value" style={{ fontSize: "1.35rem", marginBottom: 4 }}>
         {value}
       </div>
-      <div style={{ fontSize: "12px", color: "var(--color-text-muted)", lineHeight: 1.45 }}>{description}</div>
+      <div style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.35 }}>{description}</div>
     </BaseCard>
   );
 }
@@ -1742,6 +1702,35 @@ function HeaderCell({ children }: { children: React.ReactNode }) {
     >
       {children}
     </th>
+  );
+}
+
+function Badge({
+  children,
+  title,
+  tone = "default",
+}: {
+  children: React.ReactNode;
+  title?: string;
+  tone?: "default" | "warning";
+}) {
+  const isWarning = tone === "warning";
+  return (
+    <span
+      title={title}
+      style={{
+        fontSize: 12,
+        fontWeight: 650,
+        padding: "6px 10px",
+        borderRadius: 999,
+        border: `1px solid ${isWarning ? "rgba(245, 158, 11, 0.45)" : "var(--elev-border)"}`,
+        background: isWarning ? "rgba(245, 158, 11, 0.12)" : "var(--color-surface-secondary)",
+        color: isWarning ? "#d97706" : "var(--color-text)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
   );
 }
 

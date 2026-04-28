@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { apiRequest, streamGenerateLeads, setUser, getUser, type User } from "@/lib/apiClient";
 import { useBase } from "@/context/BaseContext";
 import { useNotification } from "@/context/NotificationContext";
@@ -123,6 +124,7 @@ const DEFAULT_LEAD_GEN_QUICK_SUGGESTIONS: LeadGenQuickSuggestion[] = [
 ];
 
 export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnrichmentStarted }: Props) {
+  const router = useRouter();
   const { activeBaseId } = useBase();
   const { showSuccess, showError } = useNotification();
   const [prompt, setPrompt] = useState("");
@@ -146,6 +148,8 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const [speechSupported, setSpeechSupported] = useState(false);
   /** AI prompt token allowance from server (refreshed when modal opens and after a successful run). */
   const [meTokens, setMeTokens] = useState<{ bal: number; monthly: number } | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<"tokens" | "credits">("tokens");
   const speechRecRef = useRef<{
     continuous: boolean;
     interimResults: boolean;
@@ -346,6 +350,7 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
   const tokenBalance = meTokens?.bal ?? 0;
   const tokenMonthly = meTokens?.monthly ?? 0;
   const insufficientTokens = meTokens !== null && promptTokenCost > 0 && tokenBalance < promptTokenCost;
+  const noTokens = meTokens !== null && tokenBalance <= 0;
 
   const genPct = useMemo(() => {
     if (!generating) return 0;
@@ -473,13 +478,35 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
         errorMessage = error.response.data.error;
       }
       
-      setError(errorMessage);
+      const msg = String(errorMessage || "");
+      if (/not enough lead credits/i.test(msg)) {
+        setUpgradeReason("credits");
+        setShowUpgradePrompt(true);
+        setError("");
+      } else if (/not enough ai prompt tokens/i.test(msg)) {
+        setUpgradeReason("tokens");
+        setShowUpgradePrompt(true);
+        setError("");
+      } else {
+        setError(errorMessage);
+      }
       setProgress("");
     } finally {
       setGenerating(false);
       setGenStream({ stage: "", done: 0, total: 0, label: "" });
     }
   };
+
+  const handleGenerateClick = useCallback(() => {
+    if (blockingQuickSuggestionUi) return;
+    if (!postGenSuccess && !prompt.trim()) return;
+    if (!postGenSuccess && (noTokens || insufficientTokens)) {
+      setUpgradeReason("tokens");
+      setShowUpgradePrompt(true);
+      return;
+    }
+    handleGenerateRef.current();
+  }, [blockingQuickSuggestionUi, insufficientTokens, noTokens, postGenSuccess, prompt]);
 
   const CRAFTING_QUICK_SUGGESTION_MS = 1100;
 
@@ -1001,11 +1028,10 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
               <button
                 type="button"
                 className={`btn-primary ai-generate-generate-btn${generationComplete ? " ai-generate-success-cta" : ""}`}
-                onClick={() => void handleGenerate()}
+                onClick={handleGenerateClick}
                 disabled={
                   blockingQuickSuggestionUi ||
-                  (!postGenSuccess && !prompt.trim()) ||
-                  (!postGenSuccess && insufficientTokens)
+                  (!postGenSuccess && !prompt.trim())
                 }
                 aria-busy={generating}
               >
@@ -1057,6 +1083,162 @@ export default function AIGenerateModal({ open, onClose, onGenerated, onAsyncEnr
           </div>
         </div>
       </ImportModalFrame>
+
+      {showUpgradePrompt && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.52)",
+            zIndex: 2100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setShowUpgradePrompt(false)}
+          role="presentation"
+        >
+          <div
+            style={{
+              width: "min(460px, 100%)",
+              background:
+                "linear-gradient(180deg, rgba(255,247,237,1) 0%, rgba(255,255,255,1) 48%), radial-gradient(1200px 260px at 18% 0%, rgba(249,115,22,0.14) 0%, rgba(249,115,22,0) 60%)",
+              borderRadius: 16,
+              border: "1px solid rgba(15, 23, 42, 0.12)",
+              boxShadow: "0 28px 90px rgba(2, 6, 23, 0.34)",
+              padding: 20,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Upgrade to get more tokens"
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(249, 115, 22, 0.14)",
+                    border: "1px solid rgba(249, 115, 22, 0.30)",
+                    color: "#c2410c",
+                    flex: "0 0 auto",
+                  }}
+                >
+                  <Icons.Sparkles size={17} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", lineHeight: 1.25 }}>
+                    {upgradeReason === "credits"
+                      ? "Not enough lead credits"
+                      : "You're out of AI prompt tokens"}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 13, color: "rgba(15, 23, 42, 0.72)", lineHeight: 1.5 }}>
+                    {upgradeReason === "credits"
+                      ? "Upgrade to keep generating leads and grow your pipeline without limits."
+                      : "Upgrade to keep generating leads with AI and unlock more tokens each billing period."}
+                  </div>
+                  {meTokens !== null ? (
+                    <div style={{ marginTop: 10, fontSize: 12, color: "rgba(15, 23, 42, 0.62)" }}>
+                      {upgradeReason === "tokens" ? (
+                        <>
+                          Available now: <strong>{tokenBalance.toLocaleString()}</strong>
+                          {tokenMonthly > 0 ? <> / {tokenMonthly.toLocaleString()} this period</> : null}
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUpgradePrompt(false)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  border: "1px solid rgba(15, 23, 42, 0.12)",
+                  background: "rgba(248, 250, 252, 0.9)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(15, 23, 42, 0.75)",
+                  flex: "0 0 auto",
+                }}
+                aria-label="Close"
+              >
+                <Icons.X size={16} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                marginTop: 14,
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(15, 23, 42, 0.10)",
+                background: "rgba(255, 255, 255, 0.72)",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                {upgradeReason === "credits" ? "What you’ll get with an upgrade" : "Why upgrade?"}
+              </div>
+              <ul
+                style={{
+                  margin: "10px 0 0",
+                  paddingLeft: 18,
+                  fontSize: 12.5,
+                  color: "rgba(15, 23, 42, 0.72)",
+                  lineHeight: 1.55,
+                }}
+              >
+                <li>
+                  {upgradeReason === "credits"
+                    ? "More lead credits so you can generate bigger lists in one go."
+                    : "More AI prompt tokens so longer prompts can run instantly."}
+                </li>
+                <li>Higher monthly limits and fewer interruptions while prospecting.</li>
+                <li>Renew anytime — your new limits apply immediately after upgrade.</li>
+              </ul>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() => setShowUpgradePrompt(false)}
+                style={{
+                  height: 38,
+                  padding: "0 14px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15, 23, 42, 0.16)",
+                  background: "rgba(255, 255, 255, 0.85)",
+                  color: "rgba(15, 23, 42, 0.82)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  boxShadow: "0 1px 0 rgba(2, 6, 23, 0.04)",
+                }}
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  setShowUpgradePrompt(false);
+                  router.push("/upgrade");
+                }}
+              >
+                View plans
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Post-generation: optional FullEnrich contact flow (same as toolbar Enrich → contact-only) */}
       {showEnrichPopup && (

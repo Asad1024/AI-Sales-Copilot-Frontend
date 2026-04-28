@@ -18,6 +18,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import { goToNewCampaignOrWorkspaces } from "@/lib/goToNewCampaign";
 import { APP_BRAND_BROWSER_TITLE, APP_BRAND_NAME, APP_BRAND_TAGLINE } from "@/lib/brand";
 import { AppQueryProvider } from "@/providers/AppQueryProvider";
+import { isAuthenticated } from "@/lib/apiClient";
 
 export default function ClientRootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,17 +26,30 @@ export default function ClientRootLayout({ children }: { children: React.ReactNo
   const { activeBaseId } = useBaseStore();
   const sidebarCollapsed = useSidebarStore((s) => s.collapsed);
 
+  const isHybridMarketingPage =
+    pathname?.startsWith("/about") ||
+    pathname?.startsWith("/contact") ||
+    pathname?.startsWith("/help") ||
+    pathname?.startsWith("/integration");
+
   const isPublicPage =
     pathname === "/" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/invite") ||
+    pathname.startsWith("/pricing") ||
+    pathname.startsWith("/upgrade") ||
     pathname.startsWith("/demo") ||
-    pathname.startsWith("/flow");
+    pathname.startsWith("/flow") ||
+    (isHybridMarketingPage && !isAuthenticated());
   const isOnboardingPage = pathname?.startsWith("/onboarding");
   const isUpgradePage = pathname?.startsWith("/upgrade");
+  const isAboutPage = pathname?.startsWith("/about");
   const isContactPage = pathname?.startsWith("/contact");
   const isHelpPage = pathname?.startsWith("/help");
-  const isMarketingFullBleedShell = isUpgradePage || isContactPage || isHelpPage;
+  // Only render the upgrade-style full-bleed shell for these pages when unauthenticated.
+  // When authenticated, they should look like normal portal pages (sidebar + header).
+  const isMarketingFullBleedShell =
+    isUpgradePage || ((isAboutPage || isContactPage || isHelpPage) && !isAuthenticated());
   const isAdminPage = pathname?.startsWith("/admin");
   const showHeaderSidebar = !isPublicPage && !isOnboardingPage && !isMarketingFullBleedShell;
   const [sidebarOpen, setSidebarOpen] = useState(true);

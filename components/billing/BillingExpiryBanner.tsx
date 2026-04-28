@@ -93,6 +93,7 @@ export function BillingExpiryBanner({ leftOffsetPx = 0 }: { leftOffsetPx?: numbe
     ? `Your payment is expired. Renew within ${state.minsLeft} minute(s) to keep your credits and team access.`
     : "Grace period ended. Your credits were removed and your team access was disabled. Buy again to restore access.";
   const ctaLabel = state.inGrace ? "Renew" : "Buy again";
+  const title = state.inGrace ? "Subscription expired — grace started" : "Subscription expired";
 
   return (
     <div
@@ -101,39 +102,54 @@ export function BillingExpiryBanner({ leftOffsetPx = 0 }: { leftOffsetPx?: numbe
     >
       <div
         className={[
-          "flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5",
+          "py-3 sm:py-3.5",
           alignWithLandingMain
             ? "mx-auto w-full max-w-[1260px] px-[clamp(18px,4vw,32px)]"
             : "pl-3 pr-3 sm:pr-4",
         ].join(" ")}
       >
-        <AlertCircle className="h-5 w-5 shrink-0 text-white" aria-hidden />
-        <div className="min-w-0 max-w-[min(100%,52rem)]">
-          <p className="text-sm font-semibold text-white">Subscription expired</p>
-          <p className="text-xs text-white/90 mt-0.5">{message}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => router.push("/upgrade")}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-white/25 bg-white px-3.5 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-red-600"
-          >
-            {ctaLabel}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDismissed(true);
-              if (typeof window !== "undefined") {
-                sessionStorage.setItem("sparkai:billing-banner:dismissed", "1");
-              }
-            }}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border-0 bg-transparent text-white/90 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-red-600"
-            aria-label="Dismiss"
-            title="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div className="flex items-center justify-between gap-3">
+          {/* Left content */}
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="shrink-0 mt-0.5">
+              <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-white" aria-hidden />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] sm:text-sm font-semibold text-white leading-5 tracking-tight">
+                {title}
+              </p>
+              <p className="text-[12px] sm:text-xs text-white/90 mt-1 leading-[1.35rem] break-words">
+                {message}
+              </p>
+            </div>
+          </div>
+
+          {/* Right actions (never shrink) */}
+          <div className="shrink-0 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/upgrade")}
+              className="shrink-0 inline-flex h-9 items-center justify-center rounded-lg border border-white/25 bg-white px-4 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-red-600"
+            >
+              {ctaLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDismissed(true);
+                if (typeof window !== "undefined") {
+                  sessionStorage.setItem("sparkai:billing-banner:dismissed", "1");
+                }
+              }}
+              className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white/90 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-red-600"
+              aria-label="Dismiss"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

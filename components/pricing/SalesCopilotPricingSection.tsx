@@ -30,13 +30,55 @@ function parseIsoMs(s: string | null | undefined): number | null {
   return Number.isFinite(t) ? t : null;
 }
 
+/** Keep "expired" UI affordances visible briefly after grace ends (matches banner). */
+const POST_GRACE_VISIBLE_MS = 2 * 60 * 1000;
+
+function computePlanPhase(nowMs: number): {
+  currentPlanKeyForUi: string | null;
+  lastPlanKeyForUi: string | null;
+  expiredUi: boolean;
+} {
+  const u = getUser();
+  const planKey = typeof u?.billing_plan_key === "string" ? u.billing_plan_key.trim() : "";
+  if (!planKey) return { currentPlanKeyForUi: null, lastPlanKeyForUi: null, expiredUi: false };
+
+  const expiresMs = parseIsoMs(u?.billing_expires_at);
+  if (!expiresMs) {
+    // If expiry isn't tracked, treat as current.
+    return { currentPlanKeyForUi: planKey, lastPlanKeyForUi: null, expiredUi: false };
+  }
+
+  if (nowMs < expiresMs) {
+    return { currentPlanKeyForUi: planKey, lastPlanKeyForUi: null, expiredUi: false };
+  }
+
+  const graceMs = parseIsoMs(u?.billing_grace_ends_at);
+  // Expired but grace unknown → keep expired UI.
+  if (!graceMs) {
+    return { currentPlanKeyForUi: planKey, lastPlanKeyForUi: null, expiredUi: true };
+  }
+
+  // Expired and still within grace OR within short post-grace visibility window → show expired UI.
+  if (nowMs < graceMs + POST_GRACE_VISIBLE_MS) {
+    return { currentPlanKeyForUi: planKey, lastPlanKeyForUi: null, expiredUi: true };
+  }
+
+  // After grace + visibility window: treat as no active/current plan in UI, but remember last plan.
+  return { currentPlanKeyForUi: null, lastPlanKeyForUi: planKey, expiredUi: false };
+}
+
 function isCurrentPlanExpired(nowMs: number): boolean {
   const u = getUser();
   const planKey = typeof u?.billing_plan_key === "string" ? u.billing_plan_key.trim() : "";
   if (!planKey) return false;
   const expiresMs = parseIsoMs(u?.billing_expires_at);
   if (!expiresMs) return false;
-  return nowMs >= expiresMs;
+  if (nowMs < expiresMs) return false;
+  const graceMs = parseIsoMs(u?.billing_grace_ends_at);
+  if (!graceMs) return true;
+  // After grace ends + a short visibility window, treat pricing as normal again.
+  if (nowMs >= graceMs + POST_GRACE_VISIBLE_MS) return false;
+  return true;
 }
 
 function PricingPlanSections({
@@ -172,6 +214,7 @@ function UpgradeTierCard({
   onMarketingCta,
   isCurrentPlan,
   isExpiredCurrentPlan,
+  badgeOverrideLabel,
   tierRowReservesBadgePad = false,
 }: {
   plan: SalesCopilotPricingPlan;
@@ -181,6 +224,7 @@ function UpgradeTierCard({
   onMarketingCta: (plan: SalesCopilotPricingPlan) => void;
   isCurrentPlan: boolean;
   isExpiredCurrentPlan: boolean;
+  badgeOverrideLabel?: string;
   tierRowReservesBadgePad?: boolean;
 }) {
   const featured = Boolean(plan.featured);
@@ -194,7 +238,7 @@ function UpgradeTierCard({
     : isCustom
       ? "Contact sales"
       : "Get started";
-  const badgeLabel = plan.badge?.trim();
+  const badgeLabel = (badgeOverrideLabel ?? plan.badge)?.trim();
   const tierTopPad = Boolean(badgeLabel) || tierRowReservesBadgePad;
 
   return (
@@ -233,18 +277,39 @@ function UpgradeTierCard({
             {ctaLabel}
           </Link>
         ) : isCurrentPlan && isExpiredCurrentPlan ? (
-          <button
-            type="button"
-            className="scp-pc__btn scp-pc__btn--primary"
-            disabled={busy || !enableCheckout}
-            onClick={() => onCta(plan)}
-            style={{
-              cursor: busy ? "wait" : "pointer",
-              opacity: busy ? 0.85 : 1,
-            }}
-          >
-            {busy ? "Please wait…" : "Renew"}
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              className="scp-pc__btn scp-pc__btn--ghost"
+              disabled
+              aria-disabled="true"
+              style={{
+                flex: 1,
+                width: "auto",
+                cursor: "not-allowed",
+                borderColor: "rgba(220, 38, 38, 0.35)",
+                color: "#dc2626",
+                background: "rgba(220, 38, 38, 0.06)",
+                opacity: 1,
+              }}
+            >
+              Expired
+            </button>
+            <button
+              type="button"
+              className="scp-pc__btn scp-pc__btn--primary"
+              disabled={busy || !enableCheckout}
+              onClick={() => onCta(plan)}
+              style={{
+                flex: 1,
+                width: "auto",
+                cursor: busy ? "wait" : "pointer",
+                opacity: busy ? 0.85 : 1,
+              }}
+            >
+              {busy ? "Please wait…" : "Renew"}
+            </button>
+          </div>
         ) : isCurrentPlan ? (
           <div className="scp-pc__btn--ghost scp-pc__btn--current-foot" role="status">
             Current plan
@@ -337,6 +402,7 @@ function PortalPlanCard({
   compact,
   isCurrentPlan,
   isExpiredCurrentPlan,
+  badgeOverrideLabel,
   tierRowReservesBadgePad = false,
 }: {
   plan: SalesCopilotPricingPlan;
@@ -347,6 +413,7 @@ function PortalPlanCard({
   compact?: boolean;
   isCurrentPlan?: boolean;
   isExpiredCurrentPlan: boolean;
+  badgeOverrideLabel?: string;
   tierRowReservesBadgePad?: boolean;
 }) {
   const isCustom = plan.kind === "custom";
@@ -360,7 +427,7 @@ function PortalPlanCard({
       : "Get started";
   const busy = busyId === plan.id;
   const featured = Boolean(plan.featured);
-  const badgeLabel = plan.badge?.trim();
+  const badgeLabel = (badgeOverrideLabel ?? plan.badge)?.trim();
   const tierTopPad = Boolean(badgeLabel) || tierRowReservesBadgePad;
 
   return (
@@ -540,6 +607,7 @@ export default function SalesCopilotPricingSection({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [billingHint, setBillingHint] = useState<string | null>(null);
   const [currentBillingPlanKey, setCurrentBillingPlanKey] = useState<string | null>(null);
+  const [lastBillingPlanKey, setLastBillingPlanKey] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
   const [landingHasSession, setLandingHasSession] = useState(false);
   const { setup, tiers, custom, callingAddon } = useMemo(() => pricingPlansByLayout(), []);
@@ -555,10 +623,10 @@ export default function SalesCopilotPricingSection({
 
   useEffect(() => {
     const read = () => {
-      const raw = getUser()?.billing_plan_key;
-      const k = typeof raw === "string" ? raw.trim() : "";
-      setCurrentBillingPlanKey(k || null);
-      setExpired(isCurrentPlanExpired(Date.now()));
+      const phase = computePlanPhase(Date.now());
+      setCurrentBillingPlanKey(phase.currentPlanKeyForUi);
+      setLastBillingPlanKey(phase.lastPlanKeyForUi);
+      setExpired(phase.expiredUi);
     };
     read();
     window.addEventListener("sparkai:user-changed", read);
@@ -707,6 +775,11 @@ export default function SalesCopilotPricingSection({
                 onMarketingCta={handleMarketingCta}
                 isCurrentPlan={Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
                 isExpiredCurrentPlan={expired && Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
+                badgeOverrideLabel={
+                  !currentBillingPlanKey && lastBillingPlanKey && plan.id === lastBillingPlanKey
+                    ? "Last plan"
+                    : undefined
+                }
                 tierRowReservesBadgePad={tierRowReservesBadgePad}
               />
             ))}
@@ -731,6 +804,11 @@ export default function SalesCopilotPricingSection({
                 compact
                 isCurrentPlan={Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
                 isExpiredCurrentPlan={expired && Boolean(currentBillingPlanKey && plan.id === currentBillingPlanKey)}
+                badgeOverrideLabel={
+                  !currentBillingPlanKey && lastBillingPlanKey && plan.id === lastBillingPlanKey
+                    ? "Last plan"
+                    : undefined
+                }
               />
             ))}
           </div>

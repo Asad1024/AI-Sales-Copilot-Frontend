@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 import { UiSkeleton } from "@/components/ui/AppSkeleton";
 import { apiRequest, getUser } from "@/lib/apiClient";
@@ -15,7 +16,6 @@ import { CRMLogos } from "@/components/ui/CRMLogos";
 import { GoogleSheetsBrandIcon, AirtableBrandIcon } from "@/app/leads/components/LeadSourceBrandIcons";
 import {
   ConfigureModalShell,
-  ConfigureLinkButton,
   ConnectFilledButton,
   IntegrationUniversalCard,
   RemoveIntegrationLink,
@@ -33,7 +33,6 @@ const cardStyle: CSSProperties = {
 /** Same channel colors as `app/campaigns/new/page.tsx` review / schedule rows. */
 const WIZ_CHANNEL_LINKEDIN = "#0077B5";
 const WIZ_CHANNEL_WHATSAPP = "#25D366";
-const WIZ_CHANNEL_EMAIL = "var(--color-primary)";
 
 /** Fills the card’s icon tile — outer ring is drawn by IntegrationUniversalCard. */
 const integrationIconSlot: CSSProperties = {
@@ -833,7 +832,7 @@ export function IntegrationsHub() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 960 }} aria-busy="true" aria-label="Loading integrations">
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 1120 }} aria-busy="true" aria-label="Loading integrations">
         <UiSkeleton height={18} width="45%" />
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -852,7 +851,7 @@ export function IntegrationsHub() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 32, maxWidth: 960 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 32, maxWidth: 1120 }}>
       {showUnipileSuccessModal ? <UnipileSuccessModal onClose={() => setShowUnipileSuccessModal(false)} /> : null}
       {liModal && (
         <LinkedInTypeModal
@@ -961,7 +960,7 @@ export function IntegrationsHub() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             gap: 16,
             alignItems: "start",
           }}
@@ -1042,34 +1041,14 @@ export function IntegrationsHub() {
       </div>
 
       <div style={{ marginTop: 8 }}>
-        <SectionHeader>Email</SectionHeader>
+        <SectionHeader>CRM &amp; data</SectionHeader>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             gap: 16,
             alignItems: "start",
           }}
-          className="integrations-email-grid"
-        >
-          <IntegrationUniversalCard
-            icon={
-              <div style={integrationIconSlot}>
-                <Icons.Mail size={22} strokeWidth={1.75} style={{ color: WIZ_CHANNEL_EMAIL }} aria-hidden />
-              </div>
-            }
-            name="Resend"
-            subtitle="Transactional email with delivery and engagement webhooks"
-            status="coming_soon"
-            comingSoon
-          />
-        </div>
-      </div>
-
-      <div style={{ marginTop: 8 }}>
-        <SectionHeader>CRM &amp; data</SectionHeader>
-        <div
-          style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, alignItems: "start" }}
           className="integrations-crm-grid"
         >
           <IntegrationUniversalCard
@@ -1083,11 +1062,13 @@ export function IntegrationsHub() {
             status={gsOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton
-                  onClick={() => setGsConfigureOpen(true)}
+                <ConnectFilledButton
                   disabled={ownerReadOnly}
                   title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
-                />
+                  onClick={() => setGsConfigureOpen(true)}
+                >
+                  {gsOk ? "Manage" : "Connect"}
+                </ConnectFilledButton>
                 {gsOk ? (
                   <RemoveIntegrationLink
                     disabled={ownerReadOnly}
@@ -1111,11 +1092,13 @@ export function IntegrationsHub() {
             status={atOk ? "connected" : "not_connected"}
             actionRow={
               <>
-                <ConfigureLinkButton
-                  onClick={() => setAtConfigureOpen(true)}
+                <ConnectFilledButton
                   disabled={ownerReadOnly}
                   title={ownerReadOnly ? integrationOwnerOnlyHint : undefined}
-                />
+                  onClick={() => setAtConfigureOpen(true)}
+                >
+                  {atOk ? "Manage" : "Connect"}
+                </ConnectFilledButton>
                 {atOk ? (
                   <RemoveIntegrationLink
                     disabled={ownerReadOnly}
@@ -1139,7 +1122,75 @@ export function IntegrationsHub() {
             status="coming_soon"
             comingSoon
           />
+          <IntegrationUniversalCard
+            icon={
+              <div style={integrationIconSlot}>
+                <CRMLogos.Salesforce size={26} />
+              </div>
+            }
+            name="Salesforce"
+            subtitle="Coming soon"
+            status="coming_soon"
+            comingSoon
+          />
+          <IntegrationUniversalCard
+            icon={
+              <div style={integrationIconSlot}>
+                <CRMLogos.Zoho size={26} />
+              </div>
+            }
+            name="Zoho"
+            subtitle="Coming soon"
+            status="coming_soon"
+            comingSoon
+          />
         </div>
+      </div>
+
+      <div
+        style={{
+          borderRadius: 18,
+          border: "1px solid rgba(var(--color-primary-rgb), 0.20)",
+          background:
+            "linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.12) 0%, rgba(255, 255, 255, 0.72) 55%, rgba(var(--color-primary-rgb), 0.06) 100%)",
+          padding: "16px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 14,
+          flexWrap: "wrap",
+        }}
+        role="note"
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0 }}>
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 14,
+              background: "rgba(var(--color-primary-rgb), 0.16)",
+              border: "1px solid rgba(var(--color-primary-rgb), 0.22)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+            aria-hidden
+          >
+            <Icons.MessageCircle size={18} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.01em" }}>
+              Need a custom integration?
+            </div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              Tell us what you’re using (CRM, data source, or workflow). We’ll help you plan the best integration path.
+            </div>
+          </div>
+        </div>
+        <Link href="/contact" className="btn-primary" style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700 }}>
+          Contact us for integrations
+        </Link>
       </div>
 
       <style
@@ -1147,8 +1198,7 @@ export function IntegrationsHub() {
           __html: `
 @media (max-width: 720px) {
   .integrations-messaging-grid { grid-template-columns: 1fr !important; }
-  .integrations-email-grid { grid-template-columns: 1fr !important; }
-  .integrations-crm-grid { grid-template-columns: 1fr !important; }
+  .integrations-crm-grid { grid-template-columns: 1fr !important; overflow-x: visible !important; padding-bottom: 0 !important; }
 }
 .integration-universal-card[data-interactive="true"]:hover {
   border-color: rgba(var(--color-primary-rgb), 0.2) !important;

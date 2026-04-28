@@ -40,6 +40,8 @@ interface AdminSeatsSummary {
   included_seats_from_plan: number;
   billing_extra_seats: number;
   effective_total_seats: number;
+  previous_included_seats_from_plan?: number;
+  previous_effective_total_seats?: number;
   workspaces: Array<{
     base_id: number;
     name: string;
@@ -183,7 +185,12 @@ export default function AdminUsersPage() {
         method: "PATCH",
         body: JSON.stringify({ billing_extra_seats: extra }),
       });
-      showSuccess("Seats updated", `${seatsModalUser.name}'s seat adjustment was saved.`);
+      showSuccess(
+        "Seats updated",
+        seatsSummary.plan_active
+          ? `${seatsModalUser.name}'s seat adjustment was saved.`
+          : `${seatsModalUser.name}'s extra seats were saved and will apply when they have an active plan.`
+      );
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("sparkai:workspace-seat-allowance-changed", {
@@ -468,7 +475,7 @@ export default function AdminUsersPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 100,
+        zIndex: 2200,
         padding: "12px 10px",
         boxSizing: "border-box",
       }}
@@ -775,20 +782,53 @@ export default function AdminUsersPage() {
               <p style={{ margin: 0, fontSize: 14, color: "#dc2626" }}>{seatsLoadError}</p>
             ) : seatsSummary ? (
               <>
-                <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
-                  <strong style={{ color: "var(--color-text)" }}>Plan:</strong>{" "}
-                  {seatsSummary.billing_plan_key || "—"}
-                  {" · "}
-                  <strong style={{ color: "var(--color-text)" }}>Active:</strong>{" "}
-                  {seatsSummary.plan_active ? "Yes" : "No"}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 650,
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-secondary)",
+                      color: "var(--color-text)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {seatsSummary.plan_active ? "Plan" : "Previous plan"}: {seatsSummary.billing_plan_key || "—"}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 650,
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${seatsSummary.plan_active ? "rgba(34, 197, 94, 0.35)" : "rgba(248, 113, 113, 0.35)"}`,
+                      background: seatsSummary.plan_active ? "rgba(34, 197, 94, 0.12)" : "rgba(248, 113, 113, 0.10)",
+                      color: seatsSummary.plan_active ? "#16a34a" : "#ef4444",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {seatsSummary.plan_active ? "Active" : "Inactive"}
+                  </span>
                   {seatsSummary.billing_expires_at ? (
-                    <>
-                      {" · "}
-                      <strong style={{ color: "var(--color-text)" }}>Expires (UTC):</strong>{" "}
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        border: "1px solid var(--color-border)",
+                        background: "transparent",
+                        color: "var(--color-text-muted)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Expires (UTC):{" "}
                       {new Date(seatsSummary.billing_expires_at).toLocaleString(undefined, { timeZone: "UTC" })}
-                    </>
+                    </span>
                   ) : null}
-                </p>
+                </div>
 
                 {seatsSummary.team_member_only ? (
                   <div role="status" style={{ fontSize: 13, lineHeight: 1.5, color: "var(--color-text)", marginBottom: 16 }}>
@@ -802,13 +842,19 @@ export default function AdminUsersPage() {
                   </div>
                 ) : (
                   <>
-                    <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
-                      Each workspace can have up to <strong>{seatsSummary.effective_total_seats}</strong> people:{" "}
-                      <strong>{seatsSummary.included_seats_from_plan}</strong> from the plan, plus{" "}
-                      <strong>{Math.max(0, seatsSummary.billing_extra_seats)}</strong> you added below. Right now about{" "}
-                      <strong>{seatsSummary.aggregate_remaining_min}</strong> space
-                      {seatsSummary.aggregate_remaining_min === 1 ? " is" : "s are"} left for new teammates (the owner
-                      always uses one spot).
+                    <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 10px", lineHeight: 1.45 }}>
+                      {seatsSummary.plan_active ? (
+                        <>
+                          Each workspace can have up to <strong>{seatsSummary.effective_total_seats}</strong> people (
+                          <strong>{seatsSummary.included_seats_from_plan}</strong> plan +{" "}
+                          <strong>{Math.max(0, seatsSummary.billing_extra_seats)}</strong> extra).
+                        </>
+                      ) : (
+                        <>
+                          <strong>No active plan.</strong> Team seats are paused (owner-only). Extra seats are saved and
+                          apply automatically when a plan becomes active.
+                        </>
+                      )}
                     </p>
 
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6, color: "var(--color-text-muted)" }}>

@@ -1,0 +1,311 @@
+/* Help & Support — content inside upgrade full-bleed shell */
+.helpHub {
+  --help-hub-radius: 22px;
+  --help-hub-tile-pad: clamp(1.25rem, 3vw, 1.75rem);
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 0 3rem;
+}
+
+.helpHub--embedded {
+  margin-top: 0.25rem;
+}
+
+.helpHub__bento {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+/* Purple “Contact Us” strip (matches brand reference) */
+.helpHub__contactCard {
+  border-radius: var(--help-hub-radius);
+  padding: clamp(1.35rem, 3.2vw, 2rem);
+  margin-bottom: clamp(1.5rem, 3vw, 2rem);
+  background: linear-gradient(135deg, #5b21b6 0%, #6d28d9 42%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 16px 40px -20px rgba(91, 33, 182, 0.55);
+  animation: helpHubFadeUp 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.12s backwards;
+}
+
+.helpHub__contactCardTitle {
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 1.25rem;
+  color: #fff;
+}
+
+.helpHub__contactList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.helpHub__contactRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.helpHub__contactRow svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.95;
+}
+
+.helpHub__contactText {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.helpHub__contactLink {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.45);
+  text-underline-offset: 3px;
+  font-weight: 600;
+}
+
+.helpHub__contactLink:hover {
+  text-decoration-color: #fff;
+}
+
+@media (min-width: 880px) {
+  .helpHub__bento {
+    grid-template-columns: 1.35fr 1fr;
+    grid-template-rows: auto auto;
+    align-items: stretch;
+  }
+
+  .helpHub__tile--featured {
+    grid-row: 1 / span 2;
+  }
+}
+
+.helpHub__tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--help-hub-tile-pad);
+  border-radius: calc(var(--help-hub-radius) - 2px);
+  text-decoration: none;
+  color: inherit;
+  background: color-mix(in srgb, var(--elev-bg, var(--color-surface)) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  box-shadow: 0 2px 12px -4px color-mix(in srgb, var(--color-text) 12%, transparent);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  animation: helpHubFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.helpHub__tile:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.helpHub__tile:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.helpHub__tile:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.helpHub__tile:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  box-shadow:
+    0 12px 36px -18px color-mix(in srgb, var(--color-primary) 35%, transparent),
+    0 4px 16px -6px color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+
+.helpHub__tile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.helpHub__tile--featured {
+  min-height: 100%;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--color-primary) 12%, var(--elev-bg, var(--color-surface))) 0%, var(--elev-bg, var(--color-surface)) 55%);
+}
+
+.helpHub__iconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 22%, transparent), color-mix(in srgb, var(--color-primary) 6%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* Distinct from brand primary (support-blue may alias to primary in theme) */
+.helpHub__tile--accentBlue .helpHub__iconWrap {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.06));
+  border-color: rgba(37, 99, 235, 0.28);
+  color: #1d4ed8;
+}
+
+.helpHub__tile--accentBlue .helpHub__tileCta {
+  color: #1d4ed8;
+}
+
+.helpHub__tile--accentBlue:hover {
+  border-color: color-mix(in srgb, #2563eb 40%, var(--color-border));
+  box-shadow:
+    0 12px 36px -18px color-mix(in srgb, #2563eb 28%, transparent),
+    0 4px 16px -6px color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+
+.helpHub__tile--accentViolet .helpHub__iconWrap {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #8b5cf6 20%, transparent),
+    color-mix(in srgb, #8b5cf6 6%, transparent)
+  );
+  border-color: color-mix(in srgb, #8b5cf6 28%, transparent);
+  color: #7c3aed;
+}
+
+.helpHub__tileTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+  color: var(--color-text);
+}
+
+.helpHub__tileDesc {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  margin: 0 0 1rem;
+  flex: 1;
+}
+
+.helpHub__tileCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: auto;
+}
+
+.helpHub__tileCta svg {
+  opacity: 0.85;
+  transition: transform 0.2s ease;
+}
+
+.helpHub__tile:hover .helpHub__tileCta svg {
+  transform: translate(3px, -2px);
+}
+
+.helpHub__email {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+  word-break: break-all;
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-primary) 45%, transparent);
+  padding-bottom: 2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.helpHub__email:hover {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.helpHub__tips {
+  border-radius: var(--help-hub-radius);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  background: color-mix(in srgb, var(--elev-bg, var(--color-surface)) 96%, var(--color-text) 4%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  box-shadow: 0 2px 14px -6px color-mix(in srgb, var(--color-text) 10%, transparent);
+  animation: helpHubFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
+}
+
+.helpHub__tipsHead {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.1rem;
+}
+
+.helpHub__tipsHead h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.helpHub__tipsGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .helpHub__tipsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.helpHub__tip {
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: var(--elev-bg, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.helpHub__tip:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
+  transform: translateY(-1px);
+}
+
+.helpHub__tip strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.helpHub__tipNum {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, #000));
+  margin-bottom: 0.5rem;
+}
+
+@keyframes helpHubFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

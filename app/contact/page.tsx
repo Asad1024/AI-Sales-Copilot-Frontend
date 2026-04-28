@@ -4,11 +4,14 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useNotification } from "@/context/NotificationContext";
 import LandingMarketingNav from "@/components/landing/LandingMarketingNav";
+import { Icons } from "@/components/ui/Icons";
+import { isAuthenticated } from "@/lib/apiClient";
 import "../upgrade/upgrade-page.css";
 
 export default function ContactPage() {
   const { showSuccess } = useNotification();
   const [appearance, setAppearance] = useState<"light" | "dark">("light");
+  const authed = isAuthenticated();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,15 +30,17 @@ export default function ContactPage() {
   };
 
   return (
-    <div className={`upgrade-fullpage landing-page${appearance === "light" ? " landing-theme-light" : ""}`}>
-      <LandingMarketingNav
-        cta="signup"
-        appearance={appearance}
-        onToggleAppearance={toggleAppearance}
-        links="app"
-        showLogin
-      />
-      <main className="upgrade-fullpage__main">
+    <div className={!authed ? `upgrade-fullpage landing-page${appearance === "light" ? " landing-theme-light" : ""}` : undefined}>
+      {!authed ? (
+        <LandingMarketingNav
+          cta="signup"
+          appearance={appearance}
+          onToggleAppearance={toggleAppearance}
+          links="marketing"
+          showLogin
+        />
+      ) : null}
+      <main className={!authed ? "upgrade-fullpage__main" : undefined} style={authed ? { maxWidth: 1100, margin: "0 auto" } : undefined}>
         <header className="upgrade-fullpage__hero">
           <p className="upgrade-fullpage__kicker">Contact</p>
           <h1 className="upgrade-fullpage__title">Get in touch</h1>
@@ -147,8 +152,23 @@ export default function ContactPage() {
         </div>
 
         <p style={{ textAlign: "center", marginTop: 48, marginBottom: 0 }}>
-          <Link href="/" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
-            ← Back to home
+          <Link
+            href="/"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              color: "var(--color-primary)",
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "10px 12px",
+              borderRadius: 999,
+              border: "1px solid rgba(var(--color-primary-rgb), 0.22)",
+              background: "rgba(255,255,255,0.7)",
+            }}
+          >
+            <Icons.ChevronLeft size={18} />
+            Back to homepage
           </Link>
         </p>
       </main>

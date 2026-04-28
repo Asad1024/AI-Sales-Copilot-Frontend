@@ -6,7 +6,7 @@ import { AlertCircle, X } from "lucide-react";
 import { apiRequest, getUser, setUser, type User } from "@/lib/apiClient";
 
 /** After grace ends (credits cleared / enforcement), show post-grace copy only this long, then hide automatically. */
-const POST_GRACE_BANNER_VISIBLE_MS = 2 * 60 * 1000;
+const POST_GRACE_BANNER_VISIBLE_MS = 24 * 60 * 60 * 1000;
 
 function parseIsoMs(s: string | null | undefined): number | null {
   if (!s) return null;

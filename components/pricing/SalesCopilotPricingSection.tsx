@@ -31,7 +31,7 @@ function parseIsoMs(s: string | null | undefined): number | null {
 }
 
 /** Keep "expired" UI affordances visible briefly after grace ends (matches banner). */
-const POST_GRACE_VISIBLE_MS = 2 * 60 * 1000;
+const POST_GRACE_VISIBLE_MS = 24 * 60 * 60 * 1000;
 
 function computePlanPhase(nowMs: number): {
   currentPlanKeyForUi: string | null;

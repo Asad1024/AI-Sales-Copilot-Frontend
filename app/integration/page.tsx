@@ -1,8 +1,11 @@
-"use client";
-
+import { Suspense } from "react";
 import { IntegrationsHub } from "@/app/settings/IntegrationsHub";
 
 export default function IntegrationPage() {
-  return <IntegrationsHub />;
+  return (
+    <Suspense fallback={null}>
+      <IntegrationsHub />
+    </Suspense>
+  );
 }
 
